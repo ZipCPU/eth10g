@@ -1,0 +1,209 @@
+################################################################################
+##
+## Filename: 	sdram.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	To describe how to provide access to an SDRAM controller
+##		from the Wishbone bus, where such SDRAM controller uses a
+##	different clock from the Wishbone bus itself.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=sdram
+@DEVID=SDRAM
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS=ALLCLOCKS_PRESENT
+## LGMEMSZ is the size of the SDRAM in bytes, 29 => 512MB
+@$LGMEMSZ=29
+@LGMEMSZ.FORMAT=%d
+@$UNUSED=9
+@$NADDR=(1<<(LGMEMSZ-(@$(UNUSED))))
+@$NBYTES=(1<<(@$LGMEMSZ))
+@NBYTES.FORMAT=0x%08x
+@$MADDR= @$(REGBASE)
+@MADDR.FORMAT=0x%08x
+@SLAVE.TYPE=MEMORY
+@SLAVE.BUS=wbwide
+# @CLOCK.NAME=clk
+# @CLOCK.FREQUENCY = 81250000
+@BUS=wb
+## @ERROR.WIRE=@$(PREFIX)_err
+# 8-bit byte accesses
+@$ABITS=@$(LGMEMSZ)-@$(UNUSED)
+@LD.PERM=wx
+@TOP.PORTLIST=
+		// SDRAM I/O port wires
+		ddr3_reset_n, ddr3_cke, ddr3_ck_p, ddr3_ck_n,
+		ddr3_ras_n, ddr3_cas_n, ddr3_we_n,
+		ddr3_dqs_p, ddr3_dqs_n,
+		ddr3_addr, ddr3_ba,
+		ddr3_dq, ddr3_dm, ddr3_odt
+@TOP.IODECL=
+	// I/O declarations for the DDR3 SDRAM
+	// {{{
+	output	wire		ddr3_reset_n;
+	output	wire	[0:0]	ddr3_cke;
+	output	wire	[0:0]	ddr3_ck_p, ddr3_ck_n;
+	// output	wire	[0:0]	ddr3_cs_n; // This design has no CS pin
+	output	wire		ddr3_ras_n, ddr3_cas_n, ddr3_we_n;
+	output	wire	[2:0]	ddr3_ba;
+	output	wire	[14:0]	ddr3_addr;
+	output	wire	[0:0]	ddr3_odt;
+	output	wire	[1:0]	ddr3_dm;
+	inout	wire	[1:0]	ddr3_dqs_p, ddr3_dqs_n;
+	inout	wire	[15:0]	ddr3_dq;
+	// }}}
+@TOP.DEFNS=
+	// Wires necessary to run the SDRAM
+	// {{{
+	wire	@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we,
+		@$(PREFIX)_stall, @$(PREFIX)_ack, @$(PREFIX)_err;
+	wire	[(@$(LGMEMSZ)-@$(UNUSED)-1):0]	@$(PREFIX)_addr;
+	wire	[(@$(BUS.WIDTH)-1):0]	@$(PREFIX)_wdata,
+					@$(PREFIX)_rdata;
+	wire	[(@$(BUS.WIDTH)/8-1):0]	@$(PREFIX)_sel;
+
+	// }}}
+	// Wires coming back from the SDRAM
+	wire	s_clk, s_reset;
+@TOP.MAIN=
+		// The SDRAM interface to an toplevel AXI4 module
+		//
+		@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we,
+			@$(PREFIX)_addr, @$(PREFIX)_wdata, @$(PREFIX)_sel,
+			@$(PREFIX)_stall, @$(PREFIX)_ack, @$(PREFIX)_rdata,
+			@$(PREFIX)_err
+@TOP.INSERT=
+	wire	[31:0]	@$(PREFIX)_debug;
+
+	migsdram #(
+		// {{{
+		.AXIDWIDTH(1), .WBDATAWIDTH(@$(BUS.WIDTH)),
+		.DDRWIDTH(16),
+		.RAMABITS(@$(LGMEMSZ))
+		// }}}
+	) @$(PREFIX)i(
+		// {{{
+		.i_clk(i_clk_buffered),
+		.i_clk_200mhz(s_clk_200mhz),
+		.o_sys_clk(s_clk),
+		// .i_rst(!i_cpu_resetn),
+		.i_rst(upper_plls_stable[3:2] != 2'b11),
+		.o_sys_reset(s_reset),
+		//
+		.i_wb_cyc(@$(PREFIX)_cyc), .i_wb_stb(@$(PREFIX)_stb),
+		.i_wb_we(@$(PREFIX)_we), .i_wb_addr(@$(PREFIX)_addr),
+			.i_wb_data(@$(PREFIX)_wdata), .i_wb_sel(@$(PREFIX)_sel),
+		.o_wb_stall(@$(PREFIX)_stall),    .o_wb_ack(@$(PREFIX)_ack),
+			.o_wb_data(@$(PREFIX)_rdata), .o_wb_err(@$(PREFIX)_err),
+		//
+		.o_ddr_ck_p(ddr3_ck_p), .o_ddr_ck_n(ddr3_ck_n),
+		.o_ddr_reset_n(ddr3_reset_n), .o_ddr_cke(ddr3_cke),
+		// .o_ddr_cs_n(ddr3_cs_n),	// No CS on this chip
+		.o_ddr_ras_n(ddr3_ras_n),
+		.o_ddr_cas_n(ddr3_cas_n), .o_ddr_we_n(ddr3_we_n),
+		.o_ddr_ba(ddr3_ba), .o_ddr_addr(ddr3_addr),
+		.o_ddr_odt(ddr3_odt), .o_ddr_dm(ddr3_dm),
+		.io_ddr_dqs_p(ddr3_dqs_p), .io_ddr_dqs_n(ddr3_dqs_n),
+		.io_ddr_data(ddr3_dq)
+		// }}}
+	);
+ 	
+@MAIN.PORTLIST=
+		// SDRAM ports
+		o_@$(PREFIX)_cyc, o_@$(PREFIX)_stb, o_@$(PREFIX)_we,
+				o_@$(PREFIX)_addr, o_@$(PREFIX)_data, o_@$(PREFIX)_sel,
+			i_@$(PREFIX)_stall, i_@$(PREFIX)_ack, i_@$(PREFIX)_data,
+			i_@$(PREFIX)_err
+@MAIN.IODECL=
+	// SDRAM I/O declarations
+	// {{{
+	output	wire			o_@$(PREFIX)_cyc,
+					o_@$(PREFIX)_stb, o_@$(PREFIX)_we;
+	output	wire	[@$(ABITS)-1:0]	o_@$(PREFIX)_addr;
+	output	wire	[(@$(BUS.WIDTH)-1):0]	o_@$(PREFIX)_data;
+	output	wire	[(@$(BUS.WIDTH)/8)-1:0]	o_@$(PREFIX)_sel;
+	//
+	input	wire			i_@$(PREFIX)_ack;
+	input	wire			i_@$(PREFIX)_stall;
+	input	wire	[(@$(BUS.WIDTH)-1):0]	i_@$(PREFIX)_data;
+	// Verilator lint_off UNUSED
+	input	wire			i_@$(PREFIX)_err;
+	// Verilator lint_on  UNUSED
+	// }}}
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Export the @$(PREFIX) bus to the top level
+	// {{{
+	assign	o_@$(PREFIX)_cyc  = @$(SLAVE.PREFIX)_cyc;
+	assign	o_@$(PREFIX)_stb  =(@$(SLAVE.PREFIX)_stb);
+	assign	o_@$(PREFIX)_we   = @$(SLAVE.PREFIX)_we;
+	assign	o_@$(PREFIX)_addr = @$(SLAVE.PREFIX)_addr[@$(ABITS)-1:0];
+	assign	o_@$(PREFIX)_data = @$(SLAVE.PREFIX)_data;
+	assign	o_@$(PREFIX)_sel  = @$(SLAVE.PREFIX)_sel;
+	assign	@$(SLAVE.PREFIX)_ack   = i_@$(PREFIX)_ack;
+	assign	@$(SLAVE.PREFIX)_stall = i_@$(PREFIX)_stall;
+	assign	@$(SLAVE.PREFIX)_idata = i_@$(PREFIX)_data;
+	// }}}
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@REGDEFS.H.DEFNS=
+#define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
+#define	@$(DEVID)LEN	@$(NBYTES)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=extern char	_@$(PREFIX)[@$NBYTES];
+@LD.PERM=wx
+@SIM.INCLUDE=
+#include "memsim.h"
+@SIM.DEFNS=
+#ifdef	@$(ACCESS)
+	MEMSIM	*m_@$(PREFIX);
+#endif	// @$(ACCESS)
+@SIM.INIT=
+#ifdef	@$(ACCESS)
+		m_@$(PREFIX) = new MEMSIM(@$(NBYTES));
+#endif	// @$(ACCESS)
+@SIM.CLOCK=@$(SLAVE.BUS.CLOCK.NAME)
+@SIM.TICK=
+#ifdef	@$(ACCESS)
+		// Simulate the SDRAM
+		// {{{
+		(*m_@$(PREFIX))(m_core->o_@$(PREFIX)_cyc,
+			m_core->o_@$(PREFIX)_stb,
+			m_core->o_@$(PREFIX)_we,
+			m_core->o_@$(PREFIX)_addr,
+			&m_core->o_@$(PREFIX)_data,
+			m_core->o_@$(PREFIX)_sel,
+			m_core->i_@$(PREFIX)_stall,
+			m_core->i_@$(PREFIX)_ack,
+			&m_core->i_@$(PREFIX)_data);
+		m_core->i_@$(PREFIX)_err = 0;
+		// }}}
+#endif	// @$(ACCESS)
+@SIM.LOAD=
+			m_@$(PREFIX)->load(start, &buf[offset], wlen);

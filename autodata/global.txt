@@ -1,0 +1,113 @@
+################################################################################
+##
+## Filename: 	global.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Capture any global configuration parameters
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@LEGAL=legalgen.txt
+@PROJECT=Demonstration SONAR project
+#
+# @KEYS.TRIMLIST is a list of all string keys that need to be trimmed (have
+# spaces removed from either side) before being used
+# @KEYS.INTLIST is a list of all things that need to be converted to integers
+@KEYS.INTLIST= BUS_ADDRESS_WIDTH NADDR NPIC NSCOPES PIC.MAX REGS.N ID
+@DEFAULT.BUS=wb
+@$RESET_ADDRESS=@$flash.REGBASE+(@$flash.NADDR)
+@RESET_ADDRESS.FORMAT=32'h%08x
+@REGISTER.BUS=wbu
+@VERILATOR_PREFIX=v
+@XDC.FILE=../nexysv.xdc
+@REGDEFS.H.INSERT=
+typedef	struct {
+	unsigned	m_addr;
+	const char	*m_name;
+} REGNAME;
+
+extern	const	REGNAME	*bregs;
+extern	const	int	NREGS;
+// #define	NREGS	(sizeof(bregs)/sizeof(bregs[0]))
+
+extern	unsigned	addrdecode(const char *v);
+extern	const	char *addrname(const unsigned v);
+@REGDEFS.CPP.INCLUDE=
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <ctype.h>
+@REGDEFS.CPP.INSERT=
+#define	RAW_NREGS	(sizeof(raw_bregs)/sizeof(bregs[0]))
+
+const	REGNAME		*bregs = raw_bregs;
+const	int	NREGS = RAW_NREGS;
+
+unsigned	addrdecode(const char *v) {
+	if (isalpha(v[0])) {
+		for(int i=0; i<NREGS; i++)
+			if (strcasecmp(v, bregs[i].m_name)==0)
+				return bregs[i].m_addr;
+		fprintf(stderr, "Unknown register: %s\n", v);
+		exit(-2);
+	} else
+		return strtoul(v, NULL, 0);
+}
+
+const	char *addrname(const unsigned v) {
+	for(int i=0; i<NREGS; i++)
+		if (bregs[i].m_addr == v)
+			return bregs[i].m_name;
+	return NULL;
+}
+
+@SIM.INCLUDE=
+#include "verilated.h"
+#include "Vmain.h"
+#define	BASECLASS	Vmain
+
+#include "design.h"
+#include "regdefs.h"
+#include "testb.h"
+@PREFIX=wb
+@BUS.NAME=wbwide
+@BUS.TYPE=wb
+@$BUS.WIDTH=512
+@BUS.CLOCK=clk
+@$BUS.NULLSZ=0x400
+##
+## @PREFIX=wb
+## @BUS.NAME=wbwide
+## @BUS.TYPE=wb
+## @$BUS.WIDTH=512
+## @BUS.CLOCK=clk
+##
+@PREFIX=wb32
+@BUS.NAME=wb32
+@BUS.TYPE=wb
+@$BUS.WIDTH=32
+@BUS.CLOCK=clk

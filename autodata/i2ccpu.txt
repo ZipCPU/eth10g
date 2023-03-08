@@ -1,0 +1,181 @@
+################################################################################
+##
+## Filename:	autodata/i2ccpu.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Drive and control the I2C bus
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=i2c
+@DEVID=I2CCPU
+@NADDR=4
+@ACCESS=@$(DEVID)_ACCESS
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=DOUBLE
+@SLAVE.PREFIX=wb_@$(PREFIX)s
+@MASTER.TYPE=CPU
+@MASTER.BUS=wbwide
+@MASTER.PREFIX=wb_@$(PREFIX)m
+@SGP=@$(BUS.PREFIX)
+@WBP=@$(SLAVE.BUS.PREFIX)
+@MASTER.ANSPREFIX=pf_
+@TOP.PORTLIST=
+			io_@$(PREFIX)_sda, io_@$(PREFIX)_scl
+@TOP.IODECL=
+	inout	wire	io_@$(PREFIX)_sda, io_@$(PREFIX)_scl;
+@TOP.DEFNS=
+	// I2CCPU definitions
+	// {{{
+	wire	i_@$(PREFIX)_sda, i_@$(PREFIX)_scl,
+		o_@$(PREFIX)_sda, o_@$(PREFIX)_scl;
+	// }}}
+@TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// I2C IO buffers
+	// {{{
+
+	// We need these in order to (properly) ensure the high impedance
+	// states (pull ups) of the I2C I/O lines.  Our goals are:
+	//
+	//	o_@$(PREFIX)_X	io_@$(PREFIX)_X		Derived:T
+	//	1'b0		1'b0			1'b0
+	//	1'b1		1'bz			1'b1
+	//
+	IOBUF @$(PREFIX)sclp(
+		// {{{
+		.I(1'b0),
+		.T(o_@$(PREFIX)_scl),
+		.O(i_@$(PREFIX)_scl),
+		.IO(io_@$(PREFIX)_scl)
+		// }}}
+	);
+
+	IOBUF @$(PREFIX)sdap(
+		// {{{
+		.I(1'b0),
+		.T(o_@$(PREFIX)_sda),
+		.O(i_@$(PREFIX)_sda),
+		.IO(io_@$(PREFIX)_sda)
+		// }}}
+	);
+	// }}}
+@TOP.MAIN=
+		// I2CCPU
+		i_@$(PREFIX)_sda, i_@$(PREFIX)_scl,
+		o_@$(PREFIX)_sda, o_@$(PREFIX)_scl
+@MAIN.PORTLIST=
+			i_@$(PREFIX)_sda, i_@$(PREFIX)_scl,
+			o_@$(PREFIX)_sda, o_@$(PREFIX)_scl
+@MAIN.IODECL=
+	// I2C Port declarations
+	// {{{
+	input	wire	i_@$(PREFIX)_sda, i_@$(PREFIX)_scl;
+	output	wire	o_@$(PREFIX)_sda, o_@$(PREFIX)_scl;
+	// }}}
+@MAIN.DEFNS=
+	// I2C Controller
+	// {{{
+	// Verilator lint_off UNUSED
+	wire		@$(PREFIX)_valid, @$(PREFIX)_ready, @$(PREFIX)_last;
+	wire	[7:0]	@$(PREFIX)_data;
+
+	wire	[31:0]	@$(PREFIX)_debug;
+	// Verilator lint_on  UNUSED
+	// }}}
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// The I2C Controller
+	// {{{
+
+	wbi2ccpu #(
+		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)),
+		.DATA_WIDTH(@$(MASTER.BUS.WIDTH))
+	) @$(PREFIX)i (
+		// {{{
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)), .i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		@$(SLAVE.ANSIPORTLIST),
+		@$(MASTER.ANSIPORTLIST),
+		.i_i2c_sda(i_@$(PREFIX)_sda), .i_i2c_scl(i_@$(PREFIX)_scl),
+		.o_i2c_sda(o_@$(PREFIX)_sda), .o_i2c_scl(o_@$(PREFIX)_scl),
+		.M_AXIS_TVALID(@$(PREFIX)_valid), .M_AXIS_TREADY(@$(PREFIX)_ready),
+			.M_AXIS_TDATA(@$(PREFIX)_data), .M_AXIS_TLAST(@$(PREFIX)_last),
+		.i_sync_signal(1'b0),
+		//
+		.o_debug(@$(PREFIX)_debug)
+		// }}}
+	);
+
+`ifndef	NAD_ACCESS
+	assign	@$(PREFIX)_ready = 1;
+`endif
+	// }}}
+@MAIN.ALT=
+	assign	o_@$(PREFIX)_scl = 1'b1;
+	assign	o_@$(PREFIX)_sda = 1'b1;
+##
+## regdefs.h / regdefs.cpp
+##
+@REGS.N=4
+@REGS.0= 0 R_@$(DEVID) @$(DEVID) @$(DEVID)_CTRL @$(DEVID)CTRL
+@REGS.1= 1 R_@$(DEVID)_OVW  @$(DEVID)_OVW @$(DEVID)_OVERRIDE
+@REGS.2= 2 R_@$(DEVID)_ADDR @$(DEVID)_ADDR @$(DEVID)_ADDRESS
+@REGS.3= 3 R_@$(DEVID)_CKCOUNT  @$(DEVID)CLK @$(DEVID)_CKCOUNT
+##
+## board.h
+##
+@BDEF.DEFN=
+#ifndef	@$(DEVID)_H
+#define	@$(DEVID)_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// I2C CPU data structures
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+typedef struct  @$(DEVID)_S        {
+	unsigned	ic_control, ic_override, ic_address, ic_clkcount;
+} @$(DEVID);
+
+#endif	// @$(DEVID)_H
+	// }}}
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME)=((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+##
+## Makefile insert info
+##
+@RTL.MAKE.GROUP=@$(DEVID)
+@RTL.MAKE.SUBD=wbi2c
+## RTL.MAKE.FILES *shoul* also include dblfetch, but that's a part of the CPU
+## directory, so we don't include it here a second time
+@RTL.MAKE.FILES=wbi2ccpu.v axisi2c.v
+##

@@ -1,0 +1,220 @@
+################################################################################
+##
+## Filename: 	sdspi.c
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to connect an SD-SPI peripheral to a wishbone
+##		bus, as used by autofpga.  Note how the description requires
+##	both a description of what needs to take place in a top level file, as
+##	well as in the main
+##
+##	An interesting consequence of this description is that upgrading to a
+##	proper SDIO device would involve no more than swapping this file for an
+##	sdio.c peripheral description file.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=sdcard
+@DEVID=SDSPI
+@NADDR=4
+@ACCESS=SDSPI_ACCESS
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb32
+@BUS.NAME=wb32
+## @SCOPE.TRIGGER=sd_debug[31]
+## @SCOPE.DATA=sd_debug
+@INT.SDCARD.WIRE= @$(PREFIX)_int
+@INT.SDCARD.PIC= buspic syspic
+@TOP.PORTLIST=
+		// SD Card
+		o_sd_sck, io_sd_cmd, io_sd, i_sd_cd_n
+@TOP.IODECL=
+	// SD Card
+	// {{{
+	output	wire		o_sd_sck;
+	inout	wire		io_sd_cmd;
+	inout	wire	[3:0]	io_sd;
+	input	wire		i_sd_cd_n;
+	// }}}
+@TOP.DEFNS=
+	// SD Card definitions
+	// {{{
+	wire		w_sd_cmd;
+	wire	[3:0]	w_sd_data;
+
+	wire		i_sd_cmd;
+	wire	[3:0]	i_sd;
+	// }}}
+@TOP.MAIN=
+		// SD Card
+		o_sd_sck, w_sd_cmd, w_sd_data, i_sd, !i_sd_cd_n
+@TOP.INSERT=
+	//////////////////////////////////////////////////////////////////////
+	//
+	// SD Card SPI Controller
+	// {{{
+	//////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	// Wires for setting up the SD Card Controller
+	// {{{
+	// This is how we'd set up for SDIO
+	// assign io_sd_cmd = w_sd_cmd ? 1'bz:1'b0;	// MOSI
+	// assign io_sd[0] = w_sd_data[0]? 1'bz:1'b0;	// MISO
+	// assign io_sd[1] = w_sd_data[1]? 1'bz:1'b0;
+	// assign io_sd[2] = w_sd_data[2]? 1'bz:1'b0;
+	// assign io_sd[3] = w_sd_data[3]? 1'bz:1'b0;	// CS_n
+	// }}}
+	IOBUF sd_cmd_bf(.T(1'b0),.O(i_sd_cmd),.I(w_sd_cmd),.IO(io_sd_cmd));// MISO
+	IOBUF sd_dat0_bf(.T(1'b1),.O(i_sd[0]),.I(1'b1),.IO(io_sd[0]));// MISO
+	IOBUF sd_dat1_bf(.T(1'b1),.O(i_sd[1]),.I(1'b1),.IO(io_sd[1]));
+	IOBUF sd_dat2_bf(.T(1'b1),.O(i_sd[2]),.I(1'b1),.IO(io_sd[2]));
+
+	// Implement an open-drain output
+	IOBUF sd_dat3_bf(.T(w_sd_data[3]),.O(i_sd[3]),.I(1'b0),.IO(io_sd[3]));
+	// }}}
+@MAIN.PORTLIST=
+		// The SD-Card wires
+		o_sd_sck, o_sd_cmd, o_sd_data, i_sd_data, i_sd_detect
+@MAIN.IODECL=
+	// SD-Card declarations
+	// {{{
+	output	wire		o_sd_sck, o_sd_cmd;
+	output	wire	[3:0]	o_sd_data;
+	// verilator lint_off UNUSED
+	input	wire	[3:0]	i_sd_data;
+	// verilator lint_on  UNUSED
+	input	wire		i_sd_detect;
+	// }}}
+@MAIN.DEFNS=
+	// SD SPI definitions
+	// Verilator lint_off UNUSED
+	wire	[31:0]	sdspi_debug;
+	// Verilator lint_on  UNUSED
+	wire		w_sd_cs_n, w_sd_mosi, w_sd_miso;
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// SD Card SPI handling
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	sdspi
+	@$(PREFIX)i(
+		// {{{
+		i_clk, sd_reset,
+		@$(SLAVE.PORTLIST),
+		w_sd_cs_n, o_sd_sck, w_sd_mosi, w_sd_miso, i_sd_detect,
+		@$(PREFIX)_int, 1'b1, sdspi_debug
+		// }}}
+	);
+
+	assign	w_sd_miso = i_sd_data[0];
+	assign	o_sd_data = { w_sd_cs_n, 3'b111 };
+	assign	o_sd_cmd  = w_sd_mosi;
+	// }}}
+@MAIN.ALT=
+	assign	o_sd_sck   = 1'b1;
+	assign	o_sd_cmd   = 1'b1;
+	assign	o_sd_data  = 4'hf;
+@REGS.N=4
+@REGS.NOTE= // SD-SPI addresses
+@REGS.0= 0 R_@$(DEVID)_CTRL  	SDCARD
+@REGS.1= 1 R_@$(DEVID)_DATA 	SDDATA
+@REGS.2= 2 R_@$(DEVID)_FIFOA	SDFIFOA, SDFIF0, SDFIFA
+@REGS.3= 3 R_@$(DEVID)_FIFOB	SDFIFOB, SDFIF1, SDFIFB
+@BDEF.DEFN=
+////////////////////////////////////////////////////////////////////////////////
+//
+// SD SPI constants
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+//
+//
+
+#define	@$(DEVID)_SETAUX	0x0000ff
+#define	@$(DEVID)_READAUX	0x0000bf
+#define	@$(DEVID)_CMD		0x000040
+#define	@$(DEVID)_ACMD		(0x040+55) // CMD55
+#define	@$(DEVID)_FIFO_OP	0x000800	// Read only
+#define	@$(DEVID)_WRITEOP	0x000c00	// Write to the FIFO
+#define	@$(DEVID)_ALTFIFO	0x001000
+#define	@$(DEVID)_BUSY		0x004000
+#define	@$(DEVID)_ERROR		0x008000
+#define	@$(DEVID)_CLEARERR	0x008000
+// #define	@$(DEVID)_CRCERR	0x010000
+// #define	@$(DEVID)_ERRTOK	0x020000
+#define	@$(DEVID)_REMOVED	0x040000
+#define	@$(DEVID)_PRESENTN	0x080000
+#define	@$(DEVID)_RESET		0x100000	// Read only
+#define	@$(DEVID)_WATCHDOG	0x200000	// Read only
+#define	@$(DEVID)_GO_IDLE	((@$(DEVID)_REMOVED|@$(DEVID)_CLEARERR|@$(DEVID)_CMD)+0)
+#define	@$(DEVID)_READ_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_FIFO_OP)+17)
+#define	@$(DEVID)_WRITE_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_WRITEOP)+24)
+
+typedef	struct @$(DEVID)_S {
+	unsigned	sd_ctrl, sd_data, sd_fifo[2];
+} @$(DEVID);
+// }}}
+@BDEF.IONAME=_sdcard
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+@SIM.CLOCK=clk
+@SIM.INCLUDE=
+#include "sdspisim.h"
+@SIM.DEFNS=
+#ifdef	SDSPI_ACCESS
+	SDSPISIM	m_sdcard;
+#endif // @$(ACCESS)
+@SIM.INIT=
+#ifdef	@$(ACCESS)
+		m_sdcard.debug(false);
+#endif	// @$(ACCESS)
+@SIM.METHODS=
+#ifdef	@$(ACCESS)
+	void	setsdcard(const char *fn) {
+		m_sdcard.load(fn);
+	}
+#endif // @$(ACCESS)
+@SIM.TICK=
+		// SD Card simulation
+		// {{{
+#ifdef	@$(ACCESS)
+		m_core->i_sd_data = m_sdcard((m_core->o_sd_data&8)?1:0,
+				m_core->o_sd_sck, m_core->o_sd_cmd);
+		m_core->i_sd_data &= 1;
+		m_core->i_sd_data |= (m_core->o_sd_data&0x0e);
+		m_core->i_sd_detect = 1;
+#endif	// @$(ACCESS)
+		// }}}
+@RTL.MAKE.GROUP= SDSPI
+@RTL.MAKE.SUBD=sdspi
+@RTL.MAKE.FILES= sdspi.v llsdspi.v spicmd.v spirxdata.v spitxdata.v

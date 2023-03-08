@@ -1,0 +1,264 @@
+################################################################################
+##
+## Filename: 	flash.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes the flash in our new data format.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=flash
+@DEVID=FLASH
+@ACCESS=@$(DEVID)_ACCESS
+@$LGFLASHSZ=24
+@$NADDR=(1<<(@$LGFLASHSZ-2))
+@$NBYTES=(1<<@$LGFLASHSZ)
+@NBYTES.FORMAT=0x%08x
+@SLAVE.TYPE=MEMORY
+@SLAVE.BUS=wb32
+@NDUMMY=6
+@RDDELAY=1
+@STARTUP_SCRIPT="spansion.hex"
+@TOP.PORTLIST=
+		// Top level Quad-SPI I/O ports
+		o_qspi_cs_n, io_qspi_dat
+@TOP.IODECL=
+	// Quad SPI flash
+	output	wire		o_qspi_cs_n;
+	inout	wire	[3:0]	io_qspi_dat;
+@TOP.DEFNS=
+	wire		w_qspi_sck, w_qspi_cs_n;
+	wire	[1:0]	qspi_bmod;
+	wire	[3:0]	qspi_dat;
+@TOP.MAIN=
+		// Quad SPI flash
+		w_qspi_cs_n, w_qspi_sck, qspi_dat, io_qspi_dat, qspi_bmod
+@TOP.INSERT=
+	//
+	//
+	// Wires for setting up the QSPI flash wishbone peripheral
+	//
+	//
+	// QSPI)BMOD, Quad SPI bus mode, Bus modes are:
+	//	0?	Normal serial mode, one bit in one bit out
+	//	10	Quad SPI mode, going out
+	//	11	Quad SPI mode coming from the device (read mode)
+	assign io_qspi_dat = (~qspi_bmod[1])?({2'b11,1'bz,qspi_dat[0]})
+				:((qspi_bmod[0])?(4'bzzzz):(qspi_dat[3:0]));
+	assign	o_qspi_cs_n = w_qspi_cs_n;
+
+	// The following primitive is necessary in many designs order to gain
+	// access to the o_qspi_sck pin.  It's not necessary on the Arty,
+	// simply because they provide two pins that can drive the QSPI
+	// clock pin.
+	wire	[3:0]	su_nc;	// Startup primitive, no connect
+	STARTUPE2 #(
+		// Leave PROG_USR false to avoid activating the program
+		// event security feature.  Notes state that such a feature
+		// requires encrypted bitstreams.
+		.PROG_USR("FALSE"),
+		// Sets the configuration clock frequency (in ns) for
+		// simulation.
+		.SIM_CCLK_FREQ(0.0)
+	) STARTUPE2_inst (
+	// CFGCLK, 1'b output: Configuration main clock output -- no connect
+	.CFGCLK(su_nc[0]),
+	// CFGMCLK, 1'b output: Configuration internal oscillator clock output
+	.CFGMCLK(su_nc[1]),
+	// EOS, 1'b output: Active high output indicating the End Of Startup.
+	.EOS(su_nc[2]),
+	// PREQ, 1'b output: PROGRAM request to fabric output
+	//	Only enabled if PROG_USR is set.  This lets the fabric know
+	//	that a request has been made (either JTAG or pin pulled low)
+	//	to program the device
+	.PREQ(su_nc[3]),
+	// CLK, 1'b input: User start-up clock input
+	.CLK(1'b0),
+	// GSR, 1'b input: Global Set/Reset input
+	.GSR(1'b0),
+	// GTS, 1'b input: Global 3-state input
+	.GTS(1'b0),
+	// KEYCLEARB, 1'b input: Clear AES Decrypter Key input from BBRAM
+	.KEYCLEARB(1'b0),
+	// PACK, 1-bit input: PROGRAM acknowledge input
+	//	This pin is only enabled if PROG_USR is set.  This allows the
+	//	FPGA to acknowledge a request for reprogram to allow the FPGA
+	//	to get itself into a reprogrammable state first.
+	.PACK(1'b0),
+	// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
+	// module at all.
+	.USRCCLKO(w_qspi_sck),
+	// USRCCLKTS, 1'b input: User CCLK 3-state enable input
+	//	An active high here places the clock into a high impedence
+	//	state.  Since we wish to use the clock as an active output
+	//	always, we drive this pin low.
+	.USRCCLKTS(1'b0),
+	// USRDONEO, 1'b input: User DONE pin output control
+	//	Set this to "high" to make sure that the DONE LED pin is
+	//	high.
+	.USRDONEO(1'b1),
+	// USRDONETS, 1'b input: User DONE 3-state enable output
+	//	This enables the FPGA DONE pin to be active.  Setting this
+	//	active high sets the DONE pin to high impedence, setting it
+	//	low allows the output of this pin to be as stated above.
+	.USRDONETS(1'b1)
+	);
+
+@MAIN.PORTLIST=
+		// The Universal QSPI Flash
+		o_qspi_cs_n, o_qspi_sck, o_qspi_dat, i_qspi_dat, o_qspi_mod
+@MAIN.IODECL=
+	// The Universal QSPI flash
+	output	wire		o_qspi_cs_n, o_qspi_sck;
+	output	wire	[3:0]	o_qspi_dat;
+	input	wire	[3:0]	i_qspi_dat;
+	output	wire	[1:0]	o_qspi_mod;
+@MAIN.DEFNS=
+	// Definitions for the @$(PREFIX) debug port
+	// Verilator lint_off UNUSED
+	wire		@$(PREFIX)_dbg_trigger;
+	wire	[31:0]	@$(PREFIX)_debug;
+	// Verilator lint_on  UNUSED
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Flash controller
+	// {{{
+	qflexpress #(
+		// {{{
+		.LGFLASHSZ(@$LGFLASHSZ), .OPT_CLKDIV(1),
+		.OPT_ENDIANSWAP(0),
+		.NDUMMY(@$(NDUMMY)), .RDDELAY(@$(RDDELAY)),
+		.OPT_STARTUP_FILE(@$(STARTUP_SCRIPT)),
+`ifdef	FLASHCFG_ACCESS
+		.OPT_CFG(1'b1)
+`else
+		.OPT_CFG(1'b0)
+`endif
+		// }}}
+	) @$(PREFIX)i(
+		// {{{
+		i_clk, i_reset,
+		// Primary memory reading inputs
+		@$(SLAVE.PORTLIST),
+		// Configuration bus ports
+		@$(flashcfg.SLAVE.PORTLIST),
+		o_qspi_sck, o_qspi_cs_n, o_qspi_mod, o_qspi_dat, i_qspi_dat,
+		flash_dbg_trigger, flash_debug
+		// }}}
+	);
+	// }}}
+@MAIN.ALT=
+	assign	o_qspi_sck  = 1'b1;
+	assign	o_qspi_cs_n = 1'b1;
+	assign	o_qspi_mod  = 2'b01;
+	assign	o_qspi_dat  = 4'b1111;
+	// Verilator lint_off UNUSED
+	wire	@$(PREFIX)_unused = &{ 1'b0, i_qspi_dat };
+	// Verilator lint_on UNUSED
+@MEM.NAME= flash
+@MEM.ACCESS = rx
+@REGS.N= 1
+@REGDEFS.H.DEFNS=
+#define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
+#define	@$(DEVID)LEN	@$NBYTES
+#define	@$(DEVID)LGLEN	@$LGFLASHSZ
+//
+#define	FLASH_RDDELAY	@$(RDDELAY)
+#define	FLASH_NDUMMY	@$(NDUMMY)
+//
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=extern int _@$(PREFIX)[1];
+@LD.PERM=	rx
+@LD.NAME=	@$(PREFIX)
+@SIM.CLOCK=clk
+@SIM.INCLUDE=
+#include "flashsim.h"
+@SIM.DEFNS=
+#ifdef	@$(ACCESS)
+	FLASHSIM	*m_@$(MEM.NAME);
+#endif // @$(ACCESS)
+@SIM.INIT=
+#ifdef	@$(ACCESS)
+		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN, false, @$RDDELAY, @$NDUMMY);
+#endif // @$(ACCESS)
+@SIM.TICK=
+#ifdef	@$(ACCESS)
+		m_core->i_qspi_dat = m_@$(MEM.NAME)->simtick(
+			m_core->o_qspi_cs_n,
+			m_core->o_qspi_sck,
+			m_core->o_qspi_dat,
+			m_core->o_qspi_mod);
+#endif // @$(ACCESS)
+@SIM.LOAD=
+			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
+##
+##
+##
+##
+## Now the control interface
+@PREFIX=flashcfg
+@NADDR=1
+@DEVID=FLASHCFG
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS= FLASH_ACCESS
+## Although this is really a SLAVE.TYPE=SINGLE interface, it receives its
+## acknowledgements from the flash above.  SLAVE.TYPE=SINGLE will create
+## acknowledgements in the interconnect, resulting in bus errors.  As a result,
+## this must be a SLAVE.TYPE=OTHER
+##
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb
+@MAIN.INSERT=
+	// The Flash control interface is defined by the flash instantiation
+	// hence we don't need to do anything to define it here.
+@REGS.NOTE= // FLASH erase/program configuration registers
+@REGS.N= 1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID) QSPIC
+@REGDEFS.H.INSERT=
+// Flash control constants
+#define	QSPI_FLASH	// This core and hardware support a Quad SPI flash
+#define	SZPAGEB		256
+#define	PGLENB		256
+#define	SZPAGEW		64
+#define	PGLENW		64
+#define	NPAGES		256
+#define	SECTORSZB	(NPAGES * SZPAGEB)	// In bytes, not words!!
+#define	SECTORSZW	(NPAGES * SZPAGEW)	// In words
+#define	NSECTORS	64
+#define	SECTOROF(A)	((A) & (-1<<16))
+#define	SUBSECTOROF(A)	((A) & (-1<<12))
+#define	PAGEOF(A)	((A) & (-1<<8))
+
+@BDEF.IONAME= _@$(PREFIX)
+@BDEF.OSDEF= _BOARD_HAS_@$(DEVID)
+@BDEF.IOTYPE=unsigned
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) * const @$(BDEF.IONAME) = ((@$BDEF.IOTYPE *)(@$[0x%08x](REGBASE)));
+##
+@RTL.MAKE.GROUP= FLASH
+@RTL.MAKE.FILES= qflexpress.v

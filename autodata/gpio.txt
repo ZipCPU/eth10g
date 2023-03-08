@@ -1,0 +1,121 @@
+################################################################################
+##
+## Filename: 	gpio.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=gpio
+@DEVID=GPIO
+@NADDR=1
+@ACCESS=@$(DEVID)_ACCESS
+@NGPI=16
+@NGPO=2
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb32
+# @SINGLE.OUTPUTS= o_gpio
+# @SINGLE.INPUTS=  i_gpio
+@INT.GPIO.WIRE=gpio_int
+@INT.GPIO.PIC=altpic
+@TOP.PORTLIST=
+		// @$(DEVID) ports
+		o_sd_reset
+@TOP.IODECL=
+	// GPIO wires
+	output	wire	o_sd_reset;
+@TOP.DEFNS=
+	// GPIO declarations.  The two wire busses are just virtual lists of
+	// input (or output) ports.
+	wire	[@$(NGPI)-1:0]	i_@$(PREFIX);
+	wire	[@$(NGPO)-1:0]	o_@$(PREFIX);
+	// wire		w_hdmi_out_en;
+	// wire		w_hdmi_bypass_sda;
+	// wire		w_hdmi_bypass_scl;
+@TOP.MAIN=
+		// GPIO wires
+		i_@$(PREFIX), o_@$(PREFIX)
+@TOP.INSERT=
+	assign	i_gpio = { 14'h0, sysclk_locked, !i_sd_cd_n };
+	assign	o_sd_reset = o_gpio[0];
+@MAIN.PORTLIST=
+		// GPIO ports
+		i_@$(PREFIX), o_@$(PREFIX)
+@MAIN.IODECL=
+	localparam	NGPI = @$(NGPI), NGPO=@$(NGPO);
+	// @$(DEVID) ports
+	input		[(NGPI-1):0]	i_@$(PREFIX);
+	output	wire	[(NGPO-1):0]	o_@$(PREFIX);
+@MAIN.DEFNS=
+	wire	sd_reset;
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// @$(DEVID)
+	// {{{
+	// This interface should allow us to control up to 16 @$(DEVID) inputs,
+	// and another 16 @$(DEVID) outputs.  The interrupt trips when any of
+	// the inputs changes.  (Sorry, which input isn't (yet) selectable.)
+	//
+	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 2'b1;
+
+	wbgpio	#(
+		.NIN(NGPI), .NOUT(NGPO), .DEFAULT(INITIAL_@$(DEVID))
+	) @$(PREFIX)i(
+		// {{{
+		i_clk, @$(SLAVE.PORTLIST),
+		i_@$(PREFIX), o_@$(PREFIX), @$(PREFIX)_int
+		// }}}
+	);
+
+	assign	sd_reset = o_@$(PREFIX)[0];
+	// }}}
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID) GPI GPO
+@BDEF.DEFN=
+//
+// @$(DEVID) input wires
+//
+#define	GPIO_SD_DETECTED	0x000010000
+#define	GPIO_SYSCLK_LOCKED	0x000020000
+//
+// @$(DEVID) output wires
+//
+#define	@$(DEVID)_SET(WIRE)	(((WIRE)<<16)|(WIRE))
+#define	@$(DEVID)_CLR(WIRE)	 ((WIRE)<<16)
+//
+#define	GPIO_SD_RESET		0x000000001
+//
+#define	GPIO_SD_RESET_SET	GPIO_SET(GPIO_SD_RESET)
+#define	GPIO_SD_RESET_CLR	GPIO_CLR(GPIO_SD_RESET)
+@BDEF.IONAME=	i_@$(PREFIX)
+@BDEF.IOTYPE=	unsigned
+@BDEF.OSDEF=	_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=	static volatile @$.BDEF.IOTYPE *const _@$(PREFIX) = ((@$.BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+@RTL.MAKE.FILES=wbgpio.v
+@RTL.MAKE.GROUP=@$(DEVID)

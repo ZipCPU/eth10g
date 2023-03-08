@@ -1,0 +1,104 @@
+################################################################################
+##
+## Filename: 	spio.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	To describe how to interact with the special purpose device
+##		controller (spio) for the Nexys Video Board (SW, BTN, LEDs)
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=spio
+@DEVID=SPIO
+@NADDR=1
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb32
+@ACCESS=@$(DEVID)_ACCESS
+@INT.SPIO.WIRE=@$(PREFIX)_int
+@INT.SPIO.PIC=buspic
+@NLED=8
+@NBTN=5
+@NSW=8
+@TOP.PORTLIST=
+		// SPIO interface
+		i_sw, i_btnc, i_btnd, i_btnl, i_btnr, i_btnu, o_led
+@TOP.IODECL=
+	// @$(DEVID) interface
+	input	wire	[@$(NSW)-1:0]	i_sw;
+	input	wire		i_btnc, i_btnd, i_btnl, i_btnr, i_btnu;
+	output	wire	[@$(NLED)-1:0]	o_led;
+@TOP.DEFNS=
+	wire	[@$(NLED)-1:0]	w_led;
+	wire	[@$(NBTN)-1:0]	w_btn;
+@TOP.INSERT=
+	assign	o_led = { w_led[@$(NLED)-1:2], (w_led[1] || !clocks_locked),
+			w_led[0] | s_reset };
+
+	assign	w_btn = { i_btnc, i_btnd, i_btnl, i_btnr, i_btnu };
+@TOP.MAIN=
+		i_sw, w_btn, w_led
+@MAIN.PORTLIST=
+		// SPIO interface
+		i_sw, i_btn, o_led
+@MAIN.IODECL=
+	// @$(DEVID) interface
+	input	wire	[@$(NSW)-1:0]	i_sw;
+	input	wire	[@$(NBTN)-1:0]	i_btn;
+	output	wire	[@$(NLED)-1:0]	o_led;
+@MAIN.DEFNS=
+	wire	[@$(NLED)-1:0]	w_led;
+@MAIN.INSERT=
+	//
+	// Special purpose I/O driver (buttons, LEDs, and switches)
+	//
+
+	spio #(
+		.NBTN(@$(NBTN)), .NLEDS(@$(NLED)), .NSW(@$(NSW))
+	) @$(PREFIX)i(
+		.i_clk(i_clk), .i_reset(i_reset),
+		@$(SLAVE.ANSIPORTLIST),
+		.i_sw(i_sw), .i_btn(i_btn), .o_led(w_led),
+		.o_int(@$(PREFIX)_int)
+	);
+
+	assign	o_led = w_led;
+
+@MAIN.ALT=
+	assign	w_btn = 0;
+	assign	o_led = 0;
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.DEFN=
+#define	SPIO_BTNC	0x01000
+#define	SPIO_BTND	0x00800
+#define	SPIO_BTNL	0x00400
+#define	SPIO_BTNR	0x00200
+#define	SPIO_BTNU	0x00100
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=unsigned
+@BDEF.OSDEF= _BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL= static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));

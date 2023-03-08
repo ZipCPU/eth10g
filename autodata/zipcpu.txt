@@ -1,0 +1,479 @@
+################################################################################
+##
+## Filename:	zipcpu.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	To describe what needs to be done to make the ZipCPU a part
+##		of a main .v file.  This Wishbone Master description
+##	illustrates how some of how a wishbone bus master might be integrated
+##	into the automatic FPGA designer.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=zip
+@SIM.CLOCK=clk
+@ACCESS=INCLUDE_ZIPCPU
+@DBGBUS=wbu
+@MASTER.TYPE=CPU
+@MASTER.BUS=wbwide
+@MASTER.BUS.OPT_DBLBUFFER=1'b0
+@BUS.NAME=wbwide
+@BUS.CLOCK=clk
+@SCOPE.TRIGGER=zip_trigger
+@SCOPE.DATA=zip_debug
+@CPURESET=i_cpu_reset
+@$RESET_ADDRESS=@$(flash.REGBASE)+(6<<20)
+# @$RESET_ADDRESS=@$(/bkrom.REGBASE)
+@INT.ZIP.WIRE=zip_cpu_int
+@INT.ZIP.BUS=buspic
+@CACHABLE.FILE=iscachable.v
+@LGICACHE=12
+@LGDCACHE=12
+@TOP.PORTLIST=
+#		// A reset wire for the ZipCPU
+#		i_cpu_resetn
+@TOP.IODECL=
+#	// A reset wire for the ZipCPU
+#	input	wire		i_cpu_resetn;
+@TOP.DEFNS=
+	// Verilator lint_off UNUSED
+	wire		ign_cpu_stall, ign_cpu_ack;
+	wire	[31:0]	ign_cpu_idata;
+	// Verilator lint_on  UNUSED
+@TOP.MAIN=
+		// Reset wire for the ZipCPU
+		s_reset, 1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
+		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata
+@MAIN.PORTLIST=
+		// Veri1ator only interface
+		cpu_sim_cyc,
+		cpu_sim_stb,
+		cpu_sim_we,
+		cpu_sim_addr,
+		cpu_sim_data,
+		cpu_sim_stall,
+		cpu_sim_ack,
+		cpu_sim_idata,
+`ifdef	VERILATOR
+		cpu_prof_stb,
+		cpu_prof_addr,
+		cpu_prof_ticks,
+`endif
+		@$(CPURESET)
+@MAIN.IODECL=
+	input	wire		cpu_sim_cyc, cpu_sim_stb;
+	input	wire		cpu_sim_we;
+	input	wire	[6:0]	cpu_sim_addr;
+	input	wire	[31:0]	cpu_sim_data;
+	//
+	output	wire		cpu_sim_stall, cpu_sim_ack;
+	output	wire	[31:0]	cpu_sim_idata;
+	//
+`ifdef	VERILATOR
+	output	wire		cpu_prof_stb;
+	output	wire	[@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)-1:0]	cpu_prof_addr;
+	output	wire [31:0]	cpu_prof_ticks;
+`endif
+	input	wire		@$(CPURESET);
+@MAIN.PARAM=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Variables/definitions/parameters used by the ZipCPU bus master
+	// {{{
+	//
+	// A 32-bit address indicating where the ZipCPU should start running
+	// from
+`ifdef	BKROM_ACCESS
+	localparam	RESET_ADDRESS = @$(/bkrom.BASE);
+`else
+`ifdef	FLASH_ACCESS
+	localparam	RESET_ADDRESS = @$RESET_ADDRESS;
+`else
+	localparam	RESET_ADDRESS = @$(/bkram.BASE);
+`endif	// FLASH_ACCESS
+`endif	// BKROM_ACCESS
+	//
+	// The number of valid bits on the bus
+	localparam	ZIP_ADDRESS_WIDTH = @$(MASTER.BUS.AWID); // Zip-CPU address width
+	//
+	// Number of ZipCPU interrupts
+	localparam	ZIP_INTS = 16;
+	//
+	// ZIP_START_HALTED
+	//
+	// A boolean, indicating whether or not the ZipCPU be halted on startup?
+`ifdef	BKROM_ACCESS
+	localparam	ZIP_START_HALTED=1'b0;
+`else
+	localparam	ZIP_START_HALTED=1'b1;
+`endif
+	// }}}
+@MAIN.DEFNS=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// ZipSystem/ZipCPU connection definitions
+	// {{{
+`ifndef	VERILATOR
+	wire		cpu_prof_stb;
+	wire	[@$(MASTER.BUS.AWID)+1:0]	cpu_prof_addr;
+	wire [31:0]	cpu_prof_ticks;
+`endif
+	// All we define here is a set of scope wires
+	// Verilator lint_off UNUSED
+	wire		raw_cpu_dbg_stall, raw_cpu_dbg_ack;
+	wire	[31:0]	zip_debug;
+	wire		zip_trigger;
+	// Verilator lint_on  UNUSED
+	wire	[ZIP_INTS-1:0] zip_int_vector;
+	// }}}
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// The ZipCPU/ZipSystem BUS master
+	// {{{
+	//
+	assign	zip_int_vector = { alt_int_vector[14:8], sys_int_vector[14:6] };
+	zipsystem #(
+		// {{{
+		.RESET_ADDRESS(RESET_ADDRESS),
+		.ADDRESS_WIDTH(ZIP_ADDRESS_WIDTH + $clog2(@$(MASTER.BUS.WIDTH)/8)),
+		.BUS_WIDTH(@$(MASTER.BUS.WIDTH)),
+		.OPT_LGICACHE(@$(LGICACHE)),
+		.OPT_LGDCACHE(@$(LGDCACHE)),
+		.START_HALTED(ZIP_START_HALTED),
+		.RESET_DURATION(20),
+		.OPT_PIPELINED(1),
+`ifdef	VERILATOR
+		.OPT_PROFILER(1'b1),
+`else
+		.OPT_PROFILER(1'b0),
+`endif
+`ifdef	ZIPSCOPE_SCOPE
+		.OPT_TRACE_PORT(1'b1),
+`else
+		.OPT_TRACE_PORT(1'b0),
+`endif
+		.OPT_DISTRIBUTED_REGS(1),
+		.EXTERNAL_INTERRUPTS(ZIP_INTS)
+		// }}}
+	) swic(
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset || @$(CPURESET)),
+			// Zipsys wishbone interface
+			@$(MASTER.ANSIPORTLIST),
+			.i_ext_int(zip_int_vector), .o_ext_int(zip_cpu_int),
+			// Debug wishbone interface
+			.i_dbg_cyc(wbu_zip_cyc || cpu_sim_cyc),
+			.i_dbg_stb(cpu_sim_cyc ? cpu_sim_stb : wbu_zip_stb),
+			.i_dbg_we( cpu_sim_cyc ? cpu_sim_we  : wbu_zip_we),
+			.i_dbg_addr(cpu_sim_cyc? cpu_sim_addr : wbu_zip_addr[6:0]),
+			.i_dbg_data (cpu_sim_cyc? cpu_sim_data : wbu_zip_data),
+			.i_dbg_sel  (cpu_sim_cyc? 4'hf : wbu_zip_sel),
+			.o_dbg_stall(raw_cpu_dbg_stall),
+			.o_dbg_ack  (raw_cpu_dbg_ack),
+			.o_dbg_data (wbu_zip_idata),
+			//
+			.o_cpu_debug(zip_debug),
+			.o_prof_stb(cpu_prof_stb),
+			.o_prof_addr(cpu_prof_addr),
+			.o_prof_ticks(cpu_prof_ticks)
+		// }}}
+	);
+	assign	zip_trigger = zip_debug[31];
+
+	assign	wbu_zip_stall =  cpu_sim_cyc || raw_cpu_dbg_stall;
+	assign	wbu_zip_ack   = !cpu_sim_cyc && raw_cpu_dbg_ack;
+	assign	cpu_sim_stall = !cpu_sim_cyc || raw_cpu_dbg_stall;
+	assign	cpu_sim_ack   =  cpu_sim_cyc && raw_cpu_dbg_ack;
+	assign	cpu_sim_idata = wbu_zip_idata;
+
+	// Keep Verilator happy
+	// {{{
+	// Verilator lint_off UNUSED
+	wire	@$(PREFIX)_unused;
+	assign	@$(PREFIX)_unused = &{ 1'b0,
+			alt_int_vector[7:0], sys_int_vector[5:0]};
+	// Verilator lint_on  UNUSED
+	// }}}
+	// }}}
+@BDEF.INCLUDE=
+////////////////////////////////////////////////////////////////////////////////
+//
+// ZipCPU defines and macros
+// {{{
+#include <design.h>
+
+#define	_HAVE_ZIPSYS
+#define	PIC	_zip->z_pic
+
+#ifdef	INCLUDE_ZIPCPU
+#ifdef INCLUDE_DMA_CONTROLLER
+#define	_HAVE_ZIPSYS_DMA
+#endif	// INCLUDE_DMA_CONTROLLER
+#ifdef INCLUDE_ACCOUNTING_COUNTERS
+#define	_HAVE_ZIPSYS_PERFORMANCE_COUNTERS
+#endif	// INCLUDE_ACCOUNTING_COUNTERS
+#endif // INCLUDE_ZIPCPU
+// }}}
+@REGDEFS.H.INSERT=
+////////////////////////////////////////////////////////////////////////////////
+//
+// ZipCPU register definitions
+// {{{
+
+#define	CPU_GO		0x0000
+#define	CPU_HALT	0x0001
+#define	CPU_STALL	0x0002
+#define	CPU_STEP	0x0004
+#define	CPU_RESET	0x0008
+#define	CPU_CLRCACHE	0x0010
+// (Reserved)		0x00e0
+#define	CPU_SLEEPING	0x0100
+#define	CPU_GIE		0x0200
+#define	CPU_INT		0x0400
+#define	CPU_BREAK	0x0800
+#define	CPU_EXINT	0xfffff000
+//
+#define	CPU_sR0		0x0020
+#define	CPU_sSP		0x002d
+#define	CPU_sCC		0x002e
+#define	CPU_sPC		0x002f
+#define	CPU_uR0		0x0030
+#define	CPU_uSP		0x003d
+#define	CPU_uCC		0x003e
+#define	CPU_uPC		0x003f
+
+#ifdef	BKROM_ACCESS
+#define	RESET_ADDRESS	@$[0x%08x](bkrom.REGBASE)
+#else
+#ifdef	FLASH_ACCESS
+#define	RESET_ADDRESS	@$[0x%08x](RESET_ADDRESS)
+#else
+#define	RESET_ADDRESS	@$[0x%08x](bkram.REGBASE)
+#endif	// FLASH_ACCESS
+#endif	// BKROM_ACCESS
+// }}}
+@SIM.CLOCK=clk
+@SIM.INCLUDE=
+#include "zipelf.h"
+
+@SIM.DEFINES=
+////////////////////////////////////////////////////////////////////////////////
+//
+// ZipCPU simulation defines
+// {{{
+#ifndef	VVAR
+#ifdef	ROOT_VERILATOR
+
+#include "Vmain___024root.h"
+#define	VVAR(A)	rootp->main__DOT_ ## A
+
+#elif	defined(NEW_VERILATOR)
+#define	VVAR(A)	main__DOT_ ## A
+#else
+#define	VVAR(A)	v__DOT_ ## A
+#endif
+#endif
+
+#define	OPT_PIPELINED
+#define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT__core__DOT_ ## A)
+
+#define	cpu_break 	VVAR(_swic__DOT__cpu_break)
+// }}}
+@SIM.DEFNS=
+	int	m_cpu_bombed;
+@SIM.INIT=
+		m_cpu_bombed = 0;
+@SIM.SETRESET=
+		m_core->i_cpu_reset = 1;
+@SIM.CLRRESET=
+		m_core->i_cpu_reset = 0;
+@SIM.METHODS=
+#ifdef	@$(ACCESS)
+	// ZipCPU Access functions
+	// {{{
+	void	loadelf(const char *elfname) {
+		// {{{
+		ELFSECTION	**secpp, *secp;
+		uint32_t	entry;
+
+		elfread(elfname, entry, secpp);
+
+		for(int s=0; secpp[s]->m_len; s++) {
+			bool	successful_load;
+			secp = secpp[s];
+
+			successful_load = load(secp->m_start,
+				secp->m_data, secp->m_len);
+
+			if (!successful_load) {
+				printf("Could not load section "
+					"from %08x to %08x--no such address\n",
+					secp->m_start,
+					secp->m_start+secp->m_len);
+			}
+		} free(secpp);
+	}
+	// }}}
+
+	void	cpu_dbg_write(const uint32_t addr, const uint32_t data) {
+		// {{{
+		// printf("CPU-DBG-WRITE(@0x%08x, 0x%08x);\n", addr, data);
+		m_core->cpu_sim_cyc   = 1;
+		m_core->cpu_sim_stb   = 1;
+		m_core->cpu_sim_we    = 1;
+		m_core->cpu_sim_addr  = addr >> 2;
+		m_core->cpu_sim_data  = data;
+
+		do {
+			tick_clk();
+		} while(m_core->cpu_sim_stall);
+
+		m_core->cpu_sim_stb = 0;
+
+		while(!m_core->cpu_sim_ack)
+			tick_clk();
+
+		m_core->cpu_sim_cyc  = 0;
+		m_core->cpu_sim_we   = 0;
+		m_core->cpu_sim_addr = 0;
+		m_core->cpu_sim_data = 0;
+
+		tick_clk();
+	}
+	// }}}
+
+	uint32_t cpu_dbg_read(const uint32_t addr) {
+		// {{{
+		// printf("CPU-DBG-WRITE(@0x%08x, 0x%08x);\n", addr, data);
+		m_core->cpu_sim_cyc   = 1;
+		m_core->cpu_sim_stb   = 1;
+		m_core->cpu_sim_we    = 0;
+		m_core->cpu_sim_addr  = addr >> 2;
+		m_core->cpu_sim_data  = 0;
+
+		do {
+			tick_clk();
+		} while(m_core->cpu_sim_stall);
+
+		m_core->cpu_sim_stb = 0;
+
+		while(!m_core->cpu_sim_ack)
+			tick_clk();
+
+		result = m_core->cpu_sim_idata;
+
+		m_core->cpu_sim_cyc  = 0;
+		m_core->cpu_sim_we   = 0;
+		m_core->cpu_sim_addr = 0;
+		m_core->cpu_sim_data = 0;
+
+		tick_clk();
+
+		return result;
+	}
+	// }}}
+
+	// }}}
+#endif // @$(ACCESS)
+@SIM.TICK=
+#ifdef	@$(ACCESS)
+		// ZipCPU Sim instruction support
+		// {{{
+		if (m_cpu_bombed) {
+			if (m_cpu_bombed++ > 12)
+				m_done = true;
+		} else if (m_core->cpu_break) {
+			printf("\n\nBOMB : CPU BREAK RECEIVED\n");
+			m_cpu_bombed++;
+		}
+		// }}}
+#endif	// @$(ACCESS)
+
+##
+##
+##
+@RTL.MAKE.GROUP=ZIPCPU
+@RTL.MAKE.FILES= zipsystem.v zipcore.v zipwb.v cpuops.v pfcache.v pipemem.v
+		pfcache.v idecode.v wbpriarbiter.v zipsystem.v zipcounter.v
+		zipjiffies.v ziptimer.v icontrol.v wbwatchdog.v
+		zipdma_ctrl.v zipdma_fsm.v zipdma_mm2s.v zipdma_rxgears.v
+		zipdma_s2mm.v zipdma_txgears.v zipdma.v
+		busdelay.v
+@RTL.MAKE.SUBD= cpu
+##
+################################################################################
+##
+## ZipCPU debug port
+## {{{
+## (was once @PREFIX=zip_dbg)
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wbu
+@SLAVE.ANSPREFIX=dbg_
+@SLAVE.ORDER=1000000
+@NADDR=128
+@REGS.N=36
+@REGS.NOTE=// ZipCPU control/debug registers
+@REGS.0=0   R_ZIPCTRL   CPU ZIPCTRL
+@REGS.1=32    R_ZIPREGS   ZIPREGS
+@REGS.2=32    R_ZIPS0     SR0
+@REGS.3=33    R_ZIPS1     SR1
+@REGS.4=34    R_ZIPS2     SR2
+@REGS.5=35    R_ZIPS3     SR3
+@REGS.6=36    R_ZIPS4     SR4
+@REGS.7=37    R_ZIPS5     SR5
+@REGS.8=38    R_ZIPS6     SR6
+@REGS.9=39    R_ZIPS7     SR7
+@REGS.10=40   R_ZIPS8     SR8
+@REGS.11=41   R_ZIPS9     SR9
+@REGS.12=42  R_ZIPS10    SR10
+@REGS.13=43  R_ZIPS11    SR11
+@REGS.14=44  R_ZIPS12    SR12
+@REGS.15=45  R_ZIPSSP    SSP SR13
+@REGS.16=46  R_ZIPCC     ZIPCC CC SCC SR14
+@REGS.17=47  R_ZIPPC     ZIPPC PC SPC SR15
+@REGS.18=48  R_ZIPUSER   ZIPUSER
+@REGS.19=48  R_ZIPU0     UR0
+@REGS.20=49  R_ZIPU1     UR1
+@REGS.21=50  R_ZIPU2     UR2
+@REGS.22=51  R_ZIPU3     UR3
+@REGS.23=52  R_ZIPU4     UR4
+@REGS.24=53  R_ZIPU5     UR5
+@REGS.25=54  R_ZIPU6     UR6
+@REGS.26=55  R_ZIPU7     UR7
+@REGS.27=56  R_ZIPU8     UR8
+@REGS.28=57  R_ZIPU9     UR9
+@REGS.29=58  R_ZIPU10    SR10
+@REGS.30=59  R_ZIPU11    SR11
+@REGS.31=60  R_ZIPU12    SR12
+@REGS.32=61  R_ZIPUSP    USP UR13
+@REGS.33=62  R_ZIPUCC    ZIPUCC UCC
+@REGS.34=63  R_ZIPUPC    ZIPUPC UPC
+@REGS.35=64  R_ZIPSYSTEM ZIPSYSTEM ZIPSYS
+##
+##
+## }}}

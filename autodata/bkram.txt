@@ -1,0 +1,93 @@
+################################################################################
+##
+## Filename: 	bkram.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	To define the interface to a generic block RAM device for the
+##		purposes of autofpga.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=bkram
+@DEVID=BKRAM
+@$LGMEMSZ=18
+@LGMEMSZ.FORMAT=%d
+@$NADDR=(1<<(@$THIS.LGMEMSZ-2))
+@$NBYTES=(1<<(@$THIS.LGMEMSZ))
+@NBYTES.FORMAT=0x%08x
+@ACCESS=@$(DEVID)_ACCESS
+@SLAVE.TYPE=MEMORY
+@SLAVE.BUS=wbwide
+@MAIN.INSERT=
+	memdev #(
+		.LGMEMSZ(@$THIS.LGMEMSZ),
+		.DW(@$(BUS.WIDTH)),
+		.EXTRACLOCK(1)
+	) @$(PREFIX)i(
+		.i_clk(@$(BUS.CLOCK.WIRE)), .i_reset(@$(BUS.RESET)),
+			@$(SLAVE.ANSIPORTLIST)
+	);
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) RAM
+@REGDEFS.H.DEFNS=
+#define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
+#define	@$(DEVID)LEN	@$NBYTES
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@MEM.NAME= @$(PREFIX)
+@BDEF.OSVAL=extern char	_@$(MEM.NAME)[@$NBYTES];
+@LD.PERM=	wx
+@LD.NAME=	@$(MEM.NAME)
+@RTL.MAKE.GROUP= @$(DEVID)
+@RTL.MAKE.FILES= memdev.v
+@$NADDRHX = @$NADDR
+@NADDRHX.FORMAT= 0x%x
+@SIM.INCLUDE=
+#include "byteswap.h"
+@SIM.DEFINES=
+#ifndef VVAR
+#ifdef  ROOT_VERILATOR
+#include "Vmain___024root.h"
+
+#define VVAR(A) rootp->main__DOT_ ## A
+#elif	defined(NEW_VERILATOR)
+#define VVAR(A) main__DOT_ ## A
+#else
+#define VVAR(A) v__DOT_ ## A
+#endif
+#endif
+
+#define	block_ram	VVAR(_@$(PREFIX)i__DOT__mem)
+@SIM.LOAD=
+			start = start & (-4);
+			wlen = (wlen+3)&(-4);
+
+			// Need to byte swap data to get it into the memory
+			char	*bswapd = new char[len+8];
+			memcpy(bswapd, &buf[offset], wlen);
+			byteswapbuf(len>>2, (uint32_t *)bswapd);
+			memcpy(&m_core->block_ram[start], bswapd, wlen);
+			delete	bswapd;

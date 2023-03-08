@@ -1,0 +1,98 @@
+################################################################################
+##
+## Filename: 	wbscope.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	A generic scope description, from which other internal wbscopes
+##		may depend upon
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=scope
+@DEVID=SCOPE
+@NADDR= 2
+@ACCESS=@$(DEVID)_SCOPE
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb32
+@LOG_CAPTURE_SIZE=12
+@DATA_CLOCK=i_clk
+@CAPTURECE=1'b1
+@SYNCHRONOUS=1
+@CORE=wbscope
+@TRIGGER=@$(TARGET)_dbg_trigger
+@DEBUG=@$(TARGET)_debug
+@$DEFHOLDOFF= (1<<(@$(LOG_CAPTURE_SIZE)-1))-4
+@MAIN.DEFNS=
+	// Remove this scope tag via inheritance when/if you connect the
+	// scope interrupt
+	//
+	// Virilator lint_off UNUSED
+	wire	@$(PREFIX)_int;
+	// Virilator lint_on  UNUSED
+@MAIN.INSERT=
+	@$(CORE) #(
+		// {{{
+		.LGMEM(@$(LOG_CAPTURE_SIZE)),
+		.SYNCHRONOUS(@$(SYNCHRONOUS)),
+		.DEFAULT_HOLDOFF(@$(DEFHOLDOFF))
+		// }}}
+	) @$(PREFIX)i(
+		// {{{
+		@$(DATA_CLOCK), @$(CAPTURECE), @$(TRIGGER), @$(DEBUG),
+		@$(SLAVE.BUS.CLOCK.WIRE),
+		@$(SLAVE.PORTLIST),
+		@$(PREFIX)_int
+		// }}}
+	);
+@MAIN.ALT=
+@REGS.NOTE=// @$(PREFIX) scope
+@REGS.N=2
+@REGS.0=0 R_@$(DEVID)  @$(DEVID)
+@REGS.1=1 R_@$(DEVID)D @$(DEVID)D
+@RTL.MAKE.GROUP=SCOPE
+@RTL.MAKE.SUBD=../../common/rtl/wbscope
+@RTL.MAKE.FILES=@$(CORE).v
+@BDEF.DEFN=
+#ifndef	WBSCOPE_H
+#define	WBSCOPE_H
+
+#define	WBSCOPE_NO_RESET	0x80000000u
+#define	WBSCOPE_STOPPED		0x40000000u
+#define	WBSCOPE_TRIGGERED	0x20000000u
+#define	WBSCOPE_PRIMED		0x10000000u
+#define	WBSCOPE_TRIGGER		(WBSCOPE_NO_RESET|0x08000000u)
+#define	WBSCOPE_MANUAL		(WBSCOPE_TRIGGER)
+#define	WBSCOPE_DISABLE		0x04000000u
+
+typedef	struct	WBSCOPE_S {
+	unsigned s_ctrl, s_data;
+} WBSCOPE;
+#endif
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=WBSCOPE
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
