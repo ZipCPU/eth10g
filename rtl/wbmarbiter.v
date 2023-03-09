@@ -4,7 +4,22 @@
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	A basic asynchronous FIFO.
+// Purpose:	A *HIGH* speed N:1 WB arbiter.  This works like an N:1 AXI
+//		arbiter: Wishbone requests are potentially interleaved between
+//	multiple (incoming) slave connections.  Hence, an outgoing connection
+//	might include requests from slave 1, 2, 4, 3, etc, and the arbiter
+//	will be responsible for returning ACKs in the order they were received:
+//	1, 2, 4, 3, etc.  There are some unfortunate consequences to this,
+//	however, that break some key features of Wishbone.
+//
+//	1. If two slaves have outstanding requests and a bus error is returned,
+//		the bus error will be returned to *both* slaves, not just one,
+//		*EVEN IF* only one slave created an illegal access.
+//	2. Read-Modify-Write accesses are now broken, because there is no longer
+//		any guarantee, when using this arbiter, that no other bus master
+//		(incoming slave) will not have modified a given address.
+//	3. The property that bus requests will only ever be a string of reads,
+//		or a string of writes, is also broken.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
