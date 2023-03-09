@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rxroutetbl.v
+// Filename:	rtl/net/routetbl.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -36,7 +36,7 @@
 //
 `default_nettype none
 // }}}
-module rxroutetbl #(
+module routetbl #(
 		// {{{
 		// parameter [0:0]	OPT_SKIDBUFFER   = 1'b0,
 		// parameter [0:0]	OPT_LOWPOWER     = 1'b0
