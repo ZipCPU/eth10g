@@ -45,6 +45,7 @@ module axinbroadcast #(
 	) (
 		// {{{
 		input	wire				i_clk, i_reset,
+		input	wire	[NOUT-1:0]		i_cfg_active,
 		// Incoming packet interface
 		// {{{
 		input	wire			S_VALID,
@@ -79,6 +80,9 @@ module axinbroadcast #(
 	wire	[DW-1:0]		skd_data;
 	wire	[WBITS-1:0]	skd_bytes;
 	wire	[NOUT-1:0]		skd_port;
+
+	reg			s_midpkt;
+	reg	[NOUT-1:0]	midpkt;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -115,6 +119,15 @@ module axinbroadcast #(
 
 	assign	skd_ready = (0 == (M_VALID & ~M_READY & S_PORT));
 	// }}}
+
+	always @(posedge i_clk)
+	if (i_reset)
+		s_midpkt <= 0;
+	else if (skd_abort && (!skd_valid || skd_ready))
+		s_midpkt <= 1'b0;
+	else if (skd_valid && skd_ready && !skd_abort)
+		s_midpkt <= !skd_last;
+
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Generate the outputs
@@ -125,11 +138,21 @@ module axinbroadcast #(
 	begin : GEN_OUT
 		// {{{
 		always @(posedge i_clk)
+		if (i_reset || !i_cfg_active[gk])
+			midpkt[gk] <= 0;
+		else if (skd_abort && (!skd_valid || skd_ready) && skd_port[gk])
+			midpkt[gk] <= 1'b0;
+		else if (skd_valid && skd_ready && skd_port[gk] && !skd_abort)
+			midpkt[gk] <= !skd_last;
+
+		always @(posedge i_clk)
 		if (i_reset)
 			M_VALID[gk] <= 0;
 		else if (!M_VALID[gk] || M_READY[gk])
-			M_VALID[gk] <= skd_valid && skd_ready && skd_port[gk]
-						&& !skd_abort;
+			M_VALID[gk] <= i_cfg_active[gk]
+				&& (!s_midpkt || midpkt[gk])
+				&& skd_valid && skd_ready
+				&& skd_port[gk] && !skd_abort;
 
 		always @(posedge i_clk)
 		if (OPT_LOWPOWER && i_reset)
@@ -154,6 +177,8 @@ module axinbroadcast #(
 		always @(posedge i_clk)
 		if (i_reset)
 			M_ABORT[gk] <= 0;
+		else if (midpkt[gk] && !i_cfg_active[gk])
+			M_ABORT[gk] <= 1'b1;
 		else if (skd_abort && skd_port[gk]
 					&& (!skd_valid || skd_ready))
 			M_ABORT[gk] <= (!M_VALID[gk] || !M_LAST[gk]);

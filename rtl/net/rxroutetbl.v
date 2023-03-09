@@ -43,7 +43,7 @@ module rxroutetbl #(
 		// parameter [0:0]	OPT_DEFBROADCAST = 1'b0
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Number of incoming eth ports
-		parameter  [NETH-1:0]	BROADCAST_PORT = -1,
+		parameter  [NETH-1:0]	BROADCAST_PORT = {(NETH){1'b1}},
 		parameter  [NETH-1:0]	DEFAULT_PORT = BROADCAST_PORT,
 		parameter	LGTBL = 6,	// Log_2(NTBL entries)
 		localparam	NTBL = (1<<LGTBL), // Number of table entries

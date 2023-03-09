@@ -37,6 +37,7 @@ module axinarbiter #(
 		// {{{
 		parameter	NIN = 4,	// Number of incoming eth ports
 		parameter	DW = 64,	// Bits per clock cycle
+		parameter	WBITS = $clog2(DW/8),
 		parameter [0:0]	OPT_SKIDBUFFER = 1,
 		parameter [0:0]	OPT_LOWPOWER = 0
 		// }}}
@@ -48,7 +49,7 @@ module axinarbiter #(
 		input	wire	[NIN-1:0]		S_VALID,
 		output	wire	[NIN-1:0]		S_READY,
 		input	wire	[NIN*DW-1:0]		S_DATA,
-		input	wire	[NIN*$clog2(DW/8)-1:0]	S_BYTES,
+		input	wire	[NIN*WBITS-1:0]	S_BYTES,
 		input	wire	[NIN-1:0]		S_LAST,
 		input	wire	[NIN-1:0]		S_ABORT,
 		// }}}
@@ -57,7 +58,7 @@ module axinarbiter #(
 		output	reg			M_VALID,
 		input	wire			M_READY,
 		output	reg	[DW-1:0]	M_DATA,
-		output	reg [$clog2(DW/8)-1:0]	M_BYTES,
+		output	reg [WBITS-1:0]	M_BYTES,
 		output	reg			M_LAST,
 		output	reg			M_ABORT
 		// }}}
@@ -72,13 +73,13 @@ module axinarbiter #(
 	reg	[NIN-1:0]	grant;
 	wire	[NIN-1:0]	midpkt;
 	reg	[DW-1:0]	merged_data;
-	reg [$clog2(DW/8)-1:0]	merged_bytes;
+	reg [WBITS-1:0]	merged_bytes;
 	reg			merged_last;
 	wire			stalled;
 
 	wire	[NIN-1:0]	skd_valid, skd_ready;
 	wire	[NIN*DW-1:0]	skd_data;
-	wire	[NIN*$clog2(DW/8)-1:0]	skd_bytes;
+	wire	[NIN*WBITS-1:0]	skd_bytes;
 	wire	[NIN-1:0]	skd_last, skd_abort;
 	// }}}
 
@@ -91,8 +92,6 @@ module axinarbiter #(
 		.o_grant(grant)
 		// }}}
 	);
-
-	localparam	WBITS = $clog2(DW/8);
 
 	generate if (OPT_SKIDBUFFER)
 	begin : GEN_SKIDBUFFER

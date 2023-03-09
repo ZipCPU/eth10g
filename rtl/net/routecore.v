@@ -43,13 +43,22 @@ module routecore #(
 		// parameter [0:0]	OPT_DEFBROADCAST = 1'b0
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Number of incoming eth ports
-		// DW is the bits per clock cycle or beat.  It is also the
-		// bus data width.  Any/all width conversions take place
-		// outside of this module.  In order to properly cross clock
-		// domains, DW must be greater than the original.  So if the
-		// interface will generate (roughly) 32'bits per clock, DW must
-		// be at least 64-bits per clock.
-		parameter	DW = 64,	// Bits per clock cycle
+		// PKTDW is the # of bits per clock cycle or beat of both the
+		// {{{
+		// incoming and outgoing packet data.  In order to properly
+		// cross clock domains, PKTDW must be greater than the
+		// original source & sink.  So if the Ethernet interface will
+		// generate (roughly) 32'bits per clock, PKTDW must be at least
+		// 64-bits per clock.
+		parameter	PKTDW = 128,
+		// }}}
+		localparam	PKTBYW = $clog2(PKTDW/8),
+		// BUSDW is the bits per clock cycle or beat of the WB memory
+		// {{{
+		// bus.  A width conversion may need to take place within the
+		// PKTVFIFO to adjust from PKTDW to BUSDW and back again.
+		parameter	BUSDW = 512,	// Bits per clock cycle
+		// }}}
 		// parameter 	BROADCAST_PORT = NETH,
 		// parameter 	DEFAULT_PORT = BROADCAST_PORT,
 		// parameter	LGTBL = 6,	// Log_2(NTBL entries)
@@ -57,7 +66,8 @@ module routecore #(
 		// parameter	LGTIMEOUT = 64-MACW-1,
 		parameter	MACW = 48,	// Bits in a MAC address
 		parameter	LGROUTETBL = 6,
-		parameter	LGROUTE_TIMEOUT = 24
+		parameter	LGROUTE_TIMEOUT = 24,
+		parameter	AW = 30-$clog2(BUSDW/8)
 		// }}}
 	) (
 		// {{{
@@ -74,48 +84,88 @@ module routecore #(
 		// {{{
 		input	wire	[NETH-1:0]		RX_VALID,
 		output	wire	[NETH-1:0]		RX_READY,
-		input	wire	[NETH*DW-1:0]		RX_DATA,
-		input	wire	[NETH*$clog2(DW)-1:0]	RX_BYTES,
+		input	wire	[NETH*PKTDW-1:0]		RX_DATA,
+		input	wire	[NETH*PKTBYW-1:0]	RX_BYTES,
 		input	wire	[NETH-1:0]		RX_LAST,
 		input	wire	[NETH-1:0]		RX_ABORT,
+		// }}}
+		// VFIFO control interface
+		// {{{
+		input	wire		i_ctrl_cyc, i_ctrl_stb, i_ctrl_we,
+		input	wire	[$clog2(NETH)+2-1:0]	i_ctrl_addr,
+		input	wire	[31:0]			i_ctrl_data,
+		input	wire	[3:0]			i_ctrl_sel,
+		output	wire				o_ctrl_stall,
+		output	reg				o_ctrl_ack,
+		output	reg	[31:0]			o_ctrl_data,
+		// }}}
+		// VFIFO memory interface
+		// {{{
+		output	wire		o_vfifo_cyc, o_vfifo_stb, o_vfifo_we,
+		output	wire	[AW-1:0]		o_vfifo_addr,
+		output	wire	[BUSDW-1:0]		o_vfifo_data,
+		output	wire	[BUSDW/8-1:0]		o_vfifo_sel,
+		input	wire				i_vfifo_stall,
+		input	wire				i_vfifo_ack,
+		input	wire	[BUSDW-1:0]		i_vfifo_data,
+		input	wire				i_vfifo_err,
 		// }}}
 		// Outgoing packets
 		// {{{
 		output	wire	[NETH-1:0]		TX_VALID,
 		input	wire	[NETH-1:0]		TX_READY,
-		output	wire	[NETH*DW-1:0]		TX_DATA,
-		output	wire	[NETH*$clog2(DW)-1:0]	TX_BYTES,
+		output	wire	[NETH*PKTDW-1:0]	TX_DATA,
+		output	wire	[NETH*PKTBYW-1:0]	TX_BYTES,
 		output	wire	[NETH-1:0]		TX_LAST,
-		output	wire	[NETH-1:0]		TX_ABORT,
+		output	wire	[NETH-1:0]		TX_ABORT
 		// }}}
 		// }}}
 	);
 
+	// Local declarations
+	// {{{
+	genvar				geth;
+
 	wire	[NETH-1:0]		tomem_valid, tomem_ready;
-	wire	[NETH*DW-1:0]		tomem_data;
-	wire	[NETH*$clog2(DW)-1:0]	tomem_bytes;
+	wire	[NETH*PKTDW-1:0]	tomem_data;
+	wire	[NETH*PKTBYW-1:0]	tomem_bytes;
 	wire	[NETH-1:0]		tomem_abort;
 	wire	[NETH-1:0]		tomem_last;
 
-	wire				rxtbl_valid[NETH*NETH];
-	wire				rxtbl_ready[NETH*NETH];
-	wire				rxtbl_data[NETH*NETH * MACW];
+	wire	[NETH*NETH-1:0]		rxtbl_valid;
+	reg	[NETH*NETH-1:0]		rxtbl_ready;
+	wire	[NETH*NETH*MACW-1:0]	rxtbl_data;
 
-	wire	[NETH*NETH-1:0]		txx_valid, txx_ready;
-	wire	[NETH*NETH*DW-1:0]	txx_data;
-	wire [NETH*NETH*$clog2(DW)-1:0]	txx_bytes;
+	wire	[NETH*NETH-1:0]		txx_valid;
+	reg	[NETH*NETH-1:0]		txx_ready;
+	wire	[NETH*NETH*PKTDW-1:0]	txx_data;
+	wire [NETH*NETH*PKTBYW-1:0]	txx_bytes;
 	wire	[NETH*NETH-1:0]		txx_last, txx_abort;
+
+	wire	[NETH-1:0]		vfifo_cyc, vfifo_stb, vfifo_we,
+					vfifo_stall, vfifo_ack, vfifo_err;
+	wire	[NETH*AW-1:0]		vfifo_addr;
+	wire	[NETH*BUSDW-1:0]		vfifo_data, vfifo_idata;
+	wire	[NETH*BUSDW/8-1:0]	vfifo_sel;
+
+	wire	[NETH-1:0]		ctrl_stb, ctrl_ack, ctrl_stall;
+	wire	[NETH*32-1:0]		ctrl_data;
+	// }}}
 
 	generate for (geth=0; geth < NETH; geth = geth+1)
 	begin : GEN_INTERFACES
+		// Per-port declarations
+		// {{{
 		localparam [NETH-1:0]	THIS_PORT = (1<<geth);
+		localparam [NETH-1:0]	EVERYONE_ELSE = ~THIS_PORT;
+
 		wire			smac_valid, smac_ready;
 		wire	[MACW-1:0]	smac_data;
 
 		wire			mmout_valid, mmout_ready,
 					mmout_abort, mmout_last;
-		wire	[DW-1:0]	mmout_data;
-		wire [$clog2(DW)-1:0]	mmout_bytes;
+		wire	[PKTDW-1:0]	mmout_data;
+		wire [PKTBYW-1:0]	mmout_bytes;
 
 		integer			iport;
 		reg	[NETH-1:0]	remap_valid;
@@ -123,13 +173,26 @@ module routecore #(
 		reg	[NETH*MACW-1:0]	remap_data;
 
 		wire			lkup_request, lkup_valid;
-		wire	[MACW-1:0]	lkup_mac;
+		wire	[MACW-1:0]	lkup_dstmac;
 		wire	[NETH-1:0]	lkup_port;
+
+		wire			rtd_valid, rtd_ready,
+					rtd_last, rtd_abort;
+		wire	[PKTDW-1:0]	rtd_data;
+		wire	[PKTBYW-1:0]	rtd_bytes;
+		wire	[NETH-1:0]	rtd_port;
+
+		reg	[NETH-1:0]		prearb_valid, prearb_ready;
+		wire	[NETH-1:0]		prearb_ready;
+		reg	[NETH*PKTDW-1:0]	prearb_data;
+		reg	[NETH*PKTBYW-1:0]	prearb_bytes;
+		reg	[NETH-1:0]		prearb_last, prearb_abort;
+		// }}}
 
 		// Grab packet MACs for the router
 		// {{{
 		rxgetsrcmac #(
-			.DW(DW), .MACW(MACW)
+			.DW(PKTDW), .MACW(MACW)
 		) u_rxgetsrcmac (
 			// {{{
 			.i_clk(i_clk),
@@ -137,17 +200,17 @@ module routecore #(
 			//
 			.S_VALID(RX_VALID[geth]),
 			.S_READY(RX_READY[geth]),
-			.S_DATA( RX_DATA[geth * DW +: DW]),
-			.S_BYTES(RX_BYTES[geth * $clog2(DW) +: $clog2(DW)]),
-			.S_ABORT(RX_ABORT[geth]),
+			.S_DATA( RX_DATA[geth * PKTDW +: PKTDW]),
+			.S_BYTES(RX_BYTES[geth * PKTBYW +: PKTBYW]),
 			.S_LAST( RX_LAST[geth]),
+			.S_ABORT(RX_ABORT[geth]),
 			//
 			.M_VALID(tomem_valid[geth]),
 			.M_READY(tomem_ready[geth]),
-			.M_DATA( tomem_data[geth * DW +: DW]),
-			.M_BYTES(tomem_bytes[geth * $clog2(DW) +: $clog2(DW)]),
-			.M_ABORT(tomem_abort[geth]),
+			.M_DATA( tomem_data[geth * PKTDW +: PKTDW]),
+			.M_BYTES(tomem_bytes[geth * PKTBYW +: PKTBYW]),
 			.M_LAST( tomem_last[geth]),
+			.M_ABORT(tomem_abort[geth]),
 			//
 			.TBL_VALID(smac_valid),
 			.TBL_READY(smac_ready),
@@ -166,55 +229,59 @@ module routecore #(
 			.S_AXI_ARESETN(i_reset || ETH_RESET[geth]),
 			//
 			.S_AXIS_TVALID(smac_valid),
-			.S_AXI_TREADY(smac_ready),
-			.S_AXI_TDATA(smac_data),
+			.S_AXIS_TREADY(smac_ready),
+			.S_AXIS_TDATA(smac_data),
 			//
-			.M_AXI_TVALID(rxtbl_valid[geth * NETH +: NETH]),
-			.M_AXI_TREADY(rxtbl_ready[geth * NETH +: NETH] | ETH_RESET),
-			.M_AXI_TDATA(rxtbl_data[geth * MACW * NETH +: MACW * NETH])
+			.M_AXIS_TVALID(rxtbl_valid[geth * NETH +: NETH]),
+			.M_AXIS_TREADY(rxtbl_ready[geth * NETH +: NETH] | ETH_RESET),
+			.M_AXIS_TDATA(rxtbl_data[geth * MACW * NETH +: MACW * NETH])
 			// }}}
 		);
 		// }}}
 
 		// All packets go to memory: tomem -> (dma_wb) -> mmout
 		// {{{
+		assign	ctrl_stb[geth] = i_ctrl_stb
+				&& i_ctrl_addr[2 +: $clog2(NETH)] == geth;
+
 		pktvfifo #(
 			.AW(AW),	// Bus address width
-			.DW(DW)		// Bus width
+			.PKTDW(PKTDW),		// Bus width
+			.BUSDW(BUSDW)		// Bus width
 		) u_pktvfifo (
 			.i_clk(i_clk),
 			.i_reset(i_reset || ETH_RESET[geth]),
-			// Bus control
+			// Bus control port
 			// {{{
-			.i_wb_cyc(i_wb_cyc), .i_wb_stb(i_wb_stb
-				&& i_wb_addr[2 +: $clog2(NETH)] == geth),
-			.i_wb_we(i_wb_we), .i_wb_addr(i_wb_addr[1:0]),
-			.i_wb_data(i_wb_data), .i_wb_sel(i_wb_sel),
-			.o_wb_stall(pkt2m_stall[geth]),
-			.o_wb_ack(pkt2m_ack[geth]),
-			.o_wb_data(pkt2m_data[DW*geth +: DW]),
+			.i_ctrl_cyc(i_ctrl_cyc), .i_ctrl_stb(i_ctrl_stb
+				&& i_ctrl_addr[2 +: $clog2(NETH)] == geth),
+			.i_ctrl_we(i_ctrl_we), .i_ctrl_addr(i_ctrl_addr[1:0]),
+			.i_ctrl_data(i_ctrl_data), .i_ctrl_sel(i_ctrl_sel),
+			.o_ctrl_stall(ctrl_stall[geth]),
+			.o_ctrl_ack(  ctrl_ack[  geth]),
+			.o_ctrl_data( ctrl_data[ geth * 32 +: 32]),
 			// }}}
 			// Incoming packet
 			// {{{
 			.S_VALID(tomem_valid[geth]),
 			.S_READY(tomem_ready[geth]),
-			.S_DATA( tomem_data[geth * DW +: DW]),
-			.S_BYTES(tomem_bytes[geth * $clog2(DW) +: $clog2(DW)]),
-			.S_ABORT(tomem_abort[geth]),
+			.S_DATA( tomem_data[ geth * PKTDW +: PKTDW]),
+			.S_BYTES(tomem_bytes[geth * PKTBYW +: PKTBYW]),
 			.S_LAST( tomem_last[geth]),
+			.S_ABORT(tomem_abort[geth]),
 			// }}}
 			// DMA bus interface
 			// {{{
-			.o_wb_cyc(dma_cyc[geth]),
-			.o_wb_stb(dma_stb[geth]),
-			.o_wb_we(dma_we[geth]),
-			.o_wb_addr(dma_addr[geth]),
-			.o_wb_data(dma_data[geth]),
-			.o_wb_sel(dma_sel[geth]),
-			.i_wb_stall(dma_stall[geth]),
-			.i_wb_ack(dma_ack[geth]),
-			.i_wb_data(dma_idata[DW*geth +: DW]),
-			.i_wb_err(dma_err[geth]),
+			.o_wb_cyc(vfifo_cyc[    geth]),
+			.o_wb_stb(vfifo_stb[    geth]),
+			.o_wb_we(vfifo_we[      geth]),
+			.o_wb_addr(vfifo_addr[  geth * AW +: AW]),
+			.o_wb_data(vfifo_data[  geth * BUSDW   +: BUSDW  ]),
+			.o_wb_sel(vfifo_sel[    geth * BUSDW/8 +: BUSDW/8]),
+			.i_wb_stall(vfifo_stall[geth]),
+			.i_wb_ack(vfifo_ack[    geth]),
+			.i_wb_data(vfifo_idata[ geth * BUSDW +: BUSDW]),
+			.i_wb_err(vfifo_err[    geth]),
 			// This needs to go to a crossbar next ...
 			// }}}
 			// Outgoing packet
@@ -223,8 +290,8 @@ module routecore #(
 			.M_READY(mmout_ready),
 			.M_DATA( mmout_data),
 			.M_BYTES(mmout_bytes),
-			.M_ABORT(mmout_abort),
-			.M_LAST( mmout_last)
+			.M_LAST( mmout_last),
+			.M_ABORT(mmout_abort)
 			// }}}
 		);
 		// }}}
@@ -235,9 +302,7 @@ module routecore #(
 			// {{{
 			// .OPT_SKIDBUFFER
 			// .OPT_LOWPOWER
-			.NETH(NETH),
-			.DW(DW)
-			// .MACW(48)
+			.NETH(NETH), .DW(PKTDW), .MACW(MACW)
 			// }}}
 		) u_txgetports (
 			// {{{
@@ -249,7 +314,7 @@ module routecore #(
 			//
 			//
 			.TBL_REQUEST(lkup_request), .TBL_VALID(lkup_valid),
-			.TBL_MAC(lkup_mac), .TBL_PORT(lkup_port & ~THIS_PORT),
+			.TBL_MAC(lkup_dstmac),.TBL_PORT(lkup_port & ~THIS_PORT),
 			//
 			.M_VALID(rtd_valid), .M_READY(rtd_ready),
 			.M_DATA(rtd_data), .M_BYTES(rtd_bytes),
@@ -262,33 +327,33 @@ module routecore #(
 
 		// rtd->txx Broadcast our packet to all interested ports
 		// {{{
-		rtdbroadcast #(
-			.C_AXIS_DATA_WIDTH(MACW), .NM(NETH)
+		axinbroadcast #(
+			.NOUT(NETH), .DW(PKTDW)
 		) u_rtdbroadcast (
 			// {{{
-			.S_AXI_ACLK(i_clk),
-			.S_AXI_ARESETN(!i_reset),
+			.i_clk(i_clk),
+			.i_reset(i_reset),
 			//
-			.i_cfg_active(~ETH_RESET);
+			.i_cfg_active(~ETH_RESET),
 			// rtd_*, packet with routing
 			// {{{
-			.S_AXIN_VALID(rtd_valid),
-			.S_AXIN_READY(rtd_ready),
-			.S_AXIN_DATA(rtd_data),
-			.S_AXIN_PORT(rtd_port),
-			.S_AXIN_BYTES(rtd_bytes),
-			.S_AXIN_LAST(rtd_last),
-			.S_AXIN_ABORT(rtd_abort),
+			.S_VALID(rtd_valid),
+			.S_READY(rtd_ready),
+			.S_DATA(rtd_data),
+			.S_PORT(rtd_port),
+			.S_BYTES(rtd_bytes),
+			.S_LAST(rtd_last),
+			.S_ABORT(rtd_abort),
 			// }}}
 			// txx_*
 			// {{{
-			.M_AXIN_VALID(txx_valid[geth * NETH +: NETH]),
-			.M_AXIN_READY(txx_ready[geth * NETH +: NETH] | ETH_RESET),
-			.M_AXIN_DATA(txx_data[geth * DW * NETH +: DW * NETH]),
-			.M_AXIN_BYTES(txx_bytes[geth * $clog2(DW) * NETH
-						+: $clog2(DW) * NETH]),
-			.M_AXIN_LAST(txx_last[geth * NETH +: NETH])
-			.M_AXIN_ABORT(txx_abort[geth * NETH +: NETH])
+			.M_VALID(txx_valid[geth * NETH +: NETH]),
+			.M_READY(txx_ready[geth * NETH +: NETH] | ETH_RESET),
+			.M_DATA(txx_data[geth * PKTDW * NETH +: PKTDW * NETH]),
+			.M_BYTES(txx_bytes[geth * PKTBYW * NETH
+						+: PKTBYW * NETH]),
+			.M_LAST(txx_last[geth * NETH +: NETH]),
+			.M_ABORT(txx_abort[geth * NETH +: NETH])
 			// }}}
 			// }}}
 		);
@@ -296,46 +361,39 @@ module routecore #(
 
 		// Arbitrate from among packets from other ports
 		// {{{
-		integer				iport;
-		reg	[NETH-1:0]		prearb_valid, prearb_ready;
-		wire	[NETH-1:0]		prearb_ready;
-		reg	[NETH*DW-1:0]		prearb_data;
-		reg	[NETH*$clog2(DW)-1:0]	prearb_bytes;
-		reg	[NETH-1:0]		prearb_last, prearb_abort;
-
 		always @(*)
 		for(iport=0; iport<NETH; iport=iport+1)
 		begin
 			prearb_valid[iport] = txx_valid[geth * NETH+iport];
 			txx_ready[geth*NETH+iport] = prearb_ready[iport];
-			prearb_data[iport * DW +: DW]
-				 = txx_data[(geth*NETH+iport)*DW +: DW];
-			prearb_bytes[iport * $clog2(DW) +: $clog2(DW)]
-				 = txx_bytes[(geth*NETH+iport)*$clog2(DW) +: $clog2(DW)];
+			prearb_data[iport * PKTDW +: PKTDW]
+				 = txx_data[(geth*NETH+iport)*PKTDW +: PKTDW];
+			prearb_bytes[iport * PKTBYW +: PKTBYW]
+				 = txx_bytes[(geth*NETH+iport)*PKTBYW +: PKTBYW];
 			prearb_last[iport]  = txx_last[geth*NETH+iport];
-			prearb_abort[iport] = txx_data[geth*NETH+iport];
+			prearb_abort[iport] = txx_abort[geth*NETH+iport];
 		end
 
 		axinarbiter #(
-			.DW(DW),
-			.NETH(NETH)
+			.DW(PKTDW),
+			.NIN(NETH)
 		) u_txarbiter (
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
-			.S_AXIN_VALID(prearb_valid),
-			.S_AXIN_READY(prearb_ready),
-			.S_AXIN_DATA( prearb_data),
-			.S_AXIN_BYTES(prearb_bytes),
-			.S_AXIN_LAST( prearb_last),
-			.S_AXIN_ABORT(prearb_abort),
+			.S_VALID(prearb_valid),
+			.S_READY(prearb_ready),
+			.S_DATA( prearb_data),
+			.S_BYTES(prearb_bytes),
+			.S_LAST( prearb_last),
+			.S_ABORT(prearb_abort),
 			//
-			.M_AXIN_VALID(TX_VALID[geth]),
-			.M_AXIN_READY(TX_READY[geth]),
-			.M_AXIN_DATA( TX_DATA[ geth*DW +: DW]),
-			.M_AXIN_BYTES(TX_BYTES[geth*$clog2(DW) +: $clog2(DW)]),
-			.M_AXIN_LAST( TX_LAST[ geth]),
-			.M_AXIN_ABORT(TX_ABORT[geth])
+			.M_VALID(TX_VALID[geth]),
+			.M_READY(TX_READY[geth]),
+			.M_DATA( TX_DATA[ geth*PKTDW +: PKTDW]),
+			.M_BYTES(TX_BYTES[geth*PKTBYW +: PKTBYW]),
+			.M_LAST( TX_LAST[ geth]),
+			.M_ABORT(TX_ABORT[geth])
 			// }}}
 		);
 		// }}}
@@ -359,7 +417,7 @@ module routecore #(
 		rxroutetbl #(
 			// {{{
 			.NETH(NETH),
-			.BROADCAST_PORT({(NETH){1'b1}} & ~(1<<gk)),
+			.BROADCAST_PORT(EVERYONE_ELSE),
 			// .DEFAULT_PORT(NETH),
 			.LGTBL(LGROUTETBL),
 			.LGTIMEOUT(LGROUTE_TIMEOUT),
@@ -382,6 +440,54 @@ module routecore #(
 
 		// }}}
 	end endgenerate
+
+	assign	o_ctrl_stall = |(ctrl_stb & ctrl_stall);
+	always @(posedge i_clk)
+	if (i_reset || !i_ctrl_cyc)
+		o_ctrl_ack <= 0;
+	else
+		o_ctrl_ack <= |ctrl_ack;
+
+	integer		wbport;
+	reg	[31:0]	pre_ctrl_data;
+
+	always @(*)
+	begin
+		pre_ctrl_data = 0;
+		for(wbport=0; wbport < NETH; wbport = wbport+1)
+		if (ctrl_ack[wbport])
+			pre_ctrl_data = pre_ctrl_data | ctrl_data[wbport*32 +: 32];
+	end
+
+	always @(posedge i_clk)
+		o_ctrl_data <= pre_ctrl_data;
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Wishbone master arbiter, for the VFIFO interface
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	wbmarbiter #(
+		.DW(BUSDW), .AW(AW), .NIN(NETH)
+	) u_wbmarbiter (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+		//
+		.s_cyc(  vfifo_cyc),   .s_stb( vfifo_stb),  .s_we( vfifo_we),
+		.s_addr( vfifo_addr),  .s_data(vfifo_data), .s_sel(vfifo_sel),
+		.s_stall(vfifo_stall), .s_ack( vfifo_ack),.s_idata(vfifo_idata),
+			.s_err(vfifo_err),
+		//
+		.m_cyc(o_vfifo_cyc),  .m_stb(o_vfifo_stb),  .m_we(o_vfifo_we),
+		.m_addr(o_vfifo_addr),.m_data(o_vfifo_data),.m_sel(o_vfifo_sel),
+		.m_stall(i_vfifo_stall),.m_ack(i_vfifo_ack),.m_idata(i_vfifo_data),
+			.m_err(i_vfifo_err)
+		// }}}
+	);
+
+	// }}}
 
 	// Keep Verilator happy
 	// {{{
