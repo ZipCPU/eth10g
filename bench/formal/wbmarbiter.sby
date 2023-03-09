@@ -1,0 +1,31 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+depth 64
+
+[engines]
+smtbmc
+
+[script]
+read -formal sfifo.v
+read -formal pktarbiter.v
+read -formal wbmarbiter.v
+read -formal fwb_master.v
+read -formal fwb_slave.v
+--pycode-begin--
+cmd = "hierarchy -top wbmarbiter"
+cmd += " -chparam LGFIFO 2"
+output(cmd)
+--pycode-end--
+prep -top wbmarbiter
+
+[files]
+../../rtl/wbmarbiter.v
+../../rtl/net/pktarbiter.v
+../../rtl/sfifo.v
+fwb_master.v
+fwb_slave.v
