@@ -48,6 +48,7 @@ module rxroutetbl #(
 		parameter	LGTBL = 6,	// Log_2(NTBL entries)
 		localparam	NTBL = (1<<LGTBL), // Number of table entries
 		parameter	LGTIMEOUT = 64-MACW-1,
+		parameter [0:0]	OPT_LOWPOWER = 1'b0,
 		parameter	MACW = 48	// Bits in a MAC address
 		// }}}
 	) (
@@ -57,14 +58,14 @@ module rxroutetbl #(
 		// {{{
 		input	wire	[NETH-1:0]		RX_VALID,
 		output	wire	[NETH-1:0]		RX_READY,
-		input	wire	[NETH-1:0]		RX_SRCMAC,
+		input	wire	[NETH*MACW-1:0]		RX_SRCMAC,
 		// }}}
 		// Outgoing packet data, needing destination lookup
 		// {{{
 		input	wire				TX_VALID,
-		output	wire				TX_READY,
+		output	reg				TX_ACK,
 		input	wire	[MACW-1:0]		TX_DSTMAC,
-		output	wire	[$clog2(NETH):0]	TX_PORT
+		output	reg	[NETH-1:0]		TX_PORT
 		// }}}
 		// }}}
 	);
@@ -74,17 +75,29 @@ module rxroutetbl #(
 	integer	ik;
 	genvar	gk, galt;
 
+	wire	[NETH-1:0]	rxgrant;
+	wire			rxarb_valid;
+	wire			rxarb_ready;
+	reg	[MACW-1:0]	rxarb_srcmac;
+	reg [$clog2(NETH)-1:0]	rxarb_port;
+
+	reg	[NTBL-1:0]		tbl_valid;
+	reg	[NTBL-1:0]		prematch, oldest;
+	wire	[NTBL-1:0]		tbl_write;
+	reg	[LGTIMEOUT-1:0]		tbl_age		[NTBL-1:0];
+	reg	[$clog2(NETH)-1:0]	tbl_port	[NTBL-1:0];
+	reg	[MACW-1:0]		tbl_mac		[NTBL-1:0];
+	wire				tbl_full;
+
+	wire	[NTBL-1:0]	lkup_tblmatch;
+	reg	[NETH-1:0]	lkup_port;
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Arbitrate among inputs
 	// {{{
-	wire	[NETH-1:0]	rxgrant;
-	wire	[NETH-1:0]	rxarb_valid;
-	wire			rxarb_ready;
-	reg	[MACW-1:0]	rxarb_srcmac;
-
-	roundrobin #(
+	pktarbiter #(
 		.W(NETH)
 	) u_arbiter (
 		.i_clk(i_clk), .i_reset_n(!i_reset),
@@ -92,8 +105,18 @@ module rxroutetbl #(
 		.o_grant(rxgrant)
 	);
 
-	assign	rxarb_valid = |RX_VALID & rxgrant;
+	assign	rxarb_valid = |(RX_VALID & rxgrant);
 	assign	RX_READY    = rxarb_ready ? rxgrant : 0;
+
+	assign	rxarb_ready = 1;
+
+	always @(*)
+	begin
+		rxarb_port = 0;
+		for(ik=0; ik<NETH; ik=ik+1)
+		if (rxgrant[ik])
+			rxarb_port = rxarb_port | (1<<ik);
+	end
 
 	always @(*)
 	begin
@@ -109,13 +132,6 @@ module rxroutetbl #(
 	//
 	// Log incoming packets into our table
 	// {{{
-
-	reg	[NTBL-1:0]		tbl_valid;
-	reg	[NTBL-1:0]		prematch, oldest;
-	wire	[NTBL-1:0]		tbl_write;
-	reg	[LGTIMEOUT-1:0]		tbl_age		[NTBL-1:0];
-	reg	[$clog2(NETH)-1:0]	tbl_port	[NTBL-1:0];
-	reg	[MACW-1:0]		tbl_mac		[NTBL-1:0];
 
 	assign	tbl_full = (&tbl_valid);
 	generate for(gk=0; gk<NTBL; gk=gk+1)
@@ -176,7 +192,7 @@ module rxroutetbl #(
 		end else if (tbl_write[gk])
 		begin
 			tbl_valid[gk] <= 1'b1;
-			tbl_age       <= {(LGTIMEOUT){1'b1}};
+			tbl_age[gk]   <= {(LGTIMEOUT){1'b1}};
 		end else if (tbl_valid[gk])
 		begin
 			tbl_valid[gk] <= (tbl_age[gk] > 1);
@@ -187,7 +203,7 @@ module rxroutetbl #(
 		if (tbl_write[gk])
 		begin
 			tbl_mac[gk]  <= rxarb_srcmac;
-			tbl_port[gk] <= rxgrant;
+			tbl_port[gk] <= rxarb_port;
 		end
 
 	end endgenerate
@@ -198,37 +214,39 @@ module rxroutetbl #(
 	// Look up which request a transmit port should get sent to
 	// {{{
 
-	wire	[NTBL-1:0]	tx_tblmatch;
-	wire	[NETH-1:0]	tbl_port;
-
 	generate for(gk=0; gk<NTBL; gk=gk+1)
 	begin
 
-		assign	tx_tblmatch[gk] = tbl_valid[gk]
+		assign	lkup_tblmatch[gk] = tbl_valid[gk]
 				&& tbl_mac[gk] == TX_DSTMAC;
 	end endgenerate
 
 	always @(*)
 	begin
-		tbl_port = 0;
-		for(ik=0; ik<NETH; ik=ik+1)
-		if (tx_tblmatch[ik)
-			tbl_port = tbl_port | (1<<ik);
+		lkup_port = 0;
+		for(ik=0; ik<NTBL; ik=ik+1)
+		if (lkup_tblmatch[ik])
+			lkup_port = lkup_port | (1<<tbl_port[ik]);
 	end
 
 	always @(posedge i_clk)
 	if (i_reset || (OPT_LOWPOWER && !TX_VALID))
 		TX_PORT <= 0;
-	else if (TX_VALID && TX_READY)
+	else if (TX_VALID && !TX_ACK)
 	begin
 		if (&TX_DSTMAC)
 			TX_PORT <= BROADCAST_PORT;
-		else if (tx_tblmatch == 0)
+		else if (lkup_tblmatch == 0)
 			TX_PORT <= DEFAULT_PORT;	// Could be broadcast
 		else
-			TX_PORT <= tbl_port;
+			TX_PORT <= lkup_port;
 	end
 
+	always @(posedge i_clk)
+	if (i_reset)
+		TX_ACK <= 1'b0;
+	else
+		TX_ACK <= TX_VALID && (!TX_ACK);
 	// }}}
 
 	// Keep Verilator happy

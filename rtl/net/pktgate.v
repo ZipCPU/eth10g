@@ -1,10 +1,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	pktgate.v
+// Filename:	pktgate.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	
+// Purpose:	The packet gate has a simple purpose: buffer a whole packet,
+//		and don't release that packet until either an entire packet
+//	has been buffered, or the buffer has filled up.  This is to help
+//	guarantee that once we start transmitting a packet (the next step),
+//	that the packet will be able to complete its transmission without
+//	any cycles where !M_AXIN_VALID between the first VALID and LAST.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -19,6 +24,14 @@
 // Apache License, Version 2.0 (the "License").  You may not use this project,
 // or this file, except in compliance with the License.  You may obtain a copy
 // of the License at
+// }}}
+//	http://www.apache.org/licenses/LICENSE-2.0
+// {{{
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+// License for the specific language governing permissions and limitations
+// under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
 //

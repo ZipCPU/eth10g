@@ -5,7 +5,7 @@
 // Project:	10Gb Ethernet switch
 //
 // Purpose:	Given an incoming packet, copy the source MAC address and
-//		forward it to NETH outgoing interfaces.
+//		forward it to the routing table.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -38,8 +38,8 @@ module rxgetsrcmac #(
 		parameter [0:0]	OPT_SKIDBUFFER   = 1'b0,
 		parameter [0:0]	OPT_LOWPOWER     = 1'b0,
 		parameter [0:0]	OPT_LITTLE_ENDIAN= 1'b0,
-		parameter	NETH = 4,	// Number of outgoing eth ports
-		parameter	DW=32,		// Bits per incoming beat
+		parameter	DW=64,		// Bits per incoming beat
+		parameter	WBITS = $clog2(DW/8),	// Bits to desc # bytes
 		parameter	MACW = 48	// Bits in a MAC address
 		// }}}
 	) (
@@ -50,24 +50,24 @@ module rxgetsrcmac #(
 		input	wire				S_VALID,
 		output	wire				S_READY,
 		input	wire	[DW-1:0]		S_DATA,
-		input	wire	[$clog2(DW)-1:0]	S_BYTES,
+		input	wire	[WBITS-1:0]	S_BYTES,
 		input	wire				S_ABORT,
 		input	wire				S_LAST,
 		// }}}
 		// Outgoing packet data
 		// {{{
-		output	wire				M_VALID,
+		output	reg				M_VALID,
 		input	wire				M_READY,
-		output	wire	[DW-1:0]		M_DATA,
-		output	wire	[$clog2(DW)-1:0]	M_BYTES,
-		output	wire				M_ABORT,
-		output	wire				M_LAST,
+		output	reg	[DW-1:0]		M_DATA,
+		output	reg	[WBITS-1:0]	M_BYTES,
+		output	reg				M_ABORT,
+		output	reg				M_LAST,
 		// }}}
 		// Outgoing packet data, needing destination lookup
 		// {{{
-		output	wire				TBL_VALID,
+		output	reg				TBL_VALID,
 		input	wire				TBL_READY,
-		output	wire	[MACW-1:0]		TBL_SRCMAC
+		output	reg	[MACW-1:0]		TBL_SRCMAC
 		// }}}
 		// }}}
 	);
@@ -77,10 +77,10 @@ module rxgetsrcmac #(
 	localparam	MAXPOSN = (MACW+(DW-1))/DW;
 	localparam	LGPOSN = $clog2(MAXPOSN);
 
-	wire				skd_valid, skd_ready,
-					skd_abort, skd_last;
-	wire	[DW-1:0]		skd_data;
-	wire	[$clog2(DW)-1:0]	skd_bytes;
+	wire			skd_valid, skd_ready,
+				skd_abort, skd_last;
+	wire	[DW-1:0]	skd_data;
+	wire	[WBITS-1:0]	skd_bytes;
 
 	reg	[LGPOSN:0]	pkt_posn;
 	reg			m_active;
@@ -98,15 +98,15 @@ module rxgetsrcmac #(
 	begin : GEN_SKIDBUFFER
 
 		netskid #(
-			.DW(DW + $clog2(DW))
+			.DW(DW + WBITS)
 		) u_skidbuffer (
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
-			.S_AXIN_VALID( S_AXIN_VALID),
-			.S_AXIN_READY( S_AXIN_READY),
-			.S_AXIN_DATA({ S_AXIN_BYTES, S_AXIN_DATA }),
-			.S_AXIN_LAST(  S_AXIN_LAST),
-			.S_AXIN_ABORT( S_AXIN_ABORT),
+			.S_AXIN_VALID( S_VALID),
+			.S_AXIN_READY( S_READY),
+			.S_AXIN_DATA({ S_BYTES, S_DATA }),
+			.S_AXIN_LAST(  S_LAST),
+			.S_AXIN_ABORT( S_ABORT),
 			//
 			.M_AXIN_VALID( skd_valid),
 			.M_AXIN_READY( skd_ready),
@@ -144,15 +144,19 @@ module rxgetsrcmac #(
 	begin
 		if (!pkt_posn[LGPOSN])
 			pkt_posn <= pkt_posn + 1;
-		if (skd_last || skd_abort)
+		if (skd_last)
 			pkt_posn <= 0;
 	end
 
 	always @(posedge i_clk)
 	if (i_reset)
 		TBL_VALID <= 0;
-	else if (skd_valid && skd_ready && pkt_posn == MAXPOSN-1)
-		TBL_VALID <= 1'b1;
+	else if (skd_valid && skd_ready && skd_last) // pkt_posn == MAXPOSN-1)
+		// Require a full, non-aborted, packet before forwarding the
+		// MAC address to the table.  This will guarantee that the
+		// packet CRC is good, and therefore that the MAC address is
+		// a valid one.
+		TBL_VALID <= !skd_abort;
 	else if (TBL_READY)
 		TBL_VALID <= 0;
 
@@ -178,16 +182,16 @@ module rxgetsrcmac #(
 		reg	last_data[DW*MAXPOSN-1:0];
 
 		always @(posedge i_clk)
-		if (OPT_LOWPOWER && i_reset)
+		if (OPT_LOWPOWER && (i_reset || skd_abort))
 			last_data <= 0;
 		else if (skd_valid && skd_ready)
 		begin
 			if (MAXPOSN <= 1)
 				last_data <= skd_data;
 			else if (OPT_LITTLE_ENDIAN)
-				last_data <= { skd_data, last_data };
+				last_data <= { skd_data, last_data[DW*MAXPOSN-1:DW] };
 			else
-				last_data <= { last_data, skd_data };
+				last_data <= { last_data[DW*(MAXPOSN-1)-1:0], skd_data };
 		end
 
 		always @(posedge i_clk)
@@ -233,7 +237,7 @@ module rxgetsrcmac #(
 		M_DATA  <= skd_data;
 		M_BYTES <= skd_bytes;
 
-		if (OPT_LOWPOWER && (!skd_valid || !skd_ready))
+		if (OPT_LOWPOWER && (!skd_valid || !skd_ready || skd_abort))
 			{ M_DATA, M_BYTES } <= 0;
 	end
 
@@ -266,11 +270,6 @@ module rxgetsrcmac #(
 	else if (!M_VALID || M_READY)
 		M_ABORT <= 1'b0;
 
-	// }}}
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Broadcast MACs to NETH destinations
-	// {{{
 	// }}}
 
 	// Keep Verilator happy

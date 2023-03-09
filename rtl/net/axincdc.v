@@ -93,7 +93,6 @@ module axincdc #(
 		s_abort <= 1'b1;
 	// }}}
 
-
 	afifo #(
 		.LGFIFO(LGFIFO),
 		.WIDTH(1+1+$clog2(DW)+DW)

@@ -38,6 +38,7 @@ module axinbroadcast #(
 		// {{{
 		parameter	NOUT = 4,	// Number of incoming eth ports
 		parameter	DW = 64,	// Bits per clock cycle
+		parameter	WBITS = $clog2(DW/8),
 		parameter [0:0]	OPT_SKIDBUFFER = 0,
 		parameter [0:0]	OPT_LOWPOWER = 0
 		// }}}
@@ -49,10 +50,13 @@ module axinbroadcast #(
 		input	wire			S_VALID,
 		output	wire			S_READY,
 		input	wire	[DW-1:0]	S_DATA,
-		input	wire [$clog2(DW)-1:0]	S_BYTES,
+		input	wire [WBITS-1:0]	S_BYTES,
 		input	wire			S_LAST,
 		input	wire			S_ABORT,
 		//
+		// S_PORT tells us which port or port(s) we wish to forward
+		// this packet to.  For true broadcasting, S_PORT should be
+		// all ones.  For routing, S_PORT should be $onehot().
 		input	wire [NOUT-1:0]		S_PORT,
 		// }}}
 		// Outgoing packet, forwarded to NOUT interfaces
@@ -60,20 +64,22 @@ module axinbroadcast #(
 		output	reg	[NOUT-1:0]		M_VALID,
 		input	wire	[NOUT-1:0]		M_READY,
 		output	reg	[NOUT*DW-1:0]		M_DATA,
-		output	reg [NOUT*$clog2(DW)-1:0]	M_BYTES,
+		output	reg	[NOUT*WBITS-1:0]	M_BYTES,
 		output	reg	[NOUT-1:0]		M_LAST,
 		output	reg	[NOUT-1:0]		M_ABORT
 		// }}}
 		// }}}
 	);
 
+	// Local declarations
+	// {{{
 	genvar	gk;
 	wire				skd_valid, skd_ready,
 					skd_last, skd_abort;
 	wire	[DW-1:0]		skd_data;
-	wire	[$clog2(DW)-1:0]	skd_bytes;
+	wire	[WBITS-1:0]	skd_bytes;
 	wire	[NOUT-1:0]		skd_port;
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Start with a skidbuffer
@@ -82,7 +88,7 @@ module axinbroadcast #(
 	begin : GEN_SKIDBUFFER
 
 		netskid #(
-			.DW(NOUT+DW+$clog2(DW))
+			.DW(NOUT+DW+WBITS)
 		) u_skidbuffer (
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
@@ -129,34 +135,32 @@ module axinbroadcast #(
 		if (OPT_LOWPOWER && i_reset)
 		begin
 			M_DATA[ gk*DW +: DW] <= 0;
-			M_BYTES[gk*$clog2(DW) +: $clog2(DW)] <= 0;
+			M_BYTES[gk*WBITS +: WBITS] <= 0;
 			M_LAST[ gk] <= 1'b0;
 		end else if (!M_VALID[gk] || M_READY[gk])
 		begin
 			M_DATA[ gk*DW +: DW] <= skd_data;
-			M_BYTES[gk*$clog2(DW) +: $clog2(DW)] <= skd_bytes;
+			M_BYTES[gk*WBITS +: WBITS] <= skd_bytes;
 			M_LAST[ gk] <= skd_last;
 
 			if (OPT_LOWPOWER && (!skd_valid || !skd_port[gk]))
 			begin
 				M_DATA[ gk*DW +: DW] <= 0;
-				M_BYTES[gk*$clog2(DW) +: $clog2(DW)] <= 0;
+				M_BYTES[gk*WBITS +: WBITS] <= 0;
 				M_LAST[ gk] <= 1'b0;
 			end
 		end
 
 		always @(posedge i_clk)
 		if (i_reset)
-		begin
 			M_ABORT[gk] <= 0;
-		end else if (skd_abort && skd_port[gk]
+		else if (skd_abort && skd_port[gk]
 					&& (!skd_valid || skd_ready))
-			M_ABORT[gk] <= 1'b1;
+			M_ABORT[gk] <= (!M_VALID[gk] || !M_LAST[gk]);
 		else if (M_READY[gk])
 			M_ABORT[gk] <= 1'b0;
 		// }}}
 	end endgenerate
-
 	// }}}
 
 	// Keep Verilator happy

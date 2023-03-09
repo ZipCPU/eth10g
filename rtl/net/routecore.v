@@ -373,10 +373,10 @@ module routecore #(
 			.RX_READY(remap_ready),
 			.RX_SRCMAC(remap_data),
 
-			.TX_VALID(lkup_request),
-			.TX_READY(lkup_valid),
+			.TX_VALID( lkup_request),
+			.TX_ACK(   lkup_valid),
 			.TX_DSTMAC(lkup_dstmac),
-			.TX_PORT(lkup_port)
+			.TX_PORT(  lkup_port)
 			// }}}
 		);
 

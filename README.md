@@ -30,6 +30,18 @@ Other hardware interfaces may also be present within this design, to include
 UART, HDMI Tx and Rx, a SATA controller, micro SD, eMMC, QSPI flash, I2C,
 temperature sensing and fan control, and much more.
 
+- [UART console via the debugbus](rtl/wbubus/wbuconsole.v)
+- [uSD](rtl/sdspi/sdspi.v) (SPI interface control only at present)
+- [QSPI Flash](rtl/qflexpress.v)
+- [I2C](rtl/wbi2c/wbi2ccpu.v)
+  - Si5324 clock generator
+  - B/W OLED display
+- [SPIO: 5 buttons, 8 LEDs, and 9 switches](rtl/spio.v)
+- HDMI RX and TX
+- RPi CM4 SMI interface
+- SATA
+- EMMC
+
 ## Sponsorship
 
 This is project is sponsored by Net Idea.
@@ -40,11 +52,13 @@ This project is released under the Apache 2 license.
 
 ## Status
 
-As of Feb, 2023:
+As of March, 2023:
 
 - The PCB for this project is currently being designed.  It has not yet
   entered the manufacturing stage.
 
-- The project RTL is currently in a draft assembly status.  Verification
-  work has not yet started, much less any hardware implementations.
+- The project RTL is still in a draft assembly status.  Integration is
+  not yet complete.  Port mismatches abound.  Component verification work
+  has not yet started, much less integration testing or any hardware
+  implementations.
 

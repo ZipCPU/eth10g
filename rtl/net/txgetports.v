@@ -4,7 +4,10 @@
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	
+// Purpose:	Stall an incoming packet stream long enough to request a
+//		MAC port lookup, then forward the packet to the port
+//	returned, or broadcast it to all if no port was found (i.e. the
+//	port bit mask returned).
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -41,6 +44,7 @@ module txgetports #(
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Total number of ports
 		parameter	DW = 128,	// Bits per beat
+		parameter	WBITS = $clog2(DW/8),	// Bits for bytes/beat
 		parameter	MACW = 48	// Bits in a MAC address
 		// }}}
 	) (
@@ -51,7 +55,7 @@ module txgetports #(
 		input	wire			S_VALID,
 		output	wire			S_READY,
 		input	wire	[DW-1:0]	S_DATA,
-		input	wire [$clog2(DW)-1:0]	S_BYTES,
+		input	wire [WBITS-1:0]	S_BYTES,
 		input	wire			S_LAST,
 		input	wire			S_ABORT,	// == 0 on TX
 		// }}}
@@ -67,7 +71,7 @@ module txgetports #(
 		output	reg				M_VALID,
 		input	wire				M_READY,
 		output	reg	[DW-1:0]		M_DATA,
-		output	reg	[$clog2(DW)-1:0]	M_BYTES,
+		output	reg	[WBITS-1:0]		M_BYTES,
 		output	reg				M_LAST,
 		output	reg				M_ABORT,
 		output	reg	[NETH-1:0]		M_PORT
@@ -77,11 +81,11 @@ module txgetports #(
 
 	// Local declarations
 	// {{{
-	reg				known_ports;
-	wire				skd_valid, skd_ready;
-	wire	[DW-1:0]		skd_data;
-	wire	[$clog2(DW)-1:0]	skd_bytes;
-	wire				skd_last, skd_abort;
+	reg			known_ports;
+	wire			skd_valid, skd_ready;
+	wire	[DW-1:0]	skd_data;
+	wire	[WBITS-1:0]	skd_bytes;
+	wire			skd_last, skd_abort;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -92,7 +96,7 @@ module txgetports #(
 	begin : GEN_SKIDBUFFER
 
 		netskid #(
-			.DW($clog2(DW)+DW)
+			.DW(WBITS+DW)
 		) u_skidbuffer (
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
@@ -100,9 +104,9 @@ module txgetports #(
 			.S_AXIN_DATA({ S_BYTES, S_DATA }),
 			.S_AXIN_LAST(S_LAST), .S_AXIN_ABORT(S_ABORT),
 			//
-			.M_AXIN_VALID(skd_valid), .S_AXIN_READY(skd_ready),
+			.M_AXIN_VALID(skd_valid), .M_AXIN_READY(skd_ready),
 			.M_AXIN_DATA({ skd_bytes, skd_data }),
-			.M_AXIN_LAST(skd_last), .S_AXIN_ABORT(skd_abort)
+			.M_AXIN_LAST(skd_last), .M_AXIN_ABORT(skd_abort)
 			// }}}
 		);
 
@@ -147,11 +151,15 @@ module txgetports #(
 	else if (skd_valid)
 		TBL_REQUEST <= (!known_ports && !TBL_VALID && !skd_abort);
 
-	// WARNING: This requires at least 48*2 bits per beat
+	// WARNING: This requires at least 48*2 bits per beat, so a minimum
+	// of 128 bits per beat once rounded to a power of two
 	if (OPT_LITTLE_ENDIAN)
 	begin
+		// The first MACW bits are the source, so we grab the second
+		// set of MACW bits
 		assign	TBL_MAC = skd_data[2*MACW-1:MACW];
 	end else begin
+		// Same thing, but the "first" bits are in the MSBs
 		assign	TBL_MAC = skd_data[DW-MACW-1:DW-2*MACW];
 	end
 	// }}}
@@ -172,7 +180,7 @@ module txgetports #(
 		{ M_LAST, M_BYTES, M_DATA } <= 0;
 	else if (!M_VALID || M_READY)
 	begin
-		{ M_LAST, M_BYTES, M_DATA } <= { skd_last, skd_bytes, skd_data };
+		{ M_LAST, M_BYTES, M_DATA }<= { skd_last, skd_bytes, skd_data };
 		if (OPT_LOWPOWER && (!skd_valid || skd_abort))
 			{ M_LAST, M_BYTES, M_DATA } <= 0;
 	end
