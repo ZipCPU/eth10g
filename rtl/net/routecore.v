@@ -67,7 +67,11 @@ module routecore #(
 		parameter	MACW = 48,	// Bits in a MAC address
 		parameter	LGROUTETBL = 6,
 		parameter	LGROUTE_TIMEOUT = 24,
-		parameter	AW = 30-$clog2(BUSDW/8)
+		parameter	AW = 30-$clog2(BUSDW/8),
+		parameter [0:0]	OPT_VFIFO = 0,
+		// We need a VFIFO to be successful.
+		parameter [AW-1:0]	DEF_BASEADDR = 0,
+		parameter [AW-1:0]	DEF_MEMSIZE  = 0
 		// }}}
 	) (
 		// {{{
@@ -124,6 +128,8 @@ module routecore #(
 
 	// Local declarations
 	// {{{
+	// parameter [AW-1:0]	DEF_BASEADDR = 0,
+	parameter [AW-1:0]	DEF_SUBSIZE  = DEF_MEMSIZE / NETH;
 	genvar				geth;
 
 	wire	[NETH-1:0]		tomem_valid, tomem_ready;
@@ -150,6 +156,10 @@ module routecore #(
 
 	wire	[NETH-1:0]		ctrl_stb, ctrl_ack, ctrl_stall;
 	wire	[NETH*32-1:0]		ctrl_data;
+
+	integer		wbport;
+	reg		pre_ctrl_ack;
+	reg	[31:0]	pre_ctrl_data;
 	// }}}
 
 	generate for (geth=0; geth < NETH; geth = geth+1)
@@ -244,56 +254,113 @@ module routecore #(
 		assign	ctrl_stb[geth] = i_ctrl_stb
 				&& i_ctrl_addr[2 +: $clog2(NETH)] == geth;
 
-		pktvfifo #(
-			.AW(AW),	// Bus address width
-			.PKTDW(PKTDW),		// Bus width
-			.BUSDW(BUSDW)		// Bus width
-		) u_pktvfifo (
-			.i_clk(i_clk),
-			.i_reset(i_reset || ETH_RESET[geth]),
-			// Bus control port
-			// {{{
-			.i_ctrl_cyc(i_ctrl_cyc), .i_ctrl_stb(i_ctrl_stb
-				&& i_ctrl_addr[2 +: $clog2(NETH)] == geth),
-			.i_ctrl_we(i_ctrl_we), .i_ctrl_addr(i_ctrl_addr[1:0]),
-			.i_ctrl_data(i_ctrl_data), .i_ctrl_sel(i_ctrl_sel),
-			.o_ctrl_stall(ctrl_stall[geth]),
-			.o_ctrl_ack(  ctrl_ack[  geth]),
-			.o_ctrl_data( ctrl_data[ geth * 32 +: 32]),
-			// }}}
-			// Incoming packet
-			// {{{
-			.S_VALID(tomem_valid[geth]),
-			.S_READY(tomem_ready[geth]),
-			.S_DATA( tomem_data[ geth * PKTDW +: PKTDW]),
-			.S_BYTES(tomem_bytes[geth * PKTBYW +: PKTBYW]),
-			.S_LAST( tomem_last[geth]),
-			.S_ABORT(tomem_abort[geth]),
-			// }}}
-			// DMA bus interface
-			// {{{
-			.o_wb_cyc(vfifo_cyc[    geth]),
-			.o_wb_stb(vfifo_stb[    geth]),
-			.o_wb_we(vfifo_we[      geth]),
-			.o_wb_addr(vfifo_addr[  geth * AW +: AW]),
-			.o_wb_data(vfifo_data[  geth * BUSDW   +: BUSDW  ]),
-			.o_wb_sel(vfifo_sel[    geth * BUSDW/8 +: BUSDW/8]),
-			.i_wb_stall(vfifo_stall[geth]),
-			.i_wb_ack(vfifo_ack[    geth]),
-			.i_wb_data(vfifo_idata[ geth * BUSDW +: BUSDW]),
-			.i_wb_err(vfifo_err[    geth]),
-			// This needs to go to a crossbar next ...
-			// }}}
-			// Outgoing packet
-			// {{{
-			.M_VALID(mmout_valid),
-			.M_READY(mmout_ready),
-			.M_DATA( mmout_data),
-			.M_BYTES(mmout_bytes),
-			.M_LAST( mmout_last),
-			.M_ABORT(mmout_abort)
-			// }}}
-		);
+		if (OPT_VFIFO)
+		begin : GEN_VFIFO
+
+			pktvfifo #(
+				// {{{
+				.AW(AW),		// Bus address width
+				.PKTDW(PKTDW),		// Packet data width
+				.BUSDW(BUSDW),		// Bus width
+				// DEF_BASEADDR: The VFIFO default base
+				// address -- set this and the default memory
+				// size to nonzero in order to cause the VFIFO
+				// to start automaticallt w/o CPU intervention.
+				// Both addresses are *WORD* addresses, so need
+				// to be shifted by $clog2(BUSDW/8) to get
+				// their proper bus address location.
+				.DEF_BASEADDR(DEF_BASEADDR + geth*DEF_SUBSIZE),
+				.DEF_MEMSIZE(DEF_SUBSIZE)
+				// }}}
+			) u_pktvfifo (
+				// {{{
+				.i_clk(i_clk),
+				.i_reset(i_reset || ETH_RESET[geth]),
+				// Bus control port
+				// {{{
+				.i_ctrl_cyc(i_ctrl_cyc), .i_ctrl_stb(i_ctrl_stb
+					&& i_ctrl_addr[2 +: $clog2(NETH)] == geth),
+				.i_ctrl_we(i_ctrl_we), .i_ctrl_addr(i_ctrl_addr[1:0]),
+				.i_ctrl_data(i_ctrl_data), .i_ctrl_sel(i_ctrl_sel),
+				.o_ctrl_stall(ctrl_stall[geth]),
+				.o_ctrl_ack(  ctrl_ack[  geth]),
+				.o_ctrl_data( ctrl_data[ geth * 32 +: 32]),
+				// }}}
+				// Incoming packet
+				// {{{
+				.S_VALID(tomem_valid[geth]),
+				.S_READY(tomem_ready[geth]),
+				.S_DATA( tomem_data[ geth * PKTDW +: PKTDW]),
+				.S_BYTES(tomem_bytes[geth * PKTBYW +: PKTBYW]),
+				.S_LAST( tomem_last[geth]),
+				.S_ABORT(tomem_abort[geth]),
+				// }}}
+				// DMA bus interface
+				// {{{
+				.o_wb_cyc(vfifo_cyc[    geth]),
+				.o_wb_stb(vfifo_stb[    geth]),
+				.o_wb_we(vfifo_we[      geth]),
+				.o_wb_addr(vfifo_addr[  geth * AW +: AW]),
+				.o_wb_data(vfifo_data[  geth * BUSDW   +: BUSDW  ]),
+				.o_wb_sel(vfifo_sel[    geth * BUSDW/8 +: BUSDW/8]),
+				.i_wb_stall(vfifo_stall[geth]),
+				.i_wb_ack(vfifo_ack[    geth]),
+				.i_wb_data(vfifo_idata[ geth * BUSDW +: BUSDW]),
+				.i_wb_err(vfifo_err[    geth]),
+				// This needs to go to a crossbar next ...
+				// }}}
+				// Outgoing packet
+				// {{{
+				.M_VALID(mmout_valid),
+				.M_READY(mmout_ready),
+				.M_DATA( mmout_data),
+				.M_BYTES(mmout_bytes),
+				.M_LAST( mmout_last),
+				.M_ABORT(mmout_abort)
+				// }}}
+				// }}}
+			);
+
+		end else begin : NO_VFIFO
+
+			netfifo #(
+				// {{{
+				.BW(PKTDW + $clog2(PKTDW/8)),
+				.LGFLEN(10)
+				// }}}
+			) u_netfifo (
+				// {{{
+				.i_clk(i_clk),
+				.i_reset(i_reset || ETH_RESET[geth]),
+				// Incoming packet
+				// {{{
+				.S_AXIN_VALID(tomem_valid[geth]),
+				.S_AXIN_READY(tomem_ready[geth]),
+				.S_AXIN_DATA({ tomem_bytes[geth * PKTBYW +: PKTBYW],
+					tomem_data[ geth * PKTDW +: PKTDW] }),
+				.S_AXIN_LAST( tomem_last[geth]),
+				.S_AXIN_ABORT(tomem_abort[geth]),
+				// }}}
+				// (No) DMA bus interface
+				// Outgoing packet
+				// {{{
+				.M_AXIN_VALID(mmout_valid),
+				.M_AXIN_READY(mmout_ready),
+				.M_AXIN_DATA({ mmout_bytes, mmout_data }),
+				.M_AXIN_LAST( mmout_last),
+				.M_AXIN_ABORT(mmout_abort)
+				// }}}
+				// }}}
+			);
+
+			assign	vfifo_cyc[geth] = 1'b0;
+			assign	vfifo_stb[geth] = 1'b0;
+			assign	vfifo_we[geth]  = 1'b0;
+			assign	vfifo_addr[geth]= {(AW){1'b0}};
+			assign	vfifo_data[geth]= {(BUSDW){1'b0}};
+			assign	vfifo_sel[geth] = {(BUSDW/8){1'b0}};
+
+		end
 		// }}}
 
 		// mmout->rtd, On return from memory, lookup the destinations
@@ -414,7 +481,7 @@ module routecore #(
 				 = rxtbl_data[(geth*NETH+iport)*MACW +: MACW];
 		end
 
-		rxroutetbl #(
+		routetbl #(
 			// {{{
 			.NETH(NETH),
 			.BROADCAST_PORT(EVERYONE_ELSE),
@@ -442,14 +509,18 @@ module routecore #(
 	end endgenerate
 
 	assign	o_ctrl_stall = |(ctrl_stb & ctrl_stall);
+
+	always @(posedge i_clk)
+	if (i_reset || !i_ctrl_cyc)
+		pre_ctrl_ack <= 0;
+	else
+		pre_ctrl_ack <= i_ctrl_stb && !o_ctrl_stall;
+
 	always @(posedge i_clk)
 	if (i_reset || !i_ctrl_cyc)
 		o_ctrl_ack <= 0;
 	else
-		o_ctrl_ack <= |ctrl_ack;
-
-	integer		wbport;
-	reg	[31:0]	pre_ctrl_data;
+		o_ctrl_ack <= pre_ctrl_ack;
 
 	always @(*)
 	begin
@@ -460,7 +531,10 @@ module routecore #(
 	end
 
 	always @(posedge i_clk)
+	if (OPT_VFIFO)
 		o_ctrl_data <= pre_ctrl_data;
+	else
+		o_ctrl_data <= 0;
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -494,6 +568,13 @@ module routecore #(
 	// Verilator lint_off UNUSED
 	wire	unused;
 	assign	unused = &{ 1'b0 };
+
+	generate if (!OPT_VFIFO)
+	begin : GEN_UNUSED_VFIFO
+		wire	unused_vfifo_wb;
+		assign	unused_vfifo_wb = &{ 1'b0, vfifo_stall, vfifo_ack,
+				vfifo_idata, vfifo_err };
+	end endgenerate
 	// Verilator lint_on  UNUSED
 	// }}}
 endmodule

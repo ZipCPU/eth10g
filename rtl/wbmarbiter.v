@@ -295,7 +295,6 @@ module wbmarbiter #(
 	always @(posedge i_clk)
 		data <= m_idata;
 
-	assign	s_err = {(NIN){err}};
 	assign	s_idata = {(NIN){data}};
 	// }}}
 
