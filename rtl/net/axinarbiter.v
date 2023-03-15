@@ -137,7 +137,7 @@ module axinarbiter #(
 		always @(posedge i_clk)
 		if (i_reset)
 			r_midpkt <= 0;
-		else if (skd_abort[gk] && (!skd_valid[gk] || skd_last[gk]))
+		else if (skd_abort[gk] && (!skd_valid[gk] || skd_ready[gk]))
 			r_midpkt <= 1'b0;
 		else if (skd_valid[gk] && skd_ready[gk])
 			r_midpkt <= !skd_last[gk];
@@ -145,16 +145,17 @@ module axinarbiter #(
 		assign	midpkt[gk] = r_midpkt;
 	end endgenerate
 
-	assign	stalled = |midpkt;
+	assign	stalled = |midpkt || |(skd_valid & skd_ready);
 	assign	skd_ready = (!M_VALID || M_READY) ? grant : 0;
 
 	// M_VALID
 	// {{{
+	initial	M_VALID = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		M_VALID <= 0;
-	else if (!M_VALID && M_READY)
-		M_VALID <= |(skd_valid & skd_ready);
+	else if (!M_VALID || M_READY)
+		M_VALID <= |(skd_valid & skd_ready & (~skd_abort | midpkt));
 	// }}}
 
 	// merged_data, merged_bytes, merged_last
@@ -201,12 +202,13 @@ module axinarbiter #(
 
 	// M_ABORT
 	// {{{
+	initial	M_ABORT = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		M_ABORT <= 0;
-	else if (!(M_VALID && !M_READY && M_LAST && !M_ABORT))
+	else if (M_VALID && !M_READY && M_LAST && !M_ABORT)
 		M_ABORT <= 0;
-	else if (|(skd_abort & grant & (~skd_valid | skd_ready)))
+	else if (|(skd_abort & grant & midpkt))
 		M_ABORT <= 1'b1;
 	else if (!M_VALID || M_READY)
 		M_ABORT <= 1'b0;
@@ -219,4 +221,166 @@ module axinarbiter #(
 	assign	unused = &{ 1'b0 };
 	// Verilator lint_on  UNUSED
 	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+	wire	[10:0]	fmst_word;
+	wire	[11:0]	fmst_packets;
+	(* anyconst *)	reg	[DW:0]	fnvr_data;
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Interface properties
+	// {{{
+	generate for(gk=0; gk<NIN; gk=gk+1)
+	begin : F_SLAVE
+		wire	[10:0]	fslv_word;
+		wire	[11:0]	fslv_packets;
+
+		faxin_slave #(
+			.DATA_WIDTH(DW), .WBITS(WBITS)
+		) fslv (
+			// {{{
+			.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset),
+			//
+			.S_AXIN_VALID(S_VALID[gk]),
+			.S_AXIN_READY(S_READY[gk]),
+			.S_AXIN_DATA(S_DATA[gk*DW +: DW]),
+			.S_AXIN_BYTES(S_BYTES[gk*WBITS +: WBITS]),
+			.S_AXIN_LAST(S_LAST[gk]),
+			.S_AXIN_ABORT(S_ABORT[gk]),
+			//
+			.f_stream_word(fslv_word),
+			.f_packets_rcvd(fslv_packets)
+			// }}}
+		);
+
+		always @(*)
+		if (!i_reset && !grant[gk])
+			assert(fslv_word == 0);
+
+		always @(*)
+		if (!i_reset && fslv_word > 0)
+		begin
+			assert(grant[gk]);
+			assert(midpkt[gk]);
+		end
+
+		always @(*)
+		if (!i_reset && grant[gk])
+		begin
+			if (M_VALID && !M_ABORT)
+				assert(M_LAST || fslv_word != 0);
+
+			if (M_ABORT || (M_VALID && M_LAST))
+			begin
+				assert(fslv_word == 0);
+				assert(!midpkt[gk] || (S_VALID && S_ABORT));
+			end else begin
+				assert(midpkt[gk] == (fslv_word != 0));
+				assert(fslv_word
+					== (fmst_word + (M_VALID ? 1:0)));
+			end
+		end
+
+		always @(*)
+		if (!i_reset && S_VALID[gk])
+			assume({ S_LAST[gk],S_DATA[DW*gk +: DW] } != fnvr_data);
+	end endgenerate
+
+	faxin_master #(
+		.DATA_WIDTH(DW), .WBITS(WBITS)
+	) fslv (
+		// {{{
+		.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset),
+		//
+		.S_AXIN_VALID(M_VALID),
+		.S_AXIN_READY(M_READY),
+		.S_AXIN_DATA(M_DATA),
+		.S_AXIN_BYTES(M_BYTES),
+		.S_AXIN_LAST(M_LAST),
+		.S_AXIN_ABORT(M_ABORT),
+		//
+		.f_stream_word(fmst_word),
+		.f_packets_rcvd(fmst_packets)
+		// }}}
+	);
+
+	always @(*)
+	if (!i_reset && grant == 0)
+		assert(!M_VALID && fmst_word == 0);
+
+	always @(posedge i_clk)
+	if (!i_reset && $rose(M_VALID) && fmst_word == 0)
+		assert(!M_ABORT);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Never properties
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	(* anyconst *)	reg	fnvr_abort;
+
+	always @(*)
+	if (!i_reset && fnvr_abort)
+		assume(0 == ((S_VALID | midpkt) & S_ABORT));
+
+	always @(*)
+	if (!i_reset && fnvr_abort)
+		assert(!M_ABORT);
+
+	always @(*)
+	if (!i_reset && M_VALID && !M_ABORT)
+		assert({ M_LAST,M_DATA } != fnvr_data);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Low power checks
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	always @(*)
+	if (!i_reset && OPT_LOWPOWER && !M_VALID)
+	begin
+		assert(M_DATA  == 0);
+		assert(M_BYTES == 0);
+		assert(M_LAST  == 0);
+	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Cover checks
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	always @(*)
+		cover(!i_reset && M_VALID && M_READY && M_LAST && !M_ABORT);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Careless assumptions
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	// }}}
+`endif
+// }}}
 endmodule
