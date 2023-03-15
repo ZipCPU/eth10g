@@ -1,0 +1,27 @@
+[tasks]
+prf
+prflp	prf	opt_lowpower
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+
+[engines]
+smtbmc
+
+[script]
+read -formal dropshort.v
+read -formal faxin_slave.v
+read -formal faxin_master.v
+--pycode-begin--
+cmd = "hierarchy -top dropshort"
+cmd += " -chparam OPT_LOWPOWER %d" % (1 if "opt_lowpower" in tags else 0)
+output(cmd)
+--pycode-end--
+prep -top dropshort
+
+[files]
+../../rtl/net/dropshort.v
+faxin_slave.v
+faxin_master.v
