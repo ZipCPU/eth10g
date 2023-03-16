@@ -1,0 +1,76 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Mar 15 23:15:51 2023
+[*]
+[dumpfile_mtime] "Wed Mar 15 23:13:27 2023"
+[dumpfile_size] 12879
+[timestart] 0
+[size] 1870 672
+[pos] -1 -46
+*-3.019365 3 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] axinbroadcast.
+[sst_width] 362
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 181
+@28
+axinbroadcast.i_reset
+axinbroadcast.i_clk
+axinbroadcast.s_midpkt
+@22
+axinbroadcast.midpkt[3:0]
+axinbroadcast.i_cfg_active[3:0]
+@200
+-
+@28
+[color] 3
+axinbroadcast.S_VALID
+axinbroadcast.S_READY
+@22
+[color] 3
+axinbroadcast.S_DATA[63:0]
+@28
+[color] 3
+axinbroadcast.S_BYTES[2:0]
+[color] 3
+axinbroadcast.S_LAST
+@22
+[color] 3
+axinbroadcast.S_PORT[3:0]
+@28
+[color] 1
+axinbroadcast.S_ABORT
+@23
+axinbroadcast.f_port[3:0]
+@200
+-
+@22
+[color] 2
+axinbroadcast.M_VALID[3:0]
+[color] 3
+axinbroadcast.M_READY[3:0]
+[color] 2
+axinbroadcast.M_DATA[255:0]
+[color] 2
+axinbroadcast.M_BYTES[11:0]
+@c00022
+[color] 2
+axinbroadcast.M_LAST[3:0]
+@28
+(0)axinbroadcast.M_LAST[3:0]
+(1)axinbroadcast.M_LAST[3:0]
+(2)axinbroadcast.M_LAST[3:0]
+(3)axinbroadcast.M_LAST[3:0]
+@1401200
+-group_end
+@22
+[color] 1
+axinbroadcast.M_ABORT[3:0]
+axinbroadcast.fslv_word[10:0]
+axinbroadcast.fslv_packets[11:0]
+axinbroadcast.F_MASTER<0>.fmst_word[10:0]
+axinbroadcast.F_MASTER<1>.fmst_word[10:0]
+axinbroadcast.F_MASTER<2>.fmst_word[10:0]
+axinbroadcast.F_MASTER<3>.fmst_word[10:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,133 @@
+\ProvidesPackage{fvcharts}[2014/08/29 v1.2 gtcharts]
+	\typeout{Package: Gisselquist Technology Briefs 2014/08/29 v1.2}
+%
+% Requires texlive install
+%	together with the ubuntu package: cm-super
+%
+% \usepackage[pdf]{pstricks}
+\usepackage{pst-grad,pst-node,pst-plot,pst-3d}
+\usepackage{import}
+\usepackage{listings}
+\usepackage{lstlang1}
+\usepackage{lstlang3}
+\usepackage{zverilog}
+\usepackage{zvhdl}
+\usepackage{zshell}
+\usepackage{mathabx}
+% \usepackage{xcolor}
+\usepackage{bytefield}
+\newcommand{\implies}{\rightarrow}
+%
+% \usepackage{bytefield}
+% \usepackage[normalem]{ulem}
+%
+\definecolor{webblue}{rgb}{0.2,0.2,1.0}
+\definecolor{inputclr}{rgb}{0.0,0.5,0.5}
+% Hyperref needs to be the last package included ...
+\makeatletter
+  \def\special@paper{11in,8.5in}
+\makeatother
+\DeclareTextFontCommand{\stencil}{\fontencoding{T1}\fontfamily{army}\selectfont}
+%\newcommand{\hypertarget}[2]{}
+%\newcommand{\hyperlink}[2]{}
+\newcommand{\dms}{\displaystyle}
+\newcommand{\dmsv}{\displaystyle\vspace{1mm}}
+\newcommand{\mx}[1]{\mathbf #1}
+\newcommand{\unknown}[1]{\textcolor{red}{#1}}
+\newcommand{\defined}{\triangleq}
+\newcommand{\ce}{{\cal E}}
+\newcommand{\cn}{{\cal N}}
+\newcommand{\cl}{{\cal L}}
+\newcommand{\grad}{\nabla}
+\newcommand{\tr}{\mbox{tr}}
+\newcommand{\mmse}{{\mbox{\tiny MMSE}}}
+\newcommand{\CramerRao}{Cram\'er--Rao }
+\newcommand{\mynote}[1]{{\bf\Large\em #1}}
+\newcommand{\fcut}{f_{\mbox{\scalebox{0.8}{\tiny CUT}}}}
+\newcommand{\ft}{{\cal F}}
+\newcommand{\MF}{_{\mbox{\tiny MF}}}
+\newcommand{\EQ}{_{\mbox{\tiny EQ}}}
+\newcommand{\LO}{_{\mbox{\tiny LO}}}
+\newcommand{\SYS}{_{\mbox{\tiny SYS}}}
+\newcommand{\TX}{_{\mbox{\tiny TX}}}
+\newcommand{\RX}{_{\mbox{\tiny RX}}}
+\newcommand{\mPsi}{\mx{\Psi}}
+\newcommand{\Rphi}{\mx{R}_{\phi}}
+\newcommand{\Rn}{\mx{R}_{n}}
+\newcommand{\Rni}{\mx{R}_{n}^{-1}}
+\newcommand{\Rd}{\mx{R}_{d}}
+\newcommand{\Rdi}{\mx{R}_{d}^{-1}}
+\newcommand{\dv}{\bm{d}}
+\newcommand{\dmle}{\hat{\bm{d}}_{\mbox{\scalebox{0.8}{\tiny MLE}}}}
+\newcommand{\dweak}{\hat{\bm{d}}_{\mbox{\scalebox{0.8}{\tiny WEAK}}}}
+\newcommand{\dzisi}{\hat{\bm{d}}_{\mbox{\scalebox{0.8}{\tiny ZISI}}}}
+\newcommand{\scalemath}[2]{\scalebox{#1}{\mbox{$\dms #2$}}}
+\newcommand{\htau}{\hat{\tau}}
+\newcommand{\uXn}{\unknown{X_n\left(\textcolor{black}{f}\right)}}
+\newcommand{\Dz}{\unknown{D\left(\textcolor{black}{e^{j2\pi fT_s}}\right)}}
+\newcommand{\Dzam}{\unknown{D\left(\textcolor{black}{e^{j2\pi f}}\right)}}
+\newcommand{\Dfc}{\unknown{D\left(\textcolor{black}{e^{j2\pi \left(f-f_c\right)T_s}}\right)}}
+\newcommand{\uRphid}{\unknown{\Rphi^{\textcolor{black}{\dagger}}}}
+\newcommand{\uRphi}{\unknown{\Rphi}}
+\newcommand{\umxEd}{\unknown{\mx{E}^{\textcolor{black}{\dagger}}}}
+\newcommand{\upL}{\textcolor{blue}{L}}
+\newcommand{\dnM}{\textcolor{badred}{M}}
+%
+%
+%
+%
+\newlength{\tmplen}
+\newcommand{\mparb}[2]{\settowidth{\tmplen}{\hbox{#1}}\parbox{\tmplen}{\centering #2}}
+\newcommand{\comicslide}[1]{\slideframe{none}\begin{slide}\begin{center}%
+	\includegraphics[width=0.95\slidewidth]{#1}%
+	\end{center}\end{slide}\slideframe{gqtech}}
+\newenvironment{picslide}
+	{\begin{slide}\begin{center}\begin{pspicture}(0.95\slidewidth,0.95\slideheight)}
+	%\rput(0,0){\psframe(0,0)(9.5,5.5)}}
+	{\end{pspicture}\end{center}\end{slide}}
+\newcommand{\picgfx}[1]{\rput(0.475\slidewidth,0.475\slideheight\semin){%
+	\includegraphics[width=0.95\slidewidth]{#1}}}
+% 6.3 for 9.5" width, 5.6 for 8.5" width
+% \newcommand{\GIANT}[1]{\scalebox{1.5}{\parbox{6.3\semin}{\begin{center}\Huge\bf #1\end{center}}}}
+% \newcommand{\titleslide}[2]{\slideframe{gqtech}\slidetitle{}\centerslidestrue%
+%	\begin{slide}\hypertarget{#2}{}\GIANT{#1}\end{slide}}
+% \newcommand{\titleslide}[2]{\slideframe{gqtech}\slidetitle{}\centerslidestrue%
+%	\begin{slide}\hypertarget{#2}{}\GIANT{#1}\end{slide}}
+% \newcommand{\titleskip}[3]{\slideframe{gqtech}\slidetitle{}\centerslidestrue%
+	% \begin{slide}\vbox to 6\semin{\vfil\hypertarget{#2}{}\GIANT{#1}\vfil\hbox to 9\semin{\hfil\hyperlink{#3}{(Skip)}}}\end{slide}}
+\newenvironment{customlist}[2]{\begin{list}{}{\setlength{\labelwidth}{#1}\setlength{\leftmargin}{#2}}}{\end{list}}
+%
+%
+%
+%
+% Define our default slide frame formatting command
+% 
+% Define some colors which may be useful
+% 
+\definecolor{prbclr}{rgb}{0.8,0,0}
+\definecolor{slnclr}{rgb}{0,0,0.8}
+\definecolor{barblue}{rgb}{0,0,0.6}
+\definecolor{bargrey}{rgb}{0.7,0.7,0.9}
+\definecolor{ltgreen}{rgb}{0.6,0.8,0.6}
+\definecolor{badred}{rgb}{0.7,0.0,0.0}
+\definecolor{grayred}{rgb}{0.6,0.3,0.3}
+\definecolor{dkgreen}{rgb}{0.0,0.6,0.0}
+\definecolor{faintgray}{rgb}{0.9,0.9,0.9}
+\definecolor{faintblue}{rgb}{0.6,0.6,0.8}
+\definecolor{bluegrn}{rgb}{0,1,1}
+\def\gdarrowd{\rput{90}(0,0)\gdarrowl}
+\def\gdlongl{\pspolygon[fillstyle=solid,fillcolor=yellow,linestyle=solid,%
+	linecolor=black](0,0)(0.5,0.5)(0.5,0.2)(2.5,0.2)(2.5,-0.2)%
+		(0.5,-0.2)(0.5,-0.5)}
+\def\gdlongr{\rput{180}(0,0){\gdlongl}}
+\def\gdlongdr{\rput{135}(0,0){\gdlongl}}
+\def\gdlongdl{\rput{45}(0,0){\gdlongl}}
+\def\gdlongul{\rput{-45}(0,0){\gdlongl}}
+\def\gdlongd{\rput{ 90}(0,0){\gdlongl}}
+\def\gdlongu{\rput{270}(0,0){\gdlongl}}
+%
+% Standard Page Style
+%
+% Title Page Style
+%
+\endinput

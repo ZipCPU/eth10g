@@ -1,0 +1,36 @@
+\begin{emptyslide}{}
+\begin{pspicture}(0,0)(\slidewidth,0.6\slidewidth)
+	% \psframe(0,0)(\slidewidth,0.6\slidewidth)%
+\rput[bl](0.04\slidewidth,-0.064\slidewidth){
+\rput(0.2\slidewidth,0.325\slidewidth){% semin = 0.08\slidewidth
+	%\psframe(-0.18\slidewidth,-0.2256\slidewidth)(0.208\slidewidth,0.104\slidewidth)%
+	%\psframe(-0.18\slidewidth,-0.36\slidewidth)(0.208\slidewidth,0.104\slidewidth)%
+	\rput(0.025\slidewidth,0.04\slidewidth){\includegraphics[width=0.41\slidewidth]{gfx/GT.eps}}
+	\rput[lt](-0.18\slidewidth,-0.11\slidewidth){\parbox{3.5in}{\fontfamily{cmr}\selectfont\Huge Gisselquist\\[-0.012\slidewidth]Technology, LLC}}%
+	\rput(-0.18\slidewidth,-0.256\slidewidth){
+		\rput(0,0){\psline[linecolor=barblue,linewidth=0.06in]{-}%
+			(0,0)(0.6\slidewidth,0)}%
+		\rput(0.73\slidewidth,0){\psplot[%
+			plotpoints=5000,linewidth=0.06in,%
+			plotstyle=line,linecolor=barblue]{-2.5}{1.75}{
+			dup abs 30 lt {
+				dup 60 div
+				dup 180 mul cos
+					dup dup mul mul
+					0.45 mul exch
+				180 mul 8 mul sin
+				mul
+				1.5 mul
+			} { 0 } ifelse }}
+	}
+}
+\rput(0.685\slidewidth,0.3\slidewidth){\makebox(0,0){\scalebox{1.5}{\parbox{0.272\slidewidth}{\begin{center}%
+		\fontfamily{cmr}\selectfont\large AXI Formal Verification
+		\end{center}}}}}
+% 1.5 * boxwidth should be 3.5
+\rput(0.69\slidewidth,0.183\slidewidth){\makebox(0,0){\scalebox{1.5}{\parbox{0.24\slidewidth}{% 
+		\fontfamily{cmr}\selectfont\tiny%
+		Daniel~E.~Gisselquist,~Ph.D.}}}}
+}\end{pspicture}\end{emptyslide}
+%
+\endinput

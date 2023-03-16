@@ -1,0 +1,85 @@
+%%
+%% This is file `lstlang1.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% lstdrvrs.dtx  (with options: `lang1')
+%% 
+%% The listings package is copyright 1996--2004 Carsten Heinz, and
+%% continued maintenance on the package is copyright 2006--2007 Brooks
+%% Moses. From 2013 on the maintenance is done by Jobst Hoffmann.
+%% The drivers are copyright 1997/1998/1999/2000/2001/2002/2003/2004/2006/
+%% 2007/2013 any individual author listed in this file.
+%%
+%% This file is distributed under the terms of the LaTeX Project Public
+%% License from CTAN archives in directory  macros/latex/base/lppl.txt.
+%% Either version 1.3 or, at your option, any later version.
+%%
+%% This file is completely free and comes without any warranty.
+%%
+%% Send comments and ideas on the package, error reports and additional
+%% programming languages to Jobst Hoffmann at <j.hoffmann@fh-aachen.de>.
+%%
+\ProvidesFile{zvhdl.sty}
+    [2018/05/18 0.9 VHDL language file]
+%%
+%%
+%%
+%%
+%%
+%%
+%% VHDL definition (c) 1997 Kai Wollenweber
+%%
+\lst@definelanguage{zVHDL}%
+  {morekeywords={ALL,ARCHITECTURE,ABS,AND,ASSERT,ARRAY,AFTER,ALIAS,%
+      ACCESS,ATTRIBUTE,BEGIN,BODY,BUS,BLOCK,BUFFER,CONSTANT,CASE,%
+      COMPONENT,CONFIGURATION,DOWNTO,ELSE,ELSIF,END,ENTITY,EXIT,%
+      FUNCTION,FOR,FILE,GENERIC,GENERATE,GUARDED,GROUP,IF,IN,INOUT,IS,%
+      INERTIAL,IMPURE,LIBRARY,LOOP,LABEL,LITERAL,LINKAGE,MAP,MOD,NOT,%
+      NOR,NAND,NULL,NEXT,NEW,OUT,OF,OR,OTHERS,ON,OPEN,PROCESS,PORT,%
+      PACKAGE,PURE,PROCEDURE,POSTPONED,RANGE,REM,ROL,ROR,REPORT,RECORD,%
+      RETURN,REGISTER,REJECT,SIGNAL,SUBTYPE,SLL,SRL,SLA,SRA,SEVERITY,%
+      SELECT,THEN,TYPE,TRANSPORT,TO,USE,UNITS,UNTIL,VARIABLE,WHEN,WAIT,%
+      WHILE,XOR,XNOR,RISING_EDGE,%
+      DISCONNECT,ELIF,WITH},%
+   sensitive=f,%
+   morecomment=[l]--,%
+   morestring=[d]{"}%
+  }[keywords,comments,strings]%
+%
+% Original colors
+%
+% \definecolor{zviden}{rgb}{0.62,0.0,0.62}
+% \definecolor{zvcomment}{rgb}{0,0.4,0.4}
+% \definecolor{zvword}{rgb}{0,0.50,0.50}
+%
+% First Abandoned set
+%
+% \definecolor{zvword}{rgb}{0.65,0.16,0.16}
+% \definecolor{zvcomment}{rgb}{0,0.4,0.4}
+% \definecolor{zviden}{rgb}{0,0.37,1.00}
+%
+\definecolor{zvword}{rgb}{0.25,0.0,0.94}
+\definecolor{zvcomment}{rgb}{1,0.0,0.45}
+\definecolor{zviden}{rgb}{0,0.50,0.09}
+%
+\definecolor{zvback}{rgb}{1.0,0.97,0.93}
+\newcommand\zvset{\lstset{language=VHDL,%
+	basicstyle=\small,%
+	keywordstyle={\ttfamily\bf \color{zvword}},%
+	commentstyle={\em\color{zvcomment}},%
+	tabsize=2,%
+	mathescape=false,
+	numberstyle={\tiny \color{black}},%
+	identifierstyle={\ttfamily\color{zviden}}}}
+\newcommand\vinline{\zvset\lstinline}
+\lstnewenvironment{zvhdl}{%
+	\zvset\lstset{frame=tRBl,escapechar=`,%
+	backgroundcolor=\color{zvback}}}{}
+\lstnewenvironment{zvhdlx}{%
+	\zvset\lstset{frame=tRBl,escapeinside=`',%
+	backgroundcolor=\color{zvback}}}{}
+\endinput
+%%
+%% End of file `lstlang1.sty'.

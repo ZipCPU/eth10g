@@ -12,17 +12,18 @@ prf: depth 5
 smtbmc
 
 [script]
-read -formal dropshort.v
+read -formal axinbroadcast.v
 read -formal faxin_slave.v
 read -formal faxin_master.v
 --pycode-begin--
-cmd = "hierarchy -top dropshort"
+cmd = "hierarchy -top axinbroadcast"
+cmd += " -chparam OPT_SKIDBUFFER 0"
 cmd += " -chparam OPT_LOWPOWER %d" % (1 if "opt_lowpower" in tags else 0)
 output(cmd)
 --pycode-end--
-prep -top dropshort
+prep -top axinbroadcast
 
 [files]
-../../rtl/net/dropshort.v
+../../rtl/net/axinbroadcast.v
 faxin_slave.v
 faxin_master.v

@@ -1,0 +1,145 @@
+%%
+%% This is file `powerdot-simple.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% powerdot.dtx  (with options: `pdsimple')
+%% 
+%% ---------------------------------------------------------------------------------
+%% Copyright (C) 2005-2008 Hendri Adriaens, Chris Ellison; 2009-2015 Hendri Adriaens
+%% ---------------------------------------------------------------------------------
+%%
+%% This work may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%   http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2003/12/01 or later.
+%%
+%% This work has the LPPL maintenance status "maintained".
+%%
+%% This Current Maintainer of this work is Hendri Adriaens.
+%%
+%% This work consists of all files listed in manifest.txt.
+%%
+\NeedsTeXFormat{LaTeX2e}[1995/12/01]
+\ProvidesPackage{powerdot-gt}[2005/12/10 v1.3 simple style (HA)]
+\RequirePackage{pifont}
+% \RequirePackage{cmr}
+\RequirePackage{amssymb}
+\pddefinepalettes{default}{\colorlet{pdcolor1}{black}}
+\pddefinetemplate{titleslide}{
+  titlefont=\large\bfseries\raggedright,
+  clockpos={.99\slidewidth,\slideheight},
+  lfpos={.03\slidewidth,.04\slideheight},
+  cfpos={.5\slidewidth,.04\slideheight},
+  rfpos={.97\slidewidth,.04\slideheight},
+  texthook=tl,textpos={.05\slidewidth,.83\slideheight},
+  textwidth=.9\slidewidth,textfont=\tabcolsep0pt,
+  textheight=.66\slideheight
+}{%
+  \psline[linewidth=.8pt](0,.9\slideheight)(\slidewidth,.9\slideheight)%
+  \psline[linewidth=.8pt](0,.1\slideheight)(\slidewidth,.1\slideheight)%
+}
+\pddefinetemplate{basic}{
+  titlepos={0.17\slidewidth,.91\slideheight},
+  titlewidth=.9\slidewidth,textheight=.66\slideheight,
+  titlefont=\huge\bfseries\raggedright,
+  clockpos={.99\slidewidth,\slideheight},
+  lfpos={.03\slidewidth,.04\slideheight},
+  cfpos={.5\slidewidth,.04\slideheight},
+  rfpos={.97\slidewidth,.04\slideheight},
+  tocslidesep=.6ex,textheight=.68\slideheight,
+  ifsetup=portrait,
+    textpos={.05\slidewidth,.83\slideheight},
+    textwidth=.9\slidewidth,
+    tocsecsep=.6ex,
+    stochook=tr,stocpos={.48\slidewidth,.09\slideheight},
+    stocfont=\tiny\raggedleft,
+    ntocpos={.52\slidewidth,.09\slideheight},
+  ifsetup=landscape,
+    textpos={.2\slidewidth,.83\slideheight},
+    textwidth=.75\slidewidth
+}{%
+  \rput(0,0){\psline[linewidth=.8pt](0,.1\slideheight)(\slidewidth,.1\slideheight)}%
+  \rput(0,0.87\slideheight){
+    \rput(0,0){\psline[linecolor=barblue,linewidth=0.02in]{-}%
+		(0,0)(0.86\slidewidth,0)}%
+    \rput(0.9\slidewidth,0){\psplot[plotpoints=600,linewidth=0.02in,%
+			plotstyle=line,linecolor=barblue,
+			unit=0.08\slidewidth]%
+		{-0.5}{0.5}{
+		dup abs 17 lt {
+			dup 34 div
+			% The envelope
+			dup 180 mul cos
+				dup mul % Square it to ensure positivity
+				0.45 mul exch % scale it, remember it, get x
+			% The waveform
+			180 mul 8 mul sin
+			mul
+		} { 0 } ifelse
+		}}
+   }
+}
+\pddefinetemplate[basic]{wideslide}{
+  textpos={.05\slidewidth,.83\slideheight},
+  textwidth=.9\slidewidth
+}{}
+\pddefinetemplate[basic]{slide}{
+  ifsetup=landscape,
+    tocpos={.015\slidewidth,.83\slideheight},
+    tocwidth=.14\slidewidth,
+    tocsecm={\psline[linewidth=.5pt,linecolor=gray]%
+      (-.05,-.05)(.143\slidewidth,-.05)}
+}{%
+  \pdifsetup{landscape}{%
+    \psframe[fillstyle=solid,fillcolor=black!10,linestyle=none,%
+      linewidth=.8pt](-.01\slidewidth,.87\slideheight)%
+      (.17\slidewidth,.1\slideheight)%
+  }{}%
+}
+\pddefinetemplate[slide]{sectionslide}{
+  titlehook=c,titlefont=\Huge\bfseries\centering,
+  ifsetup=landscape,
+    titlepos={.575\slidewidth,.55\slideheight},
+    titlewidth=.75\slidewidth,
+  ifsetup=portrait,
+    titlepos={.5\slidewidth,.55\slideheight},
+    titlewidth=.9\slidewidth
+}{}
+\pddefinetemplate[wideslide]{sectionwideslide}{
+  titlehook=c,titlefont=\Large\bfseries\centering,
+  titlepos={.5\slidewidth,.55\slideheight},
+  titlewidth=.9\slidewidth
+}{}
+\setkeys[pd]{section}{sectemp=sectionslide,widesectemp=sectionwideslide}
+\def\pd@tochighlight#1{\pd@tocsimple\phantom{#1}}
+\def\pd@tochighlight#1{\pd@tocsimple\@firstofone{#1}}
+\def\pd@tocsimple#1#2{%
+  \@tempdima\pd@@tocwidth
+  \settowidth\@tempdimb{\normalsize\ensuremath\triangleright\hskip1mm}%
+  \advance\@tempdima-\@tempdimb
+  \ifnum\pd@toctype=\@ne\else
+    #1{\normalsize\ensuremath\triangleright\hskip1mm}%
+  \fi
+  \begin{minipage}[b]\@tempdima
+    \pd@usedtocfont#2%
+  \end{minipage}%
+  \ifnum\pd@toctype=\@ne
+    #1{\hskip1mm\normalsize\ensuremath\triangleleft}%
+  \fi
+}
+\def\labelitemi{\footnotesize\ensuremath\square}
+\def\labelitemii{\small--}
+\def\labelitemiii{\tiny\ensuremath\triangleright}
+\def\labelitemiv{\tiny\ding{110}}
+\pdsetup{
+  list={labelsep=1em,leftmargin=*,itemsep=0pt,topsep=5pt,parsep=0pt}
+}
+\def\rmdefault{cmss}
+\endinput
+%%
+%% End of file `powerdot-simple.sty'.

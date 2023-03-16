@@ -1,0 +1,157 @@
+%%
+%% This is file `lstlang3.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% lstdrvrs.dtx  (with options: `lang3')
+%% 
+%% The listings package is copyright 1996--2004 Carsten Heinz, and
+%% continued maintenance on the package is copyright 2006--2007 Brooks
+%% Moses. From 2013 on the maintenance is done by Jobst Hoffmann.
+%% The drivers are copyright 1997/1998/1999/2000/2001/2002/2003/2004/2006/
+%% 2007/2013 any individual author listed in this file.
+%%
+%% This file is distributed under the terms of the LaTeX Project Public
+%% License from CTAN archives in directory  macros/latex/base/lppl.txt.
+%% Either version 1.3 or, at your option, any later version.
+%%
+%% This file is completely free and comes without any warranty.
+%%
+%% Send comments and ideas on the package, error reports and additional
+%% programming languages to Jobst Hoffmann at <j.hoffmann@fh-aachen.de>.
+%%
+\ProvidesFile{zverilog.sty}
+    [2018/01/25 0.9 SVA+Verilog language file]
+%%
+\lst@definelanguage[ZipCPU]{Assembler}%
+ {morekeywords={SUB,AND,ADD,OR,XOR,LSR,ASR,LSL,%
+MOV,MPY,MPYUHI,MPYULO,LDILO,BREV,DIVU,DIVS,%
+CMP,TST,LW,SW,LB,SB,LH,SH,%
+BRA,BLT,BGE,BNZ,BZ,BC,BNC,BV,JMP,LJMP,JSR,LJSR,%
+RETN,%
+NOOP,NOUT,NDUMP,NEXIT,SNOOP,SOUT,SDUMP,SEXIT,RTU},%
+   sensitive=false,%
+   morecomment=[l]*,%
+   morecomment=[l];%
+   }[keywords,comments,strings]
+%%
+%%
+\lstdefinelanguage{ZVerilog}%
+  {morekeywords={% reserved keywords
+      always,and,assign,automatic,begin,buf,bufif0,bufif1,case,casex,%
+      casez,cell,cmos,config,deassign,default,defparam,design,disable,%
+      edge,else,end,endcase,endconfig,endfunction,endgenerate,%
+      endmodule,endprimitive,endspecify,endtable,endtask,event,for,%
+      force,forever,fork,function,generate,genvar,highz0,highz1,if,%
+      ifnone,incdir,include,initial,inout,input,instance,integer,join,%
+      large,liblist,library,localparam,macromodule,medium,module,nand,%
+      negedge,nmos,nor,noshowcancelled,not,notif0,notif1,or,output,%
+      parameter,pmos,posedge,primitive,pull0,pull1,pulldown,pullup,%
+      pulsestyle_onevent,pulsestyle_ondetect,rcmos,real,realtime,reg,%
+      release,repeat,rnmos,rpmos,rtran,rtranif0,rtranif1,scalared,%
+      showcancelled,signed,small,specify,specparam,strong0,strong1,%
+      supply0,supply1,table,task,time,tran,tranif0,tranif1,tri,tri0,%
+      tri1,triand,trior,trireg,unsigned,use,vectored,wait,wand,weak0,%
+      weak1,while,wire,wor,xnor,xor},%
+   morekeywords=[2]{% system tasks and functions
+      $bitstoreal,$countdrivers,$display,$fclose,$fdisplay,$fmonitor,%
+      $fopen,$fstrobe,$fwrite,$finish,$getpattern,$history,$incsave,%
+      $input,$itor,$key,$list,$log,$monitor,$monitoroff,$monitoron,%
+      $nokey,property,sequence,bind,endproperty,endsequence,global,%
+      clocking,endclocking,$final},%
+   morekeywords=[3]{% compiler directives
+      `accelerate,`autoexpand_vectornets,`celldefine,`default_nettype,%
+      `define,`else,`elsif,`endcelldefine,`endif,`endprotect,%
+      `endprotected,`expand_vectornets,`ifdef,`ifndef,`include,%
+      `no_accelerate,`noexpand_vectornets,`noremove_gatenames,%
+      `nounconnected_drive,`protect,`protected,`remove_gatenames,%
+      `remove_netnames,`resetall,`timescale,`unconnected_drive},%
+   morekeywords=[4]{$global_clock,assert,assume,restrict,cover,$fell,%
+	$stable,$changed,$anyconst,$anyseq,$rose,$past,within,intersect,until,%
+	throughout},%
+   morekeywords=[5]{{(*},gclk,*),anyconst,anyseq},%
+   alsoletter=\`,%
+   sensitive,%,
+   morecomment=[s]{/*}{*/},%
+   morecomment=[l]//,% nonstandard
+   morestring=[b]"%
+  }[keywords,comments,strings]%
+%
+%
+%
+\lstdefinelanguage{SymbiYosys}%
+  {morekeywords=[1]{% reserved keywords
+      % $[$options$]$,files,engines,script,files},%
+      tasks,options,files,engines,script,files},%
+   morekeywords=[2]{% system tasks and functions
+      read_verilog,prep,opt,clk2fflogic,read,multiclock,abc,smtbmc,mode,depth,append},%
+   % alsoletter={\[\]},%
+   sensitive,%
+   morecomment=[l]\#,% nonstandard
+   morestring=[b]"%
+  }[keywords,comments,strings]%
+
+%
+\definecolor{vformal}{rgb}{0.7,0,0}		% Reserved words in formal
+\definecolor{vcomment}{rgb}{0.0,0.4,0.0}	% Comments
+\definecolor{vrword}{rgb}{0.0,0.0,0.8}		% Reserved words
+\definecolor{vrattr}{rgb}{0.02,0.67,0.87}	% Reserved words
+\newcommand\zlist{[language=ZVerilog]}
+\newcommand\zset{\lstset{language=ZVerilog,%
+	basicstyle=\small,%
+	keywordstyle={\ttfamily\bf \color{vrword}},%
+	keywordstyle=[4]{\ttfamily\bf \color{vformal}},%
+	keywordstyle=[5]{\ttfamily \color{vrattr}},%
+	commentstyle=\em\color{vcomment},%
+	tabsize=8,%
+	mathescape=false,
+	numberstyle={\tiny \color{black}},%
+	identifierstyle=\ttfamily\color{black}}}
+\newcommand\zinline{\zset\lstinline}
+%	basicstyle=\small,%
+%	keywordstyle={\ttfamily\bf \color{vrword}},%
+%	keywordstyle=[4]{\ttfamily\bf \color{vformal}},%
+%	commentstyle=\em\color{vcomment},%
+%	tabsize=8,%
+%	numberstyle={\tiny \color{black}},
+%	identifierstyle=\ttfamily\color{black}]}
+\lstnewenvironment{zformal}{%
+	\zset\lstset{frame=tRBl,% escapeinside=`',
+	backgroundcolor=\color{yellow!10}}}{}
+\lstnewenvironment{zformalx}{%
+	\zset\lstset{frame=tRBl,escapechar=`,%
+	backgroundcolor=\color{yellow!10}}}{}
+%
+\newcommand\sbyset{\lstset{language=SymbiYosys,%
+	basicstyle=\small,%
+	keywordstyle={\ttfamily\bf \color{vrword}},%
+	keywordstyle=[2]{\ttfamily\bf \color{black}},%
+	commentstyle={\rmfamily\em\color{vcomment}},%
+	numberstyle={\tiny \color{black}},%
+	tabsize=8,
+	identifierstyle=\ttfamily\color{black}}}
+\lstnewenvironment{symbilist}{%
+	\sbyset\lstset{frame=tRBl,escapeinside=`',%
+	backgroundcolor=\color{blue!10}}}{}
+\lstnewenvironment{symbilistx}{%
+	\sbyset\lstset{frame=tRBl,escapechar=`,%
+	backgroundcolor=\color{blue!10}}}{}
+\newcommand\sbyinline{\sbyset\lstinline}
+%
+%
+%
+\makeatletter
+\DeclareRobustCommand*{\escapeus}[1]{%
+	\begingroup\@activeus\scantokens{#1\endinput}\endgroup}
+\begingroup\lccode`\~=`\_\relax
+	\lowercase{\endgroup\def\@activeus{\catcode`\_=\active \let~\_}}
+%\newcommand{\escapeus}{\begingroup\@activeus\@escapeus}
+%\newcommand*{\@escapeus}[1]{#1\endgroup}
+%\begingroup\lccode`\~=`\_\relax
+%  \lowercase{\endgroup\def\@activeus{\catcode`\=\active \let~\_}}
+\makeatother
+%
+\endinput
+%%
+%% End of file `lstlang3.sty'.

@@ -1,0 +1,68 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Mar 15 19:38:31 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1880 600
+[pos] -1 -1
+*-3.619365 200 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 362
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 156
+@28
+dropshort.S_ARESETN
+dropshort.S_CLK
+@200
+-
+@28
+[color] 3
+dropshort.S_VALID
+[color] 2
+dropshort.S_READY
+@22
+[color] 3
+dropshort.S_BYTES[4:0]
+[color] 3
+dropshort.S_DATA[31:0]
+@28
+[color] 3
+dropshort.S_LAST
+[color] 1
+dropshort.S_ABORT
+@200
+-
+@28
+[color] 2
+dropshort.M_VALID
+[color] 3
+dropshort.M_READY
+@22
+[color] 2
+dropshort.M_BYTES[4:0]
+[color] 2
+dropshort.M_DATA[31:0]
+@28
+[color] 2
+dropshort.M_LAST
+[color] 1
+dropshort.M_ABORT
+@200
+-
+@28
+dropshort.f_nvr_abort
+@22
+dropshort.pktlen[7:0]
+dropshort.fmst_word[10:0]
+@23
+dropshort.fslv_word[10:0]
+@200
+-
+@22
+dropshort.fmst_packets[11:0]
+dropshort.fslv_packets[11:0]
+@28
+dropshort.midpacket
+[pattern_trace] 1
+[pattern_trace] 0
