@@ -52,7 +52,7 @@
 	}
 }
 \rput(0.685\slidewidth,0.3\slidewidth){\makebox(0,0){\scalebox{1.5}{\parbox{0.272\slidewidth}{\begin{center}%
-		\fontfamily{cmr}\selectfont\large Building Generic Bus Properties
+		\fontfamily{cmr}\selectfont\large An AXI Network Protocol
 		\end{center}}}}}
 % 1.5 * boxwidth should be 3.5
 \rput(0.69\slidewidth,0.183\slidewidth){\makebox(0,0){\scalebox{1.5}{\parbox{0.24\slidewidth}{% 
@@ -64,15 +64,77 @@
 
 \section{AXIN Protocol}
 %
+\begin{slide}[toc=ABORT,method=file]{Motivation: ABORT}
+\begin{enumerate}
+\item AXI stream requires backpressure support
+\item Few devices can truly handle backpressure
+\item Typical solution:
+	\begin{itemize}
+	\item Store a packet in memory (Block RAM)
+	\item Abort packets that run out of memory before completion
+	\item Once a packet is fully stored, feed it out via AXI stream
+	\end{itemize}
+\item Typical solution limits the maximum packet size
+\end{enumerate}
+
+Solution: Add a new field to allow the source to ABORT
+	a packet being streamed.
+\end{slide}
+
+%
+%
+
+\begin{slide}[method=file]{Motivation: BYTES}
+\begin{enumerate}
+\item High speed interfaces require large beat sizes
+\item Beat size increases when clock domain crossings
+	\begin{itemize}
+	\item Ex: GbE requires one octet per beat initially,
+		2-4 octets per beat if crossing clock domains
+	\item Ex: 10GbE requires 4 octets per beat,
+			8-16 if crossing clock domains
+	\end{itemize}
+\item Packet length requires octet level precision
+\end{enumerate}
+\end{slide}
+
+%
+\begin{slide}[toc=,method=file]{Motivation: BYTES}
+\begin{enumerate}
+\item AXI Stream solution
+	\begin{itemize}
+	\item Uses TSTRB and TKEEP
+	\item Allows ``null'' bytes, empty beats, and position bytes
+	\item None of these make sense in a packet context
+	\item Further, they use more data than necessary
+	\end{itemize}
+\item A packed stream only needs to know the number of valid bytes on the
+	last beat.
+\end{enumerate}
+
+Proposal: Replace TSTRB and TKEEP with a BYTES field
+\begin{itemize}
+\item BYTES indicates the number of bytes valid in any given beat
+\item Only less than full on the last beat.
+\item Uses \zinline{$clog2(DW/8)} bits, rather than \zinline{2*(DW/8)}.
+\begin{itemize}
+	\item Can reduce logic requirements by up to 18\%
+\end{itemize}
+\end{itemize}
+\end{slide}
+
+%
+%
+
 \begin{slide}[method=file]{Signals}
 \begin{tabular}{c||c|c|}
 Global & AXI & AXIN \\
 Signals & Stream &\\\hline\hline
 \textcolor{inputclr}{\tt ACLK} & \textcolor{inputclr}{\tt TVALID} & \textcolor{inputclr}{\tt VALID} \\
 \textcolor{inputclr}{\tt ARESETN}  & {\tt TREADY} & {\tt READY} \\\hline\hline
-               & \textcolor{inputclr}{\tt TDATA}  & \textcolor{inputclr}{\tt DATA} \\
-               & \textcolor{inputclr}{\tt TSTRB}  & \textcolor{inputclr}{\tt BYTES} \\
-               & \textcolor{inputclr}{\tt TKEEP}  & \\
+               & \textcolor{inputclr}{\tt TDATA[DW-1:0]}  & \textcolor{inputclr}{\tt DATA[DW-1:0]} \\
+               & \textcolor{inputclr}{\tt TSTRB[DW/8-1:0]}  & \textcolor{inputclr}{\tt BYTES[BW-1:0]} \\
+               & \textcolor{inputclr}{\tt TKEEP[DW/8-1:0]}  & \\
                & \textcolor{inputclr}{\tt TLAST}  & \textcolor{inputclr}{\tt LAST} \\
                &                                  & \textcolor{inputclr}{\tt ABORT} \\
                & \textcolor{inputclr}{\tt TUSER}  & \\\hline
@@ -80,20 +142,23 @@ Signals & Stream &\\\hline\hline
 
 \hbox{}\rput[tb](0,0){%
 	\onslide{2-3}{%
-	\rput(0.75in,0.30in){\psline[linecolor=red,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.6in,0in)}%
-	\rput(0.75in,0.88in){\psline[linecolor=red,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.6in,0in)}%
-	\rput(0.75in,1.06in){\psline[linecolor=red,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.6in,0in)}%
+	\rput(0.85in,1.06in){\psline[linecolor=red,linewidth=2\pslinewidth,framearc=0.1](0,0)(1.2in,0in)}%
+	\rput(0.85in,0.88in){\psline[linecolor=red,linewidth=2\pslinewidth,framearc=0.1](0,0)(1.2in,0in)}%
+	\rput(1.25in,0.30in){\psline[linecolor=red,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.45in,0in)}%
 	}\onslide{2}{%
 	\rput*[l](0,-0.05in){\psframebox[linecolor=red,linewidth=2\pslinewidth,framearc=0.1]{\textcolor{red}{\Large These signals arean't really needed}}}}%
 	\onslide{3}{%
-	\rput(1.4in,0.4in){\psframe[linecolor=dkgreen,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.55in,0.2in)}
-	\rput(1.4in,0.97in){\psframe[linecolor=dkgreen,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.55in,0.2in)}
+	\rput(2.15in,0.97in){\psframe[linecolor=dkgreen,linewidth=2\pslinewidth,framearc=0.1](0,0)(1.1in,0.2in)}
+	\rput(2.45in,0.4in){\psframe[linecolor=dkgreen,linewidth=2\pslinewidth,framearc=0.1](0,0)(0.5in,0.2in)}
 	\rput*[l](0,-0.05in){\psframebox[linecolor=dkgreen,linewidth=2\pslinewidth,framearc=0.1]{\parbox{2.5in}{\textcolor{dkgreen}{\Large We'll add these two new ones}}}}}
 }
+\vspace{0.3in}
+
+Where \zinline{DW} is the bits per beat, and \zinline{BW=$clog2(DW/8)}
 \end{slide}
 %
 %
-\begin{slide}[method=file]{ABORT}
+\begin{slide}[method=file]{ABORT Rules}
 \begin{enumerate}
 \item ABORT may be raised at any time
 \end{enumerate}
@@ -118,7 +183,7 @@ It may be raised while \zinline{VALID && !READY}.
 \end{slide}
 %
 %
-\begin{slide}[method=file]{ABORT}
+\begin{slide}[toc=,bm=,method=file]{ABORT Rules}
 \begin{enumerate}
 \item ABORT may be raised at any time
 \end{enumerate}
@@ -143,7 +208,7 @@ It may be raised even without raising \zinline{VALID}.
 \end{slide}
 %
 %
-\begin{slide}[method=file]{ABORT}
+\begin{slide}[toc=,bm=,method=file]{ABORT Rules}
 \begin{enumerate}
 \item ABORT may be raised at any time
 \item ABORT may be only be released if not stalled
@@ -165,7 +230,6 @@ READY    & 1l 4H 3L H 1L \\
 	% \rput(-1in,0.10in){\psline[linecolor=dkgreen,linewidth=2\pslinewidth](0,0)(0.4in,0)}
 }
 
-% It may be raised even without raising \zinline{VALID}.
 \begin{zformal}
 property assert (@(posedge ACLK)
         disable iff (!ARESETN)
@@ -175,7 +239,7 @@ property assert (@(posedge ACLK)
 \end{slide}
 %
 %
-\begin{slide}[method=file]{ABORT}
+\begin{slide}[toc=,bm=,method=file]{ABORT Rules}
 \begin{enumerate}
 \item ABORT may be raised at any time
 \item ABORT may be only be released if not stalled
@@ -201,13 +265,13 @@ READY    & 1l 4H L 4H \\
 	% \rput(-1in,0.10in){\psline[linecolor=dkgreen,linewidth=2\pslinewidth](0,0)(0.4in,0)}
 }
 
-If \zinline{VALID && LAST} are both true, the packet has
+\onslide{1}{If \zinline{VALID && LAST} are both true, the packet has
 successfully, entered the downstream registers.  Raising ABORT
-at this point makes little sense.
+at this point makes little sense.}
 \end{slide}
 %
 %
-\begin{slide}[method=file]{BYTES}
+\begin{slide}[method=file]{BYTES Rules}
 \begin{enumerate}
 \item All beats are packed
 \item The BYTES field contains \zinline{$clog2(DW/8)} bits.
@@ -217,12 +281,12 @@ at this point makes little sense.
 
 \item Only the last beat can contain fewer than DW/8 bytes
 \item The last beat cannot be empty.  It must have at least one byte.
-\item Ordering can be big \onslide{2}{or little} endian
+\item Byte ordering can be big \onslide{2}{or little} endian
 \end{enumerate}
 
 \begin{center}
-\onslide{1}{\rput[t](0,0){\includegraphics[width=2in]{big-endian.eps}}}%
-\onslide{2}{\rput[t](0,0){\includegraphics[width=2in]{little-endian.eps}}}
+\onslide{1}{\rput[t](0,0){\includegraphics[width=2.2in]{big-endian.eps}}}%
+\onslide{2}{\rput[t](0,0){\includegraphics[width=2.2in]{little-endian.eps}}}
 \end{center}
 \end{slide}
 %
