@@ -54,7 +54,7 @@ module pktarbiter #(
 
 	// o_grant, grant and last
 	// {{{
-	always @(posedge i_clk or negedge i_reset_n)
+	always @(posedge i_clk)
 	if (!i_reset_n)
 	begin
 		grant <= 0;

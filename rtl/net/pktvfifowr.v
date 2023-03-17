@@ -49,9 +49,8 @@ module	pktvfifowr #(
 		input	wire	[AW-1:0]	i_cfg_baseaddr,
 		input	wire	[AW-1:0]	i_cfg_memsize,
 		input	wire	[AW+WBLSB-3:0]	i_readptr,
-		input	wire			i_pktfull,
 		output	wire	[AW+WBLSB-3:0]	o_writeptr,
-		output	wire			o_pktwr_stb,
+		// output	wire			o_pktwr_stb,
 		// }}}
 		// Incoming packet
 		// {{{
@@ -515,7 +514,6 @@ module	pktvfifowr #(
 
 	assign	S_READY = ((wr_state == WR_PUSH)
 				&& (!o_wb_stb || i_wb_stall)
-				&& i_pktfull
 				&& !mem_full && !wr_outstanding[LGPIPE])
 			|| (wr_state == WR_OVERFLOW && wr_midpkt);
 
@@ -586,8 +584,9 @@ module	pktvfifowr #(
 	//
 	//
 
-	assign	o_pktwr_stb = (wr_state == WR_CLEARBUS && !o_wb_stb)
-			&& (wr_outstanding == (i_wb_ack ? 1:0));
+	// No longer needed
+	// assign	o_pktwr_stb = (wr_state == WR_CLEARBUS && !o_wb_stb)
+	//		&& (wr_outstanding == (i_wb_ack ? 1:0));
 
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////

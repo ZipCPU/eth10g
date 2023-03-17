@@ -104,7 +104,8 @@ module	pktvfifo #(
 		// }}}
 	) (
 		// {{{
-		input	wire		i_clk, i_reset,
+		input	wire		i_clk,
+		input	wire		i_reset,
 		// WB Control port
 		// {{{
 		input	wire		i_ctrl_cyc, i_ctrl_stb, i_ctrl_we,
@@ -112,8 +113,8 @@ module	pktvfifo #(
 		input	wire	[31:0]	i_ctrl_data,
 		input	wire	[3:0]	i_ctrl_sel,
 		output	wire		o_ctrl_stall,
-		output	wire		o_ctrl_ack,
-		output	wire	[31:0]	o_ctrl_data,
+		output	reg		o_ctrl_ack,
+		output	reg	[31:0]	o_ctrl_data,
 		// }}}
 		// Incoming packet
 		// {{{
@@ -171,8 +172,7 @@ module	pktvfifo #(
 
 	reg	[AW-1:0]	r_baseaddr,
 				r_memsize;
-	reg	[AW+(WBLSB-2)-1:0]	r_writeptr,
-				r_readptr;
+	wire	[AW+(WBLSB-2)-1:0]	w_writeptr, w_readptr;
 
 	reg			reset_fifo, mem_err;
 	wire			ign_outw_abort;
@@ -180,7 +180,7 @@ module	pktvfifo #(
 	wire				ipkt_valid, ipkt_ready,
 					ipkt_last, ipkt_abort;
 	wire	[BUSDW-1:0]		ipkt_data;
-	wire	[$clog2(BUSDW/8)-1:0]	ipkt_bytes;
+	wire	[$clog2(BUSDW/8):0]	ipkt_bytes;
 
 	wire				wide_valid, wide_ready,
 					wide_last, wide_abort;
@@ -195,10 +195,17 @@ module	pktvfifo #(
 	reg	[BUSDW/8-1:0]	next_wr_sel;
 	reg	[$clog2(BUSDW/8)-1:0]	wide_words, wide_shift;
 
-	reg			wr_wb_cyc, wr_wb_stb;
-	reg	[AW+WBLSB-3:0]	wr_wb_addr;
-	reg	[BUSDW-1:0]	wr_wb_data;
-	reg	[BUSDW/8-1:0]	wr_wb_sel;
+	wire			wr_wb_cyc, wr_wb_stb, wr_wb_we;
+	wire	[AW-1:0]	wr_wb_addr;
+	wire	[BUSDW-1:0]	wr_wb_data, wr_wb_idata;
+	wire	[BUSDW/8-1:0]	wr_wb_sel;
+	wire			wr_wb_stall, wr_wb_ack, wr_wb_err;
+
+	wire			rd_wb_cyc, rd_wb_stb, rd_wb_we;
+	wire	[AW-1:0]	rd_wb_addr;
+	wire	[BUSDW-1:0]	rd_wb_data, rd_wb_idata;
+	wire	[BUSDW/8-1:0]	rd_wb_sel;
+	wire			rd_wb_stall, rd_wb_ack, rd_wb_err;
 
 
 	// }}}
@@ -209,14 +216,15 @@ module	pktvfifo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+	wire	rd_fifo_err;
 
 	// reset_fifo
 	// {{{
 	always @(posedge i_clk)
 	if (i_reset)
 		reset_fifo <= 0;
-	else if (o_wb_cyc && i_wb_err)
-		reset_fifo <= 0;
+	else if ((o_wb_cyc && i_wb_err) || (rd_fifo_err) || mem_err)
+		reset_fifo <= 1;
 	else if (i_ctrl_stb && i_ctrl_we && (i_ctrl_addr == ADR_BASEADDR
 					|| i_ctrl_addr == ADR_SIZE))
 		reset_fifo <= 1;
@@ -243,15 +251,16 @@ module	pktvfifo #(
 	reg	[31:0]	new_baseaddr;
 	always @(*)
 	begin
-		new_baseaddr = r_baseaddr << WBLSB;
+		new_baseaddr = 0;
+		new_baseaddr[AW+WBLSB-1:WBLSB] = r_baseaddr;
 		if (i_ctrl_sel[0])
-			new_baseaddr[ 7: 0] <= i_ctrl_data[ 7: 0];
+			new_baseaddr[ 7: 0] = i_ctrl_data[ 7: 0];
 		if (i_ctrl_sel[1])
-			new_baseaddr[15: 8] <= i_ctrl_data[15: 8];
+			new_baseaddr[15: 8] = i_ctrl_data[15: 8];
 		if (i_ctrl_sel[2])
-			new_baseaddr[23:16] <= i_ctrl_data[23:16];
+			new_baseaddr[23:16] = i_ctrl_data[23:16];
 		if (i_ctrl_sel[3])
-			new_baseaddr[31:24] <= i_ctrl_data[31:24];
+			new_baseaddr[31:24] = i_ctrl_data[31:24];
 
 		new_baseaddr[WBLSB-1:0] = 0;
 		new_baseaddr[31:AW] = 0;
@@ -272,16 +281,17 @@ module	pktvfifo #(
 
 	always @(*)
 	begin
-		new_memsize = r_memsize << WBLSB;
+		new_memsize = 0;
+		new_memsize[AW+WBLSB-1:WBLSB] = r_memsize;
 
 		if (i_ctrl_sel[0])
-			new_memsize[ 7: 0] <= i_ctrl_data[ 7: 0];
+			new_memsize[ 7: 0] = i_ctrl_data[ 7: 0];
 		if (i_ctrl_sel[1])
-			new_memsize[15: 8] <= i_ctrl_data[15: 8];
+			new_memsize[15: 8] = i_ctrl_data[15: 8];
 		if (i_ctrl_sel[2])
-			new_memsize[23:16] <= i_ctrl_data[23:16];
+			new_memsize[23:16] = i_ctrl_data[23:16];
 		if (i_ctrl_sel[3])
-			new_memsize[31:24] <= i_ctrl_data[31:24];
+			new_memsize[31:24] = i_ctrl_data[31:24];
 
 		new_memsize[WBLSB-1:0] = 0;
 		new_memsize[31:AW]   = 0;
@@ -291,7 +301,7 @@ module	pktvfifo #(
 	if (i_reset)
 		r_memsize <= DEF_MEMSIZE;
 	else if (i_ctrl_stb&& i_ctrl_we && i_ctrl_addr == ADR_SIZE)
-		r_memsize <= new_memsize;
+		r_memsize <= new_memsize[WBLSB +: AW];
 	// }}}
 
 	assign	o_ctrl_stall = 0;
@@ -311,27 +321,11 @@ module	pktvfifo #(
 		case(i_ctrl_addr)
 		ADR_BASEADDR:	o_ctrl_data[WBLSB +: AW] <= r_baseaddr;
 		ADR_SIZE:	o_ctrl_data[WBLSB +: AW] <= r_memsize;
-		ADR_WRITEPTR:	o_ctrl_data[AW+WBLSB-1:2] <= r_writeptr;
-		ADR_READPTR:	o_ctrl_data[AW+WBLSB-1:2] <= r_readptr;
+		ADR_WRITEPTR:	o_ctrl_data[AW+WBLSB-1:2] <= w_writeptr;
+		ADR_READPTR:	o_ctrl_data[AW+WBLSB-1:2] <= w_readptr;
 		endcase
 	end
 	// }}}
-
-	always @(*)
-	begin
-		wide_baseaddr = 0;
-		wide_baseaddr = r_baseaddr << WBLSB;
-
-		wide_memsize  = 0;
-		wide_memsize  = r_memsize  << WBLSB;
-
-		wide_writeptr = 0;
-		wide_writeptr = r_writeptr << WBLSB;
-
-		wide_readptr  = 0;
-		wide_readptr  = r_readptr  << WBLSB;
-	end
-
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -350,7 +344,8 @@ module	pktvfifo #(
 		.S_AXIN_VALID(S_VALID),
 		.S_AXIN_READY(S_READY),
 		.S_AXIN_DATA( S_DATA),
-		.S_AXIN_BYTES(S_BYTES[$clog2(PKTDW/8)-1:0]),
+		.S_AXIN_BYTES({ (S_BYTES[$clog2(PKTDW/8)-1:0] == 0),
+					S_BYTES[$clog2(PKTDW/8)-1:0] }),
 		.S_AXIN_LAST( S_LAST),
 		.S_AXIN_ABORT(S_ABORT),
 		//
@@ -382,7 +377,8 @@ module	pktvfifo #(
 			//
 			.S_AXIN_VALID(ipkt_valid),
 			.S_AXIN_READY(ipkt_ready),
-			.S_AXIN_DATA({ ipkt_bytes, ipkt_data }),
+			.S_AXIN_DATA({ ipkt_bytes[$clog2(BUSDW/8)-1:0],
+							ipkt_data }),
 			.S_AXIN_LAST( ipkt_last),
 			.S_AXIN_ABORT(ipkt_abort),
 			//
@@ -423,8 +419,8 @@ module	pktvfifo #(
 		//
 		.i_cfg_reset_fifo(reset_fifo), .i_cfg_mem_err(mem_err),
 		.i_cfg_baseaddr(r_baseaddr), .i_cfg_memsize(r_memsize),
-		.i_readptr(w_readptr), .i_mempkts(mempkts),
-		.o_cfg_writeptr(w_writeptr), .o_pktwr_stb(pktwr_stb),
+		.i_readptr(w_readptr), // .i_mempkts(mempkts),
+		.o_writeptr(w_writeptr), // .o_pktwr_stb(pktwr_stb),
 		//
 		.S_VALID(wide_valid), .S_READY(wide_ready),
 		.S_DATA(wide_data), .S_BYTES(wide_bytes),
@@ -434,7 +430,7 @@ module	pktvfifo #(
 		.o_wb_we(  wr_wb_we),
 		.o_wb_addr(wr_wb_addr), .o_wb_data( wr_wb_data),
 		.o_wb_sel( wr_wb_sel),  .i_wb_stall(wr_wb_stall),
-		.i_wb_ack( wr_wb_ack),  .i_wb_data( wr_wb_idata),
+		.i_wb_ack( wr_wb_ack),  // .i_wb_data( wr_wb_idata),
 		.i_wb_err( wr_wb_err)
 		// }}}
 	);
@@ -448,13 +444,8 @@ module	pktvfifo #(
 	//
 	//
 
-	always @(posedge i_clk)
-	if (i_reset || reset_fifo || mem_err)
-		mem_packets <= 0;
-	else case({ pktwr_stb, rd_state == RD_IDLE && mem_packets != 0 })
-	2'b10: mem_packets <= mem_packets + 1;
-	2'b01: mem_packets <= mem_packets - 1;
-	endcase
+	// Not needed.  Now doing (readptr != writeptr) to tell us if packets
+	// are available.
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -464,6 +455,10 @@ module	pktvfifo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+	wire				ack_valid, ack_last;
+	wire	[BUSDW-1:0]		ack_data;
+	wire [$clog2(BUSDW/8)-1:0]	ack_bytes;
+	wire				ackfifo_read, ackfifo_rd;
 
 	pktvfiford #(
 		// {{{
@@ -477,19 +472,20 @@ module	pktvfifo #(
 		//
 		.i_cfg_reset_fifo(reset_fifo), .i_cfg_mem_err(mem_err),
 		.i_cfg_baseaddr(r_baseaddr), .i_cfg_memsize(r_memsize),
-		.i_readptr(w_readptr), .i_mempkts(mempkts),
-		.o_cfg_writeptr(w_writeptr), .o_pktrd_stb(pktrd_stb),
+		.i_writeptr(w_writeptr), .o_readptr(w_readptr),
+		.o_fifo_err(rd_fifo_err),
 		//
-		.o_wb_cyc( wr_wb_cyc),  .o_wb_stb(  wr_wb_stb),
-		.o_wb_we(  wr_wb_we),
-		.o_wb_addr(wr_wb_addr), .o_wb_data( wr_wb_data),
-		.o_wb_sel( wr_wb_sel),  .i_wb_stall(wr_wb_stall),
-		.i_wb_ack( wr_wb_ack),  .i_wb_data( wr_wb_idata),
-		.i_wb_err( wr_wb_err),
+		.o_wb_cyc( rd_wb_cyc),  .o_wb_stb(  rd_wb_stb),
+		.o_wb_we(  rd_wb_we),
+		.o_wb_addr(rd_wb_addr), .o_wb_data( rd_wb_data),
+		.o_wb_sel( rd_wb_sel),  .i_wb_stall(rd_wb_stall),
+		.i_wb_ack( rd_wb_ack),  .i_wb_data( rd_wb_idata),
+		.i_wb_err( rd_wb_err),
 		//
 		.M_VALID(ack_valid), // .M_READY(ack_ready),
 		.M_DATA(ack_data), .M_BYTES(ack_bytes),
 		.M_LAST(ack_last), // .M_ABORT(ack_abort)
+		.i_fifo_rd(ackfifo_rd)
 		// }}}
 	);
 
@@ -513,7 +509,7 @@ module	pktvfifo #(
 		.s_we(    2'b10 ),
 		.s_addr({ wr_wb_addr,   rd_wb_addr }),
 		.s_data({(2){wr_wb_data}}),
-		.s_sel( { wr_wb_sel,  {(BUSDW/8){1'b1}}  }),
+		.s_sel( { wr_wb_sel,    rd_wb_sel }),
 		.s_stall({ wr_wb_stall, rd_wb_stall }),
 		.s_ack(  { wr_wb_ack,   rd_wb_ack }),
 		.s_idata({ wr_wb_idata, rd_wb_idata }),
@@ -541,23 +537,28 @@ module	pktvfifo #(
 	//
 	//
 
+	wire			ackfifo_full, ackfifo_empty, ackfifo_last;
+	wire	[LGFIFO:0]	ackfifo_fill;
+	wire	[BUSDW-1:0]	ackfifo_data;
+	wire	[$clog2(BUSDW/8)-1:0]	ackfifo_bytes;
+
 	// We can't skip on the ACK FIFO.  We need it to handle backpressure.
 	// The FIFO helps us guarantee that we don't overload this in back
 	// pressure.
 	sfifo #(
-		.BW(BUSDW + WBLSB + 1), .LGFLEN(LGFIFO)
+		.BW(BUSDW + $clog2(BUSDW/8) + 1), .LGFLEN(LGFIFO)
 	) u_ackfifo (
 		// {{{
-		.i_clk(i_clk), i_reset(i_reset),
-		.i_wr(wr_wb_ack), .i_data({ ack_last,
-			(ack_last) ? ack_remaining[WBLSB-1:0] : {(WBLSB){1'b0}},
-					wr_wb_data }),
+		.i_clk(i_clk), .i_reset(i_reset),
+		.i_wr(ack_valid), .i_data({ ack_last, ack_bytes, ack_data }),
 			.o_full(ackfifo_full), .o_fill(ackfifo_fill),
-		.i_rd(ackfifo_read), .o_data(ackfifo_data),
+		.i_rd(ackfifo_rd),
+			.o_data({ ackfifo_last, ackfifo_bytes, ackfifo_data }),
 			.o_empty(ackfifo_empty)
 		// }}}
 	);
 
+	assign	ackfifo_rd = ackfifo_read && !ackfifo_empty;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -566,6 +567,13 @@ module	pktvfifo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+	wire	ign_bytes;
+
+	always @(posedge i_clk)
+	if (i_reset)
+		M_ABORT <= 1'b0;
+	else if (reset_fifo)
+		M_ABORT <= 1'b1;
 
 	axinwidth #(
 		.IW(BUSDW), .OW(PKTDW)
@@ -575,15 +583,15 @@ module	pktvfifo #(
 		//
 		.S_AXIN_VALID(!ackfifo_empty),
 		.S_AXIN_READY(ackfifo_read),
-		.S_AXIN_DATA(ackfifo_data[PKTDW-1:0]),
-		.S_AXIN_BYTES(ackfifo_data[PKTDW +: PKTBYW]),
-		.S_AXIN_LAST(ackfifo_data[PKTDW + PKTBYW]),
+		.S_AXIN_DATA(ackfifo_data),
+		.S_AXIN_BYTES({ (ackfifo_bytes== 0), ackfifo_bytes }),
+		.S_AXIN_LAST(ackfifo_last),
 		.S_AXIN_ABORT(1'b0),
 		//
 		.M_AXIN_VALID(M_VALID),
 		.M_AXIN_READY(M_READY),
 		.M_AXIN_DATA(M_DATA),
-		.M_AXIN_BYTES(M_BYTES),
+		.M_AXIN_BYTES({ ign_bytes, M_BYTES }),
 		.M_AXIN_LAST(M_LAST),
 		.M_AXIN_ABORT(ign_outw_abort)
 		// }}}
