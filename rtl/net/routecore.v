@@ -26,7 +26,7 @@
 // }}}
 //	http://www.apache.org/licenses/LICENSE-2.0
 // {{{
-// Unless required by applicable law or agreed to in writing, software
+// Unless required by applicable law or agreed to in writing, files
 // distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 // WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
 // License for the specific language governing permissions and limitations
@@ -38,8 +38,8 @@
 // }}}
 module routecore #(
 		// {{{
-		// parameter [0:0]	OPT_SKIDBUFFER   = 1'b0,
-		// parameter [0:0]	OPT_LOWPOWER     = 1'b0
+		parameter [0:0]	OPT_SKIDBUFFER   = 1'b0,
+		parameter [0:0]	OPT_LOWPOWER     = 1'b1,
 		// parameter [0:0]	OPT_DEFBROADCAST = 1'b0
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Number of incoming eth ports
@@ -68,7 +68,7 @@ module routecore #(
 		parameter	LGROUTETBL = 6,
 		parameter	LGROUTE_TIMEOUT = 24,
 		parameter	AW = 30-$clog2(BUSDW/8),
-		parameter [0:0]	OPT_VFIFO = 0,
+		parameter [0:0]	OPT_VFIFO = 1,
 		// We need a VFIFO to be successful.
 		parameter [AW-1:0]	DEF_BASEADDR = 0,
 		parameter [AW-1:0]	DEF_MEMSIZE  = 0
@@ -202,6 +202,8 @@ module routecore #(
 		// Grab packet MACs for the router
 		// {{{
 		rxgetsrcmac #(
+			.OPT_SKIDBUFFER(OPT_SKIDBUFFER),
+			.OPT_LOWPOWER(OPT_LOWPOWER),
 			.DW(PKTDW), .MACW(MACW)
 		) u_rxgetsrcmac (
 			// {{{
@@ -270,7 +272,8 @@ module routecore #(
 				// to be shifted by $clog2(BUSDW/8) to get
 				// their proper bus address location.
 				.DEF_BASEADDR(DEF_BASEADDR + geth*DEF_SUBSIZE),
-				.DEF_MEMSIZE(DEF_SUBSIZE)
+				.DEF_MEMSIZE(DEF_SUBSIZE),
+				.OPT_LOWPOWER(OPT_LOWPOWER)
 				// }}}
 			) u_pktvfifo (
 				// {{{
@@ -322,6 +325,7 @@ module routecore #(
 			);
 
 		end else begin : NO_VFIFO
+			reg	r_ctrl_ack;
 
 			netfifo #(
 				// {{{
@@ -330,8 +334,8 @@ module routecore #(
 				// }}}
 			) u_netfifo (
 				// {{{
-				.i_clk(i_clk),
-				.i_reset(i_reset || ETH_RESET[geth]),
+				.S_AXI_ACLK(i_clk),
+				.S_AXI_ARESETN(!i_reset && !ETH_RESET[geth]),
 				// Incoming packet
 				// {{{
 				.S_AXIN_VALID(tomem_valid[geth]),
@@ -356,10 +360,21 @@ module routecore #(
 			assign	vfifo_cyc[geth] = 1'b0;
 			assign	vfifo_stb[geth] = 1'b0;
 			assign	vfifo_we[geth]  = 1'b0;
-			assign	vfifo_addr[geth]= {(AW){1'b0}};
-			assign	vfifo_data[geth]= {(BUSDW){1'b0}};
-			assign	vfifo_sel[geth] = {(BUSDW/8){1'b0}};
+			assign	vfifo_addr[geth * AW +: AW]= {(AW){1'b0}};
+			assign	vfifo_data[geth * BUSDW +: BUSDW]= {(BUSDW){1'b0}};
+			assign	vfifo_sel[geth * BUSDW/8 +: BUSDW/8] = {(BUSDW/8){1'b0}};
 
+			initial	r_ctrl_ack = 1'b0;
+			always @(posedge i_clk)
+			if (i_reset || !i_ctrl_cyc)
+				r_ctrl_ack <= 1'b0;
+			else
+				r_ctrl_ack <= i_ctrl_stb
+					&& i_ctrl_addr[2 +: $clog2(NETH)]==geth;
+
+			assign	ctrl_stall[geth] = 1'b0;
+			assign	ctrl_ack[geth]   = r_ctrl_ack;
+			assign	ctrl_data[ geth * 32 +: 32] = 32'h0;
 		end
 		// }}}
 
@@ -367,8 +382,8 @@ module routecore #(
 		// {{{
 		txgetports #(
 			// {{{
-			// .OPT_SKIDBUFFER
-			// .OPT_LOWPOWER
+			.OPT_SKIDBUFFER(OPT_SKIDBUFFER),
+			.OPT_LOWPOWER(OPT_LOWPOWER),
 			.NETH(NETH), .DW(PKTDW), .MACW(MACW)
 			// }}}
 		) u_txgetports (
@@ -395,6 +410,8 @@ module routecore #(
 		// rtd->txx Broadcast our packet to all interested ports
 		// {{{
 		axinbroadcast #(
+			.OPT_SKIDBUFFER(OPT_SKIDBUFFER),
+			.OPT_LOWPOWER(OPT_LOWPOWER),
 			.NOUT(NETH), .DW(PKTDW)
 		) u_rtdbroadcast (
 			// {{{
@@ -442,6 +459,8 @@ module routecore #(
 		end
 
 		axinarbiter #(
+			.OPT_SKIDBUFFER(OPT_SKIDBUFFER),
+			.OPT_LOWPOWER(OPT_LOWPOWER),
 			.DW(PKTDW),
 			.NIN(NETH)
 		) u_txarbiter (
@@ -488,7 +507,8 @@ module routecore #(
 			// .DEFAULT_PORT(NETH),
 			.LGTBL(LGROUTETBL),
 			.LGTIMEOUT(LGROUTE_TIMEOUT),
-			.MACW(MACW)
+			.MACW(MACW),
+			.OPT_LOWPOWER(OPT_LOWPOWER)
 			// }}}
 		) u_routetbl (
 			// {{{
@@ -573,7 +593,8 @@ module routecore #(
 	begin : GEN_UNUSED_VFIFO
 		wire	unused_vfifo_wb;
 		assign	unused_vfifo_wb = &{ 1'b0, vfifo_stall, vfifo_ack,
-				vfifo_idata, vfifo_err };
+				vfifo_idata, vfifo_err, i_ctrl_addr,
+				i_ctrl_we, i_ctrl_sel, i_ctrl_data };
 	end endgenerate
 	// Verilator lint_on  UNUSED
 	// }}}

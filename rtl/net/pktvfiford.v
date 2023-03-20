@@ -15,7 +15,7 @@
 // {{{
 // This file is part of the ETH10G project.
 //
-// The WB2AXIP project contains free software and gateware, licensed under the
+// The ETH10G project contains free software and gateware, licensed under the
 // Apache License, Version 2.0 (the "License").  You may not use this project,
 // or this file, except in compliance with the License.  You may obtain a copy
 // of the License at

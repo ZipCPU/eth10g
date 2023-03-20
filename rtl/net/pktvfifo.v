@@ -72,7 +72,7 @@
 // {{{
 // This file is part of the ETH10G project.
 //
-// The WB2AXIP project contains free software and gateware, licensed under the
+// The ETH10G project contains free software and gateware, licensed under the
 // Apache License, Version 2.0 (the "License").  You may not use this project,
 // or this file, except in compliance with the License.  You may obtain a copy
 // of the License at
@@ -158,17 +158,7 @@ module	pktvfifo #(
 				ADR_SIZE     = 2'b01,
 				ADR_WRITEPTR = 2'b10,
 				ADR_READPTR  = 2'b11;
-
-	localparam	[2:0]	WR_CLEARPTR = 3'h0,
-				WR_PUSH     = 3'h1,
-				WR_FLUSH    = 3'h2,
-				WR_NULL     = 3'h3,
-				WR_LENGTH   = 3'h4,
-				WR_CLEARBUS = 3'h5;
 	// }}}
-
-	reg	[AW+WBLSB-1:0]	wide_baseaddr, wide_memsize,
-				wide_writeptr, wide_readptr;
 
 	reg	[AW-1:0]	r_baseaddr,
 				r_memsize;
@@ -186,14 +176,6 @@ module	pktvfifo #(
 					wide_last, wide_abort;
 	wire	[BUSDW-1:0]		wide_data;
 	wire	[$clog2(BUSDW/8)-1:0]	wide_bytes;
-
-	reg	[LGPIPE:0]	wr_outstanding;
-	reg	[AW+WBLSB-1:0]	next_wb_addr;
-	reg	[2*BUSDW-1:0]	next_dblwide_data;
-	reg	[2*BUSDW/8-1:0]	next_dblwide_sel;
-	reg	[BUSDW-1:0]	next_wr_data;
-	reg	[BUSDW/8-1:0]	next_wr_sel;
-	reg	[$clog2(BUSDW/8)-1:0]	wide_words, wide_shift;
 
 	wire			wr_wb_cyc, wr_wb_stb, wr_wb_we;
 	wire	[AW-1:0]	wr_wb_addr;
@@ -506,7 +488,7 @@ module	pktvfifo #(
 		//
 		.s_cyc( { wr_wb_cyc,    rd_wb_cyc }),
 		.s_stb( { wr_wb_stb,    rd_wb_stb }),
-		.s_we(    2'b10 ),
+		.s_we(  { wr_wb_we,	rd_wb_we  }),
 		.s_addr({ wr_wb_addr,   rd_wb_addr }),
 		.s_data({(2){wr_wb_data}}),
 		.s_sel( { wr_wb_sel,    rd_wb_sel }),
@@ -537,8 +519,8 @@ module	pktvfifo #(
 	//
 	//
 
-	wire			ackfifo_full, ackfifo_empty, ackfifo_last;
-	wire	[LGFIFO:0]	ackfifo_fill;
+	wire			ign_ackfifo_full, ackfifo_empty, ackfifo_last;
+	wire	[LGFIFO:0]	ign_ackfifo_fill;
 	wire	[BUSDW-1:0]	ackfifo_data;
 	wire	[$clog2(BUSDW/8)-1:0]	ackfifo_bytes;
 
@@ -551,7 +533,7 @@ module	pktvfifo #(
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
 		.i_wr(ack_valid), .i_data({ ack_last, ack_bytes, ack_data }),
-			.o_full(ackfifo_full), .o_fill(ackfifo_fill),
+			.o_full(ign_ackfifo_full), .o_fill(ign_ackfifo_fill),
 		.i_rd(ackfifo_rd),
 			.o_data({ ackfifo_last, ackfifo_bytes, ackfifo_data }),
 			.o_empty(ackfifo_empty)
@@ -597,6 +579,17 @@ module	pktvfifo #(
 		// }}}
 	);
 
+	// }}}
+
+	// Keep Verilator happy
+	// {{{
+	// Verilator lint_off UNUSED
+	wire	unused;
+	assign	unused = &{ 1'b0, ign_bytes, new_memsize, new_baseaddr,
+				ipkt_bytes[$clog2(BUSDW/8)],
+				ign_ackfifo_full, ign_ackfifo_fill,
+				wr_wb_idata, ign_outw_abort, rd_wb_data };
+	// Verilator lint_on  UNUSED
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
