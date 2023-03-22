@@ -47,7 +47,7 @@ module	faxin_slave #(
 		// how many bytes are in use.  Must be at least $clog2(DW/8)
 		parameter	WBITS = (DATA_WIDTH <= 8) ? 1
 						: $clog2(DATA_WIDTH/8),
-		localparam	LGMX= (MAX_LENGTH > 0) ? $clog2(MAX_LENGTH+1):1,
+		parameter	LGMX= (MAX_LENGTH > 0) ? $clog2(MAX_LENGTH+1):1,
 		localparam	DW = DATA_WIDTH
 		// }}}
 	) (

@@ -1,0 +1,66 @@
+[tasks]
+prv
+#
+prvx8x32    prv i8   o32
+prvx32x64   prv i32  o64
+prvx64x128  prv i64  o128
+prvx128x512 prv i128 o512
+#
+prvx32x8    prv i32   o8
+prvx64x32   prv i64   o32
+prvx128x64  prv i128  o64
+prvx512x128 prv i512  o128
+#
+cvr
+
+[options]
+prv: mode prove
+prv: depth 5
+cvr: mode cover
+cvr: depth 30
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal axinwidth.v
+read_verilog -formal faxin_slave.v
+read_verilog -formal faxin_master.v
+--pycode-begin--
+cmd = "hierarchy -top axinwidth"
+if ("i8" in tags):
+	cmd += " -chparam IW 8"
+elif ("i16" in tags):
+	cmd += " -chparam IW 16"
+elif ("i32" in tags):
+	cmd += " -chparam IW 32"
+elif ("i64" in tags):
+	cmd += " -chparam IW 64"
+elif ("i128" in tags):
+	cmd += " -chparam IW 128"
+elif ("i256" in tags):
+	cmd += " -chparam IW 256"
+elif ("i512" in tags):
+	cmd += " -chparam IW 512"
+if ("o8" in tags):
+	cmd += " -chparam OW 8"
+elif ("o16" in tags):
+	cmd += " -chparam OW 16"
+elif ("o32" in tags):
+	cmd += " -chparam OW 32"
+elif ("o64" in tags):
+	cmd += " -chparam OW 64"
+elif ("o128" in tags):
+	cmd += " -chparam OW 128"
+elif ("o256" in tags):
+	cmd += " -chparam OW 256"
+elif ("o512" in tags):
+	cmd += " -chparam OW 512"
+output(cmd)
+--pycode-end--
+prep -top axinwidth
+
+[files]
+../../rtl/net/axinwidth.v
+faxin_slave.v
+faxin_master.v

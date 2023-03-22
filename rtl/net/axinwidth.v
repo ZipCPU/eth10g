@@ -77,17 +77,28 @@ module	axinwidth #(
 	);
 
 `ifdef FORMAL
-	localparam MIN_LENGTH = 64*8/IW;
-	localparam MAX_LENGTH = 1024;
+	localparam MIN_LENGTH =   64*8;	//   64 Bytes
+	localparam MAX_LENGTH = 2048*8;	// 2048 Bytes
+	localparam MIN_LENGTH_I = MIN_LENGTH/IW;
+	localparam MAX_LENGTH_I = MAX_LENGTH/IW;
+	localparam MIN_LENGTH_O = MIN_LENGTH/OW;
+	localparam MAX_LENGTH_O = MAX_LENGTH/OW;
 	localparam LGMX = (MAX_LENGTH > 0) ? $clog2(MAX_LENGTH+1):1;
 
 	// Pick two arbitrary values
 	(* anyconst *) reg	[7:0]	fc_first, fc_next;
-	// Pick an arbitrary position
-	(* anyconst *) reg	[$clog2(MAX_LENGTH):0]	fc_posn;
-
 	wire	[7:0]	fm_first, fm_next;
-	wire	[$clog2(MAX_LENGTH):0]	fc_nxtposn;
+	// Pick an arbitrary position
+	(* anyconst *) reg	[LGMX-1:0]	fc_posn;
+	wire	[LGMX-1:0]	fc_nxtposn;
+
+	(* keep *) wire [LGMX-$clog2(OW/8)-1:0] fm_first_word_cnt, fm_next_word_cnt;
+	(* keep *) wire [$clog2(OW/8)-1:0] fm_first_byte, fm_next_byte;
+	(* keep *) wire [LGMX-$clog2(IW/8)-1:0] fs_first_word_cnt, fs_next_word_cnt;
+	(* keep *) wire [$clog2(IW/8)-1:0] fs_first_byte, fs_next_byte;
+
+	wire	[LGMX-1:0] f_s_stream_word, f_m_stream_word;
+	wire	[12-1:0]   f_s_packets_rcvd, f_m_packets_rcvd;
 `endif
 
 	generate if (IW == OW)
@@ -109,11 +120,10 @@ module	axinwidth #(
 			M_AXIN_BYTES <= S_AXIN_BYTES;
 			M_AXIN_ABORT <= S_AXIN_ABORT;
 		end
-        	// }}}
+		// }}}
 	end else if (IW < OW)
-	// PASSED for ALL
 	begin : IW_SMALLER
-	// {{{
+		// {{{
 		// Try IW = 8, OW = 32		(You need this for verification)
 		// Also try IW = 32, OW = 64	(I need this for project)
 		// Also try IW = 64, OW = 512	(I need this for project)
@@ -126,7 +136,7 @@ module	axinwidth #(
 		reg [LGWIDE_COUNT-1:0] wide_counter;
 		reg		mid_packet;
 
-		initial mid_packet = 0;
+		initial	mid_packet = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
 			mid_packet <= 0;
@@ -157,11 +167,10 @@ module	axinwidth #(
 		always @(posedge ACLK)
 		if (!ARESETN)
 			M_AXIN_VALID <= 0;
-		else if ((S_AXIN_VALID && S_AXIN_READY)
+		else if (!S_AXIN_ABORT && (S_AXIN_VALID && S_AXIN_READY)
 				// Verilator lint_off WIDTH
-				&&((wide_counter == WIDE_COUNT-1)|| S_AXIN_LAST)
+				&&((wide_counter == WIDE_COUNT-1)||S_AXIN_LAST))
 				// Verilator lint_on  WIDTH
-				&& !S_AXIN_ABORT)
 			M_AXIN_VALID <= 1;
 		else if (M_AXIN_READY)
 			M_AXIN_VALID <= 0;
@@ -233,7 +242,9 @@ module	axinwidth #(
 			if (!M_AXIN_LAST && !M_AXIN_ABORT)
 			begin
 				assert(f_m_stream_word <= f_s_stream_word);
-				assert(f_s_stream_word == ((f_m_stream_word + (M_AXIN_VALID ? 1:0)) * WIDE_COUNT) + wide_counter);
+				assert(f_s_stream_word
+					== ((f_m_stream_word + (M_AXIN_VALID ? 1:0)) * WIDE_COUNT)
+						+ wide_counter);
 			end
 			assert(!M_AXIN_LAST || M_AXIN_VALID); // ?
 			assert(M_AXIN_BYTES <= OW/8);
@@ -244,24 +255,46 @@ module	axinwidth #(
 			if (M_AXIN_VALID)
 				assert(wide_counter == 0);
 			assert(data_concat == M_AXIN_DATA);
-			end
 		end
 
 		assign fm_first = M_AXIN_DATA >> (8*fc_posn[$clog2(OW/8)-1:0]);
 		assign fm_next  = M_AXIN_DATA >> (8*fc_nxtposn[$clog2(OW/8)-1:0]);
+		always @(*)
+		if (ARESETN && !M_AXIN_ABORT
+				&& ((f_s_stream_word > fs_first_word_cnt)
+								|| M_AXIN_LAST)
+				&& (f_m_stream_word * (OW/8) <= fc_posn)
+				&& (fc_posn < (f_m_stream_word * (OW/8))
+					+ (wide_counter*IW/8)
+					+ (M_AXIN_VALID ? M_AXIN_BYTES : 0)))
+		begin
+			// Assert the first data
+			assert(fm_first == fc_first);
+		end
+
+		always @(*)
+		if (ARESETN && !M_AXIN_ABORT
+				&& ((f_s_stream_word > fs_next_word_cnt)
+								|| M_AXIN_LAST)
+				&& (f_m_stream_word * (OW/8) <= fc_nxtposn)
+				&& (fc_nxtposn < (f_m_stream_word * (OW/8))
+					+ (wide_counter*IW/8)
+					+ (M_AXIN_VALID ? M_AXIN_BYTES : 0)))
+		begin
+			// Assert the next data
+			assert(fm_next == fc_next);
+		end
+
 `endif
 		// }}}
 		// }}}
-	end else begin : IW_GREATER // Still under test
+	end else begin : IW_GREATER
 		// {{{
 		// Try IW=64, OW=32		(I need this for the project)
-        	// integer i;
-        	// localparam			PARSE_COUNT = (IW/OW);
-		localparam [$clog2(IW/8):0]	FULL_OUTWORD = 1<<(OW/8);
+		localparam [$clog2(IW/8):0]	FULL_OUTWORD = OW/8;
 
-		reg			shift_en;
 		reg	[IW-OW-1:0]	data_parse;
-		reg	[$clog2(OW/8):0] remaining_bytes;
+		reg	[$clog2(IW/8):0] remaining_bytes;
 		reg			remaining_last, mid_packet;
 		reg	[OW-1:0]	mdata;
 
@@ -292,9 +325,9 @@ module	axinwidth #(
 		//   incoming data from slave (check!)
 
 		// Don't register s_ready !!!
-		// TODO: Add abort condition here
-		assign S_AXIN_READY = !M_AXIN_VALID
-				|| (M_AXIN_READY && remaining_bytes == 0);
+		assign S_AXIN_READY = S_AXIN_ABORT || (!M_AXIN_ABORT &&
+			(!M_AXIN_VALID
+				|| (M_AXIN_READY && remaining_bytes == 0)));
 
 		// Which word (32-bit) should we send first ?
 		// Little endian => sends 0 first
@@ -315,11 +348,11 @@ module	axinwidth #(
 			M_AXIN_VALID <= 0;
 		else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT)
 			M_AXIN_VALID <= 1;
-		else if (M_AXIN_READY && (remaining_bytes == 0 || M_AXIN_LAST))
+		else if (M_AXIN_READY && (remaining_bytes == 0 || M_AXIN_LAST || M_AXIN_ABORT))
 			M_AXIN_VALID <= 0;
 
-		// M_AXIN_BYTES, M_AXIN_LAST, data_parse
-		initial shift_en        = 0;
+		// M_AXIN_BYTES, M_AXIN_LAST, data_parse, remaining_*
+		// {{{
 		initial remaining_last  = 0;
 		initial remaining_bytes = 0;
 		initial M_AXIN_BYTES    = 0;
@@ -328,7 +361,6 @@ module	axinwidth #(
 		always @(posedge ACLK)
 		if (!ARESETN)
 		begin
-			shift_en        <= 0;
 			remaining_last  <= 0;
 			remaining_bytes <= 0;
 			M_AXIN_BYTES    <= 0;
@@ -336,26 +368,31 @@ module	axinwidth #(
 			data_parse      <= 0;
 		end else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT)
 		begin
-			shift_en        <= 0;
 			// Verilator lint_off WIDTH
 			remaining_bytes <= (S_AXIN_BYTES > FULL_OUTWORD) ? (S_AXIN_BYTES - FULL_OUTWORD) : 0;
-			M_AXIN_BYTES    <= (S_AXIN_BYTES > FULL_OUTWORD) ? (FULL_OUTWORD) : S_AXIN_BYTES[$clog2(OW/8):0];
+			M_AXIN_BYTES    <= (S_AXIN_BYTES > FULL_OUTWORD) ? FULL_OUTWORD : S_AXIN_BYTES[$clog2(OW/8):0];
 			M_AXIN_LAST     <= S_AXIN_LAST && (S_AXIN_BYTES <= FULL_OUTWORD);
 			remaining_last  <= (S_AXIN_LAST && S_AXIN_BYTES > FULL_OUTWORD);
 			// Verilator lint_on  WIDTH
 			data_parse      <= S_AXIN_DATA[IW-1 : OW];
+		end else if (M_AXIN_ABORT && (!M_AXIN_VALID || M_AXIN_READY))
+		begin
+			remaining_bytes <= 0;
+			M_AXIN_BYTES    <= 0;
+			M_AXIN_LAST     <= 0;
+			remaining_last  <= 0;
+			data_parse      <= 0;
 		end else if (M_AXIN_VALID && M_AXIN_READY)
 		begin
-			shift_en        <= 1;
 			// Verilator lint_off WIDTH
 			remaining_bytes <= (remaining_bytes <= FULL_OUTWORD) ? 0 : (remaining_bytes - FULL_OUTWORD);
 			M_AXIN_BYTES    <= (remaining_bytes > FULL_OUTWORD) ? FULL_OUTWORD : remaining_bytes;
 			M_AXIN_LAST     <= (remaining_bytes > FULL_OUTWORD) ? 0 : remaining_last;
 			remaining_last  <= (remaining_bytes <= FULL_OUTWORD) ? 0 : remaining_last;
-			// remaining_last  <= (remaining_bytes <= OW/8) ? 0 : remaining_last;
-			data_parse      <= (shift_en) ? data_parse >> OW : data_parse;
+			data_parse      <= data_parse >> OW;
 			// Verilator lint_on  WIDTH
 		end
+		// }}}
 
 		////////////////////////////////////////////////////////////////
 		//
@@ -363,43 +400,86 @@ module	axinwidth #(
 		// {{{
 		////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
-
-		// This one is a challenge to get right, but it is a
-		// necessary assertion
-		// always @(*)
-		//     assert(f_m_stream_word == f_s_stream_word
-		//         + (M_AXIN_VALID || (shift_register_valid)));
-
-		always @(*)
-		begin
-			cover(f_s_stream_word == 5);
-		end
-
 		always @(*)
 		if (ARESETN)
 		begin
+			assert(FULL_OUTWORD == OW/8);
 			if (M_AXIN_VALID && M_AXIN_LAST)
+			begin
 				assert(f_s_stream_word == 0);
+				assert(remaining_bytes == 0);
+			end else begin
+				if (!M_AXIN_ABORT)
+					assert(mid_packet == (f_s_stream_word > 0));
+				if (remaining_last)
+					assert(f_s_stream_word == 0);
+				else begin
+					if (!M_AXIN_ABORT)
+						assert((f_s_stream_word * IW/OW) == (f_m_stream_word + remaining_bytes/(OW/8) + (M_AXIN_VALID ? 1:0)));
+				end
+			end
+
+			assert(remaining_bytes <= (IW-OW)/8);
 			assert(f_m_stream_word < (MAX_LENGTH * (IW/OW)));
-			assert(mid_packet == (f_s_stream_word != 0));
+			if (M_AXIN_ABORT)
+				assert(!mid_packet || (S_AXIN_VALID && S_AXIN_ABORT));
+			if (!M_AXIN_ABORT)
+				assert(mid_packet == (f_s_stream_word != 0));
 			if (!mid_packet)
 				assert(f_s_stream_word == 0);
-			if (!mid_packet && !remaining_last && !M_AXIN_LAST)
+			if (!mid_packet && !remaining_last && !M_AXIN_LAST && !M_AXIN_ABORT)
 				assert(f_m_stream_word == 0);
 			assert(f_s_stream_word <= f_m_stream_word + 1); // +1 is for first word of slave
-			if (mid_packet && remaining_bytes == 0)
-				assert((f_s_stream_word * IW/OW) == (f_m_stream_word + (M_AXIN_VALID ? 1:0)));
+			assert(!M_AXIN_LAST || M_AXIN_VALID);   // !!!
 			assert(M_AXIN_BYTES <= OW/8);
 			if (M_AXIN_BYTES == OW/8)
 				assert(M_AXIN_VALID);
-			if (remaining_bytes > 0)
+			if (remaining_bytes > 0 && !S_AXIN_ABORT)
 				assert(!S_AXIN_READY);
 			if (mid_packet)
 				assert(remaining_last == 0);
+			if(!mid_packet && !M_AXIN_VALID && !M_AXIN_ABORT)
+				assert(f_m_stream_word == 0);
+			if(!remaining_last && (OW > 8))
+				assert(remaining_bytes[$clog2(OW/8)-1:0] == 0);
+			if (remaining_bytes > 0) 
+				assert(M_AXIN_VALID);
+			if (M_AXIN_VALID && remaining_last)
+				assert(f_m_stream_word + 1 >= (MIN_LENGTH * (IW/OW)));
+			if(remaining_bytes == 0)
+				assert(!remaining_last);
+			if(M_AXIN_VALID && remaining_last)
+				assert(((f_m_stream_word[$clog2(IW/OW)-1 : 0] * OW/8) + (OW/8 * ((remaining_bytes + (M_AXIN_VALID ? OW/8 : 0) + (OW/8)-1) / (OW/8)))) <= (IW/8));
 		end
 
-		assign fm_first = M_AXIN_DATA >> (8*fc_posn[$clog2(OW/8)-1:0]);
-		assign fm_next  = M_AXIN_DATA >> (8*fc_nxtposn[$clog2(OW/8)-1:0]);
+		always @(*)
+		if (ARESETN && !M_AXIN_ABORT
+			&& ((f_s_stream_word > fs_first_word_cnt)
+					|| M_AXIN_LAST || remaining_last)
+			&& (f_m_stream_word <= fm_first_word_cnt)
+			&& ((fm_first_word_cnt * (OW/8)) < f_m_stream_word * (OW/8) + remaining_bytes + (M_AXIN_VALID ? OW/8 : 0)))
+		begin
+		// Assert the first data
+		assert(fm_first == fc_first);
+		end
+
+		always @(*)
+		if (ARESETN && !M_AXIN_ABORT
+			&& ((f_s_stream_word > fs_next_word_cnt)
+					|| M_AXIN_LAST || remaining_last)
+			&& (f_m_stream_word <= fm_next_word_cnt)
+			&& ((fm_next_word_cnt * (OW/8)) < f_m_stream_word * (OW/8) + remaining_bytes + (M_AXIN_VALID ? OW/8 : 0)))
+		begin
+			// Assert the next data
+			assert(fm_next == fc_next);
+		end
+
+		assign fm_first = { data_parse, M_AXIN_DATA }
+			>> ((8*fc_posn[$clog2(IW/8)-1:0])
+				- (f_m_stream_word[$clog2(IW/OW)-1:0]*OW));
+		assign fm_next  = { data_parse, M_AXIN_DATA }
+			>> ((8*fc_nxtposn[$clog2(IW/8)-1:0])
+				- (f_m_stream_word[$clog2(IW/OW)-1:0]*OW));
 `endif
 		// }}}
 		// }}}
@@ -416,185 +496,181 @@ module	axinwidth #(
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 
-    // Let the solver pick whether or not we allow aborts
-    (* anyconst *) reg	fc_allow_aborts;
+	// Let the solver pick whether or not we allow aborts
+	(* anyconst *) reg	fc_allow_aborts;
+	reg	f_past_valid;
 
-    reg	[LGMX-1:0] f_s_stream_word, f_m_stream_word;
-    reg	[12-1:0]   f_s_packets_rcvd, f_m_packets_rcvd;
-    (* dont_touch *) wire [$clog2(MAX_LENGTH)-$clog2(OW/8):0] fm_first_word_cnt, fm_next_word_cnt;
-    (* dont_touch *) wire [$clog2(OW/8)-1:0] fm_first_byte, fm_next_byte;
-    (* dont_touch *) wire [$clog2(MAX_LENGTH)-$clog2(IW/8):0] fs_first_word_cnt, fs_next_word_cnt;
-    (* dont_touch *) wire [$clog2(IW/8)-1:0] fs_first_byte, fs_next_byte;
+	initial	f_past_valid = 0;
+	always @(posedge ACLK)
+		f_past_valid <= 1;
 
-    reg	f_past_valid;
-    initial	f_past_valid = 0;
-    always @(posedge ACLK)
-        f_past_valid = 1;
+	always @(posedge ACLK)
+	if (!f_past_valid)
+		assume(!ARESETN);
 
-    always @(posedge ACLK)
-        if (!f_past_valid)
-            assume(!ARESETN);
+	// fc_first_word_cnt, fc_next_word_cnt
+	// fc_first_byte, fc_next_byte
+	assign fs_first_word_cnt = fc_posn[$clog2(MAX_LENGTH):$clog2(IW/8)];
+	assign fs_next_word_cnt = fc_nxtposn[$clog2(MAX_LENGTH):$clog2(IW/8)];
+	assign fs_first_byte = (IW <= 8) ? 0 : fc_posn[$clog2(IW/8)-1:0];
+	assign fs_next_byte = (IW <= 8) ? 0 : fc_nxtposn[$clog2(IW/8)-1:0];
+	assign fm_first_word_cnt = fc_posn[$clog2(MAX_LENGTH):$clog2(OW/8)];
+	assign fm_next_word_cnt = fc_nxtposn[$clog2(MAX_LENGTH):$clog2(OW/8)];
+	assign fm_first_byte = (OW <= 8) ? 0 : fc_posn[$clog2(OW/8)-1:0];
+	assign fm_next_byte  = (OW <= 8) ? 0 : fc_nxtposn[$clog2(OW/8)-1:0];
 
-    // fc_first_word_cnt, fc_next_word_cnt
-    // fc_first_byte, fc_next_byte
-    assign fs_first_word_cnt = fc_posn[$clog2(MAX_LENGTH):$clog2(IW/8)];
-    assign fs_next_word_cnt = fc_nxtposn[$clog2(MAX_LENGTH):$clog2(IW/8)];
-    assign fs_first_byte = fc_posn[$clog2(IW/8)-1:0];
-    assign fs_next_byte = fc_nxtposn[$clog2(IW/8)-1:0];
-    assign fm_first_word_cnt = fc_posn[$clog2(MAX_LENGTH):$clog2(OW/8)];
-    assign fm_next_word_cnt = fc_nxtposn[$clog2(MAX_LENGTH):$clog2(OW/8)];
-    assign fm_first_byte = fc_posn[$clog2(OW/8)-1:0];
-    assign fm_next_byte = fc_nxtposn[$clog2(OW/8)-1:0];
+	// fc_nxtposn
+	assign	fc_nxtposn = fc_posn + 1;
+	always @(*)
+		assume(fc_nxtposn != 0);
 
-    // fc_nxtposn
-    assign	fc_nxtposn = fc_posn + 1;
-    always @(*)
-    begin
-        assume(fc_nxtposn != 0);
-        // if (S_AXIN_LAST)
-        //     assume(fc_nxtposn < f_s_stream_word);
-        // begin
-        //     assume(fc_nxtposn[$clog2(MAX_LENGTH):$clog2(IW/8)] < f_s_stream_word);
-        //     assume(fc_nxtposn[$clog2(IW/8)-1:0] < S_AXIN_BYTES);
-        // end
-    end
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Slave stream properties
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	// assume properties of the inputs
 
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // Slave stream properties
-    // {{{
-    ////////////////////////////////////////////////////////////////////////
-    // assume properties of the inputs
+	// faxin_slave
+	// {{{
+	faxin_slave #(
+		.DATA_WIDTH(IW),
+		.MIN_LENGTH(MIN_LENGTH_I),
+		.MAX_LENGTH(MAX_LENGTH_I),
+		.LGMX(LGMX),
+		.WBITS($clog2(IW+1))
+	) fslave (
+		.S_AXI_ACLK(ACLK), .S_AXI_ARESETN(ARESETN),
+		.S_AXIN_VALID(S_AXIN_VALID),
+		.S_AXIN_READY(S_AXIN_READY),
+		.S_AXIN_DATA(S_AXIN_DATA),
+		.S_AXIN_BYTES(S_AXIN_BYTES),
+		.S_AXIN_LAST(S_AXIN_LAST),
+		.S_AXIN_ABORT(S_AXIN_ABORT),
+		.f_stream_word(f_s_stream_word),
+		.f_packets_rcvd(f_s_packets_rcvd)
+	);
+	// }}}
 
-    // faxin_slave
-    // {{{
-    faxin_slave #(
-        .DATA_WIDTH(IW),
-        .MIN_LENGTH(MIN_LENGTH),
-        .MAX_LENGTH(MAX_LENGTH)
-    ) fslave (
-        .S_AXI_ACLK(ACLK), .S_AXI_ARESETN(ARESETN),
-        .S_AXIN_VALID(S_AXIN_VALID),
-        .S_AXIN_READY(S_AXIN_READY),
-        .S_AXIN_DATA(S_AXIN_DATA),
-        .S_AXIN_LAST(S_AXIN_LAST),
-        .S_AXIN_ABORT(S_AXIN_ABORT),
-        .f_stream_word(f_s_stream_word),
-        .f_packets_rcvd(f_s_packets_rcvd)
-    );
-    // }}}
+	// S_AXIN_BYTES
+	// {{{
+	always @(*)
+	if (ARESETN && S_AXIN_VALID)
+	begin
+		assume(S_AXIN_BYTES > 0);
+		assume(S_AXIN_BYTES <= IW/8);
+		if (!S_AXIN_LAST)
+			assume(S_AXIN_BYTES == (IW/8));
+	end
+	// }}}
 
-    // S_AXIN_BYTES
-    // {{{
-    always @(*) begin
-        if (ARESETN && S_AXIN_VALID)
-        begin
-            assume(S_AXIN_BYTES > 0);
-            assume(S_AXIN_BYTES <= IW/8);
-            if (!S_AXIN_LAST)
-                assume(S_AXIN_BYTES == (IW/8));
-        end
-    end
-    // }}}
+	// MIN_LENGTH & S_AXIN_LAST
+	// {{{
+	always @(*)
+	if (f_s_stream_word < MIN_LENGTH)
+		assume(!S_AXIN_LAST);
+	// }}}
 
-    // MIN_LENGTH & S_AXIN_LAST
-    // {{{
-    always @(*) begin
-        if (f_s_stream_word < MIN_LENGTH)
-            assume(!S_AXIN_LAST);
-    end
-    // }}}
+	// S_AXIN_ABORT
+	always @(*)
+	if (ARESETN && !fc_allow_aborts)
+		assume(!S_AXIN_ABORT);
 
-    // S_AXIN_ABORT
-    // always @(*)
-    // if (ARESETN && !fc_allow_aborts)
-    //     assume(!S_AXIN_ABORT);
+	always @(*)
+	if (ARESETN && S_AXIN_VALID && f_s_stream_word == fs_first_word_cnt)
+	begin
+		// Assume the first data
+		if (IW == 8)
+		begin
+			assume(S_AXIN_DATA == fc_first);
+		end else begin
+			assume(S_AXIN_DATA[fs_first_byte*8 +: 8] == fc_first);
+		end
+	end
 
-    always @(*)
-    if (ARESETN && S_AXIN_VALID && f_s_stream_word == fs_first_word_cnt)
-    begin
-        // Assume the first data
-        if (IW == 8)
-            assume(S_AXIN_DATA == fc_first);
-        else
-            assume(S_AXIN_DATA[fs_first_byte*8 +: 8] == fc_first);
-    end
+	always @(*)
+	if (ARESETN && S_AXIN_VALID && f_s_stream_word == fs_next_word_cnt)
+	begin
+		// Assume the next data
+		if (IW == 8)
+		begin
+			assume(S_AXIN_DATA == fc_next);
+		end else begin
+			assume(S_AXIN_DATA[fs_next_byte*8 +: 8] == fc_next);
+		end
+	end
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Master stream properties
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	// assert properties of the outputs
 
-    always @(*)
-    if (ARESETN && S_AXIN_VALID && f_s_stream_word == fs_next_word_cnt)
-    begin
-        // Assume the next data
-        if (IW == 8)
-            assume(S_AXIN_DATA == fc_next);
-        else
-            assume(S_AXIN_DATA[fs_next_byte*8 +: 8] == fc_next);
-    end
-    // }}}
+	// faxin_master
+	faxin_master #(
+		.DATA_WIDTH(OW),
+		.MIN_LENGTH(MIN_LENGTH_O),
+		.MAX_LENGTH(MAX_LENGTH_O),
+		.LGMX(LGMX),
+		.WBITS($clog2(OW+1))
+	) fmaster (
+		.S_AXI_ACLK(ACLK), .S_AXI_ARESETN(ARESETN),
+		.S_AXIN_VALID(M_AXIN_VALID),
+		.S_AXIN_READY(M_AXIN_READY),
+		.S_AXIN_DATA(M_AXIN_DATA),
+		.S_AXIN_BYTES(M_AXIN_BYTES),
+		.S_AXIN_LAST(M_AXIN_LAST),
+		.S_AXIN_ABORT(M_AXIN_ABORT),
+		.f_stream_word(f_m_stream_word),
+		.f_packets_rcvd(f_m_packets_rcvd)
+	);
 
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // Master stream properties
-    // {{{
-    ////////////////////////////////////////////////////////////////////////
-    // assert properties of the outputs
+	// M_AXIN_ABORT
+	always @(*)
+	if (ARESETN && !fc_allow_aborts)
+		assert(!M_AXIN_ABORT);
 
-    // faxin_master
-    faxin_master #(
-        .DATA_WIDTH(OW),
-        .MIN_LENGTH(MIN_LENGTH*(IW/OW)),
-        .MAX_LENGTH(MAX_LENGTH*(IW/OW))
-    ) fmaster (
-        .S_AXI_ACLK(ACLK), .S_AXI_ARESETN(ARESETN),
-        .S_AXIN_VALID(M_AXIN_VALID),
-        .S_AXIN_READY(M_AXIN_READY),
-        .S_AXIN_DATA(M_AXIN_DATA),
-        .S_AXIN_LAST(M_AXIN_LAST),
-        .S_AXIN_ABORT(M_AXIN_ABORT),
-        .f_stream_word(f_m_stream_word),
-        .f_packets_rcvd(f_m_packets_rcvd)
-    );
+	always @(*)
+	if (ARESETN && M_AXIN_ABORT)
+		assert(f_s_stream_word == 0);
 
-    // M_AXIN_ABORT
-    // always @(*)
-    // if (ARESETN && !fc_allow_aborts)
-    //     assert(!M_AXIN_ABORT);
+	always @(*)
+	if (ARESETN && !M_AXIN_ABORT && ((f_s_stream_word > fs_first_word_cnt) || M_AXIN_LAST)
+			&& (f_m_stream_word * (OW/8) <= fc_posn)
+			&& (fc_posn < (f_m_stream_word * (OW/8)) + (M_AXIN_VALID ? M_AXIN_BYTES : 0)))
+	begin
+		// Assert the first data
+		assert(fm_first == fc_first);
+	end
 
-    always @(*)
-    if (ARESETN && M_AXIN_ABORT)
-        assert(f_s_stream_word == 0);
+	always @(*)
+	if (ARESETN && !M_AXIN_ABORT
+			&& ((f_s_stream_word > fs_next_word_cnt)
+							|| M_AXIN_LAST)
+			&& (f_m_stream_word * (OW/8) <= fc_nxtposn)
+			&& (fc_nxtposn < (f_m_stream_word * (OW/8)) + (M_AXIN_VALID ? M_AXIN_BYTES : 0)))
+	begin
+		// Assert the next data
+		assert(fm_next == fc_next);
+	end
 
-    always @(*)
-    if (ARESETN && !M_AXIN_ABORT && ((f_s_stream_word > fs_first_word_cnt) || M_AXIN_LAST)
-        && f_m_stream_word == fm_first_word_cnt)
-    begin
-        // Assert the first data
-        assert(fm_first == fc_first);
-    end
+	// M_AXIN_BYTES
+	// {{{
+	always @(*)
+	if (M_AXIN_VALID)
+	begin
+		assert(M_AXIN_BYTES > 0);
+		assert(M_AXIN_BYTES <= OW/8);
+		if (!M_AXIN_LAST)
+			assert(M_AXIN_BYTES == OW/8);
+	end
+	// }}}
 
-    // always @(*)
-    // if (ARESETN && !M_AXIN_ABORT && ((f_s_stream_word > fs_next_word_cnt) || M_AXIN_LAST)
-    //     && f_m_stream_word == fm_next_word_cnt)
-    // begin
-    //     // Assert the next data
-    //     assert(fm_next == fc_next);
-    // end
-
-    // M_AXIN_BYTES
-    // {{{
-    always @(*)
-    if (M_AXIN_VALID)
-    begin
-        assert(M_AXIN_BYTES > 0);
-        assert(M_AXIN_BYTES <= OW/8);
-        if (!M_AXIN_LAST)
-            assert(M_AXIN_BYTES == OW/8);
-    end
-    // }}}
-
-    // }}}
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // Low power rules (if we wish to use them)
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Low power rules (if we wish to use them)
     // {{{
     ////////////////////////////////////////////////////////////////////////
 
@@ -628,20 +704,16 @@ module	axinwidth #(
     end
     */
     // }}}
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // "Careless" assumptions
-    // {{{
-    ////////////////////////////////////////////////////////////////////////
-    //
-    //
+	////////////////////////////////////////////////////////////////////////
+	//
+	// "Careless" assumptions
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
 
-    // Just to get us started, and give us some confidence that this is
-    // working
-    always @(*)
-        assume(!S_AXIN_ABORT);
 
-    // }}}
+	// }}}
 `endif
 // }}}
 endmodule
