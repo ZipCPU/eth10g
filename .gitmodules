@@ -1,0 +1,3 @@
+[submodule "pcb"]
+	path = pcb
+	url = https://github.com/pcbarts/fast-open-switch-hardware
