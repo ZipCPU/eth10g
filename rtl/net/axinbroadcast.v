@@ -173,7 +173,10 @@ module axinbroadcast #(
 			M_LAST[ gk] <= skd_last;
 
 			if (OPT_LOWPOWER && (!skd_valid || skd_abort
-							|| !skd_port[gk]))
+					|| !skd_ready
+					|| !skd_port[gk]
+					|| (s_midpkt && !midpkt[gk])
+					|| !i_cfg_active[gk]))
 			begin
 				M_DATA[ gk*DW +: DW] <= 0;
 				M_BYTES[gk*WBITS +: WBITS] <= 0;
