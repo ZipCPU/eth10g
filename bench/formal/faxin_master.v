@@ -183,7 +183,7 @@ module	faxin_master #(
 	// {{{
 	initial	f_packets_rcvd = 0;
 	always @(posedge S_AXI_ACLK)
-	if (!f_past_valid || $past(S_AXI_ARESETN))
+	if (!f_past_valid || !$past(S_AXI_ARESETN))
 		f_packets_rcvd <= 0;
 	else if (S_AXIN_VALID && S_AXIN_READY && S_AXIN_LAST && !S_AXIN_ABORT)
 		f_packets_rcvd <= f_packets_rcvd + 1;
