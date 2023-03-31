@@ -1,0 +1,125 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Thu Mar 30 21:57:41 2023
+[*]
+[dumpfile_mtime] "Thu Mar 30 19:51:49 2023"
+[dumpfile_size] 37101
+[timestart] 0
+[size] 1875 904
+[pos] -1 -1
+*-4.707940 120 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] pktvfifowr.
+[sst_width] 343
+[signals_width] 222
+[sst_expanded] 1
+[sst_vpaned_height] 253
+@28
+pktvfifowr.i_clk
+pktvfifowr.i_reset
+@800200
+-Config
+@28
+pktvfifowr.i_cfg_reset_fifo
+[color] 1
+pktvfifowr.i_cfg_mem_err
+@22
+pktvfifowr.r_writeptr[27:0]
+pktvfifowr.i_readptr[27:0]
+pktvfifowr.i_cfg_baseaddr[26:0]
+pktvfifowr.i_cfg_memsize[26:0]
+@200
+-
+@22
+pktvfifowr.wide_baseaddr[29:0]
+pktvfifowr.wide_writeptr[29:0]
+pktvfifowr.wide_readptr[29:0]
+pktvfifowr.wide_memsize[29:0]
+pktvfifowr.wide_end_of_memory[29:0]
+@200
+-
+@22
+pktvfifowr.wr_pktlen[29:0]
+@28
+pktvfifowr.wr_midpkt
+@1000200
+-Config
+@22
+pktvfifowr.fc_memsize[26:0]
+@28
+[color] 2
+pktvfifowr.mem_full
+@29
+[color] 1
+pktvfifowr.mem_overflow
+@22
+pktvfifowr.r_end_of_packet[27:0]
+pktvfifowr.next_wbnull[29:0]
+pktvfifowr.wide_mem_fill[29:0]
+pktvfifowr.f_wide_pktfill[29:0]
+pktvfifowr.wide_committed[29:0]
+@200
+-
+@800200
+-AXIN SLAVE
+@28
+pktvfifowr.S_VALID
+pktvfifowr.S_READY
+@22
+pktvfifowr.S_DATA[63:0]
+@28
+pktvfifowr.S_BYTES[2:0]
+pktvfifowr.S_LAST
+[color] 1
+pktvfifowr.S_ABORT
+@22
+pktvfifowr.fs_packets[11:0]
+pktvfifowr.fs_word[10:0]
+@28
+pktvfifowr.syncd
+@1000200
+-AXIN SLAVE
+@28
+pktvfifowr.wr_midpkt
+@200
+-
+@28
+[color] 2
+pktvfifowr.wr_state[2:0]
+pktvfifowr.o_wb_cyc
+pktvfifowr.o_wb_stb
+pktvfifowr.o_wb_we
+@22
+pktvfifowr.o_wb_addr[26:0]
+pktvfifowr.o_wb_data[63:0]
+pktvfifowr.o_wb_sel[7:0]
+@28
+pktvfifowr.i_wb_stall
+pktvfifowr.i_wb_ack
+pktvfifowr.i_wb_err
+@22
+pktvfifowr.wr_wb_addr[27:0]
+pktvfifowr.next_wbfirst[29:0]
+pktvfifowr.next_wbnull[29:0]
+@200
+-
+@28
+pktvfifowr.r_lastack
+pktvfifowr.lastack
+@22
+pktvfifowr.wr_outstanding[6:0]
+@200
+-
+@22
+pktvfifowr.next_dblwide_data[127:0]
+pktvfifowr.next_dblwide_sel[15:0]
+pktvfifowr.next_wr_sel[7:0]
+@28
+pktvfifowr.wide_shift[2:0]
+@22
+pktvfifowr.wr_wb_addr[27:0]
+@28
+pktvfifowr.dshift
+@22
+pktvfifowr.full_sel[7:0]
+[pattern_trace] 1
+[pattern_trace] 0

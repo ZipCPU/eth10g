@@ -115,13 +115,15 @@ module	pktvfifowr #(
 
 	reg	[AW+WBLSB-3:0]	wr_wb_addr;
 
-	reg	[AW+WBLSB-1:0]	next_wbaddr, next_wbfirst, next_wbnull;
+	reg	[AW+WBLSB-1:0]	next_wbaddr, next_wbfirst;
+	reg	[AW+WBLSB:0]	next_wbnull;
 	reg	[AW+WBLSB-1:0]	wr_pktlen;
 	reg	[2:0]		wr_state;
 	reg			wr_midpkt;
 
-	reg	[AW+(WBLSB-2)-1:0]		w_mem_fill;
+	reg	[AW+WBLSB-1:0]	wide_mem_fill;
 	reg			mem_full, mem_overflow;
+	reg			syncd;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -167,8 +169,9 @@ module	pktvfifowr #(
 	always @(*)
 	begin
 		next_wbaddr = { wr_wb_addr, 2'b00 } + (BUSDW/8);
-		if (next_wbaddr > (wide_baseaddr + wide_memsize))
-			next_wbaddr = { wr_wb_addr, 2'b00 } - wide_memsize;
+		if (next_wbaddr >= (wide_baseaddr + wide_memsize))
+			next_wbaddr = { wr_wb_addr, 2'b00 }
+						+ (BUSDW/8) - wide_memsize;
 		next_wbaddr[WBLSB-1:0] = { wr_wb_addr[WBLSB-3:0], 2'b00 };
 	end
 	// }}}
@@ -184,9 +187,8 @@ module	pktvfifowr #(
 		next_wbnull = wide_writeptr + wr_pktlen + 4 + 3;
 		next_wbnull[1:0] = 2'b00;
 		if (next_wbnull >= wide_end_of_memory)
-			next_wbnull[AW+WBLSB-1:WBLSB]
-				= next_wbnull[AW+WBLSB-1:WBLSB]
-					- wide_memsize[AW+WBLSB-1:WBLSB];
+			next_wbnull[WBLSB +: AW+1] = next_wbnull[WBLSB +: AW+1]
+								- i_cfg_memsize;
 	end
 	// }}}
 
@@ -207,9 +209,13 @@ module	pktvfifowr #(
 
 	// next_dblwide_data, next_dblwide_sel
 	// {{{
+	wire	[WBLSB-3:0]	dshift;
+	assign	dshift = r_writeptr[WBLSB-3:0] + 1;
+
 	always @(*)
 	if (OPT_LITTLE_ENDIAN)
 	begin
+		// {{{
 		next_dblwide_data = 0;
 		next_dblwide_sel  = 0;
 
@@ -221,15 +227,17 @@ module	pktvfifowr #(
 		else
 			next_dblwide_sel[BUSDW/8-1:0]
 				= {(BUSDW/8){1'b1}} >> (4*wide_shift);
+		next_dblwide_sel = next_dblwide_sel << (dshift * 4);
 
 		next_dblwide_data[BUSDW-1:0]
 			= next_dblwide_data[BUSDW-1:0]	| next_wr_data;
 
 		next_dblwide_sel[BUSDW/8-1:0]
 			= next_dblwide_sel[BUSDW/8-1:0]	| next_wr_sel;
+		// }}}
 	end else begin
 		next_dblwide_data = { S_DATA, {(BUSDW){1'b0}} }
-						>> (wr_wb_addr[WBLSB-3:0] * 32);
+						>> (dshift * 32);
 
 		next_dblwide_sel = {(BUSDW/4){1'b0}};
 		if (S_BYTES == 0)
@@ -238,13 +246,13 @@ module	pktvfifowr #(
 		else
 			next_dblwide_sel[2*BUSDW/8-1:BUSDW/8]
 				= {(BUSDW/8){1'b1}} << (4*wide_shift);
-		next_dblwide_sel = next_dblwide_sel >> (wr_wb_addr[1:0] * 32);
+		next_dblwide_sel = next_dblwide_sel >> (dshift * 4);
 
 		next_dblwide_data[BUSDW-1:0]
 			= next_dblwide_data[BUSDW-1:0]	| next_wr_data;
 
-		next_dblwide_sel[BUSDW/8-1:0]
-			= next_dblwide_sel[BUSDW/8-1:0]	| next_wr_sel;
+		next_dblwide_sel[2*BUSDW/8-1:BUSDW/8]
+			= next_dblwide_sel[2*BUSDW/8-1:BUSDW/8]	| next_wr_sel;
 	end
 	// }}}
 
@@ -257,7 +265,8 @@ module	pktvfifowr #(
 	end
 
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || i_cfg_mem_err)
+	if (i_reset || i_cfg_reset_fifo || i_cfg_mem_err
+					|| (wr_state == WR_OVERFLOW))
 	begin
 		wr_pktlen <= 0;
 	end else if (S_ABORT && (!S_VALID || S_READY))
@@ -266,9 +275,9 @@ module	pktvfifowr #(
 	end else if (S_VALID && S_READY)
 	begin
 		if (!wr_midpkt)
-			wr_pktlen <= (1<<(BUSDW/8));
+			wr_pktlen <= (BUSDW/8);
 		else if (S_BYTES == 0)
-			wr_pktlen <= wr_pktlen + (1<<(BUSDW/8));
+			wr_pktlen <= wr_pktlen + (BUSDW/8);
 		else
 			wr_pktlen <= wr_pktlen + wide_bytes;
 	end
@@ -280,6 +289,19 @@ module	pktvfifowr #(
 	end
 	// }}}
 
+	// syncd
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset)
+		syncd <= 1'b1;
+	else if (S_ABORT && (!S_VALID || S_READY))
+		syncd <= 1'b1;
+	else if (S_VALID && S_READY)
+		syncd <= S_LAST;
+	// }}}
+
+	initial	o_wb_cyc = 1'b0;
+	initial	o_wb_stb = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset || i_cfg_reset_fifo || i_cfg_mem_err
 						|| (o_wb_cyc && i_wb_err))
@@ -292,11 +314,13 @@ module	pktvfifowr #(
 		o_wb_sel  <= 0;
 		r_writeptr <= { i_cfg_baseaddr, {(WBLSB-2){1'b0}} };
 		wr_state <= WR_CLEARPTR;
+		wr_midpkt <= 1'b0;
 		// wr_pktstart <= i_cfg_baseaddr;
 		// }}}
 	end else case(wr_state)
 	WR_CLEARPTR: begin
 		// {{{
+		wr_midpkt <= 1'b0;
 		if (!o_wb_stb || !i_wb_stall)
 		begin
 			// Write a NULL word to the beginning of memory
@@ -308,12 +332,14 @@ module	pktvfifowr #(
 			if (OPT_LITTLE_ENDIAN)
 			begin
 				o_wb_sel <= { {(BUSDW/8-4){1'b0}}, 4'hf }
-					<< (32*r_writeptr[WBLSB-3:0]);
+					<< (4*r_writeptr[WBLSB-3:0]);
 			end else begin
 				o_wb_sel <= { 4'hf, {(BUSDW/8-4){1'b0}} }
-					>> (32*r_writeptr[WBLSB-3:0]);
+					>> (4*r_writeptr[WBLSB-3:0]);
 			end
 			wr_state   <= WR_PUSH;
+			next_wr_data <= 0;
+			next_wr_sel <= 0;
 		end end
 		// }}}
 	WR_PUSH: begin
@@ -335,10 +361,11 @@ module	pktvfifowr #(
 				wr_wb_addr <= next_wbaddr[AW+WBLSB-1:2];
 		end
 
-		if ((!o_wb_stb || !i_wb_stall) && S_VALID && S_READY && !S_ABORT)
+		if ((!o_wb_stb || !i_wb_stall) && (wr_midpkt || syncd)
+			&& S_VALID && S_READY && !S_ABORT)
 		begin
 			wr_midpkt <= 1'b1;
-			o_wb_cyc <= 1'b0;
+			o_wb_cyc <= 1'b1;
 			o_wb_stb <= 1'b1;
 
 			if (OPT_LITTLE_ENDIAN)
@@ -358,10 +385,10 @@ module	pktvfifowr #(
 		// }}}
 	WR_FLUSH: begin
 		// {{{
+		wr_midpkt <= 1'b1;
+
 		if (!o_wb_stb || !i_wb_stall)
 		begin
-			wr_midpkt <= 1'b0;
-
 			if (o_wb_stb)
 				wr_wb_addr <= next_wbaddr[AW+WBLSB-1:2];
 
@@ -369,7 +396,7 @@ module	pktvfifowr #(
 				o_wb_cyc <= 1'b0;
 			o_wb_stb <= 1'b0;
 
-			if (next_wr_sel != 0)
+			if (!mem_full && next_wr_sel != 0)
 				{ o_wb_cyc, o_wb_stb } <= 2'b11;
 
 			o_wb_data   <= next_wr_data;
@@ -382,10 +409,12 @@ module	pktvfifowr #(
 		// }}}
 	WR_NULL: begin // Write a concluding 32-bit NULL word
 		// {{{
+		wr_midpkt <= 1'b1;
+		next_wr_data <= {(BUSDW  ){1'b0}};
+		next_wr_sel  <= {(BUSDW/8){1'b0}};
+
 		if (!o_wb_stb || !i_wb_stall)
 		begin
-			wr_midpkt <= 1'b0;
-
 			o_wb_cyc <= 1'b1;
 			o_wb_stb <= 1'b1;
 			wr_wb_addr <= next_wbnull[AW+WBLSB-1:2];
@@ -393,10 +422,10 @@ module	pktvfifowr #(
 			if (OPT_LITTLE_ENDIAN)
 			begin
 				o_wb_sel <= { {(BUSDW/8-4){1'b0}}, 4'hf }
-					<< (4*r_writeptr[WBLSB-3:0]);
+					<< (4*next_wbnull[WBLSB-1:2]);
 			end else begin
 				o_wb_sel <= { 4'hf, {(BUSDW/8-4){1'b0}} }
-					>> (4*r_writeptr[WBLSB-3:0]);
+					>> (4*next_wbnull[WBLSB-1:2]);
 			end
 			next_wr_data <= {(BUSDW  ){1'b0}};
 			next_wr_sel  <= {(BUSDW/8){1'b0}};
@@ -406,14 +435,15 @@ module	pktvfifowr #(
 		// }}}
 	WR_LENGTH: begin // Write the length word for the packet
 		// {{{
+		wr_midpkt <= 1'b1;
+		next_wr_data <= {(BUSDW  ){1'b0}};
+		next_wr_sel  <= {(BUSDW/8){1'b0}};
+
 		if (!o_wb_stb || !i_wb_stall)
 		begin
-			wr_midpkt <= 1'b0;
-
 			o_wb_cyc <= 1'b1;
 			o_wb_stb <= 1'b1;
 			wr_wb_addr <= r_writeptr;
-			r_writeptr <= next_wbnull[AW+WBLSB-1:2];
 
 			if (!OPT_LOWPOWER)
 				o_wb_data   <= {(BUSDW/32){wide_pktlen}};
@@ -430,14 +460,15 @@ module	pktvfifowr #(
 				o_wb_sel <= { 4'hf, {(BUSDW/8-4){1'b0}} }
 					>> (r_writeptr[WBLSB-3:0] * 4);
 			end
-			next_wr_data <= {(BUSDW  ){1'b0}};
-			next_wr_sel  <= {(BUSDW/8){1'b0}};
 
 			wr_state <= WR_CLEARBUS;
 		end end
 		// }}}
 	WR_CLEARBUS: begin // Write for last ACK to know the packet was written
 		// {{{
+		wr_midpkt <= 1'b1;
+		next_wr_data <= {(BUSDW  ){1'b0}};
+		next_wr_sel  <= {(BUSDW/8){1'b0}};
 		if (!o_wb_stb || !i_wb_stall)
 		begin
 			if (lastack)
@@ -445,11 +476,16 @@ module	pktvfifowr #(
 			o_wb_stb <= 1'b0;
 		end
 		if (!o_wb_stb && (wr_outstanding == (i_wb_ack ? 1:0)))
+		begin
 			wr_state <= WR_PUSH;
-		end
+			wr_midpkt <= 1'b0;
+			r_writeptr <= next_wbnull[AW+WBLSB-1:2];
+		end end
 		// }}}
 	WR_OVERFLOW: begin // No room in memory.  Wait for the pkt to complete
 		// {{{
+		next_wr_data <= {(BUSDW  ){1'b0}};
+		next_wr_sel  <= {(BUSDW/8){1'b0}};
 		if (S_VALID && S_READY && S_LAST)
 			wr_midpkt <= 1'b0;
 		if (S_ABORT && (!S_VALID || S_READY))
@@ -477,20 +513,41 @@ module	pktvfifowr #(
 
 	// lastack
 	// {{{
+	reg	r_lastack;
+
 	always @(posedge i_clk)
 	if (i_reset || i_cfg_reset_fifo || i_cfg_mem_err || !o_wb_cyc)
-		lastack <= 1;
+		r_lastack <= 1;
 	else
-		lastack <= (wr_outstanding + (o_wb_stb ? 1:0)
+		r_lastack <= (wr_outstanding + (o_wb_stb ? 1:0)
 						- (i_wb_ack ? 1:0)) <= 1;
+
+	assign	lastack = r_lastack
+			&& ((wr_outstanding[0] && !o_wb_stb && i_wb_ack)
+			||(!wr_outstanding[0]
+				&& (!o_wb_stb || (!i_wb_stall && i_wb_ack))));
 `ifdef	FORMAL
 	// Should always be true when we need to drop CYC, on the cycle
 	//   containing the last acknowledgment associated with all of our
 	//   requests.
 	always @(*)
-	if (o_wb_cyc)
-		assert(lastack == (wr_outstanding
-				+ (o_wb_stb ? 1:0) <= (i_wb_ack ? 1:0)));
+	if (o_wb_cyc && i_wb_ack)
+		assert(lastack == (wr_outstanding + (o_wb_stb ? 1:0)
+			<= (i_wb_ack ? 1:0)));
+	always @(*)
+	if (!i_reset && wr_outstanding == 0)
+	begin
+		if (!o_wb_stb)
+		begin
+			assert(lastack);
+		end else if (i_wb_ack && !i_wb_stall)
+		begin
+			assert(lastack);
+		end else begin
+			assert(!lastack);
+		end
+	end
+	// always @(*) if (o_wb_cyc) assert(r_lastack == (wr_outstanding <= 1));
 `endif
 	// }}}
 
@@ -513,7 +570,7 @@ module	pktvfifowr #(
 	// }}}
 
 	assign	S_READY = ((wr_state == WR_PUSH)
-				&& (!o_wb_stb || i_wb_stall)
+				&& (!o_wb_stb || !i_wb_stall)
 				&& !mem_full && !wr_outstanding[LGPIPE])
 			|| (wr_state == WR_OVERFLOW && wr_midpkt);
 
@@ -537,12 +594,22 @@ module	pktvfifowr #(
 
 	// r_end_of_packet, w-next_dataptr
 	// {{{
-	// w_next_dataptr is a byte address
+	// w_next_dataptr is a *byte* address
 	always @(*)
 	begin
 		// Points to where the next data packet would begin from.
+		//	This includes both the four bytes from writeptr for
+		//	the length word, as well as four bytes following for
+		//	a length word
 		// Verilator lint_off WIDTH
-		w_next_dataptr = wide_writeptr + { wr_pktlen, 2'b00 } + 8 + 3;
+		w_next_dataptr = wide_writeptr + wr_pktlen + 8 + 3;
+		if (S_VALID && S_READY)
+		begin
+			if (S_BYTES == 0)
+				w_next_dataptr = w_next_dataptr + (BUSDW/8);
+			else
+				w_next_dataptr = w_next_dataptr + S_BYTES;
+		end
 		// Verilator lint_on  WIDTH
 		w_next_dataptr[1:0] = 2'b00;
 		if (w_next_dataptr >= wide_end_of_memory)
@@ -553,28 +620,43 @@ module	pktvfifowr #(
 	always @(posedge i_clk)
 	if (i_cfg_reset_fifo)
 		r_end_of_packet <= { i_cfg_baseaddr, {(WBLSB-2){1'b0}} };
-	else
+	else if (wr_state != WR_CLEARBUS)
 		r_end_of_packet <= w_next_dataptr[AW+WBLSB-1:2];
 	// }}}
 
 	always @(*)
 	begin
-		w_mem_fill = (r_end_of_packet - i_readptr) + ((1<<(WBLSB-2))-1);
-		if (i_readptr > r_end_of_packet)
-			w_mem_fill = w_mem_fill + { i_cfg_memsize, {(WBLSB-2){1'b0}} };
+		// Calculate memory fill in bytes
+		wide_mem_fill = ({r_writeptr, 2'b00 }-{ i_readptr, 2'b00 });
+		if (r_writeptr < i_readptr)
+			wide_mem_fill = wide_mem_fill + wide_memsize;
+		// Add two pointer words, 4-bytes each, and round up to the
+		//   nearest 4-byte boundary
+		wide_mem_fill = wide_mem_fill + 11;
+		if (wr_midpkt && wide_mem_fill != WR_OVERFLOW)
+			wide_mem_fill = wide_mem_fill + wr_pktlen;
+		wide_mem_fill[1:0] = 2'b00;
+		if (S_VALID && S_READY)
+			wide_mem_fill = wide_mem_fill + BUSDW/8;
+		// if (o_wb_stb)
+		//	wide_mem_fill = wide_mem_fill + BUSDW/8;
+		// wide_mem_fill = wide_mem_fill + (BUSDW/8)-1;
+		wide_mem_fill[WBLSB-1:0] = 0;
 	end
 
 	always @(posedge i_clk)
 	if (i_cfg_reset_fifo)
 		mem_full <= 0;
 	else
-		mem_full <= (w_mem_fill[(WBLSB-2) +: AW] >= i_cfg_memsize);
+		mem_full <= (wide_mem_fill[WBLSB +: AW] >= i_cfg_memsize);
 
-	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || wr_state != WR_PUSH)
-		mem_overflow <= 1'b0;
-	else
-		mem_overflow <= mem_full && S_VALID;
+	// always @(posedge i_clk)
+	// if (i_reset || i_cfg_reset_fifo || wr_state != WR_PUSH)
+		// mem_overflow <= 1'b0;
+	// else
+		// mem_overflow <= mem_full && S_VALID;
+	always @(*)
+		mem_overflow = mem_full && S_VALID;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -601,9 +683,19 @@ module	pktvfifowr #(
 `ifdef	FORMAL
 	localparam	F_LGDEPTH = LGPIPE+1;
 	reg	f_past_valid;
+	reg	[AW+WBLSB-1:0]	wide_readptr;
 	wire	[F_LGDEPTH-1:0]	fwr_nreqs, fwr_nacks,
 				frd_nreqs, frd_nacks,
 				fwr_outstanding, frd_outstanding;
+	(* anyconst *)	reg	[AW-1:0]	fc_baseaddr, fc_memsize;
+	reg	[AW+WBLSB-1:0]	wide_committed, f_wide_pktfill;
+	reg	[AW:0]		f_end_of_memory;
+	wire	[WBLSB-3:0]	f_pkt_alignment;
+
+	localparam	LGMX = 11;
+	wire	[LGMX-1:0]	fs_word;
+	wire	[12-1:0]	fs_packets;
+
 
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
@@ -626,9 +718,6 @@ module	pktvfifowr #(
 	//
 	//
 
-	(* anyconst *)	reg	[AW-1:0]	fc_baseaddr, fc_memsize;
-	wire	[AW+WBLSB-1:0]	wide_memfill;
-
 	always @(*)
 	if (i_reset)
 		assume(i_cfg_reset_fifo);
@@ -646,13 +735,31 @@ module	pktvfifowr #(
 
 
 	always @(*)
-	begin
-		assume(fc_baseaddr + fc_memsize <= (1<<AW));
-		assume(fc_memsize >= 2);
+		assert(BUSDW >= 32);
 
-		wide_memfill = wide_writeptr - wide_readptr;
+	always @(*)
+	begin
+		assume({ 1'b0, fc_baseaddr } + { 1'b0, fc_memsize } <= (1<<AW));
+		if (BUSDW == 32)
+			assume(fc_memsize >= 8);
+		else if (BUSDW == 64)
+			assume(fc_memsize >= 4);
+		else
+			assume(fc_memsize >= 2);
+
+		wide_committed = wide_writeptr - wide_readptr;
 		if (wide_writeptr < wide_readptr)
-			wide_memfill = wide_memfill + fc_memsize;
+			wide_committed = wide_committed
+					+ { fc_memsize, {(WBLSB){1'b0}} };
+
+		f_wide_pktfill = wide_writeptr - wide_readptr;
+		if (wide_readptr > wide_writeptr)
+			f_wide_pktfill = f_wide_pktfill + wide_memsize;
+		if ((wr_state != WR_PUSH || wr_midpkt)
+						&& wr_state != WR_OVERFLOW)
+			f_wide_pktfill = f_wide_pktfill + wr_pktlen;
+		if (wr_state != WR_CLEARBUS)
+			f_wide_pktfill = f_wide_pktfill + 4;
 	end
 
 	always @(*)
@@ -665,19 +772,47 @@ module	pktvfifowr #(
 	end
 
 	always @(posedge i_clk)
-	if (!i_reset && !i_cfg_reset_fifo && !$past(i_cfg_reset_fifo))
+	if (f_past_valid && $past(i_cfg_reset_fifo) && !i_cfg_reset_fifo)
 	begin
-		assume((wide_readptr <= $past(wide_readptr) + (DW/8));
-		if ($past(wide_readptr)+ (DW/8) >= wide_baseaddr + wide_memsize)
+		assume($stable(i_cfg_baseaddr));
+		assume($stable(i_cfg_memsize));
+	end
+
+	always @(posedge i_clk)
+	if (f_past_valid && $past(i_cfg_reset_fifo))
+	begin
+		assume(wide_readptr == wide_baseaddr);
+	end else if (!i_reset && !i_cfg_reset_fifo && !$past(i_cfg_reset_fifo))
+	begin
+		assume(wide_readptr <= $past(wide_readptr) + (BUSDW/8));
+		if ($past(wide_readptr)+(BUSDW/8) >= wide_baseaddr+wide_memsize)
 		begin
-			assume(wide_readptr <= $past(wide_readptr) + (DW/8)
+			assume((wide_readptr >= $past(wide_readptr))
+				|| wide_readptr <= $past(wide_readptr) + (BUSDW/8)
 							- wide_memsize);
 		end else begin
-			assume((wide_readptr >= $past(wide_readptr));
-			assume((wide_readptr <= $past(wide_readptr) + (DW/8));
+			assume(wide_readptr >= $past(wide_readptr));
 		end
 
-		assert(wide_memfill <= wide_memsize);
+		assert(wide_committed <= wide_memsize);
+		assert(mem_full || (f_wide_pktfill <= wide_memsize));
+		assert(f_wide_pktfill >= wide_committed);
+
+		if ($past(wide_readptr == wide_writeptr))
+			assume($stable(wide_readptr));
+
+		if ($past(wide_readptr) < $past(wide_writeptr))
+		begin
+			assume($past(wide_readptr) <= wide_readptr);
+			assume(wide_readptr <= $past(wide_writeptr));
+		end else begin
+			assume((wide_readptr >= $past(wide_readptr)
+					&& wide_readptr < wide_end_of_memory)
+				|| wide_readptr <= $past(wide_writeptr));
+		end
+
+		if ($past(o_wb_cyc && i_wb_err))
+			assume(i_cfg_mem_err);
 	end
 
 	always @(posedge i_clk)
@@ -685,17 +820,90 @@ module	pktvfifowr #(
 	begin
 		assume(wide_readptr  == wide_baseaddr);
 		assert(wide_writeptr == wide_baseaddr);
-		assert(wide_memfill  == 0);
+		assert(wide_committed  == 0);
+	end
+
+	// Always need at least 8-bytes of room for two packet pointers.
+	always @(*)
+	if (!i_reset && !i_cfg_reset_fifo && wr_state != WR_OVERFLOW)
+	begin
+		assert(wr_pktlen + 8 <= wide_memsize);
+		if (wr_pktlen + wide_writeptr < wide_end_of_memory
+				&& wr_state != WR_CLEARPTR)
+		begin
+			if (wr_midpkt)
+			assert(1 || { wr_wb_addr, 2'b00 } == wr_pktlen+ wide_writeptr
+					+ 4 - (BUSDW/8));
+		end
+		if (wr_midpkt && wr_state == WR_PUSH && !S_ABORT)
+			assert({ fs_word, {(WBLSB){1'b0}} } == wr_pktlen);
 	end
 
 	always @(*)
+	if (i_cfg_mem_err)
+		assume(i_cfg_reset_fifo);
+
+	always @(*)
+	if (!i_reset && ((i_cfg_baseaddr == 0) || (i_cfg_memsize == 0)))
+		assume(i_cfg_mem_err);
+
+	always @(*)
+		f_end_of_memory = i_cfg_baseaddr + i_cfg_memsize;
+
+	always @(*)
 	if (!i_reset && !i_cfg_reset_fifo)
-		assert(pktlen + 8 <= wide_memsize);
+	begin
+		assert(f_end_of_memory[AW-1:0] == end_of_memory);
+		if (f_end_of_memory[AW])
+			assert(f_end_of_memory[AW-1:0] == 0);
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && !i_cfg_reset_fifo)
+	begin
+		assert(wide_writeptr >= wide_baseaddr);
+		assert(wide_writeptr <  wide_end_of_memory);
+	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Packet stream
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	faxin_slave #(
+		.DATA_WIDTH(BUSDW),
+		.MIN_LENGTH(2),
+		.MAX_LENGTH(1<<(LGMX-1)),
+		.LGMX(LGMX)
+	) faxin (
+		.S_AXI_ACLK(i_clk),
+		.S_AXI_ARESETN(!i_reset),
+		.S_AXIN_VALID(S_VALID),
+		.S_AXIN_READY(S_READY),
+		.S_AXIN_DATA(S_DATA),
+		.S_AXIN_BYTES(S_BYTES),
+		.S_AXIN_LAST(S_LAST),
+		.S_AXIN_ABORT(S_ABORT),
+		//
+		.f_stream_word(fs_word),
+		.f_packets_rcvd(fs_packets)
+	);
+
+	always @(posedge i_clk)
+	if (!i_reset && !S_ABORT)
+		assert(syncd == (fs_word == 0));
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// WB
+	// {{{
+	wire	[BUSDW/8-1:0]	full_sel;
+
 	fwb_master #(
 		.AW(AW), .DW(BUSDW), .F_LGDEPTH(F_LGDEPTH)
 	) fwb_wr (
@@ -714,15 +922,102 @@ module	pktvfifowr #(
 		.i_wb_idata({(BUSDW){1'b0}}),
 		.i_wb_err(  i_wb_err),
 		//
-		.fwb_nreqs(fwr_nreqs),
-		.fwb_nacks(fwr_nacks),
-		.fwb_outstanding(fwr_outstanding)
+		.f_nreqs(fwr_nreqs),
+		.f_nacks(fwr_nacks),
+		.f_outstanding(fwr_outstanding)
 		// }}}
 	);
 
 	always @(*)
-	if (!i_reset && !o_wb_stb)
+	if (!i_reset && o_wb_cyc)
 		assert(wr_outstanding == fwr_outstanding);
+
+	always @(*)
+	if (!i_reset && o_wb_stb)
+		assert(o_wb_sel != 0);
+
+	assign	full_sel = { {(BUSDW/8){1'b1}}, {(BUSDW/8){1'b0}} }
+						>> (dshift[WBLSB-3:0]*4);
+
+	always @(*)
+	if (!i_reset)
+	begin
+		if (&r_writeptr[WBLSB-3:0])
+			assert(next_wr_sel == 0);
+		else if (wr_midpkt && wr_state == WR_PUSH && fs_word > 1)
+			assert(next_wr_sel == full_sel);
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && !i_cfg_reset_fifo
+				&& (o_wb_stb || wr_state != WR_CLEARPTR))
+	begin
+		assert(o_wb_addr >= i_cfg_baseaddr);		// !!!
+		assert(o_wb_addr < (i_cfg_baseaddr + i_cfg_memsize));
+	end
+
+	assign	f_pkt_alignment = r_writeptr + 1;
+	always @(posedge i_clk)
+	if (!i_reset && !i_cfg_reset_fifo && o_wb_stb && wr_state == WR_PUSH)
+	begin
+		if (wr_midpkt && fs_word > 0 && (f_pkt_alignment == 0))
+			assert(&o_wb_sel);
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && !i_cfg_reset_fifo)
+	case(wr_state)
+	WR_CLEARPTR:	begin
+		assert(!wr_midpkt);
+		assert(!o_wb_cyc);
+		assert(!o_wb_stb);
+		assert(o_wb_addr == 0);
+		assert(o_wb_data == 0);
+		assert(o_wb_sel  == 0);
+		assert(r_writeptr == { i_cfg_baseaddr, {(WBLSB-2){1'b0}} });
+		assert(i_readptr == r_writeptr);
+		assert(wr_pktlen == 0);
+		// assert(fs_word == 0);
+		end
+	WR_PUSH:	assert(!wr_midpkt || !syncd);
+	WR_FLUSH:	assert(fs_word == 0);
+	WR_NULL:	assert(fs_word == 0);
+	WR_LENGTH:	assert(fs_word == 0);
+	WR_CLEARBUS:	assert(fs_word == 0);
+	WR_OVERFLOW: begin end
+	default: assert(0);
+	endcase
+
+	always @(*)
+	if (!i_reset && !i_cfg_reset_fifo && wr_midpkt && wr_state == WR_PUSH)
+	begin
+		assert(next_wr_sel == next_dblwide_sel[BUSDW/8-1:0]);
+	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Contract
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Cover properties
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Careless assumptions
+	// {{{
+
+	// always @(*) assume(!mem_full);
+	// }}}
 `endif
 // }}}
 endmodule
