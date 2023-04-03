@@ -63,6 +63,40 @@
 //
 //	At least, that's how things are *supposed* to happen.
 //
+// Registers:
+//	0: The base address in memory.  Must point to a valid address to which
+//		packets may be written.  This address, a full octet address,
+//		must be bus aligned.  To know the appropriate bus alignment,
+//		you can write a -1 to this field and then read it back.  The
+//		resulting value will a valid bus aligned address--not a very
+//		useful one, but a valid one.
+//
+//		This FIFO has been designed to operate without CPU
+//		intervention.  To do so, the DEF_BASEADDR may be set to a
+//		default base address of a fixed memory allocation.  This
+//		allocation may be adjusted by the CPU later.
+//	4. The size of memory allocated to this FIFO.  Must be greater than
+//		zero for the FIFO to come out of reset.  May be equal to the
+//		entire size of memory, but there must be enough room for this
+//		much memory between the base address and the end of memory
+//		in order for the FIFO to come out of reset.
+//
+//		This FIFO has been designed to operate without CPU
+//		intervention.  To do so, DEF_MEMSIZE may be set to a default
+//		memory size.  If this size is non-zero, the FIFO will come out
+//		of reset on its own.
+//	8. The write pointer, pointing to the length word of the next packet
+//		to be committed to the FIFO.  This isn't really all that
+//		valuable to the CPU, but looking for changes in this value can
+//		be an indication of the FIFO getting used.
+//	12. The read pointer, pointing to one past the last 32-bit word read
+//		from memory (i.e. the next word to be read from memory).  If
+//		this pointer == the write pointer, then the memory is understood
+//		to be empty.
+//
+//	There is currently no external indication that the FIFO is not in
+//	working order.  (There probably should be ...)
+//
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
@@ -162,6 +196,9 @@ module	pktvfifo #(
 
 	reg	[AW-1:0]	r_baseaddr,
 				r_memsize;
+	reg	[31:0]		new_baseaddr;
+	reg	[31:0]		new_memsize;
+
 	wire	[AW+(WBLSB-2)-1:0]	w_writeptr, w_readptr;
 
 	reg			reset_fifo, mem_err;
@@ -210,7 +247,7 @@ module	pktvfifo #(
 	else if (i_ctrl_stb && i_ctrl_we && (i_ctrl_addr == ADR_BASEADDR
 					|| i_ctrl_addr == ADR_SIZE))
 		reset_fifo <= 1;
-	else if ((r_baseaddr == 0) || (r_memsize == 0))
+	else if ((r_memsize == 0) || (r_baseaddr + r_memsize >= (1<<AW)))
 		reset_fifo <= 1;
 	else if (!M_VALID || M_READY)
 		reset_fifo <= !mem_err;
@@ -230,7 +267,6 @@ module	pktvfifo #(
 
 	// r_baseaddr
 	// {{{
-	reg	[31:0]	new_baseaddr;
 	always @(*)
 	begin
 		new_baseaddr = 0;
@@ -259,8 +295,6 @@ module	pktvfifo #(
 
 	// r_memsize
 	// {{{
-	reg	[31:0]	new_memsize;
-
 	always @(*)
 	begin
 		new_memsize = 0;
