@@ -143,11 +143,14 @@ $(PKTVRD)_prf/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
 
 .PHONY: $(PKTVWR)
 ## {{{
-$(PKTVWR): $(PKTVWR)_prf/PASS # $(PKTVWR)_cvr/PASS
+$(PKTVWR): $(PKTVWR)_prf/PASS $(PKTVWR)_cvr/PASS
+$(PKTVWR): $(PKTVWR)_prf512/PASS # $(PKTVWR)_prf32
 $(PKTVWR)_prf/PASS: $(PKTVWR).sby   $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
 	sby -f $(PKTVWR).sby prf
-# $(PKTVWR)_cvr/PASS: $(PKTVWR).sby   $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
-#	sby -f $(PKTVWR).sby cvr
+$(PKTVWR)_prf512/PASS: $(PKTVWR).sby   $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
+	sby -f $(PKTVWR).sby prf512
+$(PKTVWR)_cvr/PASS: $(PKTVWR).sby   $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
+	sby -f $(PKTVWR).sby cvr
 ## }}}
 
 .PHONY: report

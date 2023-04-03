@@ -1,5 +1,6 @@
 [tasks]
 prf        bus64
+chk prf        bus64
 prf32  prf bus32
 prf512 prf bus512
 cvr bus64
@@ -8,10 +9,10 @@ cvr bus64
 prf: mode prove
 cvr: mode cover
 depth 4
+cvr: depth 25
 
 [engines]
 smtbmc
-smtbmc boolector
 
 [script]
 read -formal pktvfifowr.v

@@ -137,17 +137,6 @@ module	fwb_master #(
 	initial	assert(F_MAX_REQUESTS < {(F_LGDEPTH){1'b1}});
 	// }}}
 
-	// f_request
-	// {{{
-	// Wrap the request line in a bundle.  The top bit, named STB_BIT,
-	// is the bit indicating whether the request described by this vector
-	// is a valid request or not.
-	//
-	localparam	STB_BIT = 2+AW+DW+DW/8-1;
-	wire	[STB_BIT:0]	f_request;
-	assign	f_request = { i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel };
-	// }}}
-
 	// f_past_valid and i_reset
 	// {{{
 	// A quick register to be used later to know if the $past() operator
