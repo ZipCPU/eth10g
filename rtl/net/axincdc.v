@@ -89,7 +89,7 @@ module axincdc #(
 		s_abort <= 1'b0;
 	else if (!w_full)
 		s_abort <= 1'b0;
-	else if (s_midpkt && S_ABORT)
+	else if (s_midpkt && S_ABORT && (!S_VALID || S_READY))
 		s_abort <= 1'b1;
 	// }}}
 
