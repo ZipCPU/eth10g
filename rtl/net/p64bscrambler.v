@@ -1,0 +1,110 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Filename: 	rtl/net/p64bscrambler.v
+// {{{
+// Project:	10Gb Ethernet switch
+//
+// Purpose:	
+//
+// ETHERNET is an LSB first protocol.  Bit 0 of byte 0 is always "first".
+// This scrambler preserves that ordering, but does expect bit 0 of byte 0
+// to be found in position [0].
+//
+// Creator:	Dan Gisselquist, Ph.D.
+//		Gisselquist Technology, LLC
+//
+////////////////////////////////////////////////////////////////////////////////
+// }}}
+// Copyright (C) 2023, Gisselquist Technology, LLC
+// {{{
+// This file is part of the ETH10G project.
+//
+// The ETH10G project contains free software and gateware, licensed under the
+// Apache License, Version 2.0 (the "License").  You may not use this project,
+// or this file, except in compliance with the License.  You may obtain a copy
+// of the License at
+// }}}
+//	http://www.apache.org/licenses/LICENSE-2.0
+// {{{
+// Unless required by applicable law or agreed to in writing, files
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+// License for the specific language governing permissions and limitations
+// under the License.
+//
+////////////////////////////////////////////////////////////////////////////////
+// }}}
+module	p64bscrambler #(
+		// {{{
+		localparam	POLYNOMIAL_BITS=58,
+		// Poly = (1<<38) ^ (1<<57)
+		localparam [POLYNOMIAL_BITS-1:0]	POLYNOMIAL
+				= 58'h200_0040_0000_0000,
+		localparam	DATA_WIDTH=64,
+		parameter	[0:0]	OPT_RX = 0
+		// }}}
+	) (
+		// {{{
+		input	wire				i_clk, i_reset_n,
+		//
+		input	wire	[DATA_WIDTH-1:0]	i_data,
+		output	reg	[DATA_WIDTH-1:0]	o_data
+		// }}}
+	);
+
+	// Local declarations
+	// {{{
+	localparam	PB = POLYNOMIAL_BITS;
+	localparam	DW = DATA_WIDTH;
+
+	reg	[PB-1:0]	r_fill;
+	wire	[PB-1:0]	next_fill;
+	wire	[DW-1:0]	scrambled;
+	// }}}
+
+	assign	{ next_fill, scrambled } = SCRAMBLE(r_fill, i_data);
+
+	// r_fill
+	// {{{
+	always @(posedge i_clk)
+	if (!i_reset_n)
+		r_fill <= 0;
+	else
+		// Self synchronizing
+		r_fill <= next_fill;
+	// }}}
+
+	// o_data
+	// {{{
+	always @(posedge i_clk)
+	if (!i_reset_n)
+		o_data <= 0;
+	else
+		o_data <= scrambled;
+	// }}}
+
+	function automatic [PB+DW-1:0] SCRAMBLE(
+		// {{{
+			input [PB-1:0]	i_fill,
+			input [DW-1:0]	i_data);
+
+		integer ik;
+		reg	[DW-1:0]	data_out;
+		reg	[PB-1:0]	state;
+	begin
+		state  = 0;
+		data_out = 0;
+		state = i_fill;
+		for(ik=0; ik<DW; ik=ik+1)
+		begin
+			data_out[ik] = i_data[ik] ^ state[PB-1];
+			if (OPT_RX ? i_data[ik]:data_out[ik])
+				state = { state[PB-2:0], 1'b0 } ^ POLYNOMIAL;
+			else
+				state = { state[PB-2:0], 1'b0 };
+		end
+
+		SCRAMBLE = { state, data_out };
+	end endfunction
+// }}}
+endmodule
