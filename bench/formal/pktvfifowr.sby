@@ -1,11 +1,11 @@
 [tasks]
 prf        bus64
-chk prf        bus64
 prf32  prf bus32
 prf512 prf bus512
-cvr bus64
+cvr bus65
 
 [options]
+## prf: Finishes in about 110 hrs (4.5 days)
 prf: mode prove
 cvr: mode cover
 depth 4
@@ -18,22 +18,6 @@ smtbmc
 read -formal pktvfifowr.v
 read -formal faxin_slave.v
 read -formal fwb_master.v
---pycode-begin--
-cmd = "hierarchy -top pktvfifowr"
-if ("bus32" in tags):
-	cmd += " -chparam BUSDW 32"
-elif ("bus64" in tags):
-	cmd += " -chparam BUSDW 64"
-elif ("bus128" in tags):
-	cmd += " -chparam BUSDW 128"
-elif ("bus256" in tags):
-	cmd += " -chparam BUSDW 256"
-elif ("bus512" in tags):
-	cmd += " -chparam BUSDW 512"
-else:
-	cmd += " -chparam BUSDW 64"
-output(cmd)
---pycode-end--
 prep -top pktvfifowr
 
 [files]

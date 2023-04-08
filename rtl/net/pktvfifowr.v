@@ -170,7 +170,7 @@ module	pktvfifowr #(
 	reg	[BUSDW/8-1:0]	next_wr_sel;
 	reg	[$clog2(BUSDW/8)-1:0]	wide_words, wide_shift;
 
-	reg			lastack;
+	wire			lastack;
 
 	reg	[AW+WBLSB-3:0]	wr_wb_addr;
 
