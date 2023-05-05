@@ -1,0 +1,72 @@
+################################################################################
+##
+## Filename: 	version.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=version
+@DEVID=VERSION
+@ACCESS=VERSION_ACCESS
+@NADDR=1
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb32
+@MAIN.INCLUDE=
+`include "builddate.v"
+@MAIN.INSERT=
+	assign	@$(SLAVE.PREFIX)_idata = `DATESTAMP;
+	assign	@$(SLAVE.PREFIX)_ack = @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=unsigned
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+##
+##
+##
+@PREFIX=buildtime
+@DEVID=BUILDTIME
+@NADDR=1
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb32
+@MAIN.DEFNS=
+// BUILDTIME doesnt need to include builddate.v a second time
+// `include "builddate.v"
+@MAIN.INSERT=
+	assign	@$(SLAVE.PREFIX)_idata = `BUILDTIME;
+	assign	@$(SLAVE.PREFIX)_ack = @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=unsigned
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$.BDEF.IOTYPE *)@$[0x%08x](REGBASE));

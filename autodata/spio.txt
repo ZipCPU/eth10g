@@ -39,13 +39,13 @@
 @SLAVE.BUS=wb32
 @ACCESS=@$(DEVID)_ACCESS
 @INT.SPIO.WIRE=@$(PREFIX)_int
-@INT.SPIO.PIC=buspic
+@INT.SPIO.PIC=syspic
 @NLED=8
 @NBTN=5
 @NSW=8
 @TOP.PORTLIST=
 		// SPIO interface
-		i_sw, i_btnc, i_btnd, i_btnl, i_btnr, i_btnu, o_led
+		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led
 @TOP.IODECL=
 	// @$(DEVID) interface
 	input	wire	[@$(NSW)-1:0]	i_sw;
@@ -58,7 +58,7 @@
 	assign	o_led = { w_led[@$(NLED)-1:2], (w_led[1] || !clocks_locked),
 			w_led[0] | s_reset };
 
-	assign	w_btn = { i_btnc, i_btnd, i_btnl, i_btnr, i_btnu };
+	assign	w_btn = ~{ i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d };
 @TOP.MAIN=
 		i_sw, w_btn, w_led
 @MAIN.PORTLIST=

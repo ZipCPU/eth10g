@@ -58,10 +58,13 @@
 @$BUS_ADDRESS_WIDTH=@$(MASTER.BUS.AWID)
 @MAIN.PORTLIST=
 		// UART/host to wishbone interface
-		i_@$(PREFIX)_uart_rx, o_@$(PREFIX)_uart_tx
+		i_@$(PREFIX)_uart_rx, o_@$(PREFIX)_uart_tx,
+		o_@$(PREFIX)_uart_cts_n
 @MAIN.IODECL=
 	input	wire		i_@$(PREFIX)_uart_rx;
 	output	wire		o_@$(PREFIX)_uart_tx;
+	// input wire		i_@$(PREFIX)_uart_rts_n; // FT*'s perspective
+	output wire		o_@$(PREFIX)_uart_cts_n;
 @MAIN.PARAM=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -131,9 +134,15 @@
 		// }}}
 	);
 
+	assign	o_@$(PREFIX)_uart_cts_n = 1'b0;
+
 `ifndef	BUSPIC_ACCESS
 	wire	w_bus_int;
+`ifdef	INCLUDE_ZIPCPU
+	assign	w_bus_int = zip_cpu_int;
+`else
 	assign	w_bus_int = 1'b0;
+`endif
 `endif
 	// Verilator lint_off UNUSED
 	wire	[29:0]	@$(MASTER.PREFIX)_tmp_addr;
@@ -174,7 +183,7 @@
 @REGDEFS.H.DEFNS=
 #define	BAUDRATE	@$[%d](BAUDRATE)
 @RTL.MAKE.GROUP= WBUBUS
-@RTL.MAKE.SUBD=../../common/rtl/wbubus
+@RTL.MAKE.SUBD=wbubus
 @RTL.MAKE.FILES= wbuconsole.v wbufifo.v wbucompactlines.v wbucompress.v
 	wbudecompress.v wbudeword.v wbuexec.v wbuidleint.v wbuinput.v
 	wbuoutput.v wbureadcw.v wbusixchar.v wbutohex.v wbconsole.v
@@ -196,7 +205,6 @@
 @SLAVE.BUS=wbu
 @SLAVE.TYPE=OTHER
 @ERROR.WIRE=@$(SLAVE.PREFIX)_err
-@$NADDR=(1<<@$(MASTER.BUS.AWID))
 @IANSI=i_
 @OANSI=o_
 @SLAVE.ANSPREFIX=s
@@ -208,9 +216,9 @@
 	// {{{
 	wbupsz #(
 		// {{{
-		.ADDRESS_WIDTH(@$(MASTER.AWID)+$clog2(@$(MASTER.WIDTH)/8))
-		.SMALL_DW(@$(MASTER.WIDTH))
-		.WIDE_DW(@$(SLAVE.WIDTH))
+		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)),
+		.SMALL_DW(@$(SLAVE.BUS.WIDTH)),
+		.WIDE_DW(@$(MASTER.BUS.WIDTH)),
 		.OPT_LITTLE_ENDIAN(1'b0)
 		// }}}
 	) @$(PREFIX)_upsz (
@@ -226,7 +234,7 @@
 @PREFIX=uart
 @NADDR=	4
 @SLAVE.TYPE=	OTHER
-@SLAVE.BUS=wb
+@SLAVE.BUS=wb32
 @ACCESS= BUSCONSOLE_ACCESS
 @INT.UARTRX.WIRE=uartrx_int
 @INT.UARTTX.WIRE=uarttx_int
@@ -285,5 +293,5 @@ typedef struct  CONSOLE_S {
 @BDEF.OSDEF=	_BOARD_HAS_BUSCONSOLE
 @BDEF.OSVAL=static volatile CONSOLE *const _@$(PREFIX) = ((CONSOLE *)@$[0x%08x](REGBASE));
 @RTL.MAKE.GROUP= CONSOLE
-@RTL.MAKE.SUBD=../../common/rtl/wbuart
+@RTL.MAKE.SUBD=wbuart
 @RTL.MAKE.FILES= txuartlite.v rxuartlite.v ufifo.v

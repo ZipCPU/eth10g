@@ -1,10 +1,10 @@
 ################################################################################
 ##
-## Filename:	autodata/i2ccpu.txt
+## Filename:	autodata/fan.txt
 ## {{{
 ## Project:	10Gb Ethernet switch
 ##
-## Purpose:	Drive and control the I2C bus
+## Purpose:	Drive the FAN PWMs, while measuring temperature
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
@@ -31,37 +31,29 @@
 ################################################################################
 ##
 ## }}}
-@PREFIX=i2c
-@DEVID=I2CCPU
-@NADDR=4
+@PREFIX=fan
+@DEVID=FAN
+@NADDR=8
 @ACCESS=@$(DEVID)_ACCESS
 @SLAVE.BUS=wb32
-@SLAVE.TYPE=DOUBLE
-@SLAVE.PREFIX=@$(SLAVE.BUS.NAME)_@$(PREFIX)s
-@MASTER.TYPE=CPU
-@MASTER.BUS=wbwide
-@MASTER.PREFIX=@$(MASTER.BUS.NAME)_@$(PREFIX)m
-@SGP=@$(BUS.PREFIX)
-@WBP=@$(SLAVE.BUS.PREFIX)
-@MASTER.ANSPREFIX=pf_
+@SLAVE.TYPE=OTHER
 @TOP.PORTLIST=
-			io_@$(PREFIX)_sda, io_@$(PREFIX)_scl,
-			o_i2c_mxrst_n
+			io_temp_sda, io_temp_scl,
+			o_fan_pwm, o_fan_sys, i_fan_tach
 @TOP.IODECL=
-	inout	wire	io_@$(PREFIX)_sda, io_@$(PREFIX)_scl;
-	output	wire	o_i2c_mxrst_n;
+	inout	wire	io_temp_sda, io_temp_scl;
+	output	wire	o_fan_pwm, o_fan_sys;
+	input	wire	i_fan_tach;
 @TOP.DEFNS=
-	// I2CCPU definitions
+	// @$(DEVID) definitions
 	// {{{
 	wire	i_@$(PREFIX)_sda, i_@$(PREFIX)_scl,
 		o_@$(PREFIX)_sda, o_@$(PREFIX)_scl;
-	reg		r_i2c_mxrst_n;
-	reg	[2:0]	r_i2c_mxrst_dly;
 	// }}}
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
-	// I2C IO buffers
+	// @$(DEVID) IO buffers
 	// {{{
 
 	// We need these in order to (properly) ensure the high impedance
@@ -76,7 +68,7 @@
 		.I(1'b0),
 		.T(o_@$(PREFIX)_scl),
 		.O(i_@$(PREFIX)_scl),
-		.IO(io_@$(PREFIX)_scl)
+		.IO(io_temp_scl)
 		// }}}
 	);
 
@@ -85,68 +77,55 @@
 		.I(1'b0),
 		.T(o_@$(PREFIX)_sda),
 		.O(i_@$(PREFIX)_sda),
-		.IO(io_@$(PREFIX)_sda)
+		.IO(io_temp_sda)
 		// }}}
 	);
-
-	initial	{ r_i2c_mxrst_n, r_i2c_mxrst_dly } = 0;
-	always @(posedge s_clk or negedge clocks_locked)
-		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
-	else
-		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
-
-	assign	o_i2c_mxrst_n = r_i2c_mxrst_n;
 	// }}}
 @TOP.MAIN=
-		// I2CCPU
+		// @$(DEVID)/@$(PREFIX)
 		i_@$(PREFIX)_sda, i_@$(PREFIX)_scl,
-		o_@$(PREFIX)_sda, o_@$(PREFIX)_scl
+		o_@$(PREFIX)_sda, o_@$(PREFIX)_scl,
+		o_fan_pwm, o_fan_sys, i_fan_tach
 @MAIN.PORTLIST=
 			i_@$(PREFIX)_sda, i_@$(PREFIX)_scl,
-			o_@$(PREFIX)_sda, o_@$(PREFIX)_scl
+			o_@$(PREFIX)_sda, o_@$(PREFIX)_scl,
+			o_fpga_pwm, o_sys_pwm, i_fan_tach
 @MAIN.IODECL=
-	// I2C Port declarations
+	// @$(DEVID) Port declarations
 	// {{{
 	input	wire	i_@$(PREFIX)_sda, i_@$(PREFIX)_scl;
 	output	wire	o_@$(PREFIX)_sda, o_@$(PREFIX)_scl;
+	output	wire	o_fpga_pwm, o_sys_pwm;
+	input	wire	i_fan_tach;
 	// }}}
 @MAIN.DEFNS=
-	// I2C Controller
+	// @$(DEVID)/@$(PREFIX) Controller
 	// {{{
 	// Verilator lint_off UNUSED
-	wire		@$(PREFIX)_valid, @$(PREFIX)_ready, @$(PREFIX)_last;
-	wire	[7:0]	@$(PREFIX)_data;
-
 	wire	[31:0]	@$(PREFIX)_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
-	// The I2C Controller
+	// The @$(DEVID) Controller: @$(PREFIX)
 	// {{{
 
-	wbi2ccpu #(
-		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)),
-		.DATA_WIDTH(@$(MASTER.BUS.WIDTH))
-	) @$(PREFIX)i (
+	wbfan
+	u_@$(PREFIX) (
 		// {{{
-		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)), .i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
 		@$(SLAVE.ANSIPORTLIST),
-		@$(MASTER.ANSIPORTLIST),
-		.i_i2c_sda(i_@$(PREFIX)_sda), .i_i2c_scl(i_@$(PREFIX)_scl),
-		.o_i2c_sda(o_@$(PREFIX)_sda), .o_i2c_scl(o_@$(PREFIX)_scl),
-		.M_AXIS_TVALID(@$(PREFIX)_valid), .M_AXIS_TREADY(@$(PREFIX)_ready),
-			.M_AXIS_TDATA(@$(PREFIX)_data), .M_AXIS_TLAST(@$(PREFIX)_last),
-		.i_sync_signal(1'b0),
+		.i_temp_sda(i_@$(PREFIX)_sda), .i_temp_scl(i_@$(PREFIX)_scl),
+		.o_temp_sda(o_@$(PREFIX)_sda), .o_temp_scl(o_@$(PREFIX)_scl),
 		//
-		.o_debug(@$(PREFIX)_debug)
+		.o_fpga_pwm(o_fpga_pwm), .o_sys_pwm(o_sys_pwm),
+		.i_fan_tach(i_fan_tach),
+		//
+		.temp_debug(@$(PREFIX)_debug)
 		// }}}
 	);
-
-`ifndef	NAD_ACCESS
-	assign	@$(PREFIX)_ready = 1;
-`endif
 	// }}}
 @MAIN.ALT=
 	assign	o_@$(PREFIX)_scl = 1'b1;
@@ -154,11 +133,15 @@
 ##
 ## regdefs.h / regdefs.cpp
 ##
-@REGS.N=4
-@REGS.0= 0 R_@$(DEVID) @$(DEVID) @$(DEVID)_CTRL @$(DEVID)CTRL
-@REGS.1= 1 R_@$(DEVID)_OVW  @$(DEVID)_OVW @$(DEVID)_OVERRIDE
-@REGS.2= 2 R_@$(DEVID)_ADDR @$(DEVID)_ADDR @$(DEVID)_ADDRESS
-@REGS.3= 3 R_@$(DEVID)_CKCOUNT  @$(DEVID)CLK @$(DEVID)_CKCOUNT
+@REGS.N=8
+@REGS.0= 0 R_@$(DEVID)_FPGAPWM	@$(DEVID)_FPGAPWM
+@REGS.1= 1 R_@$(DEVID)_SYSPWM	@$(DEVID)_SYSPWM
+@REGS.2= 2 R_@$(DEVID)_TACH	@$(DEVID)_TACH
+@REGS.3= 3 R_@$(DEVID)_TEMP	@$(DEVID)_TEMP
+@REGS.4= 4 R_@$(DEVID)		@$(DEVID)_CTRL	
+@REGS.5= 5 R_@$(DEVID)_OVW	@$(DEVID)_OVW	@$(DEVID)_OVERRIDE
+@REGS.6= 6 R_@$(DEVID)_ADDR	@$(DEVID)_ADDR	@$(DEVID)_ADDRESS
+@REGS.7= 7 R_@$(DEVID)_CKCOUNT  @$(DEVID)CLK	@$(DEVID)_CKCOUNT
 ##
 ## board.h
 ##
@@ -173,7 +156,10 @@
 	//
 	//
 typedef struct  @$(DEVID)_S        {
-	unsigned	ic_control, ic_override, ic_address, ic_clkcount;
+	unsigned	fan_fpgapwm, fan_syspwm, fan_tach;
+	int		fan_temp;
+	unsigned	temp_control, temp_override, temp_address,
+			temp_clkcount;
 } @$(DEVID);
 
 #endif	// @$(DEVID)_H
@@ -186,8 +172,8 @@ typedef struct  @$(DEVID)_S        {
 ## Makefile insert info
 ##
 @RTL.MAKE.GROUP=@$(DEVID)
-@RTL.MAKE.SUBD=wbi2c
-## RTL.MAKE.FILES *shoul* also include dblfetch, but that's a part of the CPU
-## directory, so we don't include it here a second time
-@RTL.MAKE.FILES=wbi2ccpu.v axisi2c.v
+@RTL.MAKE.SUBD=
+## RTL.MAKE.FILES *should* also include dblfetch, wbi2ccpu, etc., but those are
+## parts of other components,j so we don't include them here a second time
+@RTL.MAKE.FILES=wbfan.v
 ##

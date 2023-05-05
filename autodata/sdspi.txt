@@ -48,30 +48,30 @@
 ## @SCOPE.TRIGGER=sd_debug[31]
 ## @SCOPE.DATA=sd_debug
 @INT.SDCARD.WIRE= @$(PREFIX)_int
-@INT.SDCARD.PIC= buspic syspic
+@INT.SDCARD.PIC= syspic
 @TOP.PORTLIST=
 		// SD Card
-		o_sd_sck, io_sd_cmd, io_sd, i_sd_cd_n
+		o_@$(PREFIX)_clk, io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat, i_@$(PREFIX)_cd_n
 @TOP.IODECL=
 	// SD Card
 	// {{{
-	output	wire		o_sd_sck;
-	inout	wire		io_sd_cmd;
-	inout	wire	[3:0]	io_sd;
-	input	wire		i_sd_cd_n;
+	output	wire		o_@$(PREFIX)_clk;
+	inout	wire		io_@$(PREFIX)_cmd;
+	inout	wire	[3:0]	io_@$(PREFIX)_dat;
+	input	wire		i_@$(PREFIX)_cd_n;
 	// }}}
 @TOP.DEFNS=
 	// SD Card definitions
 	// {{{
-	wire		w_sd_cmd;
-	wire	[3:0]	w_sd_data;
+	wire		w_@$(PREFIX)_cmd;
+	wire	[3:0]	w_@$(PREFIX)_data;
 
-	wire		i_sd_cmd;
-	wire	[3:0]	i_sd;
+	wire		i_@$(PREFIX)_cmd;
+	wire	[3:0]	i_sd_data;
 	// }}}
 @TOP.MAIN=
 		// SD Card
-		o_sd_sck, w_sd_cmd, w_sd_data, i_sd, !i_sd_cd_n
+		o_@$(PREFIX)_sck, w_@$(PREFIX)_cmd, w_@$(PREFIX)_data, i_@$(PREFIX), !i_@$(PREFIX)_cd_n
 @TOP.INSERT=
 	//////////////////////////////////////////////////////////////////////
 	//
@@ -84,39 +84,39 @@
 	// Wires for setting up the SD Card Controller
 	// {{{
 	// This is how we'd set up for SDIO
-	// assign io_sd_cmd = w_sd_cmd ? 1'bz:1'b0;	// MOSI
-	// assign io_sd[0] = w_sd_data[0]? 1'bz:1'b0;	// MISO
-	// assign io_sd[1] = w_sd_data[1]? 1'bz:1'b0;
-	// assign io_sd[2] = w_sd_data[2]? 1'bz:1'b0;
-	// assign io_sd[3] = w_sd_data[3]? 1'bz:1'b0;	// CS_n
+	// assign io_@$(PREFIX)_cmd = w_@$(PREFIX)_cmd ? 1'bz:1'b0;	// MOSI
+	// assign io_@$(PREFIX)[0] = w_@$(PREFIX)_data[0]? 1'bz:1'b0;	// MISO
+	// assign io_@$(PREFIX)[1] = w_@$(PREFIX)_data[1]? 1'bz:1'b0;
+	// assign io_@$(PREFIX)[2] = w_@$(PREFIX)_data[2]? 1'bz:1'b0;
+	// assign io_@$(PREFIX)[3] = w_@$(PREFIX)_data[3]? 1'bz:1'b0;	// CS_n
 	// }}}
-	IOBUF sd_cmd_bf(.T(1'b0),.O(i_sd_cmd),.I(w_sd_cmd),.IO(io_sd_cmd));// MISO
-	IOBUF sd_dat0_bf(.T(1'b1),.O(i_sd[0]),.I(1'b1),.IO(io_sd[0]));// MISO
-	IOBUF sd_dat1_bf(.T(1'b1),.O(i_sd[1]),.I(1'b1),.IO(io_sd[1]));
-	IOBUF sd_dat2_bf(.T(1'b1),.O(i_sd[2]),.I(1'b1),.IO(io_sd[2]));
+	IOBUF @$(PREFIX)_cmd_bf(.T(1'b0),.O(i_@$(PREFIX)_cmd),.I(w_@$(PREFIX)_cmd),.IO(io_@$(PREFIX)_cmd));// MISO
+	IOBUF @$(PREFIX)_dat0_bf(.T(1'b1),.O(i_@$(PREFIX)_data[0]),.I(1'b1),.IO(io_@$(PREFIX)[0]));// MISO
+	IOBUF @$(PREFIX)_dat1_bf(.T(1'b1),.O(i_@$(PREFIX)_data[1]),.I(1'b1),.IO(io_@$(PREFIX)[1]));
+	IOBUF @$(PREFIX)_dat2_bf(.T(1'b1),.O(i_@$(PREFIX)_data[2]),.I(1'b1),.IO(io_@$(PREFIX)[2]));
 
 	// Implement an open-drain output
-	IOBUF sd_dat3_bf(.T(w_sd_data[3]),.O(i_sd[3]),.I(1'b0),.IO(io_sd[3]));
+	IOBUF @$(PREFIX)_dat3_bf(.T(w_@$(PREFIX)_data[3]),.O(i_@$(PREFIX)_data[3]),.I(1'b0),.IO(io_@$(PREFIX)[3]));
 	// }}}
 @MAIN.PORTLIST=
 		// The SD-Card wires
-		o_sd_sck, o_sd_cmd, o_sd_data, i_sd_data, i_sd_detect
+		o_@$(PREFIX)_sck, o_@$(PREFIX)_cmd, o_@$(PREFIX)_data, i_@$(PREFIX)_data, i_@$(PREFIX)_detect
 @MAIN.IODECL=
 	// SD-Card declarations
 	// {{{
-	output	wire		o_sd_sck, o_sd_cmd;
-	output	wire	[3:0]	o_sd_data;
+	output	wire		o_@$(PREFIX)_sck, o_@$(PREFIX)_cmd;
+	output	wire	[3:0]	o_@$(PREFIX)_data;
 	// verilator lint_off UNUSED
-	input	wire	[3:0]	i_sd_data;
+	input	wire	[3:0]	i_@$(PREFIX)_data;
 	// verilator lint_on  UNUSED
-	input	wire		i_sd_detect;
+	input	wire		i_@$(PREFIX)_detect;
 	// }}}
 @MAIN.DEFNS=
 	// SD SPI definitions
 	// Verilator lint_off UNUSED
 	wire	[31:0]	sdspi_debug;
 	// Verilator lint_on  UNUSED
-	wire		w_sd_cs_n, w_sd_mosi, w_sd_miso;
+	wire		w_@$(PREFIX)_cs_n, w_@$(PREFIX)_mosi, w_@$(PREFIX)_miso;
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -127,23 +127,30 @@
 	//
 
 	sdspi
-	@$(PREFIX)i(
+	u_@$(PREFIX)(
 		// {{{
-		i_clk, sd_reset,
-		@$(SLAVE.PORTLIST),
-		w_sd_cs_n, o_sd_sck, w_sd_mosi, w_sd_miso, i_sd_detect,
-		@$(PREFIX)_int, 1'b1, sdspi_debug
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		.i_sd_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		@$(SLAVE.ANSIPORTLIST),
+		.o_cs_n(w_@$(PREFIX)_cs_n),
+		.o_sck(o_@$(PREFIX)_sck),
+		.o_mosi(w_@$(PREFIX)_mosi),
+		.i_miso(w_@$(PREFIX)_miso),
+		.i_card_detect(i_@$(PREFIX)_detect),
+		.o_int(@$(PREFIX)_int),
+		.i_bus_grant(1'b1),
+		.o_debug(sdspi_debug)
 		// }}}
 	);
 
-	assign	w_sd_miso = i_sd_data[0];
-	assign	o_sd_data = { w_sd_cs_n, 3'b111 };
-	assign	o_sd_cmd  = w_sd_mosi;
+	assign	w_@$(PREFIX)_miso = i_@$(PREFIX)_data[0];
+	assign	o_@$(PREFIX)_data = { w_@$(PREFIX)_cs_n, 3'b111 };
+	assign	o_@$(PREFIX)_cmd  = w_@$(PREFIX)_mosi;
 	// }}}
 @MAIN.ALT=
-	assign	o_sd_sck   = 1'b1;
-	assign	o_sd_cmd   = 1'b1;
-	assign	o_sd_data  = 4'hf;
+	assign	o_@$(PREFIX)_sck   = 1'b1;
+	assign	o_@$(PREFIX)_cmd   = 1'b1;
+	assign	o_@$(PREFIX)_data  = 4'hf;
 @REGS.N=4
 @REGS.NOTE= // SD-SPI addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	SDCARD
@@ -208,11 +215,11 @@ typedef	struct @$(DEVID)_S {
 		// SD Card simulation
 		// {{{
 #ifdef	@$(ACCESS)
-		m_core->i_sd_data = m_sdcard((m_core->o_sd_data&8)?1:0,
-				m_core->o_sd_sck, m_core->o_sd_cmd);
-		m_core->i_sd_data &= 1;
-		m_core->i_sd_data |= (m_core->o_sd_data&0x0e);
-		m_core->i_sd_detect = 1;
+		m_core->i_@$(PREFIX)_data = m_sdcard((m_core->o_@$(PREFIX)_data&8)?1:0,
+				m_core->o_@$(PREFIX)_sck, m_core->o_@$(PREFIX)_cmd);
+		m_core->i_@$(PREFIX)_data &= 1;
+		m_core->i_@$(PREFIX)_data |= (m_core->o_@$(PREFIX)_data&0x0e);
+		m_core->i_@$(PREFIX)_detect = 1;
 #endif	// @$(ACCESS)
 		// }}}
 @RTL.MAKE.GROUP= SDSPI

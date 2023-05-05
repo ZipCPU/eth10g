@@ -1,0 +1,12 @@
+autofpga.dbg
+board.h
+build.xdc
+*.ld
+iscachable.v
+main.v
+main_tb.cpp
+rtl.make.inc
+regdefs.cpp
+regdefs.h
+testb.h
+toplevel.v

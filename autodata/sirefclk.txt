@@ -1,0 +1,139 @@
+################################################################################
+##
+## Filename: 	sirefclk.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Generates an output square wave at an arbitrary frequency for
+##		use as a clock.  Actual clock frequency high *highly*
+##	programmable.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=sirefclk
+@DEVID=SIREFCLK
+@ACCESS=SIREFCLK_ACCESS
+@NADDR=1
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb32
+@TOP.PORTLIST=
+		o_siref_clk_p, o_siref_clk_n
+@TOP.IODECL=
+	output	wire	o_siref_clk_p, o_siref_clk_n;
+@TOP.DEFNS=
+	// Definitions for the clock generation circuit
+	wire		s_@$(PREFIX)_clk, w_@$(PREFIX)_pll_locked,
+			w_@$(PREFIX)_ce;
+	wire		s_clk4x, s_clk4x_unbuffered,
+			s_clksync, s_clksync_unbuffered;
+	wire	[7:0]	w_@$(PREFIX)_word;
+@TOP.INSERT=
+/*
+	PLLE2_BASE #(
+		.CLKFBOUT_MULT(8),
+		.CLKFBOUT_PHASE(0.0),
+		.CLKIN1_PERIOD(10),
+		.CLKOUT0_DIVIDE(4),
+		.CLKOUT1_DIVIDE(2)) gen_sysclk(
+			.CLKIN1(i_clk),
+			.CLKOUT0(s_clk_200mhz_unbuffered),
+			.CLKOUT1(s_clk4x_unbuffered),
+			.PWRDWN(1'b0), .RST(1'b0),
+			.CLKFBOUT(sysclk_feedback),
+			.CLKFBIN(sysclk_feedback),
+			.LOCKED(sysclk_locked));
+*/
+	BUFG	clksync_buf(.I(s_clksync_unbuffered), .O(s_clksync));
+	BUFG	clk4x_buf(.I(s_clk4x_unbuffered), .O(s_clk4x));
+
+	xgenclk
+	u_x@$(PREFIX)(
+		// {{{
+		.i_clk(s_clksync), .i_hsclk(s_clk4x),
+		.i_ce(w_@$(PREFIX)_ce),
+		.i_word(w_@$(PREFIX)_word),
+		.o_pin({ o_siref_clk_p, o_siref_clk_n });
+		// }}}
+	);
+
+@TOP.MAIN=
+		// Clock Generator ports
+		w_@$(PREFIX)_word,
+		w_@$(PREFIX)_ce
+@MAIN.PORTLIST=
+		// Clock generator ports
+		o_@$(PREFIX)_word,
+		o_@$(PREFIX)_ce
+@MAIN.IODECL=
+	output	wire	[7:0]	o_@$(PREFIX)_word;
+	output	wire		o_@$(PREFIX)_ce;
+@MAIN.DEFNS=
+	reg	[30:0]	r_@$(PREFIX)_data;
+	wire		w_@$(PREFIX)_unused_stb;
+	reg		r_@$(PREFIX)_ack;
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Generated clock handling
+	// {{{
+	initial	r_@$(PREFIX)_data = 31'd20;
+	always @(posedge @$(SLAVE.BUS.CLOCK.WIRE))
+	if (@$(SLAVE.PREFIX)_stb && @$(SLAVE.PREFIX)_we)
+	begin
+		if (@$(SLAVE.PREFIX)_sel[0])
+			r_@$(PREFIX)_data[ 7: 0] <= @$(SLAVE.PREFIX)_data[ 7:0];
+		if (@$(SLAVE.PREFIX)_sel[1])
+			r_@$(PREFIX)_data[15: 8] <= @$(SLAVE.PREFIX)_data[15:8];
+		if (@$(SLAVE.PREFIX)_sel[2])
+			r_@$(PREFIX)_data[23:16] <= @$(SLAVE.PREFIX)_data[23:16];
+		if (@$(SLAVE.PREFIX)_sel[3])
+			r_@$(PREFIX)_data[30:24] <= @$(SLAVE.PREFIX)_data[30:24];
+	end
+
+	always @(posedge @$(SLAVE.BUS.CLOCK.WIRE))
+	if (@$(SLAVE.BUS.CLOCK.RESET))
+		r_@$(PREFIX)_ack <= 1'b0;
+	else
+		r_@$(PREFIX)_ack <= @$(SLAVE.PREFIX)_stb;
+
+	assign	@$(SLAVE.PREFIX)_ack   = r_@$(PREFIX)_ack;
+	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
+	assign	@$(SLAVE.PREFIX)_idata = { 1'b0, r_@$(PREFIX)_data };
+	assign	o_@$(PREFIX)_ce = r_@$(PREFIX)_data[30];
+
+	genclk
+	clock_generator(
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		.i_delay({ 2'b00, r_@$(PREFIX)_data[29:0] }),
+		.o_word(o_@$(PREFIX)_word),
+		.o_stb(w_@$(PREFIX)_unused_stb)
+	);
+	// }}}
+@RTL.MAKE.GROUP=GENCLK
+@RTL.MAKE.SUBD=.
+@RTL.MAKE.FILES=genclk.v xgenclk.v
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)

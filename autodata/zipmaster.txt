@@ -1,0 +1,145 @@
+################################################################################
+##
+## Filename:	zipmaster.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	To describe what needs to be done to make the ZipCPU a part
+##		of a main .v file.  This Wishbone Master description
+##	illustrates how some of how a wishbone bus master might be integrated
+##	into the automatic FPGA designer.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+##
+## Define @SYSPIC so that other peripherals needing to be on the ZipSystem's
+## PIC know the name of the PIC we are using.  Note that this is a global.
+## }}}
+@SYSPIC= syspic
+@PREFIX=zip
+@INCLUDEFILE=zipcpu.txt
+################################################################################
+##
+## Interrupt definitions
+## {{{
+################################################################################
+@PREFIX=syspic
+@PIC.BUS= sys_int_vector
+@PIC.MAX=15
+@BDEF.DEFN=
+#define	SYSPIC(A)	(1<<(A))
+@PREFIX=zip_dmac
+@INT.DMAC.WIRE=
+@INT.DMAC.PIC= syspic
+@INT.DMAC.ID=0
+##
+####
+##
+@PREFIX=zip_jiffies
+@INT.JIFFIES.WIRE=
+@INT.JIFFIES.PIC= syspic
+@INT.JIFFIES.ID=1
+##
+####
+##
+@PREFIX=zip_tmc
+@INT.TMC.WIRE=
+@INT.TMC.PIC= syspic
+@INT.TMC.ID=2
+##
+####
+##
+@PREFIX=zip_tmb
+@INT.TMB.WIRE=
+@INT.TMB.PIC= syspic
+@INT.TMB.ID=3
+##
+####
+##
+@PREFIX=TMA
+@INT.TMA.WIRE=
+@INT.TMA.PIC= syspic
+@INT.TMA.ID=4
+##
+####
+##
+@PREFIX=alt
+@INT.ALT.WIRE=
+@INT.ALT.PIC= syspic
+@INT.ALT.ID=5
+##
+####
+##
+##
+@PREFIX=altpic
+@PIC.BUS= alt_int_vector
+@PIC.MAX=15
+@BDEF.DEFN=
+#define	ALTPIC(A)	(1<<(A))
+#
+# @PIC.ASSIGNED= UIC UOC UPC UTC MIC MOC MPC MTC
+#
+@PREFIX=zip_alt_uic
+@INT.UIC.WIRE=
+@INT.UIC.PIC=altpic
+@INT.UIC.ID=0
+##
+@PREFIX=zip_alt_uoc
+@INT.UOC.WIRE=
+@INT.UOC.PIC=altpic
+@INT.UOC.ID=1
+##
+@PREFIX=zip_alt_upc
+@INT.UPC.WIRE=
+@INT.UPC.PIC=altpic
+@INT.UPC.ID=2
+##
+@PREFIX=zip_alt_utc
+@INT.UTC.WIRE=
+@INT.UTC.PIC=altpic
+@INT.UTC.ID=3
+##
+@PREFIX=zip_alt_mic
+@INT.MIC.WIRE=
+@INT.MIC.PIC=altpic
+@INT.MIC.ID=4
+##
+@PREFIX=zip_alt_moc
+@INT.MOC.WIRE=
+@INT.MOC.PIC=altpic
+@INT.MOC.ID=5
+##
+@PREFIX=zip_alt_mpc
+@INT.MPC.WIRE=
+@INT.MPC.PIC=altpic
+@INT.MPC.ID=6
+##
+@PREFIX=zip_alt_mtc
+@INT.MTC.WIRE=
+@INT.MTC.PIC=altpic
+@INT.MTC.ID=7
+##
+## }}}
+################################################################################

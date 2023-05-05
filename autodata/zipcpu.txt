@@ -48,8 +48,8 @@
 @CPURESET=i_cpu_reset
 @$RESET_ADDRESS=@$(flash.REGBASE)+(6<<20)
 # @$RESET_ADDRESS=@$(/bkrom.REGBASE)
-@INT.ZIP.WIRE=zip_cpu_int
-@INT.ZIP.BUS=buspic
+# @INT.ZIP.WIRE=zip_cpu_int
+# @INT.ZIP.BUS=buspic
 @CACHABLE.FILE=iscachable.v
 @LGICACHE=12
 @LGDCACHE=12
@@ -149,6 +149,7 @@
 	wire		zip_trigger;
 	// Verilator lint_on  UNUSED
 	wire	[ZIP_INTS-1:0] zip_int_vector;
+	wire		zip_cpu_int;
 	// }}}
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////

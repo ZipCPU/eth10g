@@ -1,0 +1,80 @@
+################################################################################
+##
+## Filename: 	wbdown.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=wbdown
+@DEVID=wbdown
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wbwide
+@MASTER.TYPE=SUBBUS
+@MASTER.BUS=wb32
+@MAIN.INSERT=
+	wbdown #(
+		// {{{
+		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)),
+		.WIDE_DW(@$(SLAVE.BUS.WIDTH)),
+		.SMALL_DW(@$(MASTER.BUS.WIDTH)),
+		.OPT_LITTLE_ENDIAN(1'b0),
+		.OPT_LOWLOGIC(1'b0)
+		// }}}
+	) u_@$(PREFIX) (
+		// {{{
+		.i_clk(@$(MASTER.BUS.CLOCK.WIRE)),
+		.i_reset(@$(MASTER.BUS.CLOCK.RESET)),
+		// Slave/incoming
+		// {{{
+		.i_wcyc(  @$(SLAVE.PREFIX)_cyc),
+		.i_wstb(  @$(SLAVE.PREFIX)_stb),
+		.i_wwe(   @$(SLAVE.PREFIX)_we),
+		.i_waddr( @$(SLAVE.PREFIX)_addr[@$(SLAVE.AWID)-1:0]),
+		.i_wdata( @$(SLAVE.PREFIX)_data),
+		.i_wsel(  @$(SLAVE.PREFIX)_sel),
+		.o_wstall(@$(SLAVE.PREFIX)_stall),
+		.o_wack(  @$(SLAVE.PREFIX)_ack),
+		.o_wdata( @$(SLAVE.PREFIX)_idata),
+		.o_werr(  @$(SLAVE.PREFIX)_err),
+		// }}}
+		// Master/down-range/outgoing
+		// {{{
+		.o_cyc(  @$(MASTER.PREFIX)_cyc),
+		.o_stb(  @$(MASTER.PREFIX)_stb),
+		.o_we(   @$(MASTER.PREFIX)_we),
+		.o_addr( @$(MASTER.PREFIX)_addr[@$(MASTER.BUS.AWID)-1:0]),
+		.o_data( @$(MASTER.PREFIX)_data),
+		.o_sel(  @$(MASTER.PREFIX)_sel),
+		.i_stall(@$(MASTER.PREFIX)_stall),
+		.i_ack(  @$(MASTER.PREFIX)_ack),
+		.i_data( @$(MASTER.PREFIX)_idata),
+		.i_err(  @$(MASTER.PREFIX)_err)
+		// }}}
+		// }}}
+	);

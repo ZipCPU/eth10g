@@ -36,7 +36,7 @@
 @NADDR=1
 @ACCESS=@$(DEVID)_ACCESS
 @NGPI=16
-@NGPO=2
+@NGPO=5
 @SLAVE.TYPE=SINGLE
 @SLAVE.BUS=wb32
 # @SINGLE.OUTPUTS= o_gpio
@@ -45,24 +45,27 @@
 @INT.GPIO.PIC=altpic
 @TOP.PORTLIST=
 		// @$(DEVID) ports
-		o_sd_reset
+		i_pi_reset, i_soft_reset,
+		o_tp, o_si5324_rst, i_si5324_int
 @TOP.IODECL=
 	// GPIO wires
-	output	wire	o_sd_reset;
+	input	wire		i_pi_reset, i_soft_reset;
+	input	wire	[3:0]	o_tp;
+	output	wire		o_si5324_rst;
+	input	wire		i_si5324_int;
 @TOP.DEFNS=
 	// GPIO declarations.  The two wire busses are just virtual lists of
 	// input (or output) ports.
 	wire	[@$(NGPI)-1:0]	i_@$(PREFIX);
 	wire	[@$(NGPO)-1:0]	o_@$(PREFIX);
-	// wire		w_hdmi_out_en;
-	// wire		w_hdmi_bypass_sda;
-	// wire		w_hdmi_bypass_scl;
 @TOP.MAIN=
 		// GPIO wires
 		i_@$(PREFIX), o_@$(PREFIX)
 @TOP.INSERT=
-	assign	i_gpio = { 14'h0, sysclk_locked, !i_sd_cd_n };
-	assign	o_sd_reset = o_gpio[0];
+	assign	i_gpio = { 13'h0, i_si5324_int, sysclk_locked,
+				i_pi_reset, i_soft_reset };
+	assign	o_tp = o_gpio[3:0];
+	assign	o_si5324_rst = o_gpio[4];
 @MAIN.PORTLIST=
 		// GPIO ports
 		i_@$(PREFIX), o_@$(PREFIX)
@@ -72,7 +75,6 @@
 	input		[(NGPI-1):0]	i_@$(PREFIX);
 	output	wire	[(NGPO-1):0]	o_@$(PREFIX);
 @MAIN.DEFNS=
-	wire	sd_reset;
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -82,7 +84,7 @@
 	// and another 16 @$(DEVID) outputs.  The interrupt trips when any of
 	// the inputs changes.  (Sorry, which input isn't (yet) selectable.)
 	//
-	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 2'b1;
+	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 5'h0;
 
 	wbgpio	#(
 		.NIN(NGPI), .NOUT(NGPO), .DEFAULT(INITIAL_@$(DEVID))
@@ -93,7 +95,6 @@
 		// }}}
 	);
 
-	assign	sd_reset = o_@$(PREFIX)[0];
 	// }}}
 @REGS.N=1
 @REGS.0= 0 R_@$(DEVID) @$(DEVID) GPI GPO
@@ -101,18 +102,32 @@
 //
 // @$(DEVID) input wires
 //
-#define	GPIO_SD_DETECTED	0x000010000
-#define	GPIO_SYSCLK_LOCKED	0x000020000
+#define	GPIO_SOFT_RESET		0x000010000
+#define	GPIO_PI_RESET		0x000020000
+#define	GPIO_SYSCLK_LOCKED	0x000040000
+#define	GPIO_SI_INT		0x000080000
 //
 // @$(DEVID) output wires
 //
 #define	@$(DEVID)_SET(WIRE)	(((WIRE)<<16)|(WIRE))
 #define	@$(DEVID)_CLR(WIRE)	 ((WIRE)<<16)
 //
-#define	GPIO_SD_RESET		0x000000001
+#define	GPIO_TP0		0x000000001
+#define	GPIO_TP1		0x000000002
+#define	GPIO_TP2		0x000000004
+#define	GPIO_TP3		0x000000008
+#define	GPIO_SIRESET		0x000000010
 //
-#define	GPIO_SD_RESET_SET	GPIO_SET(GPIO_SD_RESET)
-#define	GPIO_SD_RESET_CLR	GPIO_CLR(GPIO_SD_RESET)
+#define	GPIO_TP0_SET	GPIO_SET(GPIO_TP0)
+#define	GPIO_TP0_CLR	GPIO_CLR(GPIO_TP0)
+#define	GPIO_TP1_SET	GPIO_SET(GPIO_TP1)
+#define	GPIO_TP1_CLR	GPIO_CLR(GPIO_TP1)
+#define	GPIO_TP2_SET	GPIO_SET(GPIO_TP2)
+#define	GPIO_TP2_CLR	GPIO_CLR(GPIO_TP2)
+#define	GPIO_TP3_SET	GPIO_SET(GPIO_TP3)
+#define	GPIO_TP3_CLR	GPIO_CLR(GPIO_TP3)
+#define	GPIO_SIRESET_SET	GPIO_SET(GPIO_SIRESET)
+#define	GPIO_SIRESET_CLR	GPIO_CLR(GPIO_SIRESET)
 @BDEF.IONAME=	i_@$(PREFIX)
 @BDEF.IOTYPE=	unsigned
 @BDEF.OSDEF=	_BOARD_HAS_@$(DEVID)

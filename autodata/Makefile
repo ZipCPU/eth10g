@@ -43,18 +43,18 @@ all:	data
 # main project files.
 #
 CLOCKS  := allclocks.txt
-BASE    := global.txt			# icape.txt
+BASE    := global.txt wbdown.txt	# icape.txt
 AUX     := version.txt			# pwrcount.txt rtccount.txt buserr.txt
-IO      := gpio.txt			# spio.txt
+IO      := gpio.txt spio.txt
 DBGBUS  := wbuconsole.txt		# smibus.txt
-MEMORY  := bkram.txt flash.txt sdram.txt # bkrom.txt
+MEMORY  := bkram.txt flash.txt		# sdram.txt # bkrom.txt
 DISKDR  := sdspi.txt			# sata.txt emmc.txt
-CPU     := zipcpu.txt
+CPU     := zipmaster.txt		# pic.txt
 NETWORK :=				# meganet.txt $(COMMON)/netbus.txt
 GFX     :=				# wboledbw.txt hdmitx.txt hdmirx.txt
 SCOPES  :=
 LDSCRIPT:= mem_bkram_only.txt mem_flash_bkram.txt mem_bootrom_bkram.txt mem_sdram_only.txt
-OTHER   := xdc.txt i2ccpu.txt
+OTHER   := i2ccpu.txt fan.txt sirefclk.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\
 	$(SCOPES) $(LDSCRIPT) $(OTHER)

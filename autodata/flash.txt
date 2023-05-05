@@ -34,29 +34,29 @@
 @PREFIX=flash
 @DEVID=FLASH
 @ACCESS=@$(DEVID)_ACCESS
-@$LGFLASHSZ=24
+@$LGFLASHSZ=25
 @$NADDR=(1<<(@$LGFLASHSZ-2))
 @$NBYTES=(1<<@$LGFLASHSZ)
 @NBYTES.FORMAT=0x%08x
 @SLAVE.TYPE=MEMORY
-@SLAVE.BUS=wb32
+@SLAVE.BUS=wbflash
 @NDUMMY=6
 @RDDELAY=1
-@STARTUP_SCRIPT="spansion.hex"
+@STARTUP_SCRIPT="micron.hex"
 @TOP.PORTLIST=
 		// Top level Quad-SPI I/O ports
-		o_qspi_cs_n, io_qspi_dat
+		o_@$(PREFIX)_cs_n, io_@$(PREFIX)_dat
 @TOP.IODECL=
 	// Quad SPI flash
-	output	wire		o_qspi_cs_n;
-	inout	wire	[3:0]	io_qspi_dat;
+	output	wire		o_@$(PREFIX)_cs_n;
+	inout	wire	[3:0]	io_@$(PREFIX)_dat;
 @TOP.DEFNS=
-	wire		w_qspi_sck, w_qspi_cs_n;
-	wire	[1:0]	qspi_bmod;
-	wire	[3:0]	qspi_dat;
+	wire		w_@$(PREFIX)_sck, w_@$(PREFIX)_cs_n;
+	wire	[1:0]	@$(PREFIX)_bmod;
+	wire	[3:0]	@$(PREFIX)_dat;
 @TOP.MAIN=
 		// Quad SPI flash
-		w_qspi_cs_n, w_qspi_sck, qspi_dat, io_qspi_dat, qspi_bmod
+		w_@$(PREFIX)_cs_n, w_@$(PREFIX)_sck, @$(PREFIX)_dat, io_@$(PREFIX)_dat, @$(PREFIX)_bmod
 @TOP.INSERT=
 	//
 	//
@@ -67,12 +67,12 @@
 	//	0?	Normal serial mode, one bit in one bit out
 	//	10	Quad SPI mode, going out
 	//	11	Quad SPI mode coming from the device (read mode)
-	assign io_qspi_dat = (~qspi_bmod[1])?({2'b11,1'bz,qspi_dat[0]})
-				:((qspi_bmod[0])?(4'bzzzz):(qspi_dat[3:0]));
-	assign	o_qspi_cs_n = w_qspi_cs_n;
+	assign io_@$(PREFIX)_dat = (~@$(PREFIX)_bmod[1])?({2'b11,1'bz,@$(PREFIX)_dat[0]})
+				:((@$(PREFIX)_bmod[0])?(4'bzzzz):(@$(PREFIX)_dat[3:0]));
+	assign	o_@$(PREFIX)_cs_n = w_@$(PREFIX)_cs_n;
 
 	// The following primitive is necessary in many designs order to gain
-	// access to the o_qspi_sck pin.  It's not necessary on the Arty,
+	// access to the o_@$(PREFIX)_sck pin.  It's not necessary on the Arty,
 	// simply because they provide two pins that can drive the QSPI
 	// clock pin.
 	wire	[3:0]	su_nc;	// Startup primitive, no connect
@@ -111,7 +111,7 @@
 	.PACK(1'b0),
 	// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
 	// module at all.
-	.USRCCLKO(w_qspi_sck),
+	.USRCCLKO(w_@$(PREFIX)_sck),
 	// USRCCLKTS, 1'b input: User CCLK 3-state enable input
 	//	An active high here places the clock into a high impedence
 	//	state.  Since we wish to use the clock as an active output
@@ -130,13 +130,13 @@
 
 @MAIN.PORTLIST=
 		// The Universal QSPI Flash
-		o_qspi_cs_n, o_qspi_sck, o_qspi_dat, i_qspi_dat, o_qspi_mod
+		o_@$(PREFIX)_cs_n, o_@$(PREFIX)_sck, o_@$(PREFIX)_dat, i_@$(PREFIX)_dat, o_@$(PREFIX)_mod
 @MAIN.IODECL=
 	// The Universal QSPI flash
-	output	wire		o_qspi_cs_n, o_qspi_sck;
-	output	wire	[3:0]	o_qspi_dat;
-	input	wire	[3:0]	i_qspi_dat;
-	output	wire	[1:0]	o_qspi_mod;
+	output	wire		o_@$(PREFIX)_cs_n, o_@$(PREFIX)_sck;
+	output	wire	[3:0]	o_@$(PREFIX)_dat;
+	input	wire	[3:0]	i_@$(PREFIX)_dat;
+	output	wire	[1:0]	o_@$(PREFIX)_mod;
 @MAIN.DEFNS=
 	// Definitions for the @$(PREFIX) debug port
 	// Verilator lint_off UNUSED
@@ -162,23 +162,29 @@
 		// }}}
 	) @$(PREFIX)i(
 		// {{{
-		i_clk, i_reset,
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
 		// Primary memory reading inputs
-		@$(SLAVE.PORTLIST),
+		@$(SLAVE.ANSIPORTLIST),
 		// Configuration bus ports
-		@$(flashcfg.SLAVE.PORTLIST),
-		o_qspi_sck, o_qspi_cs_n, o_qspi_mod, o_qspi_dat, i_qspi_dat,
-		flash_dbg_trigger, flash_debug
+		@$(flashcfg.SLAVE.ANSIPORTLIST),
+		.o_qspi_sck(o_@$(PREFIX)_sck),
+		.o_qspi_cs_n(o_@$(PREFIX)_cs_n),
+		.o_qspi_mod(o_@$(PREFIX)_mod),
+		.o_qspi_dat(o_@$(PREFIX)_dat),
+		.i_qspi_dat(i_@$(PREFIX)_dat),
+		.o_dbg_trigger(flash_dbg_trigger),
+		.o_debug(flash_debug)
 		// }}}
 	);
 	// }}}
 @MAIN.ALT=
-	assign	o_qspi_sck  = 1'b1;
-	assign	o_qspi_cs_n = 1'b1;
-	assign	o_qspi_mod  = 2'b01;
-	assign	o_qspi_dat  = 4'b1111;
+	assign	o_@$(PREFIX)_sck  = 1'b1;
+	assign	o_@$(PREFIX)_cs_n = 1'b1;
+	assign	o_@$(PREFIX)_mod  = 2'b01;
+	assign	o_@$(PREFIX)_dat  = 4'b1111;
 	// Verilator lint_off UNUSED
-	wire	@$(PREFIX)_unused = &{ 1'b0, i_qspi_dat };
+	wire	@$(PREFIX)_unused = &{ 1'b0, i_@$(PREFIX)_dat };
 	// Verilator lint_on UNUSED
 @MEM.NAME= flash
 @MEM.ACCESS = rx
@@ -209,15 +215,27 @@
 #endif // @$(ACCESS)
 @SIM.TICK=
 #ifdef	@$(ACCESS)
-		m_core->i_qspi_dat = m_@$(MEM.NAME)->simtick(
-			m_core->o_qspi_cs_n,
-			m_core->o_qspi_sck,
-			m_core->o_qspi_dat,
-			m_core->o_qspi_mod);
+		m_core->i_@$(PREFIX)_dat = m_@$(MEM.NAME)->simtick(
+			m_core->o_@$(PREFIX)_cs_n,
+			m_core->o_@$(PREFIX)_sck,
+			m_core->o_@$(PREFIX)_dat,
+			m_core->o_@$(PREFIX)_mod);
 #endif // @$(ACCESS)
 @SIM.LOAD=
 			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
 ##
+##
+##
+##
+## Now the control interface
+@PREFIX=wbflashdn
+@BUS.NAME=wbflash
+@BUS.TYPE=wb
+@BUS.WIDTH=32
+@BUS.CLOCK=@$(SLAVE.BUS.CLOCK.NAME)
+@SLAVE.BUS=wbwide
+@MASTER.BUS=wbflash
+@INCLUDEFILE=wbdown.txt
 ##
 ##
 ##
@@ -233,7 +251,8 @@
 ## this must be a SLAVE.TYPE=OTHER
 ##
 @SLAVE.TYPE=OTHER
-@SLAVE.BUS=wb
+@SLAVE.BUS=wb32
+@SLAVE.ANSPREFIX=cfg_
 @MAIN.INSERT=
 	// The Flash control interface is defined by the flash instantiation
 	// hence we don't need to do anything to define it here.
