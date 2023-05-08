@@ -697,6 +697,7 @@ module	qflexpress #(
 		end
 
 `ifdef	FORMAL
+		// {{{
 		(* anyconst *) reg [M_LGADDR:0]	f_const_addr;
 
 		always @(*)
@@ -783,6 +784,7 @@ module	qflexpress #(
 			cover(m_cmd_index == 5'h1f);	// @ 590
 					// 602
 		end
+		// }}}
 `endif
 	end else begin : NO_STARTUP_OPT
 

@@ -132,7 +132,7 @@
 // hardware design working.  For these reasons, we allow you to turn it off.
 // }}}
 #ifdef _HAVE_ZIPSYS_DMA
-// #define	USE_DMA
+#define	USE_DMA
 #endif
 
 //
@@ -324,7 +324,7 @@ void	_bootloader(void) {
 		if (_kram_start != _kram_end) {
 			// NSTR("KRAM");
 			_zip->z_pic = SYSINT_DMAC;
-			_zip->z_dma.d_len = _kram_end - _kram;
+			_zip->z_dma.d_len = 4*(_kram_end - _kram);
 			_zip->z_dma.d_wr  = (char *)_kram;
 			_zip->z_dma.d_ctrl= DMACCOPY;
 
@@ -341,7 +341,7 @@ void	_bootloader(void) {
 	// Copy to external or regular RAM
 	// {{{
 	_zip->z_dma.d_wr = (char *)_ram;
-	_zip->z_dma.d_len = ramend - _ram;
+	_zip->z_dma.d_len = 4*(ramend - _ram);
 	if (_zip->z_dma.d_len>0) {
 		// NSTR("RAM");
 		_zip->z_pic = SYSINT_DMAC;
@@ -359,7 +359,7 @@ void	_bootloader(void) {
 
 		// NSTR("BSS");
 		_zip->z_pic = SYSINT_DMAC;
-		_zip->z_dma.d_len = bsend - ramend;
+		_zip->z_dma.d_len = 4*(bsend - ramend);
 		_zip->z_dma.d_rd  = (char *)&zero;
 		// _zip->z_dma.wr // Keeps the same value
 		_zip->z_dma.d_ctrl = DMACCOPY|DMA_CONSTSRC|DMA_SRCWORD;

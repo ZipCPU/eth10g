@@ -73,7 +73,7 @@ $(OBJDIR)/%.s: %.c
 	$(mk-objdir)
 	$(CC) $(CFLAGS) $(DUMPRTL) -S $< -o $@
 $(OBJDIR)/%.txt: $(OBJDIR)/%.o
-	bash -c "$(RDELF) -a $^ ; $(OBJDUMP) -S -D $^ " | tee $@
+	bash -c "$(RDELF) -a $^ ; $(OBJDUMP) -S -D $^ " | tee -a $@
 %.txt: %
 	$(OBJDUMP) -S -D $^ > $@
 
