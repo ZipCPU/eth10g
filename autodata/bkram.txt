@@ -82,13 +82,19 @@
 #endif
 
 #define	block_ram	VVAR(_@$(PREFIX)i__DOT__mem)
+@$BUSBYTES=@$(SLAVE.BUS.WIDTH)/8
 @SIM.LOAD=
-			start = start & (-4);
-			wlen = (wlen+3)&(-4);
+			char	*mem;
+			start = start & (-(@$(BUSBYTES)));
+			wlen = (wlen+(@$(BUSBYTES)-1))&(-@$(BUSBYTES));
 
 			// Need to byte swap data to get it into the memory
-			char	*bswapd = new char[len+8];
-			memcpy(bswapd, &buf[offset], wlen);
-			byteswapbuf(len>>2, (uint32_t *)bswapd);
-			memcpy(&m_core->block_ram[start], bswapd, wlen);
-			delete	bswapd;
+			//  But ... it's byte swapping at the *WORD* width, not
+			//  the 32-bit width we've built the byteswapbuf() for.
+			mem = (char *)&m_core->block_ram[start];
+			for(unsigned k=0; k<wlen; k++) {
+				unsigned	s;
+				s = (k&(-@$(BUSBYTES)))
+					|((@$(BUSBYTES)-1-k) & (@$(BUSBYTES)-1));
+				mem[s] = buf[k];
+			}

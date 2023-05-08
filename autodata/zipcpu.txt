@@ -68,6 +68,9 @@
 		// Reset wire for the ZipCPU
 		s_reset, 1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
 		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata
+@MAIN.INCLUDE=
+`define INCLUDE_DMA_CONTROLLER
+`define INCLUDE_ACCOUNTING_COUNTERS
 @MAIN.PORTLIST=
 		// Veri1ator only interface
 		cpu_sim_cyc,
@@ -168,6 +171,16 @@
 		.START_HALTED(ZIP_START_HALTED),
 		.RESET_DURATION(20),
 		.OPT_PIPELINED(1),
+`ifdef INCLUDE_DMA_CONTROLLER
+		.OPT_DMA(1'b1),
+`else
+		.OPT_DMA(1'b0),
+`endif
+`ifdef INCLUDE_ACCOUNTING_COUNTERS
+		.OPT_ACCOUNTING(1'b1),
+`else
+		.OPT_ACCOUNTING(1'b0),
+`endif
 `ifdef	VERILATOR
 		.OPT_PROFILER(1'b1),
 `else
@@ -370,7 +383,9 @@
 
 	uint32_t cpu_dbg_read(const uint32_t addr) {
 		// {{{
-		// printf("CPU-DBG-WRITE(@0x%08x, 0x%08x);\n", addr, data);
+		uint32_t	result;
+
+		// printf("CPU-DBG-READ(@0x%08x);\n", addr);
 		m_core->cpu_sim_cyc   = 1;
 		m_core->cpu_sim_stb   = 1;
 		m_core->cpu_sim_we    = 0;

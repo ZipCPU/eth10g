@@ -134,11 +134,13 @@ $(WBMARB)_cvr/PASS: $(WBMARB).sby $(RTL)/$(WBMARB).v $(RTL)/sfifo.v $(RTLNET)/pk
 
 .PHONY: $(PKTVRD)
 ## {{{
-$(PKTVRD): $(PKTVRD)_prf/PASS # $(PKTVRD)_cvr/PASS
+$(PKTVRD): $(PKTVRD)_prf/PASS $(PKTVRD)_prf512/PASS $(PKTVRD)_cvr/PASS
 $(PKTVRD)_prf/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
 	sby -f $(PKTVRD).sby prf
-# $(PKTVRD)_cvr/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN)
-#	sby -f $(PKTVRD).sby cvr
+$(PKTVRD)_prf512/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
+	sby -f $(PKTVRD).sby prf512
+$(PKTVRD)_cvr/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN)
+	sby -f $(PKTVRD).sby cvr
 ## }}}
 
 .PHONY: $(PKTVWR)

@@ -90,6 +90,8 @@
 // Any include files
 // {{{
 // These are drawn from anything with a MAIN.INCLUDE definition.
+`define INCLUDE_DMA_CONTROLLER
+`define INCLUDE_ACCOUNTING_COUNTERS
 `include "builddate.v"
 // }}}
 //
@@ -111,8 +113,12 @@ module	main(i_clk, i_reset,
 			o_i2c_sda, o_i2c_scl,
 		// The Universal QSPI Flash
 		o_flash_cs_n, o_flash_sck, o_flash_dat, i_flash_dat, o_flash_mod,
+		i_pixclk,
 		// The SD-Card wires
 		o_sdcard_sck, o_sdcard_cmd, o_sdcard_data, i_sdcard_data, i_sdcard_detect,
+		i_clk150,
+		i_clk125,
+		i_siclk,
 		// Veri1ator only interface
 		cpu_sim_cyc,
 		cpu_sim_stb,
@@ -128,6 +134,7 @@ module	main(i_clk, i_reset,
 		cpu_prof_ticks,
 `endif
 		i_cpu_reset,
+		i_clk200,
 		// UART/host to wishbone interface
 		i_wbu_uart_rx, o_wbu_uart_tx,
 		o_wbu_uart_cts_n,
@@ -315,13 +322,22 @@ module	main(i_clk, i_reset,
 	wire		flash_dbg_trigger;
 	wire	[31:0]	flash_debug;
 	// Verilator lint_on  UNUSED
+	// Verilator lint_off UNUSED
+	input	wire	i_pixclk;
+	// Verilator lint_on  UNUSED
 	// SD SPI definitions
 	// Verilator lint_off UNUSED
 	wire	[31:0]	sdspi_debug;
 	// Verilator lint_on  UNUSED
 	wire		w_sdcard_cs_n, w_sdcard_mosi, w_sdcard_miso;
+	// Verilator lint_off UNUSED
+	input	wire	i_clk150;
+	// Verilator lint_on  UNUSED
 // BUILDTIME doesnt need to include builddate.v a second time
 // `include "builddate.v"
+	// Verilator lint_off UNUSED
+	input	wire	i_clk125;
+	// Verilator lint_on  UNUSED
 	////////////////////////////////////////////////////////////////////////
 	//
 	// WBUBUS: Console definitions
@@ -332,6 +348,9 @@ module	main(i_clk, i_reset,
 	wire	[31:0]	uart_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
+	// Verilator lint_off UNUSED
+	input	wire	i_siclk;
+	// Verilator lint_on  UNUSED
 	////////////////////////////////////////////////////////////////////////
 	//
 	// ZipSystem/ZipCPU connection definitions
@@ -350,6 +369,9 @@ module	main(i_clk, i_reset,
 	wire	[ZIP_INTS-1:0] zip_int_vector;
 	wire		zip_cpu_int;
 	// }}}
+	// Verilator lint_off UNUSED
+	input	wire	i_clk200;
+	// Verilator lint_on  UNUSED
 	////////////////////////////////////////////////////////////////////////
 	//
 	// WBUBUS: USB-UART interface declarations
@@ -1634,6 +1656,16 @@ module	main(i_clk, i_reset,
 		.START_HALTED(ZIP_START_HALTED),
 		.RESET_DURATION(20),
 		.OPT_PIPELINED(1),
+`ifdef INCLUDE_DMA_CONTROLLER
+		.OPT_DMA(1'b1),
+`else
+		.OPT_DMA(1'b0),
+`endif
+`ifdef INCLUDE_ACCOUNTING_COUNTERS
+		.OPT_ACCOUNTING(1'b1),
+`else
+		.OPT_ACCOUNTING(1'b0),
+`endif
 `ifdef	VERILATOR
 		.OPT_PROFILER(1'b1),
 `else

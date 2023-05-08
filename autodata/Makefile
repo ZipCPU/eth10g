@@ -38,9 +38,9 @@ all:	data
 #
 # Could also depend upon load, if desired, but not necessary
 #
-# This is the list of components that will form our project.  Each file consists
-# of parts and pieces of our project that autofpga will copy/paste into our
-# main project files.
+# This is the list of components that will form our project.  Each file
+# consists of parts and pieces of our project that autofpga will copy/paste
+# into our main project files.
 #
 CLOCKS  := allclocks.txt
 BASE    := global.txt wbdown.txt	# icape.txt
@@ -50,7 +50,7 @@ DBGBUS  := wbuconsole.txt		# smibus.txt
 MEMORY  := bkram.txt flash.txt		# sdram.txt # bkrom.txt
 DISKDR  := sdspi.txt			# sata.txt emmc.txt
 CPU     := zipmaster.txt		# pic.txt
-NETWORK :=				# meganet.txt $(COMMON)/netbus.txt
+NETWORK :=				#
 GFX     :=				# wboledbw.txt hdmitx.txt hdmirx.txt
 SCOPES  :=
 LDSCRIPT:= mem_bkram_only.txt mem_flash_bkram.txt mem_bootrom_bkram.txt mem_sdram_only.txt

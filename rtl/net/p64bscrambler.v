@@ -40,7 +40,7 @@ module	p64bscrambler #(
 		// Poly = (1<<38) ^ (1<<57)
 		localparam [POLYNOMIAL_BITS-1:0]	POLYNOMIAL
 				= 58'h200_0040_0000_0000,
-		localparam	DATA_WIDTH=64,
+		localparam	DATA_WIDTH=66,
 		parameter	[0:0]	OPT_RX = 0
 		// }}}
 	) (
@@ -94,14 +94,17 @@ module	p64bscrambler #(
 	begin
 		state  = 0;
 		data_out = 0;
+		data_out[1:0] = i_data[1:0];
 		state = i_fill;
-		for(ik=0; ik<DW; ik=ik+1)
+		for(ik=2; ik<DW; ik=ik+1)
 		begin
-			data_out[ik] = i_data[ik] ^ state[PB-1];
-			if (OPT_RX ? i_data[ik]:data_out[ik])
-				state = { state[PB-2:0], 1'b0 } ^ POLYNOMIAL;
-			else
-				state = { state[PB-2:0], 1'b0 };
+			data_out[ik] = i_data[ik] ^ (^(POLYNOMIAL & state));
+			if (OPT_RX)
+			begin
+				state = { state[PB-2:0], i_data[ik] };
+			end else begin
+				state = { state[PB-2:0], data_out[ik] };
+			end
 		end
 
 		SCRAMBLE = { state, data_out };

@@ -310,8 +310,9 @@ module	zipdma_mm2s #(
 `ifdef	FORMAL
 	always @(*)
 	if (!o_busy)
+	begin
 		assert(!m_valid);
-	else if (m_valid && m_last)
+	end else if (m_valid && m_last)
 	begin
 		assert(rdack_len == 0);
 		assert(fill == m_bytes);
@@ -479,6 +480,9 @@ module	zipdma_mm2s #(
 
 	// rdack_len
 	// {{{
+	// Total length remaining, from the perspective of the bus return.
+	// Hence, on any bus return, we drop by the number of bytes valid
+	// in that return, or minus rdack_size.
 	always @(posedge i_clk)
 	if (!o_busy)
 	begin
@@ -545,8 +549,8 @@ module	zipdma_mm2s #(
 		if ((!m_valid || !m_last) && rdack_len == 0 && fill > 0)
 			m_valid <= 1;
 		else if (o_rd_cyc && i_rd_ack)
-			m_valid <= ((next_fill >= DW/8)
-			|| (rdack_len <= { {(LGLENGTH-1){1'b0}}, rdack_size }));
+			m_valid <= 1'b1; // ((next_fill >= DW/8)
+			// || (rdack_len <= { {(LGLENGTH-1){1'b0}}, rdack_size }));
 		// Verilator lint_on  WIDTH
 	end
 	// }}}
@@ -983,8 +987,9 @@ module	zipdma_mm2s #(
 	if (!i_reset && fm_check)
 	begin
 		if (OPT_LITTLE_ENDIAN)
+		begin
 			assert(fm_shifted[7:0] == fc_byte);
-		else
+		end else
 			assert(fm_shifted[2*DW-1:2*DW-8] == fc_byte);
 	end
 	// }}}

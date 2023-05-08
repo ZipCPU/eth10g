@@ -42,23 +42,57 @@
 @CLOCK.NAME=clk200
 @CLOCK.WIRE=i_clk200
 @CLOCK.FREQUENCY=200000000
+@TOP.MAIN=
+		@$(CLOCK.WIRE)
+@MAIN.PORTLIST=
+		@$(CLOCK.WIRE)
+@MAIN.DEFNS=
+	// Verilator lint_off UNUSED
+	input	wire	@$(CLOCK.WIRE);
+	// Verilator lint_on  UNUSED
 ##
 @PREFIX=clk150
 ## SATA clock
 @CLOCK.NAME=clk150
 @CLOCK.WIRE=i_clk150
 @CLOCK.FREQUENCY=150000000
+@TOP.MAIN=
+		@$(CLOCK.WIRE)
+@MAIN.PORTLIST=
+		@$(CLOCK.WIRE)
+@MAIN.DEFNS=
+	// Verilator lint_off UNUSED
+	input	wire	@$(CLOCK.WIRE);
+	// Verilator lint_on  UNUSED
 ##
 @PREFIX=clk125
 ## This times 5/2 -> 312.50MHz for the 10Gb Ethernet clock(s)
 @CLOCK.NAME=clk125
 @CLOCK.WIRE=i_clk125
 @CLOCK.FREQUENCY=125000000
+@TOP.MAIN=
+		@$(CLOCK.WIRE)
+@MAIN.PORTLIST=
+		@$(CLOCK.WIRE)
+@MAIN.DEFNS=
+	// Verilator lint_off UNUSED
+	input	wire	@$(CLOCK.WIRE);
+	// Verilator lint_on  UNUSED
 ##
 @PREFIX=siclk
 ## Comes from the Si5324 chip, at a user selectable frequency
 @CLOCK.NAME=siclk
 @CLOCK.WIRE=i_siclk
+## Just a pick a random freq, till we have something better
+@CLOCK.FREQUENCY=40000000
+@TOP.MAIN=
+		@$(CLOCK.WIRE)
+@MAIN.PORTLIST=
+		@$(CLOCK.WIRE)
+@MAIN.DEFNS=
+	// Verilator lint_off UNUSED
+	input	wire	@$(CLOCK.WIRE);
+	// Verilator lint_on  UNUSED
 ##
 @PREFIX=pixck
 ## Comes from either the Si5324 chip, or the HDMI RX channel,
@@ -66,6 +100,15 @@
 ## 1280x960 @ 85Hz -> 148.5MHz
 @CLOCK.NAME=pixck
 @CLOCK.WIRE=i_pixclk
+@CLOCK.FREQUENCY=148500000
+@TOP.MAIN=
+		@$(CLOCK.WIRE)
+@MAIN.PORTLIST=
+		@$(CLOCK.WIRE)
+@MAIN.DEFNS=
+	// Verilator lint_off UNUSED
+	input	wire	@$(CLOCK.WIRE);
+	// Verilator lint_on  UNUSED
 ##
 ## @PREFIX=hdmick
 ## ## 1280x960 @ 85Hz * 5 -> 148.5MHz

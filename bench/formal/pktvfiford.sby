@@ -1,0 +1,40 @@
+[tasks]
+prf        bus64
+prf32  prf bus32
+prf512 prf bus512
+cvr bus64
+
+[options]
+prf: mode prove
+cvr: mode cover
+
+[engines]
+smtbmc
+
+[script]
+read -formal pktvfiford.v
+read -formal faxin_master.v
+read -formal fwb_master.v
+--pycode-begin--
+cmd  = "hierarchy -top pktvfiford"
+cmd += " -chparam MINLEN 7"
+if ("bus32" in tags):
+	cmd += " -chparam BUSDW 32"
+elif ("bus64" in tags):
+	cmd += " -chparam BUSDW 64"
+elif ("bus128" in tags):
+	cmd += " -chparam BUSDW 128"
+elif ("bus256" in tags):
+	cmd += " -chparam BUSDW 256"
+elif ("bus512" in tags):
+	cmd += " -chparam BUSDW 512"
+else:
+	cmd += " -chparam BUSDW 64"
+output(cmd)
+--pycode-end--
+prep -top pktvfiford
+
+[files]
+../../rtl/net/pktvfiford.v
+faxin_master.v
+fwb_master.v
