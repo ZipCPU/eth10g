@@ -650,7 +650,7 @@ module wbdown #(
 		if (i_reset || !i_wcyc || o_werr || (o_scyc && i_serr))
 		begin
 			s_last <= 1'b1;
-		end else if (i_wstb && !o_wstall)
+		end else if (!o_wstall)
 		begin
 			// {{{
 			if (OPT_LITTLE_ENDIAN)
@@ -659,6 +659,9 @@ module wbdown #(
 			end else begin
 				s_last<=(i_wsel[WIDE_DW/8-SMALL_DW/8-1:0]==0);
 			end
+
+			if (!i_wstb)
+				s_last <= 1'b1;
 			// }}}
 		end else if (!o_sstb || !i_sstall)
 		begin
@@ -682,10 +685,13 @@ module wbdown #(
 		if (OPT_LOWPOWER && (i_reset || !i_wcyc || o_werr
 						|| (o_scyc && i_serr)))
 			r_addr  <= 0;
-		else if ((!OPT_LOWPOWER || i_wstb) && !o_wstall)
+		else if (!o_wstall)
+		begin
 			// Treat the subaddress as zero--even if it isn't
 			r_addr <= { i_waddr, {(WBLSB){1'b0}} };
-		else if (r_first || (r_stb && !i_sstall))
+			if (OPT_LOWPOWER && !i_wstb)
+				r_addr <= 0;
+		end else if ((!r_stb && r_first) || (r_stb && !i_sstall))
 			r_addr[WBLSB-1:0] <= r_addr[WBLSB-1:0] + r_shift;
 		// }}}
 
@@ -709,7 +715,7 @@ module wbdown #(
 			r_shift <= 0;
 			s_data  <= 0;
 			s_sel   <= 0;
-		end else if ((!OPT_LOWPOWER || i_wstb) && !o_wstall)
+		end else if (!o_wstall)
 		begin
 			// {{{
 			if (OPT_LITTLE_ENDIAN)
@@ -722,7 +728,10 @@ module wbdown #(
 			end
 
 			s_data <= i_wdata;
-			s_sel  <= i_wsel;
+			s_sel  <= (i_wstb) ? i_wsel : {(WIDE_DW/8){1'b0}};
+
+			if (OPT_LOWPOWER && !i_wstb)
+				{ r_shift, s_data } <= 0;
 			// }}}
 		end else if (!o_sstb || !i_sstall)	// && !s_last
 		begin
@@ -732,12 +741,11 @@ module wbdown #(
 			begin
 				// Verilator coverage_off
 				s_data <= s_data >> (r_shift * SMALL_DW);
-				s_sel  <= nxt_sel;
 				// Verilator coverage_on
 			end else begin
 				s_data <= s_data << (r_shift * SMALL_DW);
-				s_sel  <= nxt_sel;
 			end
+			s_sel  <= nxt_sel;
 			// }}}
 		end
 		// }}}
