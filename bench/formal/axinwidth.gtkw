@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Mar 22 21:19:36 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1355 600
+[pos] -1 -1
+*-4.226169 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 343
+[signals_width] 198
+[sst_expanded] 1
+[sst_vpaned_height] 149
+@28
+axinwidth.ACLK
+axinwidth.ARESETN
+@200
+-
+@28
+axinwidth.S_AXIN_VALID
+axinwidth.S_AXIN_READY
+@22
+axinwidth.S_AXIN_DATA[31:0]
+@28
+axinwidth.S_AXIN_BYTES[2:0]
+axinwidth.S_AXIN_LAST
+axinwidth.S_AXIN_ABORT
+@23
+axinwidth.f_s_stream_word[10:0]
+@200
+-
+@28
+axinwidth.M_AXIN_VALID
+axinwidth.M_AXIN_READY
+@22
+axinwidth.M_AXIN_DATA[63:0]
+axinwidth.M_AXIN_BYTES[3:0]
+@28
+axinwidth.M_AXIN_LAST
+axinwidth.M_AXIN_ABORT
+axinwidth.f_m_stream_word
+[pattern_trace] 1
+[pattern_trace] 0

@@ -90,7 +90,8 @@
 	);
 
 	initial	{ r_i2c_mxrst_n, r_i2c_mxrst_dly } = 0;
-	always @(posedge s_clk or negedge clocks_locked)
+	always @(posedge s_clk or negedge sysclk_locked)
+	if (!sysclk_locked)
 		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
 	else
 		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };

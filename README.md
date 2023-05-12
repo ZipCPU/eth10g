@@ -52,13 +52,24 @@ This project is released under the Apache 2 license.
 
 ## Status
 
-As of March, 2023:
+As of 11 May, 2023:
 
-- The PCB for this project is currently being designed.  It has not yet
-  entered the manufacturing stage.
+- The PCB for this project has been built, and is currently under test.
 
-- The project RTL is still in a draft assembly status.  Integration is
-  not yet complete.  Port mismatches abound.  Component verification work
-  has not yet started, much less integration testing or any hardware
-  implementations.
+- The project RTL is partially assembled.  Components assembled, attached, and
+  (potentially under test) include:
+  - The bus itself has been assembled, to include the [Wishbone crossbar](rtl/wb2axip/rtl/wbxbar.v)s, as well as [up](rtl/wb2axip/wbupsz.v) and [down](rtl/wb2axip/wbdown.v) sizing components
+  - The [debug bus](https://github.com/ZipCPU/dbgbus), [the ZipCPU](https://github.com/ZipCPU/zipcpu), the [ZipCPU's (new) DMA](rtl/cpu/zipdma.v)
+  - The [I2C Controller](rtl/wbi2c/wbi2ccpu.v)
+  - [General](rtl/gpio.v) and [Special Purpose IO](rtl/spio.v) controllers
+  - [SPI based SD card controller](https://github.com/ZipCPU/sdspi)
+  - [Fan control and temperature measurement](rtl/wbfan.v)
+  - [Si5324 reference clock controller](https://zipcpu.com/blog/2019/06/28/genclk.html)
+
+- Components not yet integrated include:
+  - [SMI Slave Controller](rtl/smi/smi.v)
+  - The 10G Ethernet, to include the virtual packet FIFOs
+  - The DDR3 SDRAM memory controller
+  - [The SATA Controller](https://github.com/ZipCPU/wbsata)
+  - HDMI
 

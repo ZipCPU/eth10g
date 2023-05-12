@@ -232,7 +232,7 @@ module	wbfan (
 	// }}}
 
 	wbi2ccpu #(
-		// {{
+		// {{{
 		.ADDRESS_WIDTH(4),
 		.DATA_WIDTH(8),
 		.OPT_START_HALTED(1'b0),

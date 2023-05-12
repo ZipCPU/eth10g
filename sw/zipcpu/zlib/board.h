@@ -102,6 +102,9 @@ typedef struct  I2CCPU_S        {
 	// }}}
 
 
+#define	ALTPIC(A)	(1<<(A))
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // SD SPI constants
@@ -134,9 +137,6 @@ typedef	struct SDSPI_S {
 	unsigned	sd_ctrl, sd_data, sd_fifo[2];
 } SDSPI;
 // }}}
-
-
-#define	ALTPIC(A)	(1<<(A))
 
 
 typedef struct  CONSOLE_S {

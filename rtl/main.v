@@ -115,10 +115,7 @@ module	main(i_clk, i_reset,
 		o_flash_cs_n, o_flash_sck, o_flash_dat, i_flash_dat, o_flash_mod,
 		i_pixclk,
 		// The SD-Card wires
-		o_sdcard_sck, o_sdcard_cmd, o_sdcard_data, i_sdcard_data, i_sdcard_detect,
-		i_clk150,
-		i_clk125,
-		i_siclk,
+		o_sdcard_clk, o_sdcard_cmd, o_sdcard_data, i_sdcard_data, i_sdcard_detect,
 		// Veri1ator only interface
 		cpu_sim_cyc,
 		cpu_sim_stb,
@@ -234,9 +231,12 @@ module	main(i_clk, i_reset,
 	output	wire	[3:0]	o_flash_dat;
 	input	wire	[3:0]	i_flash_dat;
 	output	wire	[1:0]	o_flash_mod;
+	// Verilator lint_off UNUSED
+	input	wire	i_pixclk;
+	// Verilator lint_on  UNUSED
 	// SD-Card declarations
 	// {{{
-	output	wire		o_sdcard_sck, o_sdcard_cmd;
+	output	wire		o_sdcard_clk, o_sdcard_cmd;
 	output	wire	[3:0]	o_sdcard_data;
 	// verilator lint_off UNUSED
 	input	wire	[3:0]	i_sdcard_data;
@@ -322,22 +322,13 @@ module	main(i_clk, i_reset,
 	wire		flash_dbg_trigger;
 	wire	[31:0]	flash_debug;
 	// Verilator lint_on  UNUSED
-	// Verilator lint_off UNUSED
-	input	wire	i_pixclk;
-	// Verilator lint_on  UNUSED
 	// SD SPI definitions
 	// Verilator lint_off UNUSED
 	wire	[31:0]	sdspi_debug;
 	// Verilator lint_on  UNUSED
 	wire		w_sdcard_cs_n, w_sdcard_mosi, w_sdcard_miso;
-	// Verilator lint_off UNUSED
-	input	wire	i_clk150;
-	// Verilator lint_on  UNUSED
 // BUILDTIME doesnt need to include builddate.v a second time
 // `include "builddate.v"
-	// Verilator lint_off UNUSED
-	input	wire	i_clk125;
-	// Verilator lint_on  UNUSED
 	////////////////////////////////////////////////////////////////////////
 	//
 	// WBUBUS: Console definitions
@@ -348,9 +339,6 @@ module	main(i_clk, i_reset,
 	wire	[31:0]	uart_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
-	// Verilator lint_off UNUSED
-	input	wire	i_siclk;
-	// Verilator lint_on  UNUSED
 	////////////////////////////////////////////////////////////////////////
 	//
 	// ZipSystem/ZipCPU connection definitions
@@ -642,9 +630,9 @@ module	main(i_clk, i_reset,
 	// No class DOUBLE peripherals on the "wbwide" bus
 	//
 
-	assign	wbwide_wbdown_err= 1'b0;
+	// info: @ERROR.WIRE for wbdown matches the buses error name, wbwide_wbdown_err
 	assign	wbwide_bkram_err= 1'b0;
-	assign	wbwide_wbflashdn_err= 1'b0;
+	// info: @ERROR.WIRE for wbflashdn matches the buses error name, wbwide_wbflashdn_err
 	//
 	// Connect the wbwide bus components together using the wbxbar()
 	//
@@ -1347,16 +1335,16 @@ module	main(i_clk, i_reset,
 		// }}}
 		// Master/down-range/outgoing
 		// {{{
-		.o_cyc(  wbflash_wbflashdn_cyc),
-		.o_stb(  wbflash_wbflashdn_stb),
-		.o_we(   wbflash_wbflashdn_we),
-		.o_addr( wbflash_wbflashdn_addr[23-1:0]),
-		.o_data( wbflash_wbflashdn_data),
-		.o_sel(  wbflash_wbflashdn_sel),
-		.i_stall(wbflash_wbflashdn_stall),
-		.i_ack(  wbflash_wbflashdn_ack),
-		.i_data( wbflash_wbflashdn_idata),
-		.i_err(  wbflash_wbflashdn_err)
+		.o_scyc(  wbflash_wbflashdn_cyc),
+		.o_sstb(  wbflash_wbflashdn_stb),
+		.o_swe(   wbflash_wbflashdn_we),
+		.o_saddr( wbflash_wbflashdn_addr[23-1:0]),
+		.o_sdata( wbflash_wbflashdn_data),
+		.o_ssel(  wbflash_wbflashdn_sel),
+		.i_sstall(wbflash_wbflashdn_stall),
+		.i_sack(  wbflash_wbflashdn_ack),
+		.i_sdata( wbflash_wbflashdn_idata),
+		.i_serr(  wbflash_wbflashdn_err)
 		// }}}
 		// }}}
 	);
@@ -1509,7 +1497,7 @@ module	main(i_clk, i_reset,
 			.i_wb_sel(wb32_sdcard_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_sdcard_stall),.o_wb_ack(wb32_sdcard_ack), .o_wb_data(wb32_sdcard_idata),
 		.o_cs_n(w_sdcard_cs_n),
-		.o_sck(o_sdcard_sck),
+		.o_sck(o_sdcard_clk),
 		.o_mosi(w_sdcard_mosi),
 		.i_miso(w_sdcard_miso),
 		.i_card_detect(i_sdcard_detect),
@@ -1526,7 +1514,7 @@ module	main(i_clk, i_reset,
 	// }}}
 `else	// SDSPI_ACCESS
 	// {{{
-	assign	o_sdcard_sck   = 1'b1;
+	assign	o_sdcard_clk   = 1'b1;
 	assign	o_sdcard_cmd   = 1'b1;
 	assign	o_sdcard_data  = 4'hf;
 	// Null bus slave
@@ -1551,6 +1539,46 @@ module	main(i_clk, i_reset,
 	assign	wb32_buildtime_idata = `BUILDTIME;
 	assign	wb32_buildtime_ack = wb32_buildtime_stb;
 	assign	wb32_buildtime_stall = 1'b0;
+	wbdown #(
+		// {{{
+		.ADDRESS_WIDTH(5+$clog2(32/8)),
+		.WIDE_DW(512),
+		.SMALL_DW(32),
+		.OPT_LITTLE_ENDIAN(1'b0),
+		.OPT_LOWLOGIC(1'b0)
+		// }}}
+	) u_wbdown (
+		// {{{
+		.i_clk(i_clk),
+		.i_reset(i_reset),
+		// Slave/incoming
+		// {{{
+		.i_wcyc(  wbwide_wbdown_cyc),
+		.i_wstb(  wbwide_wbdown_stb),
+		.i_wwe(   wbwide_wbdown_we),
+		.i_waddr( wbwide_wbdown_addr[1-1:0]),
+		.i_wdata( wbwide_wbdown_data),
+		.i_wsel(  wbwide_wbdown_sel),
+		.o_wstall(wbwide_wbdown_stall),
+		.o_wack(  wbwide_wbdown_ack),
+		.o_wdata( wbwide_wbdown_idata),
+		.o_werr(  wbwide_wbdown_err),
+		// }}}
+		// Master/down-range/outgoing
+		// {{{
+		.o_scyc(  wb32_wbdown_cyc),
+		.o_sstb(  wb32_wbdown_stb),
+		.o_swe(   wb32_wbdown_we),
+		.o_saddr( wb32_wbdown_addr[5-1:0]),
+		.o_sdata( wb32_wbdown_data),
+		.o_ssel(  wb32_wbdown_sel),
+		.i_sstall(wb32_wbdown_stall),
+		.i_sack(  wb32_wbdown_ack),
+		.i_sdata( wb32_wbdown_idata),
+		.i_serr(  wb32_wbdown_err)
+		// }}}
+		// }}}
+	);
 `ifdef	BUSCONSOLE_ACCESS
 	// {{{
 	////////////////////////////////////////////////////////////////////////
@@ -1598,46 +1626,6 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// BUSCONSOLE_ACCESS
 
-	wbdown #(
-		// {{{
-		.ADDRESS_WIDTH(5+$clog2(32/8)),
-		.WIDE_DW(512),
-		.SMALL_DW(32),
-		.OPT_LITTLE_ENDIAN(1'b0),
-		.OPT_LOWLOGIC(1'b0)
-		// }}}
-	) u_wbdown (
-		// {{{
-		.i_clk(i_clk),
-		.i_reset(i_reset),
-		// Slave/incoming
-		// {{{
-		.i_wcyc(  wbwide_wbdown_cyc),
-		.i_wstb(  wbwide_wbdown_stb),
-		.i_wwe(   wbwide_wbdown_we),
-		.i_waddr( wbwide_wbdown_addr[1-1:0]),
-		.i_wdata( wbwide_wbdown_data),
-		.i_wsel(  wbwide_wbdown_sel),
-		.o_wstall(wbwide_wbdown_stall),
-		.o_wack(  wbwide_wbdown_ack),
-		.o_wdata( wbwide_wbdown_idata),
-		.o_werr(  wbwide_wbdown_err),
-		// }}}
-		// Master/down-range/outgoing
-		// {{{
-		.o_cyc(  wb32_wbdown_cyc),
-		.o_stb(  wb32_wbdown_stb),
-		.o_we(   wb32_wbdown_we),
-		.o_addr( wb32_wbdown_addr[5-1:0]),
-		.o_data( wb32_wbdown_data),
-		.o_sel(  wb32_wbdown_sel),
-		.i_stall(wb32_wbdown_stall),
-		.i_ack(  wb32_wbdown_ack),
-		.i_data( wb32_wbdown_idata),
-		.i_err(  wb32_wbdown_err)
-		// }}}
-		// }}}
-	);
 `ifdef	INCLUDE_ZIPCPU
 	// {{{
 	////////////////////////////////////////////////////////////////////////

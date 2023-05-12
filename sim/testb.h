@@ -70,9 +70,6 @@ public:
 	// operation.
 	TBCLOCK	m_clk;
 	TBCLOCK	m_pixck;
-	TBCLOCK	m_clk150;
-	TBCLOCK	m_clk125;
-	TBCLOCK	m_siclk;
 	TBCLOCK	m_clk200;
 
 	TESTB(void) {
@@ -86,9 +83,6 @@ public:
 // Set the initial clock periods
 		m_clk.init(5000);	//  200.00 MHz
 		m_pixck.init(6734);	//  148.50 MHz
-		m_clk150.init(6666);	//  150.02 MHz
-		m_clk125.init(8000);	//  125.00 MHz
-		m_siclk.init(25000);	//   40.00 MHz
 		m_clk200.init(5000);	//  200.00 MHz
 	}
 	// }}}
@@ -197,15 +191,6 @@ public:
 		if (m_pixck.time_to_edge() < mintime)
 			mintime = m_pixck.time_to_edge();
 
-		if (m_clk150.time_to_edge() < mintime)
-			mintime = m_clk150.time_to_edge();
-
-		if (m_clk125.time_to_edge() < mintime)
-			mintime = m_clk125.time_to_edge();
-
-		if (m_siclk.time_to_edge() < mintime)
-			mintime = m_siclk.time_to_edge();
-
 		if (m_clk200.time_to_edge() < mintime)
 			mintime = m_clk200.time_to_edge();
 
@@ -220,9 +205,6 @@ public:
 		// Advance each clock
 		m_core->i_clk = m_clk.advance(mintime);
 		m_core->i_pixclk = m_pixck.advance(mintime);
-		m_core->i_clk150 = m_clk150.advance(mintime);
-		m_core->i_clk125 = m_clk125.advance(mintime);
-		m_core->i_siclk = m_siclk.advance(mintime);
 		m_core->i_clk200 = m_clk200.advance(mintime);
 
 		m_time_ps += mintime;
@@ -242,18 +224,6 @@ public:
 			m_changed = true;
 			sim_pixck_tick();
 		}
-		if (m_clk150.falling_edge()) {
-			m_changed = true;
-			sim_clk150_tick();
-		}
-		if (m_clk125.falling_edge()) {
-			m_changed = true;
-			sim_clk125_tick();
-		}
-		if (m_siclk.falling_edge()) {
-			m_changed = true;
-			sim_siclk_tick();
-		}
 		if (m_clk200.falling_edge()) {
 			m_changed = true;
 			sim_clk200_tick();
@@ -271,33 +241,6 @@ public:
 	}
 	// }}}
 	virtual	void	sim_pixck_tick(void) {
-		// {{{
-		// AutoFPGA will override this method within main_tb.cpp if any
-		// @SIM.TICK key is present within a design component also
-		// containing a @SIM.CLOCK key identifying this clock.  That
-		// component must also set m_changed to true.
-		m_changed = false;
-	}
-	// }}}
-	virtual	void	sim_clk150_tick(void) {
-		// {{{
-		// AutoFPGA will override this method within main_tb.cpp if any
-		// @SIM.TICK key is present within a design component also
-		// containing a @SIM.CLOCK key identifying this clock.  That
-		// component must also set m_changed to true.
-		m_changed = false;
-	}
-	// }}}
-	virtual	void	sim_clk125_tick(void) {
-		// {{{
-		// AutoFPGA will override this method within main_tb.cpp if any
-		// @SIM.TICK key is present within a design component also
-		// containing a @SIM.CLOCK key identifying this clock.  That
-		// component must also set m_changed to true.
-		m_changed = false;
-	}
-	// }}}
-	virtual	void	sim_siclk_tick(void) {
 		// {{{
 		// AutoFPGA will override this method within main_tb.cpp if any
 		// @SIM.TICK key is present within a design component also

@@ -32,87 +32,157 @@
 ##
 ## }}}
 @PREFIX=clk
+## {{{
 @CLOCK.NAME=clk
 @CLOCK.WIRE=i_clk
 @CLOCK.FREQUENCY=200000000
+@TOP.PORTLIST=
+@TOP.IODECL=
+@TOP.DEFNS=
+	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
+			clk_feedback, clk_feedback_bufd;
+	reg	[2:0]	pipe_reset;
 @TOP.INSERT=
-	assign	s_clk=i_clk200;
+	// assign	s_clk=s_clk200;
+	// assign	sysclk_locked = 1'b1;
+
+	initial	pipe_reset = -1;
+	always @(posedge s_clk or negedge sysclk_locked)
+	if (!sysclk_locked)
+		pipe_reset <= -1;
+	else
+		pipe_reset <= { pipe_reset[1:0], 1'b0 };
+
+	assign	s_reset = pipe_reset[2];
+
+	PLLE2_BASE #(
+		.CLKFBOUT_MULT(8),
+		.CLKFBOUT_PHASE(0.0),
+		.CLKIN1_PERIOD(5),
+		.CLKOUT0_DIVIDE(8)
+	) u_syspll (
+		.CLKOUT0(s_clk_nobuf),
+		//
+		.CLKFBOUT(clk_feedback),
+		.LOCKED(sysclk_locked),
+		.CLKIN1(s_clk200),
+		.PWRDWN(1'b0),
+		.CLKFBIN(clk_feedback_bufd)
+	);
+
+	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
+	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
 ##
 @PREFIX=clk200
+## {{{
 @CLOCK.NAME=clk200
 @CLOCK.WIRE=i_clk200
 @CLOCK.FREQUENCY=200000000
+@TOP.PORTLIST=
+		i_clk_200mhz_p, i_clk_200mhz_n
+@TOP.IODECL=
+	input	wire	i_clk_200mhz_p, i_clk_200mhz_n;
+@TOP.DEFNS=
+	wire	s_clk200;
+@TOP.INSERT=
+	IBUFDS
+	ibuf_ck200 (
+		.I(i_clk_200mhz_p), .IB(i_clk_200mhz_n),
+		.O(s_clk200)
+	);
+
 @TOP.MAIN=
-		@$(CLOCK.WIRE)
+		s_clk200
 @MAIN.PORTLIST=
 		@$(CLOCK.WIRE)
 @MAIN.DEFNS=
 	// Verilator lint_off UNUSED
 	input	wire	@$(CLOCK.WIRE);
 	// Verilator lint_on  UNUSED
-##
+## }}}
 @PREFIX=clk150
+## {{{
 ## SATA clock
-@CLOCK.NAME=clk150
-@CLOCK.WIRE=i_clk150
-@CLOCK.FREQUENCY=150000000
-@TOP.MAIN=
-		@$(CLOCK.WIRE)
-@MAIN.PORTLIST=
-		@$(CLOCK.WIRE)
-@MAIN.DEFNS=
-	// Verilator lint_off UNUSED
-	input	wire	@$(CLOCK.WIRE);
-	// Verilator lint_on  UNUSED
+## @CLOCK.NAME=clk150
+## @CLOCK.WIRE=i_clk150
+## @CLOCK.FREQUENCY=150000000
+## @TOP.PORTLIST=
+##		i_clk_150mhz_p, i_clk_150mhz_n
+## @TOP.IODECL=
+##	input	wire	i_clk_150mhz_p, i_clk_150mhz_n;
+## @TOP.DEFNS=
+##	wire	s_clk150;
+## @TOP.INSERT=
+##	IBUFDS
+##	ibuf_ck150 (
+##		.I(i_clk_150mhz_p), .IB(i_clk_150mhz_n),
+##		.O(s_clk150)
+##	);
 ##
-@PREFIX=clk125
-## This times 5/2 -> 312.50MHz for the 10Gb Ethernet clock(s)
-@CLOCK.NAME=clk125
-@CLOCK.WIRE=i_clk125
-@CLOCK.FREQUENCY=125000000
-@TOP.MAIN=
-		@$(CLOCK.WIRE)
-@MAIN.PORTLIST=
-		@$(CLOCK.WIRE)
-@MAIN.DEFNS=
-	// Verilator lint_off UNUSED
-	input	wire	@$(CLOCK.WIRE);
-	// Verilator lint_on  UNUSED
-##
+## @TOP.MAIN=
+##		s_clk150
+## @MAIN.PORTLIST=
+##		@$(CLOCK.WIRE)
+## @MAIN.DEFNS=
+##	// Verilator lint_off UNUSED
+##	input	wire	@$(CLOCK.WIRE);
+##	// Verilator lint_on  UNUSED
+## }}}
 @PREFIX=siclk
+## {{{
 ## Comes from the Si5324 chip, at a user selectable frequency
-@CLOCK.NAME=siclk
-@CLOCK.WIRE=i_siclk
+## @CLOCK.NAME=siclk
+## @CLOCK.WIRE=i_siclk
 ## Just a pick a random freq, till we have something better
-@CLOCK.FREQUENCY=40000000
-@TOP.MAIN=
-		@$(CLOCK.WIRE)
-@MAIN.PORTLIST=
-		@$(CLOCK.WIRE)
-@MAIN.DEFNS=
-	// Verilator lint_off UNUSED
-	input	wire	@$(CLOCK.WIRE);
-	// Verilator lint_on  UNUSED
-##
+## @CLOCK.FREQUENCY=40000000
+## @TOP.PORTLIST=
+## @TOP.IODECL=
+## @TOP.DEFNS=
+##	wire	@$(CLOCK.WIRE) = 1'b0;
+## @TOP.MAIN=
+##		@$(CLOCK.WIRE)
+## @MAIN.PORTLIST=
+##		@$(CLOCK.WIRE)
+## @MAIN.DEFNS=
+##	// Verilator lint_off UNUSED
+##	input	wire	@$(CLOCK.WIRE);
+##	// Verilator lint_on  UNUSED
+## }}}
 @PREFIX=pixck
+## {{{
 ## Comes from either the Si5324 chip, or the HDMI RX channel,
 ## at the user's option
 ## 1280x960 @ 85Hz -> 148.5MHz
 @CLOCK.NAME=pixck
 @CLOCK.WIRE=i_pixclk
 @CLOCK.FREQUENCY=148500000
+@TOP.PORTLIST=
+@TOP.IODECL=
+@TOP.DEFNS=
+	wire	@$(CLOCK.WIRE) = 1'b0;
+@TOP.INSERT=
+	/*
+	BUFGMUX
+	u_pixclk_mux (
+		.IO(pref_clk), .I1(hdmirx_clk),
+		.O(@$(CLOCK.WIRE)), .S(pixclk_sel)
+	);
+	*/
 @TOP.MAIN=
 		@$(CLOCK.WIRE)
 @MAIN.PORTLIST=
 		@$(CLOCK.WIRE)
-@MAIN.DEFNS=
+@MAIN.IODECL=
 	// Verilator lint_off UNUSED
 	input	wire	@$(CLOCK.WIRE);
 	// Verilator lint_on  UNUSED
 ##
+## }}}
 ## @PREFIX=hdmick
+## {{{
 ## ## 1280x960 @ 85Hz * 5 -> 148.5MHz
 ## Required for HDMI TX IO
 ## @CLOCK.NAME=hdmick
 ## @CLOCK.WIRE=i_hdmiclk
 ## @CLOCK.FREQUENCY=1485000000
+## }}}

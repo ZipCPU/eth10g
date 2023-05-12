@@ -75,7 +75,7 @@
 		.i_clk(s_clksync), .i_hsclk(s_clk4x),
 		.i_ce(w_@$(PREFIX)_ce),
 		.i_word(w_@$(PREFIX)_word),
-		.o_pin({ o_siref_clk_p, o_siref_clk_n });
+		.o_pin({ o_siref_clk_p, o_siref_clk_n })
 		// }}}
 	);
 

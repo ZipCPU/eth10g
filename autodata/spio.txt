@@ -49,13 +49,13 @@
 @TOP.IODECL=
 	// @$(DEVID) interface
 	input	wire	[@$(NSW)-1:0]	i_sw;
-	input	wire		i_btnc, i_btnd, i_btnl, i_btnr, i_btnu;
+	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
 	output	wire	[@$(NLED)-1:0]	o_led;
 @TOP.DEFNS=
 	wire	[@$(NLED)-1:0]	w_led;
 	wire	[@$(NBTN)-1:0]	w_btn;
 @TOP.INSERT=
-	assign	o_led = { w_led[@$(NLED)-1:2], (w_led[1] || !clocks_locked),
+	assign	o_led = { w_led[@$(NLED)-1:2], (w_led[1] || !sysclk_locked),
 			w_led[0] | s_reset };
 
 	assign	w_btn = ~{ i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d };

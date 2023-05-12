@@ -66,8 +66,8 @@
 	// Verilator lint_on  UNUSED
 @TOP.MAIN=
 		// Reset wire for the ZipCPU
-		s_reset, 1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
-		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata
+		1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
+		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata, s_reset
 @MAIN.INCLUDE=
 `define INCLUDE_DMA_CONTROLLER
 `define INCLUDE_ACCOUNTING_COUNTERS

@@ -572,7 +572,7 @@ module	wbi2ccpu #(
 	always @(posedge i_clk)
 	if (i_reset)
 		ckcount <= DEF_CKCOUNT;
-	else if (bus_write && bus_write_addr == ADR_CKCOUNT)
+	else if (bus_write && bus_write_addr == ADR_CKCOUNT && (&i_wb_sel))
 		ckcount <= bus_write_data[11:0];
 	// }}}
 

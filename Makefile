@@ -198,7 +198,7 @@ sw-host: check-gpp
 ## Build the hardware specific newlib library
 ##
 sw-zlib: check-zip-gcc
-	+@$(SUBMAKE) sw/zlib
+	+@$(SUBMAKE) sw/zipcpu/zlib
 ## }}}
 
 .PHONY: sw-board
@@ -206,7 +206,7 @@ sw-zlib: check-zip-gcc
 ## Build the board software.  This may (or may not) use the software library
 ##
 sw-board: sw-zlib check-zip-gcc
-	+@$(SUBMAKE) sw/board
+	+@$(SUBMAKE) sw/zipcpu/board
 ## }}}
 
 # .PHONY: sw-boot
@@ -242,7 +242,7 @@ sw-board: sw-zlib check-zip-gcc
 ## Load the device
 ## {{{
 BITFILE := toplevel.bit
-$(BITFILE): ../../xilinx/eth10g.runs/impl_1/toplevel.bit
+$(BITFILE): ../xilinx/eth10g.runs/impl_1/toplevel.bit
 	@cp $< $@
 
 .PHONY: load

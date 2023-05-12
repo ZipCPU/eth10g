@@ -95,7 +95,7 @@ module wbupsz #(
 		localparam	LGFIFO = 5;
 		reg			r_cyc, r_stb, r_we, r_ack, r_err;
 		reg	[ADDRESS_WIDTH-$clog2(WIDE_DW/8)-1:0]	r_addr;
-		reg	[WIDE_DW-1:0]	r_data;
+		reg	[WIDE_DW-1:0]	r_data, rtn_data;
 		reg	[WIDE_DW/8-1:0]	r_sel;
 		reg	[$clog2(WIDE_DW/SMALL_DW)-1:0]	r_shift;
 		wire			fifo_full, ign_fifo_empty;
@@ -177,25 +177,25 @@ module wbupsz #(
 			// }}}
 		);
 
-		// o_sdata & r_data, the return (shifted) data in the WIDE space
+		// o_sdata&rtn_data, the return (shifted) data in the WIDE space
 		// {{{
 		initial	r_data = 0;
 		always @(posedge i_clk)
 		if (OPT_LOWPOWER && (!i_scyc || !o_wcyc || i_werr))
-			r_data <= 0;
+			rtn_data <= 0;
 		else if (i_wack)
 		begin
 			if (OPT_LITTLE_ENDIAN)
-				r_data <= i_wdata >> (SMALL_DW * fifo_shift);
+				rtn_data <= i_wdata >> (SMALL_DW * fifo_shift);
 			else
-				r_data <= i_wdata << (SMALL_DW * fifo_shift);
+				rtn_data <= i_wdata << (SMALL_DW * fifo_shift);
 		end
 
 		if (OPT_LITTLE_ENDIAN)
 		begin
-			assign	o_sdata = r_data[SMALL_DW-1:0];
+			assign	o_sdata = rtn_data[SMALL_DW-1:0];
 		end else begin
-			assign	o_sdata = r_data[WIDE_DW-1:WIDE_DW-SMALL_DW];
+			assign	o_sdata = rtn_data[WIDE_DW-1:WIDE_DW-SMALL_DW];
 		end
 		// }}}
 
@@ -223,7 +223,8 @@ module wbupsz #(
 		// {{{
 		// Verilator lint_off UNUSED
 		wire	unused;
-		assign	unused = &{ 1'b0, ign_fifo_fill, ign_fifo_empty };
+		assign	unused = &{ 1'b0, ign_fifo_fill, ign_fifo_empty,
+					rtn_data };
 		// Verilator lint_on  UNUSED
 		// }}}
 	end endgenerate

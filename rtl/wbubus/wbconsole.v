@@ -347,7 +347,7 @@ module	wbconsole #(
 		//
 		// Transmit byte
 		o_debug[15] <= tx_empty_n;
-		if ((i_wb_stb)&&(i_wb_addr[1:0]==UART_TXREG)&&(i_wb_we))
+		if ((i_wb_stb)&&(i_wb_addr[1:0]==UART_TXREG)&&(i_wb_we && i_wb_sel[0]))
 			o_debug[14:8] <= i_wb_data[6:0];
 		else if (o_uart_stb)
 			o_debug[14:8] <= o_uart_data;

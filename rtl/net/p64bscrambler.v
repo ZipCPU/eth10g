@@ -92,7 +92,6 @@ module	p64bscrambler #(
 		reg	[DW-1:0]	data_out;
 		reg	[PB-1:0]	state;
 	begin
-		state  = 0;
 		data_out = 0;
 		data_out[1:0] = i_data[1:0];
 		state = i_fill;

@@ -146,6 +146,7 @@ module	sdspi #(
 	wire		wb_stb, write_stb, wb_cmd_stb, new_data;
 	wire	[AW-1:0]	wb_addr;
 	wire	[DW-1:0]	wb_data;
+	wire	[3:0]		wb_sel;
 	reg	[1:0]	pipe_addr;
 	reg		dly_stb;
 
@@ -214,13 +215,15 @@ module	sdspi #(
 	begin : EXTRA_WB_PASSTHROUGH
 		// {{{
 		assign	wb_stb    = ((i_wb_stb)&&(!o_wb_stall));
-		assign	write_stb = ((wb_stb)&&( i_wb_we));
-	// assign	read_stb  = ((wb_stb)&&(!i_wb_we));
-		assign	wb_cmd_stb  = (!r_cmd_busy)&&(write_stb)
+		assign	write_stb = ((wb_stb)&&( i_wb_we) && i_wb_sel != 0);
+		// assign	read_stb  = ((wb_stb)&&(!i_wb_we));
+		assign	wb_sel = i_wb_sel;
+		assign	wb_cmd_stb  = (!r_cmd_busy)&&(write_stb && i_wb_sel != 0)
 				&&(i_wb_addr==SDSPI_CMD_ADDRESS);
 		assign	wb_addr = i_wb_addr;
 		assign	wb_data = i_wb_data;
-		assign	new_data = (i_wb_stb)&&(!o_wb_stall)&&(i_wb_we)
+		assign	new_data = (i_wb_stb)&&(!o_wb_stall)
+				&&(i_wb_we && i_wb_sel != 0)
 				&&(i_wb_addr == SDSPI_DAT_ADDRESS);
 		// }}}
 	end else begin : GEN_EXTRA_WB_CLOCK
@@ -228,6 +231,7 @@ module	sdspi #(
 		reg		r_wb_stb, r_write_stb, r_wb_cmd_stb, r_new_data;
 		reg	[AW-1:0]	r_wb_addr;
 		reg	[DW-1:0]	r_wb_data;
+		reg	[DW/8-1:0]	r_wb_sel;
 
 		initial	r_wb_stb = 1'b0;
 		always @(posedge i_clk)
@@ -235,15 +239,20 @@ module	sdspi #(
 
 		initial	r_write_stb = 1'b0;
 		always @(posedge i_clk)
-			r_write_stb <= ((i_wb_stb)&&(!o_wb_stall)&&(i_wb_we));
+			r_write_stb <= ((i_wb_stb)&&(!o_wb_stall)&&(i_wb_we && i_wb_sel != 0));
+
+		initial	r_wb_sel = 1'b0;
+		always @(posedge i_clk)
+			r_wb_sel <= i_wb_sel;
 
 		initial	r_wb_cmd_stb = 1'b0;
 		always @(posedge i_clk)
-			r_wb_cmd_stb <= (!r_cmd_busy)&&(i_wb_stb)&&(!o_wb_stall)&&(i_wb_we)
+			r_wb_cmd_stb <= (!r_cmd_busy)&&(i_wb_stb)&&(!o_wb_stall)&&(i_wb_we && i_wb_sel != 0)
 					&&(i_wb_addr == SDSPI_CMD_ADDRESS);
 
 		always @(posedge i_clk)
-			r_new_data <= (i_wb_stb)&&(!o_wb_stall)&&(i_wb_we)
+			r_new_data <= (i_wb_stb)&&(!o_wb_stall)
+					&&(i_wb_we && i_wb_sel != 0)
 					&&(i_wb_addr == SDSPI_DAT_ADDRESS);
 
 		always @(posedge i_clk)
@@ -258,6 +267,7 @@ module	sdspi #(
 		assign	new_data = r_new_data;
 		assign	wb_addr  = r_wb_addr;
 		assign	wb_data  = r_wb_data;
+		assign	wb_sel   = r_wb_sel;
 		// }}}
 	end endgenerate
 	// }}}
@@ -368,7 +378,7 @@ module	sdspi #(
 		begin // Command write
 			// Clear the read/write address
 			fifo_wb_addr <= {(LGFIFOLN){1'b0}};
-		end else if ((wb_stb)&&(wb_addr[1]))
+		end else if ((wb_stb)&&(wb_addr[1] && wb_sel != 0))
 		begin // On read or write, of either FIFO,
 			// we increase our pointer
 			// if (wb_sel[0])
@@ -395,7 +405,7 @@ module	sdspi #(
 		write_fifo_a_addr <= spi_write_addr[LGFIFOLN-1:0];
 		// write_fifo_a_mask <= 4'hf;
 	end else begin
-		write_fifo_a      <= write_stb &&(wb_addr == SDSPI_FIFO_A_ADDR);
+		write_fifo_a      <= write_stb &&(wb_addr == SDSPI_FIFO_A_ADDR) && wb_sel != 0;
 		write_fifo_a_data <= wb_data;
 		write_fifo_a_addr <= fifo_wb_addr;
 		// write_fifo_a_mask <= 4'hf;
@@ -410,7 +420,7 @@ module	sdspi #(
 		write_fifo_b_addr <= spi_write_addr[LGFIFOLN-1:0];
 		// write_fifo_b_mask <= 4'hf;
 	end else begin
-		write_fifo_b      <= write_stb &&(wb_addr == SDSPI_FIFO_B_ADDR);
+		write_fifo_b      <= write_stb &&(wb_addr == SDSPI_FIFO_B_ADDR) && wb_sel != 0;
 		write_fifo_b_data <= wb_data;
 		write_fifo_b_addr <= fifo_wb_addr;
 		// write_fifo_b_mask <= 4'hf;

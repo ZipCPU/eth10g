@@ -161,7 +161,7 @@ public:
 	}
 
 	void	tick(void) {
-		TESTB<Vmain>::tick(); // Clock.size = 6
+		TESTB<Vmain>::tick(); // Clock.size = 3
 	}
 
 
@@ -187,7 +187,7 @@ public:
 		// {{{
 #ifdef	SDSPI_ACCESS
 		m_core->i_sdcard_data = m_sdcard((m_core->o_sdcard_data&8)?1:0,
-				m_core->o_sdcard_sck, m_core->o_sdcard_cmd);
+				m_core->o_sdcard_clk, m_core->o_sdcard_cmd);
 		m_core->i_sdcard_data &= 1;
 		m_core->i_sdcard_data |= (m_core->o_sdcard_data&0x0e);
 		m_core->i_sdcard_detect = 1;
@@ -223,42 +223,6 @@ public:
 		m_changed = false;
 	}
 
-	// Evaluating clock clk150
-
-	// sim_clk150_tick() will be called from TESTB<Vmain>::tick()
-	//   following any falling edge of clock clk150
-	virtual	void	sim_clk150_tick(void) {
-		//
-		// SIM.TICK tags go here for SIM.CLOCK=clk150
-		//
-		// No SIM.TICK tags defined
-		m_changed = false;
-	}
-
-	// Evaluating clock clk125
-
-	// sim_clk125_tick() will be called from TESTB<Vmain>::tick()
-	//   following any falling edge of clock clk125
-	virtual	void	sim_clk125_tick(void) {
-		//
-		// SIM.TICK tags go here for SIM.CLOCK=clk125
-		//
-		// No SIM.TICK tags defined
-		m_changed = false;
-	}
-
-	// Evaluating clock siclk
-
-	// sim_siclk_tick() will be called from TESTB<Vmain>::tick()
-	//   following any falling edge of clock siclk
-	virtual	void	sim_siclk_tick(void) {
-		//
-		// SIM.TICK tags go here for SIM.CLOCK=siclk
-		//
-		// No SIM.TICK tags defined
-		m_changed = false;
-	}
-
 	// Evaluating clock clk200
 
 	// sim_clk200_tick() will be called from TESTB<Vmain>::tick()
@@ -287,33 +251,6 @@ public:
 		do {
 			tick();
 		} while(!m_pixck.rising_edge());
-	}
-
-	//
-	// Step until clock clk150 ticks
-	//
-	virtual	void	tick_clk150(void) {
-		do {
-			tick();
-		} while(!m_clk150.rising_edge());
-	}
-
-	//
-	// Step until clock clk125 ticks
-	//
-	virtual	void	tick_clk125(void) {
-		do {
-			tick();
-		} while(!m_clk125.rising_edge());
-	}
-
-	//
-	// Step until clock siclk ticks
-	//
-	virtual	void	tick_siclk(void) {
-		do {
-			tick();
-		} while(!m_siclk.rising_edge());
 	}
 
 	//

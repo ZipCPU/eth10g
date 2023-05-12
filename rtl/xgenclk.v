@@ -101,7 +101,7 @@ module	xgenclk (
 
 	OBUFDS
 	u_genclkio(
-		.I(w_pin), .O(io_pin[0]), .OB(io_pin[1])
+		.I(w_pin), .O(o_pin[1]), .OB(o_pin[0])
 	);
 
 endmodule

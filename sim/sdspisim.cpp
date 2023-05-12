@@ -554,7 +554,7 @@ fprintf(stderr, "WRITE: Seek to sector %d\n", arg);
 				default: // Unimplemented command
 					m_rspbuf[0] = 0x04;
 					m_rspdly = 4;
-					if (m_debug) printf("SDSPI ERR: Command CMD%d not implemented!\n", m_cmdbuf[0]&0x03f);
+					printf("SDSPI ERR: Command CMD%d not implemented!\n", m_cmdbuf[0]&0x03f);
 					fflush(stdout);
 					assert(0 && "Not Implemented");
 				}

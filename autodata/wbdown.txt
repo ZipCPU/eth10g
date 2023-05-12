@@ -35,16 +35,19 @@
 @DEVID=wbdown
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=wbwide
+@ERROR.WIRE=@$(SLAVE.PREFIX)_err
 @MASTER.TYPE=SUBBUS
 @MASTER.BUS=wb32
+@OPT_LITTLE_ENDIAN=1'b0
+@OPT_LOWLOGIC=1'b0
 @MAIN.INSERT=
 	wbdown #(
 		// {{{
 		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)),
 		.WIDE_DW(@$(SLAVE.BUS.WIDTH)),
 		.SMALL_DW(@$(MASTER.BUS.WIDTH)),
-		.OPT_LITTLE_ENDIAN(1'b0),
-		.OPT_LOWLOGIC(1'b0)
+		.OPT_LITTLE_ENDIAN(@$(OPT_LITTLE_ENDIAN)),
+		.OPT_LOWLOGIC(@$(OPT_LOWLOGIC))
 		// }}}
 	) u_@$(PREFIX) (
 		// {{{
@@ -65,16 +68,16 @@
 		// }}}
 		// Master/down-range/outgoing
 		// {{{
-		.o_cyc(  @$(MASTER.PREFIX)_cyc),
-		.o_stb(  @$(MASTER.PREFIX)_stb),
-		.o_we(   @$(MASTER.PREFIX)_we),
-		.o_addr( @$(MASTER.PREFIX)_addr[@$(MASTER.BUS.AWID)-1:0]),
-		.o_data( @$(MASTER.PREFIX)_data),
-		.o_sel(  @$(MASTER.PREFIX)_sel),
-		.i_stall(@$(MASTER.PREFIX)_stall),
-		.i_ack(  @$(MASTER.PREFIX)_ack),
-		.i_data( @$(MASTER.PREFIX)_idata),
-		.i_err(  @$(MASTER.PREFIX)_err)
+		.o_scyc(  @$(MASTER.PREFIX)_cyc),
+		.o_sstb(  @$(MASTER.PREFIX)_stb),
+		.o_swe(   @$(MASTER.PREFIX)_we),
+		.o_saddr( @$(MASTER.PREFIX)_addr[@$(MASTER.BUS.AWID)-1:0]),
+		.o_sdata( @$(MASTER.PREFIX)_data),
+		.o_ssel(  @$(MASTER.PREFIX)_sel),
+		.i_sstall(@$(MASTER.PREFIX)_stall),
+		.i_sack(  @$(MASTER.PREFIX)_ack),
+		.i_sdata( @$(MASTER.PREFIX)_idata),
+		.i_serr(  @$(MASTER.PREFIX)_err)
 		// }}}
 		// }}}
 	);
