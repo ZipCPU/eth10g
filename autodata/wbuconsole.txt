@@ -167,8 +167,14 @@
 		.o_tx_stb(@$(PREFIX)_tx_stb), .o_tx_data(@$(PREFIX)_tx_data),
 			.i_tx_busy(@$(PREFIX)_tx_busy),
 		//
+`ifdef	SMI_CONSOLE
+		.i_console_stb(w_console_tx_stb || smi_console_valid),
+			.i_console_data(smi_console_valid ? smi_console_data[6:0]
+					: w_console_tx_data),
+`else
 		.i_console_stb(w_console_tx_stb),
 			.i_console_data(w_console_tx_data),
+`endif
 			.o_console_busy(w_console_busy),
 		.o_console_stb(w_console_rx_stb),
 			.o_console_data(w_console_rx_data),
@@ -176,6 +182,10 @@
 		.o_dbg(wbubus_dbg[0])
 		// }}}
 	);
+
+`ifdef	SMI_CONSOLE
+	assign	smi_console_ready = !w_console_busy;
+`endif
 
 	assign	@$(MASTER.PREFIX)_sel = 4'hf;
 	assign	@$(MASTER.PREFIX)_addr = @$(MASTER.PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
@@ -263,12 +273,18 @@
 	wbconsole #(.LGFLEN(6)
 	) console(
 		// {{{
-		@$(SLAVE.BUS.CLOCK.WIRE), 1'b0,
-		@$(SLAVE.PORTLIST),
-		w_console_tx_stb, w_console_tx_data, w_console_busy,
-		w_console_rx_stb, w_console_rx_data,
-		uartrx_int, uarttx_int, uartrxf_int, uarttxf_int,
-		uart_debug
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)), .i_reset(1'b0),
+		@$(SLAVE.ANSIPORTLIST),
+		.o_uart_stb(w_console_tx_stb), .o_uart_data(w_console_tx_data),
+`ifdef	SMI_CONSOLE
+			.i_uart_busy(w_console_busy || smi_console_valid),
+`else
+			.i_uart_busy(w_console_busy),
+`endif
+		.i_uart_stb(w_console_rx_stb), .i_uart_data(w_console_rx_data),
+		.o_uart_rx_int(uartrx_int), .o_uart_tx_int(uarttx_int),
+		.o_uart_rxfifo_int(uartrxf_int),.o_uart_txfifo_int(uarttxf_int),
+		.o_debug(uart_debug)
 		// }}}
 	);
 	// }}}

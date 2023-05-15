@@ -56,7 +56,9 @@ module smi #(
 		//
 		output	wire		M_RX_VALID,
 		input	wire		M_RX_READY,
-		output	wire	[7:0]	M_RX_DATA
+		output	wire	[7:0]	M_RX_DATA,
+
+		output	wire	[31:0]	o_debug
 		// }}}
 		// }}}
 	);
@@ -234,7 +236,14 @@ module smi #(
 				fif_err, ifif_full, ofif_empty, ofif_data };
 
 		assign	o_smi_oen = &{ last_oen, ck_oen, pipe_oen, i_smi_oen };
-		// }}}
+
+		assign	o_debug = {
+				((last_oen && !ck_oen)||(last_wen && !ck_wen)),
+				last_oen, last_wen, ck_oen, ck_wen,
+				fif_err, ifif_full, ofif_empty, i_smi_sa,
+				(o_smi_oen) ? i_smi_data : o_smi_data
+			};
+
 
 		// Keep Verilator happy
 		// {{{
@@ -242,6 +251,7 @@ module smi #(
 		wire	unused;
 		assign	unused = &{ 1'b0, ign_ifif_fill, ign_ofif_fill };
 		// Verilator lint_on  UNUSED
+		// }}}
 		// }}}
 	end endgenerate
 

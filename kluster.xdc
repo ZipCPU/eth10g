@@ -139,6 +139,9 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 ## SMI
 ## {{{
+#set_property -dict {PACKAGE_PIN AC24 IOSTANDARD LVCMOS33} [get_ports i_smi_oen]
+#set_property -dict {PACKAGE_PIN W23  IOSTANDARD LVCMOS33} [get_ports i_smi_wen]
+
 #set_property -dict {PACKAGE_PIN AB26 IOSTANDARD LVCMOS33} [get_ports i_smi_sa[0]]
 #set_property -dict {PACKAGE_PIN V26  IOSTANDARD LVCMOS33} [get_ports i_smi_sa[1]]
 #set_property -dict {PACKAGE_PIN U24  IOSTANDARD LVCMOS33} [get_ports i_smi_sa[2]]

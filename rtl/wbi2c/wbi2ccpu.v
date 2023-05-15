@@ -67,17 +67,17 @@
 //	4'h0		NOP
 //	4'h1		START
 //	4'h2		STOP
-//	4'h3		RXK
-//	4'h4		RXN	// RX byte, NAK result
-//	4'h5		RXLK	// Cn't include STOP, bc we might want rptd strt
-//	4'h6		RXLN	// ditto
-//	4'h7		SEND
+//	4'h3		SEND
+//	4'h4		RXK
+//	4'h5		RXN	// RX byte, NAK result
+//	4'h6		RXLK	// Cn't include STOP, bc we might want rptd strt
+//	4'h7		RXLN	// ditto
 //	4'h8		WAIT
 //	4'h9		HALT
 //	4'ha		ABORT
 //	4'hb		TARGET
 //	4'hc		JUMP
-//	4'hd		(Undef/Illegal Insn)
+//	4'hd		CHANNEL
 //	4'he		(Undef/Illegal Insn)
 //	4'hf		(Undef/Illegal Insn)
 // }}}
@@ -116,6 +116,7 @@ module	wbi2ccpu #(
 		parameter	ADDRESS_WIDTH = 29,
 		parameter	DATA_WIDTH = 32,
 		parameter	I2C_WIDTH = 8,
+		parameter	AXIS_ID_WIDTH = 0,
 		localparam	AW = ADDRESS_WIDTH,
 		localparam	DW = DATA_WIDTH,
 		localparam	RW = I2C_WIDTH,
@@ -170,6 +171,8 @@ module	wbi2ccpu #(
 		input	wire			M_AXIS_TREADY,
 		output	wire	[RW-1:0]	M_AXIS_TDATA,
 		output	wire			M_AXIS_TLAST,
+		output	wire [((AXIS_ID_WIDTH > 0) ? (AXIS_ID_WIDTH-1):0):0]
+						M_AXIS_TID,
 		// OPT output wire		M_AXIS_TABORT,
 		// }}}
 		input	wire		i_sync_signal,
@@ -206,16 +209,17 @@ module	wbi2ccpu #(
 	localparam	[3:0]	CMD_NOOP  = 4'h0,
 				// CMD_START = 4'h1,
 				CMD_STOP  = 4'h2,
-				// CMD_RXK   = 4'h3,
-				// CMD_RXN   = 4'h4,
-				// CMD_RXLK  = 4'h5,
-				// CMD_RXLN  = 4'h6,
-				CMD_SEND  = 4'h7,
+				CMD_SEND  = 4'h3,
+				CMD_RXK   = 4'h4,
+				CMD_RXN   = 4'h5,
+				CMD_RXLK  = 4'h6,
+				CMD_RXLN  = 4'h7,
 				CMD_WAIT  = 4'h8,
 				CMD_HALT  = 4'h9,
 				CMD_ABORT = 4'ha,
 				CMD_TARGET= 4'hb,
-				CMD_JUMP  = 4'hc;
+				CMD_JUMP  = 4'hc,
+				CMD_CHANNEL = 4'hd;
 	// }}}
 
 	wire			cpu_reset, cpu_clear_cache;
@@ -418,6 +422,7 @@ module	wbi2ccpu #(
 
 	// half_valid
 	// {{{
+	initial	half_valid = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset || i2c_abort || r_manual || bus_manual)
 		half_valid <= 1'b0;
@@ -426,6 +431,7 @@ module	wbi2ccpu #(
 		half_valid <= 1'b0;
 
 		if (next_insn[7:4] != CMD_SEND
+				&& next_insn[7:4] != CMD_CHANNEL
 				&& next_insn[3:0] != CMD_NOOP
 				&& next_insn[7:4] != CMD_HALT)
 			half_valid <= 1'b1;
@@ -448,8 +454,10 @@ module	wbi2ccpu #(
 	if (i_reset || cpu_new_pc || cpu_clear_cache || i2c_abort)
 		imm_cycle <= 1'b0;
 	else if (!imm_cycle && (
-		(next_valid && next_insn[7:4]== CMD_SEND)
-		||(half_valid && half_ready && half_insn[3:0] == CMD_SEND)))
+		(next_valid && (next_insn[7:4]== CMD_SEND
+				|| next_insn[7:4]== CMD_CHANNEL))
+		||(half_valid && half_ready && (half_insn[3:0] == CMD_SEND
+					||half_insn[3:0] == CMD_CHANNEL))))
 		imm_cycle <= 1'b1;
 	else begin
 		if (bus_jump)
@@ -460,7 +468,7 @@ module	wbi2ccpu #(
 `ifdef	FORMAL
 	always @(*)
 	if (!i_reset && imm_cycle)
-		assert(insn[11:8] == CMD_SEND);
+		assert(insn[11:8] == CMD_SEND || insn[11:8] == CMD_CHANNEL);
 `endif
 	// }}}
 
@@ -523,8 +531,9 @@ module	wbi2ccpu #(
 	else if (OPT_MANUAL && (r_manual || bus_manual))
 		insn_valid <= 1'b0;
 	else if (next_valid)
-		insn_valid <= imm_cycle || next_insn[7:4] != CMD_SEND;
-	else if ((!half_valid || half_insn == CMD_SEND) && s_tready)
+		insn_valid <= imm_cycle || (next_insn[7:4] != CMD_SEND
+					&& next_insn[7:4] != CMD_CHANNEL);
+	else if ((!half_valid || half_insn == CMD_SEND || half_insn == CMD_CHANNEL) && s_tready)
 		insn_valid <= 1'b0;
 
 `ifdef	FORMAL
@@ -532,7 +541,8 @@ module	wbi2ccpu #(
 	if (!i_reset && half_valid)
 	begin
 		assert(insn_valid);
-		assert(insn[11:8] != CMD_HALT && insn[11:8] != CMD_SEND);
+		assert(insn[11:8] != CMD_HALT && insn[11:8] != CMD_SEND
+				&& insn[11:8] != CMD_CHANNEL);
 		assert(!imm_cycle);
 	end
 `endif
@@ -572,7 +582,7 @@ module	wbi2ccpu #(
 	always @(posedge i_clk)
 	if (i_reset)
 		ckcount <= DEF_CKCOUNT;
-	else if (bus_write && bus_write_addr == ADR_CKCOUNT && (&i_wb_sel))
+	else if (bus_write && bus_write_addr == ADR_CKCOUNT && (&bus_write_strb))
 		ckcount <= bus_write_data[11:0];
 	// }}}
 
@@ -851,6 +861,51 @@ module	wbi2ccpu #(
 		// }}}
 	);
 `endif
+
+	// mid_axis_pkt, r_channel
+	// {{{
+	generate if (AXIS_ID_WIDTH > 0)
+	begin : GEN_TID
+		reg	mid_axis_pkt;
+		reg	[AXIS_ID_WIDTH-1:0]	r_channel, axis_tid;
+
+		always @(posedge i_clk)
+		if (i_reset || r_halted)
+			mid_axis_pkt <= 0;
+		else if (s_tvalid && insn_ready
+				&& (insn[10:8] == CMD_RXK[2:0]
+					||insn[10:8] == CMD_RXN[2:0]
+					||insn[10:8] == CMD_RXLK[2:0]
+					||insn[10:8] == CMD_RXLN[2:0]))
+			mid_axis_pkt <= 1;
+		else if (M_AXIS_TVALID && M_AXIS_TREADY)
+			mid_axis_pkt <= !M_AXIS_TLAST;
+
+		always @(posedge i_clk)
+		if (i_reset)
+			r_channel <= 0;
+		else if (insn_valid && insn[11:8] == CMD_CHANNEL && s_tready)
+			r_channel <= insn[AXIS_ID_WIDTH-1:0];
+
+		initial	axis_tid = 0;
+		always @(posedge i_clk)
+		if (i_reset)
+			axis_tid <= 0;
+		else if (!M_AXIS_TVALID || M_AXIS_TREADY)
+		begin
+			if (insn_valid && insn[11:8] == CMD_CHANNEL
+					&& s_tready && !mid_axis_pkt)
+				axis_tid <= insn[AXIS_ID_WIDTH-1:0];
+			else if (M_AXIS_TVALID && M_AXIS_TREADY && M_AXIS_TLAST)
+				axis_tid <= r_channel;
+			else if (!mid_axis_pkt)
+				axis_tid <= r_channel;
+		end
+
+		assign	M_AXIS_TID = axis_tid;
+	end else begin : NO_TID
+		assign	M_AXIS_TID = 1'b0;
+	end endgenerate
 	// }}}
 
 	assign	o_debug = { !r_halted || insn_valid, ovw_data[OVW_VALID],
@@ -1001,6 +1056,12 @@ module	wbi2ccpu #(
 		assume($stable(m_tdata));
 		assume($stable(m_tlast));
 	end
+
+	always @(posedge i_clk)
+	if (!f_past_valid || $past(i_reset))
+	begin
+	end else if ($past(m_tvalid && !M_AXIS_TREADY))
+		assert($stable(M_AXIS_TID));
 
 	assign	M_AXIS_TVALID = m_tvalid;
 	assign	M_AXIS_TDATA  = m_tdata;

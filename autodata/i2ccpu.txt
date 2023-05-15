@@ -44,6 +44,7 @@
 @SGP=@$(BUS.PREFIX)
 @WBP=@$(SLAVE.BUS.PREFIX)
 @MASTER.ANSPREFIX=pf_
+@IDW=2
 @TOP.PORTLIST=
 			io_@$(PREFIX)_sda, io_@$(PREFIX)_scl,
 			o_i2c_mxrst_n
@@ -115,8 +116,11 @@
 	// I2C Controller
 	// {{{
 	// Verilator lint_off UNUSED
+	localparam	I2C_ID_WIDTH=(@$(IDW) == 0) ? 1 : @$(IDW);
+
 	wire		@$(PREFIX)_valid, @$(PREFIX)_ready, @$(PREFIX)_last;
 	wire	[7:0]	@$(PREFIX)_data;
+	wire	[I2C_ID_WIDTH-1:0]	@$(PREFIX)_id;
 
 	wire	[31:0]	@$(PREFIX)_debug;
 	// Verilator lint_on  UNUSED
@@ -129,7 +133,8 @@
 
 	wbi2ccpu #(
 		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)),
-		.DATA_WIDTH(@$(MASTER.BUS.WIDTH))
+		.DATA_WIDTH(@$(MASTER.BUS.WIDTH)),
+		.AXIS_ID_WIDTH(@$(IDW))
 	) @$(PREFIX)i (
 		// {{{
 		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)), .i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
@@ -139,6 +144,7 @@
 		.o_i2c_sda(o_@$(PREFIX)_sda), .o_i2c_scl(o_@$(PREFIX)_scl),
 		.M_AXIS_TVALID(@$(PREFIX)_valid), .M_AXIS_TREADY(@$(PREFIX)_ready),
 			.M_AXIS_TDATA(@$(PREFIX)_data), .M_AXIS_TLAST(@$(PREFIX)_last),
+			.M_AXIS_TID(@$(PREFIX)_id),
 		.i_sync_signal(1'b0),
 		//
 		.o_debug(@$(PREFIX)_debug)

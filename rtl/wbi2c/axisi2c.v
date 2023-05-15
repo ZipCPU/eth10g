@@ -13,16 +13,17 @@
 //	3'h0,8'hxx	NOP
 //	3'h1,8'hxx	START
 //	3'h2,8'hxx	STOP	(Ignored if we are already busy)
-//	3'h3,8'hxx	RXK
-//	3'h4,8'hxx	RXN
-//	3'h5,8'hxx	RXLK
-//	3'h6,8'hxx	RXLN
-//	3'h7,8'hdata	SEND
+//	3'h3,8'hdata	SEND
+//	3'h4,8'hxx	RXK
+//	3'h5,8'hxx	RXN
+//	3'h6,8'hxx	RXLK
+//	3'h7,8'hxx	RXLN
 //	(4'h8)		WAIT	(for external interrupt.  Handled externally)
 //	(4'h9)		HALT
 //	(4'ha)		ABORT	(Return here following an unexpected NAK)
 //	(4'hb)		TARGET	(Return here on any jump)
 //	(4'hc)		JUMP	(Useful for repeats, handled externally)
+//	(4'hd)		CHANNEL	(Sets the outgoing AXI stream channel ID)
 // }}}
 //
 // Creator:	Dan Gisselquist, Ph.D.
@@ -88,30 +89,30 @@ module axisi2c #(
 	// Parameter, enumerations, and state declarations
 	// {{{
 	localparam [3:0]	IDLE_STOPPED  = 4'h0,
-				START   = 4'h1,
+				START		= 4'h1,
 				IDLE_ACTIVE   = 4'h2,
-				STOP    = 4'h3,
-				DATA    = 4'h4,
-				CLOCK   = 4'h5,
-				ACK     = 4'h6,
-				CKACKLO = 4'h7,
-				CKACKHI = 4'h8,
-				RXNAK   = 4'h9,
-				ABORT   = 4'ha,
+				STOP	= 4'h3,
+				DATA	= 4'h4,
+				CLOCK	= 4'h5,
+				ACK	= 4'h6,
+				CKACKLO	= 4'h7,
+				CKACKHI	= 4'h8,
+				RXNAK	= 4'h9,
+				ABORT	= 4'ha,
 				REPEAT_START = 4'hb,
 				REPEAT_START2= 4'hc;
 				// INIT  = 4'hd;	// Wait for SDA && SCL?
 
 	localparam	D_RD = 1'b0, D_WR = 1'b1;
 
-	localparam	[2:0]	CMD_NOOP  = 3'h0,
-				CMD_START = 3'h1,
-				CMD_STOP  = 3'h2,
-				CMD_RXK   = 3'h3,
-				CMD_RXN   = 3'h4,
-				CMD_RXLK  = 3'h5,
-				CMD_RXLN  = 3'h6,
-				CMD_SEND  = 3'h7;
+	localparam	[2:0]	CMD_NOOP	= 3'h0,
+				CMD_START	= 3'h1,
+				CMD_STOP	= 3'h2,
+				CMD_SEND	= 3'h3,
+				CMD_RXK		= 3'h4,
+				CMD_RXN		= 3'h5,
+				CMD_RXLK	= 3'h6,
+				CMD_RXLN	= 3'h7;
 
 	localparam [0:0]	OPT_ABORT_REQUEST = 1'b0;
 	// }}}
@@ -947,24 +948,24 @@ module axisi2c #(
 	begin
 		case(cvr_state)
 		4'h0: begin
-			cover(S_AXIS_TREADY);		// Step 1
+			cover(S_AXIS_TREADY);			// Step   1
 			end
 		4'h1: begin
-			cover(S_AXIS_TREADY);		// Step 5
+			cover(S_AXIS_TREADY);			// Step   5
 			assert(nbits == 0);
 			end
 		4'h2: begin
 			// Measure 5-6 cycles per clock
-			cover(S_AXIS_TREADY);		// Step 57
+			cover(S_AXIS_TREADY);			// Step  57
 			end
 		4'h3: begin
 			// Measure 5-6 cycles per clock
-			cover(S_AXIS_TREADY);	// Step 101
+			cover(S_AXIS_TREADY);			// Step 101
 			end
 		4'h4: begin
-			cover(S_AXIS_TREADY && nvr_abort);	// 115
+			cover(S_AXIS_TREADY && nvr_abort);	// Step 115
 			end
-		4'h5: cover(S_AXIS_TREADY);	// Step 161
+		4'h5: cover(S_AXIS_TREADY);			// Step 161
 		4'h6: cover(S_AXIS_TREADY);
 		default: assert(0);
 		endcase
@@ -978,8 +979,8 @@ module axisi2c #(
 	begin
 		if (M_AXIS_TVALID && state == IDLE_STOPPED)
 		begin
-			cover( M_AXIS_TLAST && M_AXIS_TDATA == 8'h9f); // S 53
-			cover(!M_AXIS_TLAST && M_AXIS_TDATA == 8'ha5); // S 53
+			cover( M_AXIS_TLAST && M_AXIS_TDATA == 8'h9f); // S 54
+			cover(!M_AXIS_TLAST && M_AXIS_TDATA == 8'ha5); // S 54
 		end
 	end
 	// }}}
@@ -1039,15 +1040,15 @@ module axisi2c #(
 		cover(cvr_send == 4'h1);	// Step  3
 		cover(cvr_send == 4'h2);	// Step  5
 		cover(cvr_send == 4'h3);	// Step 50
-		cover(cvr_send == 4'h4);	// Step 53
+		cover(cvr_send == 4'h4);	// Step 54
 		//
-		cover(cvr_send == 4'h8);
-		cover(cvr_send == 4'h9);
-		cover(cvr_send == 4'ha);	// Step 7
-		cover(cvr_send == 4'hb);	// Step 8
+		cover(cvr_send == 4'h8);	// Step  3
+		cover(cvr_send == 4'h9);	// Step  5
+		cover(cvr_send == 4'ha);	// Step  7
+		cover(cvr_send == 4'hb);	// Step  9
 
-		cover(cvr_send == 4'hc);	//
-		cover(cvr_send == 4'hd);	//
+		cover(cvr_send == 4'hc);	// Step  7
+		cover(cvr_send == 4'hd);	// Step 17
 	end
 	// }}}
 

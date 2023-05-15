@@ -69,6 +69,8 @@ module	wbfan (
 
 	// Local declarations
 	// {{{
+	localparam	CK_PER_SECOND = 200_000_000,
+			CK_PER_MS = (CK_PER_SECOND / 1000);
 	reg	[31:0]	pwm_counter;
 	wire	[31:0]	pwm_brev;
 	reg	[31:0]	ctl_fpga, ctl_sys;
@@ -76,8 +78,8 @@ module	wbfan (
 	reg		ck_tach, last_tach;
 	reg	[1:0]	pipe_tach;
 	reg		tach_reset;
-	reg	[31:0]	tach_count, tach_counter;
-	reg	[31:0]	tach_timer;
+	reg	[$clog2(CK_PER_SECOND)-1:0]	tach_count, tach_counter,
+			tach_timer;
 
 	wire		i2c_wb_stall, i2c_wb_ack;
 	wire	[31:0]	i2c_wb_data;
@@ -88,11 +90,11 @@ module	wbfan (
 	reg	[7:0]	mem_data;
 	reg		mem_ack;
 
-	wire		i2cd_valid, i2cd_last;
+	wire		i2cd_valid, i2cd_last, ign_i2cd_id;
 	wire	[7:0]	i2cd_data;
 
 	reg		pp_ms;
-	reg	[17:0]	trigger_counter;
+	reg	[$clog2(CK_PER_MS)-1:0]	trigger_counter;
 
 	reg	[7:0]	temp_tmp;
 	reg	[15:0]	temp_data;
@@ -182,7 +184,7 @@ module	wbfan (
 	end else if (tach_reset)
 	begin
 		tach_reset <= 1'b0;
-		tach_timer <= 200_000_000-1;
+		tach_timer <= CK_PER_SECOND[$clog2(CK_PER_SECOND)-1:0]-1;
 		tach_count <= tach_counter;
 		tach_counter <= (ck_tach && !last_tach) ? 1 : 0;
 	end else begin
@@ -205,11 +207,11 @@ module	wbfan (
 	if (i_reset)
 	begin
 		pp_ms <= 1'b0;
-		trigger_counter <= 200_000-1;
+		trigger_counter <= CK_PER_MS[$clog2(CK_PER_MS)-1:0]-1;
 	end else if (trigger_counter == 0)
 	begin
 		pp_ms <= 1'b0;
-		trigger_counter <= 200_000-1;
+		trigger_counter <= CK_PER_MS[$clog2(CK_PER_MS)-1:0]-1;
 	end else begin
 		pp_ms <= (trigger_counter <= 1);
 		trigger_counter <= trigger_counter - 1;
@@ -235,6 +237,7 @@ module	wbfan (
 		// {{{
 		.ADDRESS_WIDTH(4),
 		.DATA_WIDTH(8),
+		.AXIS_ID_WIDTH(0),
 		.OPT_START_HALTED(1'b0),
 		.DEF_CKCOUNT(200)
 		// }}}
@@ -260,6 +263,7 @@ module	wbfan (
 		.M_AXIS_TVALID(i2cd_valid),
 		.M_AXIS_TREADY(1'b1),
 		.M_AXIS_TDATA(i2cd_data),
+		.M_AXIS_TID(ign_i2cd_id),
 		.M_AXIS_TLAST(i2cd_last),
 		//
 		.i_sync_signal(pp_ms),
@@ -275,19 +279,21 @@ module	wbfan (
 	always @(posedge i_clk)
 	if (mem_stb)
 	case(mem_addr)
-	4'd00:	mem_data <= 8'hb0;
-	4'd01:	mem_data <= 8'ha0;
-	4'd02:	mem_data <= 8'h81;
-	4'd03:	mem_data <= 8'h70;
-	4'd04:	mem_data <= 8'h90;
-	4'd05:	mem_data <= 8'h70;
-	4'd06:	mem_data <= 8'h00;
-	4'd07:	mem_data <= 8'h17;
-	4'd08:	mem_data <= 8'h91;
-	4'd09:	mem_data <= 8'h36;
-	4'd10:	mem_data <= 8'h2c;
+	4'd00:	mem_data <= 8'hb0;	// TARGET
+	4'd01:	mem_data <= 8'hd0;	// CHANNEL
+	4'd02:	mem_data <= 8'h00;	//	#0
+	4'd03:	mem_data <= 8'ha0;	// ABORT
+	4'd04:	mem_data <= 8'h81;	// WAIT | START
+	4'd05:	mem_data <= 8'h30;	// SEND
+	4'd06:	mem_data <= 8'h90;	//	#90
+	4'd07:	mem_data <= 8'h30;	// SEND
+	4'd08:	mem_data <= 8'h00;	//	#00
+	4'd09:	mem_data <= 8'h13;	// START | SEND
+	4'd10:	mem_data <= 8'h91;	//	#91
+	4'd11:	mem_data <= 8'h47;	// RXK | RXLN
+	4'd12:	mem_data <= 8'h2c;	// JUMP
 	default:
-		mem_data <= 8'h00;
+		mem_data <= 8'h99;
 	endcase
 	// }}}
 
@@ -318,13 +324,16 @@ module	wbfan (
 	always @(posedge i_clk)
 	if (i_reset || !i_wb_stb || i_wb_addr[2])
 		pre_data <= 0;
-	else case(i_wb_addr[1:0])
-	2'b00: pre_data <= ctl_fpga;
-	2'b01: pre_data <= ctl_sys;
-	2'b10: pre_data <= tach_count;
-	2'b11: pre_data <= { {(16){temp_data[15]}}, temp_data };
-	default: pre_data <= 32'h0;
-	endcase
+	else begin
+		pre_data <= 0;
+		case(i_wb_addr[1:0])
+		2'b00: pre_data <= ctl_fpga;
+		2'b01: pre_data <= ctl_sys;
+		2'b10: pre_data[$clog2(CK_PER_SECOND)-1:0] <= tach_count;
+		2'b11: pre_data <= { {(16){temp_data[15]}}, temp_data };
+		default: pre_data <= 32'h0;
+		endcase
+	end
 
 	assign	o_wb_stall = i2c_wb_stall;
 
@@ -348,6 +357,6 @@ module	wbfan (
 	// {{{
 	wire	unused;
 	assign	unused = &{ 1'b0, ign_mem_cyc, ign_mem_we, ign_mem_data,
-			ign_mem_sel };
+			ign_mem_sel, ign_i2cd_id };
 	// }}}
 endmodule

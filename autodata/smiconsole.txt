@@ -1,0 +1,139 @@
+################################################################################
+##
+## Filename: 	smiconsole.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Provide access to both a debugging bus and a console port for
+##		the CPU.  The debugging bus will be given 7-bit transfer codes
+##	with the high bit set, the console the same codes but with bit 8 clear.
+##
+##	This particular version of the console uses the wbu (wishbone to UART)
+##	debugging bus.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=smi
+@ACCESS=SMI_CONSOLE
+@TOP.PORTLIST=
+		// SMI
+		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa, io_@$(PREFIX)_sd
+@TOP.IODECL=
+	// SMI
+	input	wire		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen;
+	input	wire	[5:0]	i_@$(PREFIX)_sa;
+	inout	wire	[17:0]	io_@$(PREFIX)_sd;
+@TOP.DEFNS=
+	// SMI
+	genvar		@$(PREFIX)_gk;
+	wire		w_@$(PREFIX)_oen;
+	wire	[17:0]	i_@$(PREFIX)_sd;
+	wire	[17:0]	o_@$(PREFIX)_sd;
+@TOP.INSERT=
+	generate for (@$(PREFIX)_gk=0; @$(PREFIX)_gk<18; @$(PREFIX)_gk=@$(PREFIX)_gk+1)
+	begin : GEN_SMI
+		IOBUF u_@$(PREFIX)io (
+			.I(o_@$(PREFIX)_sd[@$(PREFIX)_gk]),
+			.O(i_@$(PREFIX)_sd[@$(PREFIX)_gk]),
+			.T(!w_@$(PREFIX)_oen),
+			.IO(io_@$(PREFIX)_sd[@$(PREFIX)_gk])
+		);
+	end endgenerate
+@TOP.MAIN=
+		// SMI bus control
+		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa,
+		i_@$(PREFIX)_sd, o_@$(PREFIX)_sd, w_@$(PREFIX)_oen
+@MAIN.PORTLIST=
+		// SMI
+		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa,
+		i_@$(PREFIX)_sd, o_@$(PREFIX)_sd, o_@$(PREFIX)_oen
+@MAIN.IODECL=
+	// SMI I/Os
+	// {{{
+	input	wire	i_@$(PREFIX)_oen, i_@$(PREFIX)_wen;
+	input	wire	[5:0]	i_@$(PREFIX)_sa;
+	input wire	[17:0]	i_@$(PREFIX)_sd;
+	output wire	[17:0]	o_@$(PREFIX)_sd;
+	output wire		o_@$(PREFIX)_oen;
+	// }}}
+@MAIN.DEFNS=
+	// SMI BUS/Console definition
+	// {{{
+	wire		@$(PREFIX)_console_valid, @$(PREFIX)_console_ready;
+	// Verilator lint_off UNUSED
+	wire	[7:0]	@$(PREFIX)_console_data;
+
+	wire		ign_@$(PREFIX)_ready;
+	wire	[31:0]	@$(PREFIX)_debug;
+	// Verilator lint_on  UNUSED
+	// }}}
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// SMI (Console version)
+	// {{{
+
+	smi #(
+		.OPT_ASYNC(1'b0), .LGFIFO(8)
+	) u_@$(PREFIX) (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+		// SMI interface
+		.i_smi_oen(	i_@$(PREFIX)_oen),
+		.i_smi_wen(	i_@$(PREFIX)_wen),
+		.i_smi_sa(	i_@$(PREFIX)_sa),
+		.i_smi_data(	i_@$(PREFIX)_sd),
+		.o_smi_data(	o_@$(PREFIX)_sd),
+		.o_smi_oen(	o_@$(PREFIX)_oen),
+		// AXI Stream interfaces
+		.S_TX_VALID(w_console_rx_stb),
+		.S_TX_READY(ign_@$(PREFIX)_ready),
+		.S_TX_DATA({ 1'b0, w_console_rx_data }),
+		//
+		.M_RX_VALID(@$(PREFIX)_console_valid),
+		.M_RX_READY(@$(PREFIX)_console_ready),
+		.M_RX_DATA(@$(PREFIX)_console_data),
+		//
+		.o_debug(@$(PREFIX)_debug)
+		// }}}
+	);
+
+	// }}}
+@RTL.MAKE.GROUP=SMI
+@RTL.MAKE.SUBD=smi
+@RTL.MAKE.FILES= smi.v
+@SIM.INCLUDE=
+// #include <smi.h>
+@SIM.CLOCK=@$(CLOCK.NAME)
+@SIM.DEFNS=
+	// SMISIM	m_@$(PREFIX);	// Not implemented (yet)
+@SIM.INIT=
+		// m_@$(PREFIX) = new SMISIM();
+@SIM.TICK=
+		// m_core->i_@$(PREFIX)_sd = (*m_@$(PREFIX))(m_core->o_@$(PREFIX)_oen ? m_core->o_@$(PREFIX)_sd : m_core->i_@$(PREFIX)_sd);
+		// m_core->i_@$(PREFIX)_sa = (m_core->i_@$(PREFIX)_sd)>>18) & 0x03f;
+		// m_core->i_@$(PREFIX)_oen = (m_core->i_@$(PREFIX)_sd)>>24) & 0x01;
+		// m_core->i_@$(PREFIX)_wen = (m_core->i_@$(PREFIX)_sd)>>25) & 0x01;
