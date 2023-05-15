@@ -88,7 +88,7 @@ module wbscopc #(
 		input	wire	[(BUSW-1):0]	i_wb_data,
 		input	wire	[(BUSW/8-1):0]	i_wb_sel,
 		output	wire			o_wb_stall, o_wb_ack,
-		output	reg	[(BUSW-1):0]	o_wb_data,
+		output	wire	[(BUSW-1):0]	o_wb_data,
 		// }}}
 		// And, finally, for a final flair --- offer to interrupt the
 		// CPU after our trigger has gone off.  This line is equivalent
