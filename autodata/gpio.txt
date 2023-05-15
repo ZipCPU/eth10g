@@ -36,7 +36,7 @@
 @NADDR=1
 @ACCESS=@$(DEVID)_ACCESS
 @NGPI=16
-@NGPO=5
+@NGPO=8
 @SLAVE.TYPE=SINGLE
 @SLAVE.BUS=wb32
 # @SINGLE.OUTPUTS= o_gpio
@@ -45,13 +45,14 @@
 @INT.GPIO.PIC=altpic
 @TOP.PORTLIST=
 		// @$(DEVID) ports
-		i_pi_reset, i_soft_reset,
-		o_tp, o_si5324_rst, i_si5324_int
+		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n,
+		o_tp, o_si5324_rst, i_si5324_int,
+		o_hdmirx_hpd_n
 @TOP.IODECL=
 	// GPIO wires
-	input	wire		i_pi_reset, i_soft_reset;
+	input	wire		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n;
 	output	wire	[3:0]	o_tp;
-	output	wire		o_si5324_rst;
+	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
 	input	wire		i_si5324_int;
 @TOP.DEFNS=
 	// GPIO declarations.  The two wire busses are just virtual lists of
@@ -62,10 +63,13 @@
 		// GPIO wires
 		i_@$(PREFIX), o_@$(PREFIX)
 @TOP.INSERT=
-	assign	i_gpio = { 13'h0, i_si5324_int, sysclk_locked,
+	assign	i_gpio = { 11'h0, i_hdmitx_hpd_n, i_si5324_int, sysclk_locked,
 				i_pi_reset, i_soft_reset };
 	assign	o_tp = o_gpio[3:0];
 	assign	o_si5324_rst = o_gpio[4];
+	assign	o_hdmirx_hpd_n = o_gpio[5];
+	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
+	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
 @MAIN.PORTLIST=
 		// GPIO ports
 		i_@$(PREFIX), o_@$(PREFIX)
@@ -84,7 +88,13 @@
 	// and another 16 @$(DEVID) outputs.  The interrupt trips when any of
 	// the inputs changes.  (Sorry, which input isn't (yet) selectable.)
 	//
-	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 5'h0;
+	// Initially set:
+	//	4x Test points to zero
+	//	SI5324 reset to 0 (active)
+	//	HDMI RX as *not* present
+	//	*TRACE* defaults to OFF
+	//	*ERROR* defaults to NONE (0)
+	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 8'h20;
 
 	wbgpio	#(
 		.NIN(NGPI), .NOUT(NGPO), .DEFAULT(INITIAL_@$(DEVID))
@@ -106,6 +116,7 @@
 #define	GPIO_PI_RESET		0x000020000
 #define	GPIO_SYSCLK_LOCKED	0x000040000
 #define	GPIO_SI_INT		0x000080000
+#define	GPIO_HDMITXD		0x000100000
 //
 // @$(DEVID) output wires
 //
@@ -117,20 +128,36 @@
 #define	GPIO_TP2		0x000000004
 #define	GPIO_TP3		0x000000008
 #define	GPIO_SIRESET		0x000000010
+#define	GPIO_HDMIRXD		0x000000020
+#define	GPIO_TRACE		0x000000040	// SIM ONLY
+#define	GPIO_ERROR		0x000000080	// SIM ONLY
 //
-#define	GPIO_TP0_SET	GPIO_SET(GPIO_TP0)
-#define	GPIO_TP0_CLR	GPIO_CLR(GPIO_TP0)
-#define	GPIO_TP1_SET	GPIO_SET(GPIO_TP1)
-#define	GPIO_TP1_CLR	GPIO_CLR(GPIO_TP1)
-#define	GPIO_TP2_SET	GPIO_SET(GPIO_TP2)
-#define	GPIO_TP2_CLR	GPIO_CLR(GPIO_TP2)
-#define	GPIO_TP3_SET	GPIO_SET(GPIO_TP3)
-#define	GPIO_TP3_CLR	GPIO_CLR(GPIO_TP3)
+#define	GPIO_TP0_SET		GPIO_SET(GPIO_TP0)
+#define	GPIO_TP0_CLR		GPIO_CLR(GPIO_TP0)
+#define	GPIO_TP1_SET		GPIO_SET(GPIO_TP1)
+#define	GPIO_TP1_CLR		GPIO_CLR(GPIO_TP1)
+#define	GPIO_TP2_SET		GPIO_SET(GPIO_TP2)
+#define	GPIO_TP2_CLR		GPIO_CLR(GPIO_TP2)
+#define	GPIO_TP3_SET		GPIO_SET(GPIO_TP3)
+#define	GPIO_TP3_CLR		GPIO_CLR(GPIO_TP3)
 #define	GPIO_SIRESET_SET	GPIO_SET(GPIO_SIRESET)
 #define	GPIO_SIRESET_CLR	GPIO_CLR(GPIO_SIRESET)
+#define	GPIO_HDMIRXD_SET	GPIO_SET(GPIO_HDMIRXD)
+#define	GPIO_HDMIRXD_CLR	GPIO_CLR(GPIO_HDMIRXD)
+#define	GPIO_TRACE_SET		GPIO_SET(GPIO_TRACE)
+#define	GPIO_TRACE_CLR		GPIO_CLR(GPIO_TRACE)
+#define	GPIO_ERROR_SET		GPIO_SET(GPIO_ERROR)
+#define	GPIO_ERROR_CLR		GPIO_CLR(GPIO_ERROR)
+#define	SET_TRACE		(*_@$(PREFIX)) = GPIO_TRACE_SET
+#define	CLR_TRACE		(*_@$(PREFIX)) = GPIO_TRACE_CLR
 @BDEF.IONAME=	i_@$(PREFIX)
 @BDEF.IOTYPE=	unsigned
 @BDEF.OSDEF=	_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=	static volatile @$.BDEF.IOTYPE *const _@$(PREFIX) = ((@$.BDEF.IOTYPE *)@$[0x%08x](REGBASE));
 @RTL.MAKE.FILES=wbgpio.v
 @RTL.MAKE.GROUP=@$(DEVID)
+@SIM.CLOCK=clk
+@SIM.INIT=
+		m_core->i_gpio = 16;
+@SIM.TICK=
+		pausetrace((m_core->o_@$(PREFIX) & 0x040) ? false:true);
