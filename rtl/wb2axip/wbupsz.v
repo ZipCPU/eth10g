@@ -129,7 +129,7 @@ module wbupsz #(
 		initial	r_data  = 0;
 		initial	r_sel   = 0;
 		always @(posedge i_clk)
-		if (i_reset || o_serr || (o_wcyc && i_werr))
+		if (i_reset || !i_scyc || o_serr || (o_wcyc && i_werr))
 		begin
 			// {{{
 			r_stb   <= 1'b0;
@@ -155,7 +155,8 @@ module wbupsz #(
 			end
 			r_shift  <= w_shift;
 			// }}}
-		end
+		end else if (!i_wstall)
+			r_stb <= 1'b0;
 
 		assign	o_wcyc  = r_cyc;
 		assign	o_wstb  = r_stb && !fifo_full;
