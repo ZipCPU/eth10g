@@ -54,7 +54,7 @@ NETWORK :=				#
 GFX     :=				# wboledbw.txt hdmitx.txt hdmirx.txt
 SCOPES  :=
 LDSCRIPT:= mem_bkram_only.txt mem_flash_bkram.txt mem_bootrom_bkram.txt mem_sdram_only.txt
-OTHER   := i2ccpu.txt fan.txt sirefclk.txt
+OTHER   := i2ccpu.txt fan.txt sirefclk.txt smiscope.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\
 	$(SCOPES) $(LDSCRIPT) $(OTHER)
