@@ -87,7 +87,7 @@ module	wbuidleint(
 	// Now, for the idle counter
 	initial	idle_counter = 0;
 	always @(posedge i_clk)
-	if (i_reset || (i_stb)||(o_stb)||(i_busy))
+	if (i_reset||i_stb||o_stb||i_busy)
 		idle_counter <= 0;
 	else if (!idle_counter[IDLEBITS-1])
 		idle_counter <= idle_counter + 1;
@@ -131,7 +131,8 @@ module	wbuidleint(
 				// either an interrupt or an idle indicator.
 				// The bus busy indicator is really only ever
 				// used to let us know that something's broken.
-				o_stb <= (!o_stb)&&(int_request || idle_expired);
+				o_stb <= (!o_stb)&&((int_request&&!int_sent)
+							|| idle_expired);
 	
 				if (int_request && !int_sent)
 					o_codword[35:30] <= CW_INTERRUPT[35:30];
