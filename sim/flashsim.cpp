@@ -328,20 +328,24 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				m_state = QSPIF_WRSR;
 			break;
 		case 0x02: // Page program
+			// {{{
 			if (2 != (m_sreg & 0x203)) {
 				if (m_debug) printf("FLASHSIM: Cannot program at this time, SREG = %x\n", m_sreg);
 				m_state = QSPIF_INVALID;
 			} else {
 				m_state = QSPIF_PP;
 				if (m_debug) printf("PAGE-PROGRAM COMMAND ACCEPTED\n");
+				m_cmd_addrlen = 24;
 			}
 			break;
+			// }}}
 		case 0x03: // Read data bytes
-			// Our clock won't support this command, so go
-			// to an invalid state
+			// {{{
 			if (m_debug) printf("FLASHSIM: SLOW-READ (single-bit)\n");
 			m_state = QSPIF_SLOW_READ;
+			m_cmd_addrlen = 24;
 			break;
+			// }}}
 		case 0x04: // Write disable
 			m_state = QSPIF_IDLE;
 			m_sreg &= (~QSPIF_WEL_FLAG);
@@ -360,11 +364,31 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 			if (m_debug) printf("FLASHSIM: FAST-READ (single-bit)\n");
 			m_state = QSPIF_FAST_READ;
 			break;
+		case 0x12: // Page program
+			// {{{
+			if (2 != (m_sreg & 0x203)) {
+				if (m_debug) printf("FLASHSIM: Cannot program at this time, SREG = %x\n", m_sreg);
+				m_state = QSPIF_INVALID;
+			} else {
+				m_state = QSPIF_PP;
+				if (m_debug) printf("PAGE-PROGRAM COMMAND ACCEPTED\n");
+				m_cmd_addrlen = 32;
+			}
+			break;
+			// }}}
+		case 0x13: // Read data bytes, 32b address
+			// {{{
+			if (m_debug) printf("FLASHSIM: SLOW-READ (single-bit)\n");
+			m_state = QSPIF_SLOW_READ;
+			m_cmd_addrlen = 32;
+			break;
+			// }}}
 		case 0x30:
 			if (m_debug) printf("FLASHSIM: CLEAR STATUS REGISTER COMMAND\n");
 			m_state = QSPIF_CLSR;
 			break;
 		case 0x32: // QUAD Page program, 4 bits at a time
+			// {{{
 			if (2 != (m_sreg & 0x203)) {
 				if (m_debug) printf("FLASHSIM: Cannot program at this time, SREG = %x\n", m_sreg);
 				m_state = QSPIF_INVALID;
@@ -372,8 +396,23 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				m_state = QSPIF_QPP;
 				if (m_debug) printf("FLASHSIM: QUAD-PAGE-PROGRAM COMMAND ACCEPTED\n");
 				if (m_debug) printf("FLASHSIM: pmem = %08lx\n", (unsigned long)m_pmem);
+				m_cmd_addrlen = 24;
 			}
 			break;
+			// }}}
+		case 0x34: // QUAD Page program, 4 bits at a time
+			// {{{
+			if (2 != (m_sreg & 0x203)) {
+				if (m_debug) printf("FLASHSIM: Cannot program at this time, SREG = %x\n", m_sreg);
+				m_state = QSPIF_INVALID;
+			} else {
+				m_state = QSPIF_QPP;
+				if (m_debug) printf("FLASHSIM: QUAD-PAGE-PROGRAM COMMAND ACCEPTED\n");
+				if (m_debug) printf("FLASHSIM: pmem = %08lx\n", (unsigned long)m_pmem);
+				m_cmd_addrlen = 32;
+			}
+			break;
+			// }}}
 		case 0x35: // Read configuration register
 			m_state = QSPIF_RDCR;
 			if (m_debug) printf("FLASHSIM: READING CONFIGURATION REGISTER: %02x\n", m_creg);
@@ -421,38 +460,62 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 			}
 			break;
 		case 0xbb: // Fast Read Dual I/O
+			// {{{
 			// printf("QSPI: DUAL-I/O-READ\n");
 			m_state = QSPIF_DUAL_READ_CMD;
 			m_mode = FM_DSPI;
+			m_cmd_addrlen = 24;
 			break;
-
+			// }}}
 		case 0xc7: // Bulk Erase
+			// {{{
 			if (2 != (m_sreg & 0x203)) {
 				if (m_debug) printf("FLASHSIM: WEL not set, cannot erase device\n");
 				m_state = QSPIF_INVALID;
 			} else
 				m_state = QSPIF_BULK_ERASE;
 			break;
+			// }}}
 		case 0xd8: // Sector Erase
+			// {{{
 			if (2 != (m_sreg & 0x203)) {
 				if (m_debug) printf("FLASHSIM: WEL not set, cannot erase sector\n");
 				m_state = QSPIF_INVALID;
 			} else {
 				m_state = QSPIF_SECTOR_ERASE;
 				if (m_debug) printf("FLASHSIM: SECTOR_ERASE COMMAND\n");
+				m_cmd_addrlen = 24;
 			}
 			break;
+			// }}}
+		case 0xdc: // Sector Erase, 32b address
+			// {{{
+			if (2 != (m_sreg & 0x203)) {
+				if (m_debug) printf("FLASHSIM: WEL not set, cannot erase sector\n");
+				m_state = QSPIF_INVALID;
+			} else {
+				m_state = QSPIF_SECTOR_ERASE;
+				if (m_debug) printf("FLASHSIM: SECTOR_ERASE COMMAND\n");
+				m_cmd_addrlen = 32;
+			}
+			break;
+			// }}}
 		case 0x0eb: // Here's the (other) read that we support
+			// {{{
 			// printf("QSPI: QUAD-I/O-READ\n");
 			m_state = QSPIF_QUAD_READ_CMD;
 			m_mode = FM_QSPI;
+			m_cmd_addrlen = 24;
 			break;
+			// }}}
 		case 0x0ec: // Same thing, but w/ 32b address
+			// {{{
 			// printf("QSPI: QUAD-I/O-READ (32b)\n");
 			m_state = QSPIF_QUAD_READ_CMD;
 			m_mode = FM_QSPI;
 			m_cmd_addrlen = 32;
 			break;
+			// }}}
 		case 0x000:	// Dummy implementation of CMD 8'h00
 		case 0x031:	// Dummy implementation of CMD 8'h31
 		case 0x0ff:	// Dummy implementation of CMD 8'hff

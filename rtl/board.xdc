@@ -375,7 +375,7 @@ set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat
 ## HDMI
 ## {{{
 #set_property -dict {PACKAGE_PIN N23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_cec]
-#set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVCMOS33} [get_ports o_hdmirx_hpd_n]
+set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVCMOS33} [get_ports o_hdmirx_hpd_n]
 #set_property -dict {PACKAGE_PIN P23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_scl]
 #set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_sda]
 
@@ -389,7 +389,7 @@ set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat
 #set_property -dict {PACKAGE_PIN L24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_clk_n]
 
 #set_property -dict {PACKAGE_PIN N26 IOSTANDARD LVCMOS33} [get_ports io_hdmitx_cec]
-#set_property -dict {PACKAGE_PIN M26 IOSTANDARD LVCMOS33} [get_ports i_hdmitx_hpd_n]
+set_property -dict {PACKAGE_PIN M26 IOSTANDARD LVCMOS33} [get_ports i_hdmitx_hpd_n]
 
 #set_property -dict {PACKAGE_PIN P19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[0]]
 #set_property -dict {PACKAGE_PIN P20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[0]]
@@ -428,55 +428,56 @@ set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVCMOS33} [get_ports o_tp[3]]
 
 ## Adding in any XDC_INSERT tags
 
-## No XDC.INSERT tag in mem_bootrom_bkram
-## No XDC.INSERT tag in mem_flash_bkram
-## No XDC.INSERT tag in mem_bkram_only
-## No XDC.INSERT tag in bkram
-## No XDC.INSERT tag in zip_alt_upc
-## No XDC.INSERT tag in zip_alt_uoc
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in zip_jiffies
-## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in TMA
-## No XDC.INSERT tag in wbflashdn
-## No XDC.INSERT tag in zip_dmac
-## No XDC.INSERT tag in zip_tmc
-## No XDC.INSERT tag in zip_tmb
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in REGISTER
-## No XDC.INSERT tag in i2c
-## No XDC.INSERT tag in mem_sdram_only
-## No XDC.INSERT tag in flash
-## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in altpic
-## No XDC.INSERT tag in SIM
-## No XDC.INSERT tag in clk
-## No XDC.INSERT tag in pixck
-## No XDC.INSERT tag in sdcard
-## No XDC.INSERT tag in zip_alt_mtc
-## No XDC.INSERT tag in REGDEFS
-## No XDC.INSERT tag in clk150
-## No XDC.INSERT tag in buildtime
-## No XDC.INSERT tag in siclk
-## No XDC.INSERT tag in wb32
-## No XDC.INSERT tag in wbdown
-## No XDC.INSERT tag in smi
-## No XDC.INSERT tag in uart
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in wb
-## No XDC.INSERT tag in KEYS
-## No XDC.INSERT tag in zip
-## No XDC.INSERT tag in XDC
-## No XDC.INSERT tag in zip_alt_mpc
-## No XDC.INSERT tag in version
-## No XDC.INSERT tag in clk200
-## No XDC.INSERT tag in wbu
-## No XDC.INSERT tag in flashcfg
-## No XDC.INSERT tag in gpio
-## No XDC.INSERT tag in spio
-## No XDC.INSERT tag in zip_alt_uic
-## No XDC.INSERT tag in wbu_arbiter
-## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in wbu_arbiter
+## No XDC.INSERT tag in scope_smi
+## No XDC.INSERT tag in spio
+## No XDC.INSERT tag in gpio
+## No XDC.INSERT tag in flashcfg
+## No XDC.INSERT tag in wbu
+## No XDC.INSERT tag in zip_alt_uic
+## No XDC.INSERT tag in clk200
+## No XDC.INSERT tag in version
+## No XDC.INSERT tag in zip_alt_mpc
+## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in KEYS
+## No XDC.INSERT tag in wb
+## No XDC.INSERT tag in RESET_ADDRESS
+## No XDC.INSERT tag in smi
+## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in wb32
+## No XDC.INSERT tag in siclk
+## No XDC.INSERT tag in buildtime
+## No XDC.INSERT tag in REGDEFS
+## No XDC.INSERT tag in zip_alt_mtc
+## No XDC.INSERT tag in sdcard
+## No XDC.INSERT tag in pixck
+## No XDC.INSERT tag in XDC
+## No XDC.INSERT tag in clk
+## No XDC.INSERT tag in SIM
+## No XDC.INSERT tag in uart
+## No XDC.INSERT tag in altpic
+## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in flash
+## No XDC.INSERT tag in i2c
+## No XDC.INSERT tag in zip_alt_utc
+## No XDC.INSERT tag in clk150
+## No XDC.INSERT tag in zip_tmb
+## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in mem_sdram_only
+## No XDC.INSERT tag in REGISTER
+## No XDC.INSERT tag in zip_dmac
+## No XDC.INSERT tag in wbflashdn
+## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in syspic
+## No XDC.INSERT tag in zip_alt_uoc
+## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in TMA
+## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in mem_flash_bkram
+## No XDC.INSERT tag in mem_bootrom_bkram

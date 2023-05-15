@@ -183,17 +183,19 @@ sim: rtl check-gpp
 .PHONY: sw
 sw: sw-host sw-zlib sw-board # sw-boot
 
-.PHONY: sw-host
+.PHONY: sw-host host
 ## {{{
 ##
 ## Build the host support software
 ##
+host: sw-host
 sw-host: check-gpp
 	+@$(SUBMAKE) sw/host
 ## }}}
 
-.PHONY: sw-zlib
+.PHONY: sw-zlib zlib
 ## {{{
+zlib: sw-zlib
 ##
 ## Build the hardware specific newlib library
 ##

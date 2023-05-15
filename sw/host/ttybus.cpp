@@ -2,7 +2,7 @@
 //
 // Filename:	ttybus.cpp
 // {{{
-// Project:	Demonstration SONAR project
+// Project:	10Gb Ethernet switch
 //
 // Purpose:	This is the C++ program on the command side that will interact
 //		with a UART on an FPGA, to command the WISHBONE on that same
@@ -16,12 +16,22 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2022, Symbiotic EDA, Gmbh
+// Copyright (C) 2023, Gisselquist Technology, LLC
 // {{{
-// This file is part of the demonstration SONAR project.  The demonstration
-// SONAR project is proprietary to Symbiotic EDA, Gmbh.  It may not be
-// redistributed without the express permission of an authorized representative
-// of Symbiotic EDA, Gmbh.
+// This file is part of the ETH10G project.
+//
+// The ETH10G project contains free software and gateware, licensed under the
+// Apache License, Version 2.0 (the "License").  You may not use this project,
+// or this file, except in compliance with the License.  You may obtain a copy
+// of the License at
+// }}}
+//	http://www.apache.org/licenses/LICENSE-2.0
+// {{{
+// Unless required by applicable law or agreed to in writing, files
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+// License for the specific language governing permissions and limitations
+// under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
 //

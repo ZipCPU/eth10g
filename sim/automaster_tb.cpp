@@ -230,7 +230,7 @@ int	main(int argc, char **argv) {
 	if (profile_fp) { // Profile the ZipCPU
 		// {{{
 		unsigned last_instruction_tick = 0;
-		while((!willexit)||(!tb->done())) {
+		while((!willexit||!tb->done()) && !Verilated::gotFinish()) {
 			unsigned long	iticks;
 			unsigned	buf[2];
 
@@ -252,19 +252,20 @@ int	main(int argc, char **argv) {
 	} else if (willexit) {	// Run until an exit call
 		// {{{
 		if (limit_time_ps == 0) {
-			while(!tb->done())
+			while(!tb->done() && !Verilated::gotFinish())
 				tb->tick();
 		} else {
-			while(!tb->done() && limit_time_ps >= tb->m_time_ps)
+			while(!tb->done() && limit_time_ps >= tb->m_time_ps
+					&& !Verilated::gotFinish())
 				tb->tick();
 		}
 		// }}}
 	} else if (limit_time_ps > 0l) {
-		while(limit_time_ps >= tb->m_time_ps)
+		while(limit_time_ps >= tb->m_time_ps && !Verilated::gotFinish())
 			tb->tick();
 	} else	// Run forever
 		// {{{
-		while(true)
+		while(!Verilated::gotFinish())
 			tb->tick();
 		// }}}
 #endif
