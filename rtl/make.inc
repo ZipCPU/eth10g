@@ -35,29 +35,29 @@
 ################################################################################
 ##
 ## }}}
-SCOPCD := wbscope
-SCOPC  := $(addprefix $(SCOPCD)/,wbscopc.v)
-GPIO := wbgpio.v
-
-FLASH := qflexpress.v
-
-WBUBUSD := wbubus
-WBUBUS  := $(addprefix $(WBUBUSD)/,wbuconsole.v wbufifo.v wbucompactlines.v wbucompress.v wbudecompress.v wbudeword.v wbuexec.v wbuidleint.v wbuinput.v wbuoutput.v wbureadcw.v wbusixchar.v wbutohex.v wbconsole.v)
-ZIPCPUD := cpu
-ZIPCPU  := $(addprefix $(ZIPCPUD)/,zipsystem.v zipcore.v zipwb.v cpuops.v pfcache.v pipemem.v pfcache.v idecode.v wbpriarbiter.v zipsystem.v zipcounter.v zipjiffies.v ziptimer.v icontrol.v wbwatchdog.v zipdma_ctrl.v zipdma_fsm.v zipdma_mm2s.v zipdma_rxgears.v zipdma_s2mm.v zipdma_txgears.v zipdma.v busdelay.v)
-SMID := smi
-SMI  := $(addprefix $(SMID)/,smi.v)
-SDSPID := sdspi
-SDSPI  := $(addprefix $(SDSPID)/,sdspi.v llsdspi.v spicmd.v spirxdata.v spitxdata.v)
-CONSOLED := wbuart
-CONSOLE  := $(addprefix $(CONSOLED)/,txuartlite.v rxuartlite.v ufifo.v)
-I2CCPUD := wbi2c
-I2CCPU  := $(addprefix $(I2CCPUD)/,wbi2ccpu.v axisi2c.v)
-FAN := wbfan.v
+BKRAM := memdev.v
 
 GENCLKD := .
 GENCLK  := $(addprefix $(GENCLKD)/,genclk.v xgenclk.v)
-BKRAM := memdev.v
+FAN := wbfan.v
 
-VFLIST := main.v  $(SCOPC) $(GPIO) $(FLASH) $(WBUBUS) $(ZIPCPU) $(SMI) $(SDSPI) $(CONSOLE) $(I2CCPU) $(FAN) $(GENCLK) $(BKRAM)
-AUTOVDIRS :=  -y wbscope -y wbubus -y cpu -y smi -y sdspi -y wbuart -y wbi2c -y .
+I2CCPUD := wbi2c
+I2CCPU  := $(addprefix $(I2CCPUD)/,wbi2ccpu.v axisi2c.v)
+SDSPID := sdspi
+SDSPI  := $(addprefix $(SDSPID)/,sdspi.v llsdspi.v spicmd.v spirxdata.v spitxdata.v)
+SMID := smi
+SMI  := $(addprefix $(SMID)/,smi.v)
+CONSOLED := wbuart
+CONSOLE  := $(addprefix $(CONSOLED)/,txuartlite.v rxuartlite.v ufifo.v)
+ZIPCPUD := cpu
+ZIPCPU  := $(addprefix $(ZIPCPUD)/,zipsystem.v zipcore.v zipwb.v cpuops.v pfcache.v pipemem.v pfcache.v idecode.v wbpriarbiter.v zipsystem.v zipcounter.v zipjiffies.v ziptimer.v icontrol.v wbwatchdog.v zipdma_ctrl.v zipdma_fsm.v zipdma_mm2s.v zipdma_rxgears.v zipdma_s2mm.v zipdma_txgears.v zipdma.v busdelay.v)
+WBUBUSD := wbubus
+WBUBUS  := $(addprefix $(WBUBUSD)/,wbuconsole.v wbufifo.v wbucompactlines.v wbucompress.v wbudecompress.v wbudeword.v wbuexec.v wbuidleint.v wbuinput.v wbuoutput.v wbureadcw.v wbusixchar.v wbutohex.v wbconsole.v)
+FLASH := qflexpress.v
+
+GPIO := wbgpio.v
+
+SCOPCD := wbscope
+SCOPC  := $(addprefix $(SCOPCD)/,wbscopc.v)
+VFLIST := main.v  $(BKRAM) $(GENCLK) $(FAN) $(I2CCPU) $(SDSPI) $(SMI) $(CONSOLE) $(ZIPCPU) $(WBUBUS) $(FLASH) $(GPIO) $(SCOPC)
+AUTOVDIRS :=  -y . -y wbi2c -y sdspi -y smi -y wbuart -y cpu -y wbubus -y wbscope

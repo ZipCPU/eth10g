@@ -250,13 +250,18 @@ int	main(int argc, char **argv) {
 	int	tty;
 	bool	done = false;
 
+	// Disable signals
+	// {{{
 	signal(SIGSTOP, sigstop);
 	signal(SIGBUS, sigbus);
 	signal(SIGSEGV, sigsegv);
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGINT, sigint);
 	signal(SIGHUP, sighup);
+	// }}}
 
+	// Open a connection to the TTY port
+	// {{{
 	if ((argc > 1)&&(NULL != strstr(argv[1], "/ttyUSB"))) {
 		// printf("Opening %s\n", argv[1]);
 		tty = open(argv[1], O_RDWR | O_NONBLOCK);
@@ -284,7 +289,12 @@ int	main(int argc, char **argv) {
 		printf("Could not open tty\n");
 		perror("O/S Err:");
 		exit(-1);
-	} else if (isatty(tty)) {
+	}
+	// }}}
+
+	// Configure the BAUDRATE, parity, stop bits, etc.
+	// {{{
+	if (isatty(tty)) {
 		struct	termios	tb;
 
 		printf("Setting up TTY for %d Baud\n", BAUDRATE);
@@ -360,16 +370,16 @@ int	main(int argc, char **argv) {
 		}
 		tcflow(tty, TCOON);
 	}
+	// }}}
 
 	LINBUFS	lbcmd, lbcon;
 	while(!done) {
 		struct	pollfd	p[4];
 		int	pv, nfds;
 
-
 		//
-		// Set up a poll to see if we have any events to examine
-		//
+		// Poll to see if we have any events to examine
+		// {{{
 		nfds = 0;
 
 		p[nfds].fd = tty;
@@ -400,7 +410,7 @@ int	main(int argc, char **argv) {
 			perror("Poll Failed!  O/S Err:");
 			exit(-1);
 		}
-
+		// }}}
 
 		//
 		//
@@ -409,6 +419,7 @@ int	main(int argc, char **argv) {
 		//
 
 		// Start by flusing everything on the TTY channel
+		// {{{
 		if (p[0].revents & POLLIN) {
 			char	rawbuf[256];
 			int nr = read(tty, rawbuf, sizeof(rawbuf));
@@ -462,6 +473,7 @@ int	main(int argc, char **argv) {
 			perror("O/S Err?");
 			exit(EXIT_FAILURE);
 		}
+		// }}}
 
 		if (p[1].revents & POLLIN) {
 			if (p[1].fd == skt) {
@@ -497,8 +509,11 @@ int	main(int argc, char **argv) {
 		}
 	}
 
+	// Close up
+	// {{{
 	printf("Closing our sockets\n");
 	close(console);
 	close(skt);
+	// }}}
 }
 

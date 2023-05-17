@@ -58,7 +58,10 @@
 		// Quad SPI flash
 		w_@$(PREFIX)_cs_n, w_@$(PREFIX)_sck, @$(PREFIX)_dat, io_@$(PREFIX)_dat, @$(PREFIX)_bmod
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
 	//
+	// QSPI Flash IO pin handling
+	// {{{
 	//
 	// Wires for setting up the QSPI flash wishbone peripheral
 	//
@@ -70,6 +73,44 @@
 	assign io_@$(PREFIX)_dat = (~@$(PREFIX)_bmod[1])?({2'b11,1'bz,@$(PREFIX)_dat[0]})
 				:((@$(PREFIX)_bmod[0])?(4'bzzzz):(@$(PREFIX)_dat[3:0]));
 	assign	o_@$(PREFIX)_cs_n = w_@$(PREFIX)_cs_n;
+
+	/*
+	IOBUF @$(PREFIX)_dat0 (
+		// {{{
+		.I(o_@$(PREFIX)_dat[0]),
+		.T(@$(PREFIX)_bmod[1] && @$(PREFIX)_bmod[0]),
+		.O(i_@$(PREFIX)_dat[0]),
+		.IO(io_@$(PREFIX)_dat[0])
+		// }}}
+	);
+
+	IOBUF @$(PREFIX)_dat1 (
+		// {{{
+		.I(o_@$(PREFIX)_dat[1]),
+		.T(!@$(PREFIX)_bmod[1] || @$(PREFIX)_bmod[0]),
+		.O(i_@$(PREFIX)_dat[1]),
+		.IO(io_@$(PREFIX)_dat[1])
+		// }}}
+	);
+
+	IOBUF @$(PREFIX)_dat2 (
+		// {{{
+		.I(o_@$(PREFIX)_dat[2]),
+		.T(@$(PREFIX)_bmod[1] && @$(PREFIX)_bmod[0]),
+		.O(i_@$(PREFIX)_dat[2]),
+		.IO(io_@$(PREFIX)_dat[2])
+		// }}}
+	);
+
+	IOBUF @$(PREFIX)_dat3 (
+		// {{{
+		.I(o_@$(PREFIX)_dat[3]),
+		.T(@$(PREFIX)_bmod[1] && @$(PREFIX)_bmod[0]),
+		.O(i_@$(PREFIX)_dat[3]),
+		.IO(io_@$(PREFIX)_dat[3])
+		// }}}
+	);
+	*/
 
 	// The following primitive is necessary in many designs order to gain
 	// access to the o_@$(PREFIX)_sck pin.  It's not necessary on the Arty,
@@ -127,7 +168,7 @@
 	//	low allows the output of this pin to be as stated above.
 	.USRDONETS(1'b1)
 	);
-
+	// }}}
 @MAIN.PORTLIST=
 		// The Universal QSPI Flash
 		o_@$(PREFIX)_cs_n, o_@$(PREFIX)_sck, o_@$(PREFIX)_dat, i_@$(PREFIX)_dat, o_@$(PREFIX)_mod

@@ -69,7 +69,7 @@ _top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
 /* LD.SCRIPT from zipmaster.txt */
 SECTIONS
 {
-       .rocode 0x02600000 : ALIGN(4) {
+       .rocode 0x02e00000 : ALIGN(4) {
                _boot_address = .;
                *(.start) *(.boot)
        } > flash

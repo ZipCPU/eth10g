@@ -47,38 +47,48 @@
 	// Definitions for the clock generation circuit
 	wire		s_@$(PREFIX)_clk, w_@$(PREFIX)_pll_locked,
 			w_@$(PREFIX)_ce;
-	wire		s_clk4x, s_clk4x_unbuffered,
-			s_clksync, s_clksync_unbuffered;
+	wire		s_clk4x; // s_clk4x_unbuffered,
+			// s_clksync, s_clksync_unbuffered;
 	wire	[7:0]	w_@$(PREFIX)_word;
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Clock generator for the Si5324
+	// {{{
 /*
 	PLLE2_BASE #(
+		// {{{
 		.CLKFBOUT_MULT(8),
 		.CLKFBOUT_PHASE(0.0),
 		.CLKIN1_PERIOD(10),
 		.CLKOUT0_DIVIDE(4),
-		.CLKOUT1_DIVIDE(2)) gen_sysclk(
-			.CLKIN1(i_clk),
-			.CLKOUT0(s_clk_200mhz_unbuffered),
-			.CLKOUT1(s_clk4x_unbuffered),
-			.PWRDWN(1'b0), .RST(1'b0),
-			.CLKFBOUT(sysclk_feedback),
-			.CLKFBIN(sysclk_feedback),
-			.LOCKED(sysclk_locked));
+		.CLKOUT1_DIVIDE(2)
+		// }}}
+	) gen_sysclk(
+		// {{{
+		.CLKIN1(i_clk),
+		.CLKOUT0(s_clk_200mhz_unbuffered),
+		.CLKOUT1(s_clk4x_unbuffered),
+		.PWRDWN(1'b0), .RST(1'b0),
+		.CLKFBOUT(sysclk_feedback),
+		.CLKFBIN(sysclk_feedback),
+		.LOCKED(sysclk_locked)
+		// }}}
+	);
 */
-	BUFG	clksync_buf(.I(s_clksync_unbuffered), .O(s_clksync));
+	// BUFG	clksync_buf(.I(s_clksync_unbuffered), .O(s_clk));
 	BUFG	clk4x_buf(.I(s_clk4x_unbuffered), .O(s_clk4x));
 
 	xgenclk
 	u_x@$(PREFIX)(
 		// {{{
-		.i_clk(s_clksync), .i_hsclk(s_clk4x),
+		.i_clk(s_clk), .i_hsclk(s_clk4x),
 		.i_ce(w_@$(PREFIX)_ce),
 		.i_word(w_@$(PREFIX)_word),
 		.o_pin({ o_siref_clk_p, o_siref_clk_n })
 		// }}}
 	);
-
+	// }}}
 @TOP.MAIN=
 		// Clock Generator ports
 		w_@$(PREFIX)_word,

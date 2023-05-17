@@ -35,14 +35,19 @@
 ## {{{
 @CLOCK.NAME=clk
 @CLOCK.WIRE=i_clk
-@CLOCK.FREQUENCY=200000000
+@CLOCK.FREQUENCY=100000000
 @TOP.PORTLIST=
 @TOP.IODECL=
 @TOP.DEFNS=
 	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
-			clk_feedback, clk_feedback_bufd;
+			clk_feedback, clk_feedback_bufd,
+			s_pixclk_unbuffered, s_clk4x_unbuffered;
 	reg	[2:0]	pipe_reset;
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Default clock setup
+	// {{{
 	// assign	s_clk=s_clk200;
 	// assign	sysclk_locked = 1'b1;
 
@@ -59,20 +64,25 @@
 		.CLKFBOUT_MULT(8),
 		.CLKFBOUT_PHASE(0.0),
 		.CLKIN1_PERIOD(5),
-		.CLKOUT0_DIVIDE(8)
+		.CLKOUT0_DIVIDE(16),		// Divide by 2x
+		.CLKOUT1_DIVIDE(4),		// Multiply by 2x
+		.CLKOUT2_DIVIDE(40)		// Divide by 5x
 	) u_syspll (
-		.CLKOUT0(s_clk_nobuf),
+		.CLKOUT0(s_clk_nobuf),		// 100MHz
+		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz
+		.CLKOUT2(s_pixclk_unbuffered),	//  40MHz
 		//
 		.CLKFBOUT(clk_feedback),
 		.LOCKED(sysclk_locked),
-		.CLKIN1(s_clk200),
+		.CLKIN1(s_clk200),	// 200MHz
 		.PWRDWN(1'b0),
 		.CLKFBIN(clk_feedback_bufd)
 	);
 
 	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
 	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
-##
+	// }}}
+## }}}
 @PREFIX=clk200
 ## {{{
 @CLOCK.NAME=clk200
@@ -85,12 +95,16 @@
 @TOP.DEFNS=
 	wire	s_clk200;
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// 200MHz clock ingestion
+	// {{{
 	IBUFDS
 	ibuf_ck200 (
 		.I(i_clk_200mhz_p), .IB(i_clk_200mhz_n),
 		.O(s_clk200)
 	);
-
+	// }}}
 @TOP.MAIN=
 		s_clk200
 @MAIN.PORTLIST=
@@ -159,8 +173,12 @@
 @TOP.PORTLIST=
 @TOP.IODECL=
 @TOP.DEFNS=
-	wire	@$(CLOCK.WIRE) = 1'b0;
+	wire	s_pixclk;
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Pixel clock generation
+	// {{{
 	/*
 	BUFGMUX
 	u_pixclk_mux (
@@ -168,8 +186,11 @@
 		.O(@$(CLOCK.WIRE)), .S(pixclk_sel)
 	);
 	*/
+
+	BUFG	pixclk_buffer(.I(s_pixclk_unbuffered), .O(s_pixclk));
+	// }}}
 @TOP.MAIN=
-		@$(CLOCK.WIRE)
+		s_pixclk
 @MAIN.PORTLIST=
 		@$(CLOCK.WIRE)
 @MAIN.IODECL=

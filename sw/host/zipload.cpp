@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 
 	// Turn off tracing
 	// gpio = m_fpga->readio(R_GPIO);
-	m_fpga->writeio(R_GPIO, 0x0400040);	// Clear the trace
+	m_fpga->writeio(R_GPIO, 0x0400000);	// Clear the trace
 #ifdef	FLASH_ACCESS
 	flash = new FLASHDRVR(m_fpga);
 #else

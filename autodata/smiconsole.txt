@@ -53,6 +53,10 @@
 	wire	[17:0]	i_@$(PREFIX)_sd;
 	wire	[17:0]	o_@$(PREFIX)_sd;
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// SMI bi-directional IO handling
+	// {{{
 	generate for (@$(PREFIX)_gk=0; @$(PREFIX)_gk<18; @$(PREFIX)_gk=@$(PREFIX)_gk+1)
 	begin : GEN_SMI
 		IOBUF u_@$(PREFIX)io (
@@ -62,6 +66,7 @@
 			.IO(io_@$(PREFIX)_sd[@$(PREFIX)_gk])
 		);
 	end endgenerate
+	// }}}
 @TOP.MAIN=
 		// SMI bus control
 		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa,

@@ -129,6 +129,8 @@
 // @REGDEFS.H.DEFNS for masters
 #define	BAUDRATE	1000000
 // @REGDEFS.H.DEFNS for peripherals
+#define	BKRAMBASE	0x01000000
+#define	BKRAMLEN	0x00040000
 #define	FLASHBASE	0x02000000
 #define	FLASHLEN	0x02000000
 #define	FLASHLGLEN	25
@@ -136,8 +138,6 @@
 #define	FLASH_RDDELAY	1
 #define	FLASH_NDUMMY	6
 //
-#define	BKRAMBASE	0x01000000
-#define	BKRAMLEN	0x00040000
 // @REGDEFS.H.DEFNS at the top level
 // End of definitions from REGDEFS.H.DEFNS
 //
@@ -145,21 +145,6 @@
 //
 // @REGDEFS.H.INSERT for masters
 // @REGDEFS.H.INSERT for peripherals
-// Flash control constants
-#define	QSPI_FLASH	// This core and hardware support a Quad SPI flash
-#define	SZPAGEB		256			// Bytes in a page
-#define	PGLENB		256
-#define	SZPAGEW		64			// 32b words in a page
-#define	PGLENW		64
-#define	NPAGES		256			// Pages per sector
-#define	SECTORSZB	(NPAGES * SZPAGEB)	// In bytes, not words!!
-#define	SECTORSZW	(NPAGES * SZPAGEW)	// In words
-#define	NSECTORS	((1 << FLASHLGLEN)/SECTORSZB)
-#define	SECTOROF(A)	((A) & (-1<<16))
-#define	SUBSECTOROF(A)	((A) & (-1<<12))
-#define	PAGEOF(A)	((A) & (-1<<8))
-#define	FLASHSZ		FLASHLEN
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // ZipCPU register definitions
@@ -191,12 +176,27 @@
 #define	RESET_ADDRESS	@$[0x%08x](bkrom.REGBASE)
 #else
 #ifdef	FLASH_ACCESS
-#define	RESET_ADDRESS	0x02600000
+#define	RESET_ADDRESS	0x02e00000
 #else
 #define	RESET_ADDRESS	0x01000000
 #endif	// FLASH_ACCESS
 #endif	// BKROM_ACCESS
 // }}}
+// Flash control constants
+#define	QSPI_FLASH	// This core and hardware support a Quad SPI flash
+#define	SZPAGEB		256			// Bytes in a page
+#define	PGLENB		256
+#define	SZPAGEW		64			// 32b words in a page
+#define	PGLENW		64
+#define	NPAGES		256			// Pages per sector
+#define	SECTORSZB	(NPAGES * SZPAGEB)	// In bytes, not words!!
+#define	SECTORSZW	(NPAGES * SZPAGEW)	// In words
+#define	NSECTORS	((1 << FLASHLGLEN)/SECTORSZB)
+#define	SECTOROF(A)	((A) & (-1<<16))
+#define	SUBSECTOROF(A)	((A) & (-1<<12))
+#define	PAGEOF(A)	((A) & (-1<<8))
+#define	FLASHSZ		FLASHLEN
+
 // @REGDEFS.H.INSERT from the top level
 typedef	struct {
 	unsigned	m_addr;

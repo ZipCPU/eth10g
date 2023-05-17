@@ -42,7 +42,6 @@
 @$RESET_ADDRESS=@$flash.REGBASE+(@$flash.NADDR)
 @RESET_ADDRESS.FORMAT=32'h%08x
 @REGISTER.BUS=wbu
-@VERILATOR_PREFIX=v
 @XDC.FILE=../kluster.xdc
 @REGDEFS.H.INSERT=
 typedef	struct {

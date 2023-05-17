@@ -151,9 +151,15 @@
 		// }}}
 	);
 
-`ifndef	NAD_ACCESS
-	assign	@$(PREFIX)_ready = 1;
+	assign	@$(PREFIX)_ready = (!@$(PREFIX)_valid) || (1'b0
+			|| (@$(PREFIX)_id == 0)		// NULL address
+`ifdef	EDID_ACCESS
+			|| (@$(PREFIX)_id == 1 && edid_ready)
+`else
+			|| (@$(PREFIX)_id == 1)
 `endif
+			|| (@$(PREFIX)_id > 1));
+
 	// }}}
 @MAIN.ALT=
 	assign	o_@$(PREFIX)_scl = 1'b1;

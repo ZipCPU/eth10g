@@ -46,7 +46,7 @@
 @SCOPE.TRIGGER=zip_trigger
 @SCOPE.DATA=zip_debug
 @CPURESET=i_cpu_reset
-@$RESET_ADDRESS=@$(flash.REGBASE)+(6<<20)
+@$RESET_ADDRESS=@$(flash.REGBASE)+(14<<20)
 # @$RESET_ADDRESS=@$(/bkrom.REGBASE)
 # @INT.ZIP.WIRE=zip_cpu_int
 # @INT.ZIP.BUS=buspic

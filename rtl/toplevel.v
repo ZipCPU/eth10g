@@ -52,27 +52,27 @@
 // also appear in this list
 //
 module	toplevel(
-		// SPIO interface
-		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led,
+		o_siref_clk_p, o_siref_clk_n,
+			io_temp_sda, io_temp_scl,
+			o_fan_pwm, o_fan_sys, i_fan_tach,
+			io_i2c_sda, io_i2c_scl,
+			o_i2c_mxrst_n,
+		// Top level Quad-SPI I/O ports
+		o_flash_cs_n, io_flash_dat,
+		// SD Card
+		o_sdcard_clk, io_sdcard_cmd, io_sdcard_dat, i_sdcard_cd_n,
+		// SMI
+		i_smi_oen, i_smi_wen, i_smi_sa, io_smi_sd,
+		i_clk_200mhz_p, i_clk_200mhz_n,
+		// UART/host to wishbone interface
+		i_wbu_uart_rx, o_wbu_uart_tx,
+		o_wbu_uart_cts_n,
 		// GPIO ports
 		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
 		o_hdmirx_hpd_n,
-		// UART/host to wishbone interface
-		i_wbu_uart_rx, o_wbu_uart_tx,
-		o_wbu_uart_cts_n,
-		i_clk_200mhz_p, i_clk_200mhz_n,
-		// SMI
-		i_smi_oen, i_smi_wen, i_smi_sa, io_smi_sd,
-		// SD Card
-		o_sdcard_clk, io_sdcard_cmd, io_sdcard_dat, i_sdcard_cd_n,
-		// Top level Quad-SPI I/O ports
-		o_flash_cs_n, io_flash_dat,
-			io_i2c_sda, io_i2c_scl,
-			o_i2c_mxrst_n,
-			io_temp_sda, io_temp_scl,
-			o_fan_pwm, o_fan_sys, i_fan_tach,
-		o_siref_clk_p, o_siref_clk_n);
+		// SPIO interface
+		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led);
 	//
 	// Declaring any top level parameters.
 	//
@@ -84,22 +84,6 @@ module	toplevel(
 	//
 	////////////////////////////////////////////////////////////////////////
 	//
-	// WBUBUS parameters
-	// {{{
-	// Baudrate :   1000000
-	// Clock    : 200000000
-	localparam [23:0] BUSUART = 24'hc8;	//   1000000 baud
-	localparam	DBGBUSBITS = $clog2(BUSUART);
-	//
-	// Maximum command is 6 bytes, where each byte takes 10 baud clocks
-	// and each baud clock requires DBGBUSBITS to represent.  Here,
-	// we'll add one more for good measure.
-	localparam	DBGBUSWATCHDOG_RAW = DBGBUSBITS + 9;
-	localparam	DBGBUSWATCHDOG = (DBGBUSWATCHDOG_RAW > 19)
-				? DBGBUSWATCHDOG_RAW : 19;
-	// }}}
-	////////////////////////////////////////////////////////////////////////
-	//
 	// Variables/definitions/parameters used by the ZipCPU bus master
 	// {{{
 	//
@@ -109,7 +93,7 @@ module	toplevel(
 	localparam	RESET_ADDRESS = @$(/bkrom.BASE);
 `else
 `ifdef	FLASH_ACCESS
-	localparam	RESET_ADDRESS = 39845888;
+	localparam	RESET_ADDRESS = 48234496;
 `else
 	localparam	RESET_ADDRESS = 16777216;
 `endif	// FLASH_ACCESS
@@ -130,6 +114,22 @@ module	toplevel(
 	localparam	ZIP_START_HALTED=1'b1;
 `endif
 	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// WBUBUS parameters
+	// {{{
+	// Baudrate :   1000000
+	// Clock    : 100000000
+	localparam [23:0] BUSUART = 24'h64;	//   1000000 baud
+	localparam	DBGBUSBITS = $clog2(BUSUART);
+	//
+	// Maximum command is 6 bytes, where each byte takes 10 baud clocks
+	// and each baud clock requires DBGBUSBITS to represent.  Here,
+	// we'll add one more for good measure.
+	localparam	DBGBUSWATCHDOG_RAW = DBGBUSBITS + 9;
+	localparam	DBGBUSWATCHDOG = (DBGBUSWATCHDOG_RAW > 19)
+				? DBGBUSWATCHDOG_RAW : 19;
+	// }}}
 	//
 	// Declaring our input and output ports.  We listed these above,
 	// now we are declaring them here.
@@ -142,24 +142,15 @@ module	toplevel(
 	//
 	// We start with any @CLOCK.TOP keys
 	//
-	// SPIO interface
-	input	wire	[8-1:0]	i_sw;
-	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
-	output	wire	[8-1:0]	o_led;
-	// GPIO wires
-	input	wire		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n;
-	output	wire	[3:0]	o_tp;
-	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
-	input	wire		i_si5324_int;
-	input	wire		i_wbu_uart_rx;
-	output	wire		o_wbu_uart_tx;
-	// input wire		i_wbu_uart_rts_n; // FT*'s perspective
-	output wire		o_wbu_uart_cts_n;
-	input	wire	i_clk_200mhz_p, i_clk_200mhz_n;
-	// SMI
-	input	wire		i_smi_oen, i_smi_wen;
-	input	wire	[5:0]	i_smi_sa;
-	inout	wire	[17:0]	io_smi_sd;
+	output	wire	o_siref_clk_p, o_siref_clk_n;
+	inout	wire	io_temp_sda, io_temp_scl;
+	output	wire	o_fan_pwm, o_fan_sys;
+	input	wire	i_fan_tach;
+	inout	wire	io_i2c_sda, io_i2c_scl;
+	output	wire	o_i2c_mxrst_n;
+	// Quad SPI flash
+	output	wire		o_flash_cs_n;
+	inout	wire	[3:0]	io_flash_dat;
 	// SD Card
 	// {{{
 	output	wire		o_sdcard_clk;
@@ -167,15 +158,24 @@ module	toplevel(
 	inout	wire	[3:0]	io_sdcard_dat;
 	input	wire		i_sdcard_cd_n;
 	// }}}
-	// Quad SPI flash
-	output	wire		o_flash_cs_n;
-	inout	wire	[3:0]	io_flash_dat;
-	inout	wire	io_i2c_sda, io_i2c_scl;
-	output	wire	o_i2c_mxrst_n;
-	inout	wire	io_temp_sda, io_temp_scl;
-	output	wire	o_fan_pwm, o_fan_sys;
-	input	wire	i_fan_tach;
-	output	wire	o_siref_clk_p, o_siref_clk_n;
+	// SMI
+	input	wire		i_smi_oen, i_smi_wen;
+	input	wire	[5:0]	i_smi_sa;
+	inout	wire	[17:0]	io_smi_sd;
+	input	wire	i_clk_200mhz_p, i_clk_200mhz_n;
+	input	wire		i_wbu_uart_rx;
+	output	wire		o_wbu_uart_tx;
+	// input wire		i_wbu_uart_rts_n; // FT*'s perspective
+	output wire		o_wbu_uart_cts_n;
+	// GPIO wires
+	input	wire		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n;
+	output	wire	[3:0]	o_tp;
+	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
+	input	wire		i_si5324_int;
+	// SPIO interface
+	input	wire	[8-1:0]	i_sw;
+	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
+	output	wire	[8-1:0]	o_led;
 
 
 	//
@@ -184,22 +184,32 @@ module	toplevel(
 	// These declarations just copy data from the @TOP.DEFNS key
 	// within the component data files.
 	//
-	wire	[8-1:0]	w_led;
-	wire	[5-1:0]	w_btn;
-	// GPIO declarations.  The two wire busses are just virtual lists of
-	// input (or output) ports.
-	wire	[16-1:0]	i_gpio;
-	wire	[8-1:0]	o_gpio;
-	wire	s_clk200;
-	// Verilator lint_off UNUSED
-	wire		ign_cpu_stall, ign_cpu_ack;
-	wire	[31:0]	ign_cpu_idata;
-	// Verilator lint_on  UNUSED
-	// SMI
-	genvar		smi_gk;
-	wire		w_smi_oen;
-	wire	[17:0]	i_smi_sd;
-	wire	[17:0]	o_smi_sd;
+	// Definitions for the clock generation circuit
+	wire		s_sirefclk_clk, w_sirefclk_pll_locked,
+			w_sirefclk_ce;
+	wire		s_clk4x; // s_clk4x_unbuffered,
+			// s_clksync, s_clksync_unbuffered;
+	wire	[7:0]	w_sirefclk_word;
+	// FAN definitions
+	// {{{
+	wire	i_fan_sda, i_fan_scl,
+		o_fan_sda, o_fan_scl;
+	// }}}
+	// I2CCPU definitions
+	// {{{
+	wire	i_i2c_sda, i_i2c_scl,
+		o_i2c_sda, o_i2c_scl;
+	reg		r_i2c_mxrst_n;
+	reg	[2:0]	r_i2c_mxrst_dly;
+	// }}}
+	wire		w_flash_sck, w_flash_cs_n;
+	wire	[1:0]	flash_bmod;
+	wire	[3:0]	flash_dat;
+	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
+			clk_feedback, clk_feedback_bufd,
+			s_pixclk_unbuffered, s_clk4x_unbuffered;
+	reg	[2:0]	pipe_reset;
+	wire	s_pixclk;
 	// SD Card definitions
 	// {{{
 	wire		w_sdcard_cmd;
@@ -208,31 +218,22 @@ module	toplevel(
 	wire		i_sdcard_cmd;
 	wire	[3:0]	i_sdcard_data;
 	// }}}
-	wire	i_pixclk = 1'b0;
-	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
-			clk_feedback, clk_feedback_bufd;
-	reg	[2:0]	pipe_reset;
-	wire		w_flash_sck, w_flash_cs_n;
-	wire	[1:0]	flash_bmod;
-	wire	[3:0]	flash_dat;
-	// I2CCPU definitions
-	// {{{
-	wire	i_i2c_sda, i_i2c_scl,
-		o_i2c_sda, o_i2c_scl;
-	reg		r_i2c_mxrst_n;
-	reg	[2:0]	r_i2c_mxrst_dly;
-	// }}}
-	// FAN definitions
-	// {{{
-	wire	i_fan_sda, i_fan_scl,
-		o_fan_sda, o_fan_scl;
-	// }}}
-	// Definitions for the clock generation circuit
-	wire		s_sirefclk_clk, w_sirefclk_pll_locked,
-			w_sirefclk_ce;
-	wire		s_clk4x, s_clk4x_unbuffered,
-			s_clksync, s_clksync_unbuffered;
-	wire	[7:0]	w_sirefclk_word;
+	// SMI
+	genvar		smi_gk;
+	wire		w_smi_oen;
+	wire	[17:0]	i_smi_sd;
+	wire	[17:0]	o_smi_sd;
+	// Verilator lint_off UNUSED
+	wire		ign_cpu_stall, ign_cpu_ack;
+	wire	[31:0]	ign_cpu_idata;
+	// Verilator lint_on  UNUSED
+	wire	s_clk200;
+	// GPIO declarations.  The two wire busses are just virtual lists of
+	// input (or output) ports.
+	wire	[16-1:0]	i_gpio;
+	wire	[8-1:0]	o_gpio;
+	wire	[8-1:0]	w_led;
+	wire	[5-1:0]	w_btn;
 
 
 	//
@@ -251,34 +252,34 @@ module	toplevel(
 	//
 
 	main	thedesign(s_clk, s_reset,
-		i_sw, w_btn, w_led,
-		// GPIO wires
-		i_gpio, o_gpio,
-		// UART/host to wishbone interface
-		i_wbu_uart_rx, o_wbu_uart_tx,
-		o_wbu_uart_cts_n,
-		s_clk200,
-		// Reset wire for the ZipCPU
-		1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
-		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata, s_reset,
-		// SMI bus control
-		i_smi_oen, i_smi_wen, i_smi_sa,
-		i_smi_sd, o_smi_sd, w_smi_oen,
-		// SD Card
-		o_sdcard_clk, w_sdcard_cmd, w_sdcard_data, i_sdcard_data, !i_sdcard_cd_n,
-		i_pixclk,
-		// Quad SPI flash
-		w_flash_cs_n, w_flash_sck, flash_dat, io_flash_dat, flash_bmod,
-		// I2CCPU
-		i_i2c_sda, i_i2c_scl,
-		o_i2c_sda, o_i2c_scl,
+		// Clock Generator ports
+		w_sirefclk_word,
+		w_sirefclk_ce,
 		// FAN/fan
 		i_fan_sda, i_fan_scl,
 		o_fan_sda, o_fan_scl,
 		o_fan_pwm, o_fan_sys, i_fan_tach,
-		// Clock Generator ports
-		w_sirefclk_word,
-		w_sirefclk_ce);
+		// I2CCPU
+		i_i2c_sda, i_i2c_scl,
+		o_i2c_sda, o_i2c_scl,
+		// Quad SPI flash
+		w_flash_cs_n, w_flash_sck, flash_dat, io_flash_dat, flash_bmod,
+		s_pixclk,
+		// SD Card
+		o_sdcard_clk, w_sdcard_cmd, w_sdcard_data, i_sdcard_data, !i_sdcard_cd_n,
+		// SMI bus control
+		i_smi_oen, i_smi_wen, i_smi_sa,
+		i_smi_sd, o_smi_sd, w_smi_oen,
+		// Reset wire for the ZipCPU
+		1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
+		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata, s_reset,
+		s_clk200,
+		// UART/host to wishbone interface
+		i_wbu_uart_rx, o_wbu_uart_tx,
+		o_wbu_uart_cts_n,
+		// GPIO wires
+		i_gpio, o_gpio,
+		i_sw, w_btn, w_led);
 
 
 	//
@@ -288,101 +289,120 @@ module	toplevel(
 	//
 
 
-	assign	o_led = { w_led[8-1:2], (w_led[1] || !sysclk_locked),
-			w_led[0] | s_reset };
-
-	assign	w_btn = ~{ i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d };
-
-	assign	i_gpio = { 11'h0, i_hdmitx_hpd_n, i_si5324_int, sysclk_locked,
-				i_pi_reset, i_soft_reset };
-	assign	o_tp = o_gpio[3:0];
-	assign	o_si5324_rst = o_gpio[4];
-	assign	o_hdmirx_hpd_n = o_gpio[5];
-	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
-	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
-
-	IBUFDS
-	ibuf_ck200 (
-		.I(i_clk_200mhz_p), .IB(i_clk_200mhz_n),
-		.O(s_clk200)
-	);
-
-
-	generate for (smi_gk=0; smi_gk<18; smi_gk=smi_gk+1)
-	begin : GEN_SMI
-		IOBUF u_smiio (
-			.I(o_smi_sd[smi_gk]),
-			.O(i_smi_sd[smi_gk]),
-			.T(!w_smi_oen),
-			.IO(io_smi_sd[smi_gk])
-		);
-	end endgenerate
-
-	//////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
 	//
-	// SD Card SPI Controller
+	// Clock generator for the Si5324
 	// {{{
-	//////////////////////////////////////////////////////////////////////
-	//
-	//
-
-	// Wires for setting up the SD Card Controller
-	// {{{
-	// This is how we'd set up for SDIO
-	// assign io_sdcard_cmd = w_sdcard_cmd ? 1'bz:1'b0;	// MOSI
-	// assign io_sdcard[0] = w_sdcard_data[0]? 1'bz:1'b0;	// MISO
-	// assign io_sdcard[1] = w_sdcard_data[1]? 1'bz:1'b0;
-	// assign io_sdcard[2] = w_sdcard_data[2]? 1'bz:1'b0;
-	// assign io_sdcard[3] = w_sdcard_data[3]? 1'bz:1'b0;	// CS_n
-	// }}}
-	IOBUF sdcard_cmd_bf(.T(1'b0),.O(i_sdcard_cmd),.I(w_sdcard_cmd),.IO(io_sdcard_cmd));// MISO
-	IOBUF sdcard_dat0_bf(.T(1'b1),.O(i_sdcard_data[0]),.I(1'b1),.IO(io_sdcard_dat[0]));// MISO
-	IOBUF sdcard_dat1_bf(.T(1'b1),.O(i_sdcard_data[1]),.I(1'b1),.IO(io_sdcard_dat[1]));
-	IOBUF sdcard_dat2_bf(.T(1'b1),.O(i_sdcard_data[2]),.I(1'b1),.IO(io_sdcard_dat[2]));
-
-	// Implement an open-drain output
-	IOBUF sdcard_dat3_bf(.T(w_sdcard_data[3]),.O(i_sdcard_data[3]),.I(1'b0),.IO(io_sdcard_dat[3]));
-	// }}}
-
-	/*
-	BUFGMUX
-	u_pixclk_mux (
-		.IO(pref_clk), .I1(hdmirx_clk),
-		.O(i_pixclk), .S(pixclk_sel)
-	);
-	*/
-
-	// assign	s_clk=s_clk200;
-	// assign	sysclk_locked = 1'b1;
-
-	initial	pipe_reset = -1;
-	always @(posedge s_clk or negedge sysclk_locked)
-	if (!sysclk_locked)
-		pipe_reset <= -1;
-	else
-		pipe_reset <= { pipe_reset[1:0], 1'b0 };
-
-	assign	s_reset = pipe_reset[2];
-
+/*
 	PLLE2_BASE #(
+		// {{{
 		.CLKFBOUT_MULT(8),
 		.CLKFBOUT_PHASE(0.0),
-		.CLKIN1_PERIOD(5),
-		.CLKOUT0_DIVIDE(8)
-	) u_syspll (
-		.CLKOUT0(s_clk_nobuf),
-		//
-		.CLKFBOUT(clk_feedback),
-		.LOCKED(sysclk_locked),
-		.CLKIN1(s_clk200),
-		.PWRDWN(1'b0),
-		.CLKFBIN(clk_feedback_bufd)
+		.CLKIN1_PERIOD(10),
+		.CLKOUT0_DIVIDE(4),
+		.CLKOUT1_DIVIDE(2)
+		// }}}
+	) gen_sysclk(
+		// {{{
+		.CLKIN1(i_clk),
+		.CLKOUT0(s_clk_200mhz_unbuffered),
+		.CLKOUT1(s_clk4x_unbuffered),
+		.PWRDWN(1'b0), .RST(1'b0),
+		.CLKFBOUT(sysclk_feedback),
+		.CLKFBIN(sysclk_feedback),
+		.LOCKED(sysclk_locked)
+		// }}}
+	);
+*/
+	// BUFG	clksync_buf(.I(s_clksync_unbuffered), .O(s_clk));
+	BUFG	clk4x_buf(.I(s_clk4x_unbuffered), .O(s_clk4x));
+
+	xgenclk
+	u_xsirefclk(
+		// {{{
+		.i_clk(s_clk), .i_hsclk(s_clk4x),
+		.i_ce(w_sirefclk_ce),
+		.i_word(w_sirefclk_word),
+		.o_pin({ o_siref_clk_p, o_siref_clk_n })
+		// }}}
+	);
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// FAN IO buffers
+	// {{{
+
+	// We need these in order to (properly) ensure the high impedance
+	// states (pull ups) of the I2C I/O lines.  Our goals are:
+	//
+	//	o_fan_X	io_fan_X		Derived:T
+	//	1'b0		1'b0			1'b0
+	//	1'b1		1'bz			1'b1
+	//
+	IOBUF fansclp(
+		// {{{
+		.I(1'b0),
+		.T(o_fan_scl),
+		.O(i_fan_scl),
+		.IO(io_temp_scl)
+		// }}}
 	);
 
-	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
-	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
+	IOBUF fansdap(
+		// {{{
+		.I(1'b0),
+		.T(o_fan_sda),
+		.O(i_fan_sda),
+		.IO(io_temp_sda)
+		// }}}
+	);
+	// }}}
 
+	////////////////////////////////////////////////////////////////////////
 	//
+	// I2C IO buffers
+	// {{{
+
+	// We need these in order to (properly) ensure the high impedance
+	// states (pull ups) of the I2C I/O lines.  Our goals are:
+	//
+	//	o_i2c_X	io_i2c_X		Derived:T
+	//	1'b0		1'b0			1'b0
+	//	1'b1		1'bz			1'b1
+	//
+	IOBUF i2csclp(
+		// {{{
+		.I(1'b0),
+		.T(o_i2c_scl),
+		.O(i_i2c_scl),
+		.IO(io_i2c_scl)
+		// }}}
+	);
+
+	IOBUF i2csdap(
+		// {{{
+		.I(1'b0),
+		.T(o_i2c_sda),
+		.O(i_i2c_sda),
+		.IO(io_i2c_sda)
+		// }}}
+	);
+
+	initial	{ r_i2c_mxrst_n, r_i2c_mxrst_dly } = 0;
+	always @(posedge s_clk or negedge sysclk_locked)
+	if (!sysclk_locked)
+		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
+	else
+		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
+
+	assign	o_i2c_mxrst_n = r_i2c_mxrst_n;
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// QSPI Flash IO pin handling
+	// {{{
 	//
 	// Wires for setting up the QSPI flash wishbone peripheral
 	//
@@ -394,6 +414,44 @@ module	toplevel(
 	assign io_flash_dat = (~flash_bmod[1])?({2'b11,1'bz,flash_dat[0]})
 				:((flash_bmod[0])?(4'bzzzz):(flash_dat[3:0]));
 	assign	o_flash_cs_n = w_flash_cs_n;
+
+	/*
+	IOBUF flash_dat0 (
+		// {{{
+		.I(o_flash_dat[0]),
+		.T(flash_bmod[1] && flash_bmod[0]),
+		.O(i_flash_dat[0]),
+		.IO(io_flash_dat[0])
+		// }}}
+	);
+
+	IOBUF flash_dat1 (
+		// {{{
+		.I(o_flash_dat[1]),
+		.T(!flash_bmod[1] || flash_bmod[0]),
+		.O(i_flash_dat[1]),
+		.IO(io_flash_dat[1])
+		// }}}
+	);
+
+	IOBUF flash_dat2 (
+		// {{{
+		.I(o_flash_dat[2]),
+		.T(flash_bmod[1] && flash_bmod[0]),
+		.O(i_flash_dat[2]),
+		.IO(io_flash_dat[2])
+		// }}}
+	);
+
+	IOBUF flash_dat3 (
+		// {{{
+		.I(o_flash_dat[3]),
+		.T(flash_bmod[1] && flash_bmod[0]),
+		.O(i_flash_dat[3]),
+		.IO(io_flash_dat[3])
+		// }}}
+	);
+	*/
 
 	// The following primitive is necessary in many designs order to gain
 	// access to the o_flash_sck pin.  It's not necessary on the Arty,
@@ -451,107 +509,132 @@ module	toplevel(
 	//	low allows the output of this pin to be as stated above.
 	.USRDONETS(1'b1)
 	);
-
+	// }}}
 
 	////////////////////////////////////////////////////////////////////////
 	//
-	// I2C IO buffers
+	// Default clock setup
 	// {{{
+	// assign	s_clk=s_clk200;
+	// assign	sysclk_locked = 1'b1;
 
-	// We need these in order to (properly) ensure the high impedance
-	// states (pull ups) of the I2C I/O lines.  Our goals are:
-	//
-	//	o_i2c_X	io_i2c_X		Derived:T
-	//	1'b0		1'b0			1'b0
-	//	1'b1		1'bz			1'b1
-	//
-	IOBUF i2csclp(
-		// {{{
-		.I(1'b0),
-		.T(o_i2c_scl),
-		.O(i_i2c_scl),
-		.IO(io_i2c_scl)
-		// }}}
-	);
-
-	IOBUF i2csdap(
-		// {{{
-		.I(1'b0),
-		.T(o_i2c_sda),
-		.O(i_i2c_sda),
-		.IO(io_i2c_sda)
-		// }}}
-	);
-
-	initial	{ r_i2c_mxrst_n, r_i2c_mxrst_dly } = 0;
+	initial	pipe_reset = -1;
 	always @(posedge s_clk or negedge sysclk_locked)
 	if (!sysclk_locked)
-		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
+		pipe_reset <= -1;
 	else
-		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
+		pipe_reset <= { pipe_reset[1:0], 1'b0 };
 
-	assign	o_i2c_mxrst_n = r_i2c_mxrst_n;
-	// }}}
+	assign	s_reset = pipe_reset[2];
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// FAN IO buffers
-	// {{{
-
-	// We need these in order to (properly) ensure the high impedance
-	// states (pull ups) of the I2C I/O lines.  Our goals are:
-	//
-	//	o_fan_X	io_fan_X		Derived:T
-	//	1'b0		1'b0			1'b0
-	//	1'b1		1'bz			1'b1
-	//
-	IOBUF fansclp(
-		// {{{
-		.I(1'b0),
-		.T(o_fan_scl),
-		.O(i_fan_scl),
-		.IO(io_temp_scl)
-		// }}}
-	);
-
-	IOBUF fansdap(
-		// {{{
-		.I(1'b0),
-		.T(o_fan_sda),
-		.O(i_fan_sda),
-		.IO(io_temp_sda)
-		// }}}
-	);
-	// }}}
-
-/*
 	PLLE2_BASE #(
 		.CLKFBOUT_MULT(8),
 		.CLKFBOUT_PHASE(0.0),
-		.CLKIN1_PERIOD(10),
-		.CLKOUT0_DIVIDE(4),
-		.CLKOUT1_DIVIDE(2)) gen_sysclk(
-			.CLKIN1(i_clk),
-			.CLKOUT0(s_clk_200mhz_unbuffered),
-			.CLKOUT1(s_clk4x_unbuffered),
-			.PWRDWN(1'b0), .RST(1'b0),
-			.CLKFBOUT(sysclk_feedback),
-			.CLKFBIN(sysclk_feedback),
-			.LOCKED(sysclk_locked));
-*/
-	BUFG	clksync_buf(.I(s_clksync_unbuffered), .O(s_clksync));
-	BUFG	clk4x_buf(.I(s_clk4x_unbuffered), .O(s_clk4x));
-
-	xgenclk
-	u_xsirefclk(
-		// {{{
-		.i_clk(s_clksync), .i_hsclk(s_clk4x),
-		.i_ce(w_sirefclk_ce),
-		.i_word(w_sirefclk_word),
-		.o_pin({ o_siref_clk_p, o_siref_clk_n })
-		// }}}
+		.CLKIN1_PERIOD(5),
+		.CLKOUT0_DIVIDE(16),		// Divide by 2x
+		.CLKOUT1_DIVIDE(4),		// Multiply by 2x
+		.CLKOUT2_DIVIDE(40)		// Divide by 5x
+	) u_syspll (
+		.CLKOUT0(s_clk_nobuf),		// 100MHz
+		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz
+		.CLKOUT2(s_pixclk_unbuffered),	//  40MHz
+		//
+		.CLKFBOUT(clk_feedback),
+		.LOCKED(sysclk_locked),
+		.CLKIN1(s_clk200),	// 200MHz
+		.PWRDWN(1'b0),
+		.CLKFBIN(clk_feedback_bufd)
 	);
 
+	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
+	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Pixel clock generation
+	// {{{
+	/*
+	BUFGMUX
+	u_pixclk_mux (
+		.IO(pref_clk), .I1(hdmirx_clk),
+		.O(i_pixclk), .S(pixclk_sel)
+	);
+	*/
+
+	BUFG	pixclk_buffer(.I(s_pixclk_unbuffered), .O(s_pixclk));
+	// }}}
+
+	//////////////////////////////////////////////////////////////////////
+	//
+	// SD Card SPI Controller
+	// {{{
+	//////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	// Wires for setting up the SD Card Controller
+	// {{{
+	// This is how we'd set up for SDIO
+	// assign io_sdcard_cmd = w_sdcard_cmd ? 1'bz:1'b0;	// MOSI
+	// assign io_sdcard[0] = w_sdcard_data[0]? 1'bz:1'b0;	// MISO
+	// assign io_sdcard[1] = w_sdcard_data[1]? 1'bz:1'b0;
+	// assign io_sdcard[2] = w_sdcard_data[2]? 1'bz:1'b0;
+	// assign io_sdcard[3] = w_sdcard_data[3]? 1'bz:1'b0;	// CS_n
+	// }}}
+	IOBUF sdcard_cmd_bf(.T(1'b0),.O(i_sdcard_cmd),.I(w_sdcard_cmd),.IO(io_sdcard_cmd));// MISO
+	IOBUF sdcard_dat0_bf(.T(1'b1),.O(i_sdcard_data[0]),.I(1'b1),.IO(io_sdcard_dat[0]));// MISO
+	IOBUF sdcard_dat1_bf(.T(1'b1),.O(i_sdcard_data[1]),.I(1'b1),.IO(io_sdcard_dat[1]));
+	IOBUF sdcard_dat2_bf(.T(1'b1),.O(i_sdcard_data[2]),.I(1'b1),.IO(io_sdcard_dat[2]));
+
+	// Implement an open-drain output
+	IOBUF sdcard_dat3_bf(.T(w_sdcard_data[3]),.O(i_sdcard_data[3]),.I(1'b0),.IO(io_sdcard_dat[3]));
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// SMI bi-directional IO handling
+	// {{{
+	generate for (smi_gk=0; smi_gk<18; smi_gk=smi_gk+1)
+	begin : GEN_SMI
+		IOBUF u_smiio (
+			.I(o_smi_sd[smi_gk]),
+			.O(i_smi_sd[smi_gk]),
+			.T(!w_smi_oen),
+			.IO(io_smi_sd[smi_gk])
+		);
+	end endgenerate
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// 200MHz clock ingestion
+	// {{{
+	IBUFDS
+	ibuf_ck200 (
+		.I(i_clk_200mhz_p), .IB(i_clk_200mhz_n),
+		.O(s_clk200)
+	);
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// GPIO adjustments
+	// {{{
+	assign	i_gpio = { 11'h0, i_hdmitx_hpd_n, i_si5324_int, sysclk_locked,
+				i_pi_reset, i_soft_reset };
+	// assign	o_tp = o_gpio[3:0];
+	assign	o_tp = { o_gpio[3:2], s_clk, o_wbu_uart_tx };
+	assign	o_si5324_rst = o_gpio[4];
+	assign	o_hdmirx_hpd_n = o_gpio[5];
+	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
+	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
+	// }}}
+
+	assign	o_led = { w_led[8-1:2], (w_led[1] || !sysclk_locked),
+			w_led[0] | s_reset };
+
+	assign	w_btn = ~{ i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d };
 
 
 

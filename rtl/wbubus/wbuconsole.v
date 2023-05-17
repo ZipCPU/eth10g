@@ -52,7 +52,7 @@ module	wbuconsole #(
 		parameter	LGWATCHDOG=19,
 				LGINPUT_FIFO=6,
 				LGOUTPUT_FIFO=10,
-		parameter [0:0] CMD_PORT_OFF_UNTIL_ACCESSED = 1'b1,
+		parameter [0:0] CMD_PORT_OFF_UNTIL_ACCESSED = 1'b0,
 		parameter	AW = 30
 		// }}}
 	) (
