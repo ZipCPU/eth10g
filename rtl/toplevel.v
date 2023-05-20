@@ -600,7 +600,7 @@ module	toplevel(
 		IOBUF u_smiio (
 			.I(o_smi_sd[smi_gk]),
 			.O(i_smi_sd[smi_gk]),
-			.T(!w_smi_oen),
+			.T(w_smi_oen),
 			.IO(io_smi_sd[smi_gk])
 		);
 	end endgenerate
@@ -623,8 +623,7 @@ module	toplevel(
 	// {{{
 	assign	i_gpio = { 11'h0, i_hdmitx_hpd_n, i_si5324_int, sysclk_locked,
 				i_pi_reset, i_soft_reset };
-	// assign	o_tp = o_gpio[3:0];
-	assign	o_tp = { o_gpio[3:2], s_clk, o_wbu_uart_tx };
+	assign	o_tp = o_gpio[3:0];
 	assign	o_si5324_rst = o_gpio[4];
 	assign	o_hdmirx_hpd_n = o_gpio[5];
 	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore

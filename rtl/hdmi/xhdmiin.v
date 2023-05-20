@@ -1,13 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	builddate.v
+// Filename: 	xhdmiin.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	This file records the date of the last build.  Running "make"
-//		in the main directory will create this file.  The `define found
-//	within it then creates a version stamp that can be used to tell which
-//	configuration is within an FPGA and so forth.
+// Purpose:	
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -32,9 +29,53 @@
 // under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
-// }}}
-`ifndef	DATESTAMP
-`define DATESTAMP 32'h20230518
-`define BUILDTIME 32'h00191119
-`endif
 //
+//
+`default_nettype	none
+// }}}
+module	xhdmiin #(
+		parameter	DC = 0
+	) (
+		// {{{
+		input	wire		i_clk,		// Pixel clock
+					i_hsclk,	// 10x pixel clock
+					i_ce,
+		input	wire	[4:0]	i_delay,
+		output	wire	[4:0]	o_delay,
+		input	wire	[1:0]	i_hs_wire,
+		output	wire	[9:0]	o_word
+		// }}}
+	);
+
+	// Local declarations
+	// {{{
+	wire		w_ignored;
+	wire	[9:0]	w_word;
+
+	wire	w_hs_wire, w_hs_delayed_wire;
+	// }}}
+
+	// Convert from differential to internal
+	// {{{
+	IBUFDS
+	hdmibuf(
+		.I(i_hs_wire[1]), .IB(i_hs_wire[0]),
+		.O(w_hs_wire)
+	);
+	// }}}
+
+	// Now separate us into the various bits
+	// {{{
+	xhdmiin_deserdes
+	the_deserdes(
+		.i_clk(i_clk),
+		.i_hsclk(i_hsclk),
+		.i_ce(i_ce),
+		.i_delay(i_delay),
+		.o_delay(o_delay),
+		.i_pin(w_hs_wire),
+		.o_wire(w_ignored),
+		.o_word(o_word)		// Decoded data to send to 10B/8B decode
+	);
+	// }}}
+endmodule

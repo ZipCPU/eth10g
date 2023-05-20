@@ -41,7 +41,7 @@
 @TOP.DEFNS=
 	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
 			clk_feedback, clk_feedback_bufd,
-			s_pixclk_unbuffered, s_clk4x_unbuffered;
+			s_lcl_pixclk_nobuf, s_clk4x_unbuffered;
 	reg	[2:0]	pipe_reset;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@
 	) u_syspll (
 		.CLKOUT0(s_clk_nobuf),		// 100MHz
 		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz
-		.CLKOUT2(s_pixclk_unbuffered),	//  40MHz
+		.CLKOUT2(s_lcl_pixclk_nobuf),	//  40MHz
 		//
 		.CLKFBOUT(clk_feedback),
 		.LOCKED(sysclk_locked),
@@ -81,6 +81,7 @@
 
 	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
 	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
+	// BUFG	sysclk_buffer(.I(s_lcl_pixclk_nobuf), .O(s_lcl_pixclk));
 	// }}}
 ## }}}
 @PREFIX=clk200
@@ -141,69 +142,4 @@
 ##	// Verilator lint_off UNUSED
 ##	input	wire	@$(CLOCK.WIRE);
 ##	// Verilator lint_on  UNUSED
-## }}}
-@PREFIX=siclk
-## {{{
-## Comes from the Si5324 chip, at a user selectable frequency
-## @CLOCK.NAME=siclk
-## @CLOCK.WIRE=i_siclk
-## Just a pick a random freq, till we have something better
-## @CLOCK.FREQUENCY=40000000
-## @TOP.PORTLIST=
-## @TOP.IODECL=
-## @TOP.DEFNS=
-##	wire	@$(CLOCK.WIRE) = 1'b0;
-## @TOP.MAIN=
-##		@$(CLOCK.WIRE)
-## @MAIN.PORTLIST=
-##		@$(CLOCK.WIRE)
-## @MAIN.DEFNS=
-##	// Verilator lint_off UNUSED
-##	input	wire	@$(CLOCK.WIRE);
-##	// Verilator lint_on  UNUSED
-## }}}
-@PREFIX=pixck
-## {{{
-## Comes from either the Si5324 chip, or the HDMI RX channel,
-## at the user's option
-## 1280x960 @ 85Hz -> 148.5MHz
-@CLOCK.NAME=pixck
-@CLOCK.WIRE=i_pixclk
-@CLOCK.FREQUENCY=148500000
-@TOP.PORTLIST=
-@TOP.IODECL=
-@TOP.DEFNS=
-	wire	s_pixclk;
-@TOP.INSERT=
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Pixel clock generation
-	// {{{
-	/*
-	BUFGMUX
-	u_pixclk_mux (
-		.IO(pref_clk), .I1(hdmirx_clk),
-		.O(@$(CLOCK.WIRE)), .S(pixclk_sel)
-	);
-	*/
-
-	BUFG	pixclk_buffer(.I(s_pixclk_unbuffered), .O(s_pixclk));
-	// }}}
-@TOP.MAIN=
-		s_pixclk
-@MAIN.PORTLIST=
-		@$(CLOCK.WIRE)
-@MAIN.IODECL=
-	// Verilator lint_off UNUSED
-	input	wire	@$(CLOCK.WIRE);
-	// Verilator lint_on  UNUSED
-##
-## }}}
-## @PREFIX=hdmick
-## {{{
-## ## 1280x960 @ 85Hz * 5 -> 148.5MHz
-## Required for HDMI TX IO
-## @CLOCK.NAME=hdmick
-## @CLOCK.WIRE=i_hdmiclk
-## @CLOCK.FREQUENCY=1485000000
 ## }}}

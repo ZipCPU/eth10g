@@ -1,0 +1,195 @@
+################################################################################
+##
+## Filename:	auto-data/hdmi.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	To direct the build of the autofpga automatically generated
+##		files.  The various configuration files are the *.txt files
+##	found in this directory.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=hdmi
+@DEVID=HDMI
+@ACCESS=@$(DEVID)_ACCESS
+@NADDR=512
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=OTHER
+@MASTER.BUS=wbwide
+@MASTER.TYPE=DMA
+@MASTER.ANSPREFIX=dma_
+@TOP.PORTLIST=
+		i_hdmirx_clk_p, i_hdmirx_clk_n,
+		i_hdmirx_p, i_hdmirx_n,
+		i_hdmitx_clk_p, i_hdmitx_clk_n,
+		o_hdmitx_p, o_hdmitx_n
+@TOP.IODECL=
+@TOP.DEFNS=
+	wire	[9:0]	hdmirx_red, hdmirx_grn, hdmirx_blu;
+	wire	[9:0]	hdmitx_red, hdmitx_grn, hdmitx_blu;
+	wire	[1:0]	w_pxclk_sel;
+@TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// HDMI
+	// {{{
+
+	// Start with clock generation and propagation
+	// {{{
+	xpxclk
+	u_xpxclk (
+		.i_sysclk(s_clk),
+		.i_hdmirx_clk_p(i_hdmirx_clk_p),
+		.i_hdmirx_clk_n(i_hdmirx_clk_n),
+		.i_lcl_pixclk(s_lcl_pixclk_nobuf),
+		.i_siclk_p(i_clk_si_p),
+		.i_siclk_n(i_clk_si_n),
+		.i_cksel(w_pxclk_sel),
+		.o_hdmick_locked(pxrx_locked),
+		.o_hdmirx_clk(hdmirx_clk),
+		.o_pixclk(hdmi_ck),
+		.o_hdmck(hdmi_serdes_clk)
+	);
+	// }}}
+
+	// Ingest the HDMI data lines
+	// {{{
+	xhdmiin
+	u_hdmirx_red(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_delay(5'h0),
+		.o_delay(5'h0),
+		.i_hs_wire({ i_hdmi_p[2], i_hdmi_p[2] }),
+		.o_word(hdmirx_red)
+	);
+
+	xhdmiin
+	u_hdmirx_grn(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_delay(5'h0),
+		.o_delay(5'h0),
+		.i_hs_wire({ i_hdmi_p[1], i_hdmi_p[1] }),
+		.o_word(hdmirx_grn)
+	);
+
+	xhdmiin
+	u_hdmirx_blu(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_delay(5'h0),
+		.o_delay(5'h0),
+		.i_hs_wire({ i_hdmi_p[0], i_hdmi_p[0] }),
+		.o_word(hdmirx_blu)
+	);
+	// }}}
+
+	// Output the HDMI TX data lines
+	// {{{
+	xhdmiout
+	u_hdmitx_red(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_word(hdmirx_red)
+		.o_port({ o_hdmitx_p[2], o_hdmitx_n[2] }),
+	);
+
+	xhdmiout
+	u_hdmitx_grn(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_word(hdmitx_grn),
+		.o_port({ i_hdmitx_p[1], i_hdmitx_n[1] })
+	);
+
+	xhdmiout
+	u_hdmitx_blu(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_word(hdmitx_blu),
+		.o_port({ o_hdmitx_p[0], o_hdmitx_n[0] })
+	);
+	// }}}
+
+	// }}}
+@MAIN.PORTLIST=
+		// HDMI control ports
+		i_hdmiclk, i_siclk, i_pixclk,
+		i_hdmi_red, i_hdmi_grn, i_hdmi_blu,
+		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
+		o_pxclk_sel
+@MAIN.IODECL=
+	// @$(PREFIX) declarations
+	// {{{
+	input	wire		i_hdmiclk, i_siclk, i_pixclk;
+	input	wire	[9:0]	i_hdmi_red, i_hdmi_grn, i_hdmi_blu;
+	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
+	output	wire	[1:0]	o_pxclk_sel;
+	// }}}
+@MAIN.INCLUDE=
+	########################################################################
+	##
+	## HDMI Video processing pipeline
+	## {{{
+
+	vidpipe #(
+		.AW(@$(MASTER.BUS.AWID)),
+		.DW(@$(MASTER.BUS.WIDTH))
+	) u_@$(PREFIX) (
+		.i_clk(i_clk), .i_reset(i_reset),
+		@$(SLAVE.ANSIPORTLIST),
+		.i_hdmiclk(i_hdmiclk),
+		.i_siclk(i_siclk),
+		.i_pixclk(i_pixclk),
+		.i_hdmi_red(i_hdmi_red), .i_hdmi_grn(i_hdmi_grn),
+				.i_hdmi_blu(i_hdmi_blu),
+		@$(MASTER.ANSIPORTLIST),
+		.o_hdmi_red(o_hdmi_red), .o_hdmi_grn(o_hdmi_grn),
+				.o_hdmi_blu(o_hdmi_blu),
+		.o_pxclk_sel(o_pxclk_sel)
+	);
+
+	## }}}
+@REGS.N=17
+@REGS.0=   0  R_@$(DEVID) @$(DEVID) VIDCTRL
+@REGS.1=   1  R_SIFREQ    SIFREQ
+@REGS.2=   2  R_PXFREQ    PXFREQ
+@REGS.3=   3  R_HDMIFREQ  HDMIFREQ
+@REGS.4=   4  R_INSIZE    INSIZE
+@REGS.5=   5  R_INPORCH   INPORCH
+@REGS.6=   6  R_INSYNC    INSYNC
+@REGS.7=   7  R_INRAW     INRAW
+@REGS.8=   8  R_HDMISIZE  HDMISIZE
+@REGS.9=   9  R_HDMIPORCH HDMIPORCH
+@REGS.10= 10  R_HDMISYNC  HDMISYNC
+@REGS.11= 11  R_HDMIRAW   HDMIRAW
+@REGS.12= 12  R_OVADDR    OVADDR
+@REGS.13= 13  R_OVSIZE    OVSIZE
+@REGS.14= 14  R_OVOFFSET  OVOFFSET
+@REGS.15= 15  R_FPS       FPS
+@REGS.16=256  R_CMAP      CMAP

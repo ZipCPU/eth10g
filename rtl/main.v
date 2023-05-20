@@ -1866,30 +1866,6 @@ module	main(i_clk, i_reset,
 		// }}}
 	);
 
-	/*
-	localparam 		DBGBUSINTERVAL = (100_000_000 / 10);
-	localparam		DBGBUSIC = $clog2(DBGBUSINTERVAL+1)+1;
-	// Verilator lint_off WIDTH
-	localparam [DBGBUSIC-1:0]	DBGBUSSTART = (1<<(DBGBUSIC-1))
-						- DBGBUSINTERVAL;
-	// Verilator lint_on  WIDTH
-	wire				wbu_idle_stb;
-	reg	[DBGBUSIC-1:0]	wbu_idle_counter;
-
-	always @(posedge i_clk)
-	if (i_reset)
-		wbu_idle_counter <= DBGBUSSTART;
-	else if ((wbu_tx_stb && (
-				wbu_tx_data != 8'hb0
-				&& wbu_tx_data != 8'h8a))
-			|| (wbu_idle_stb && !wbu_tx_busy))
-		wbu_idle_counter <= DBGBUSSTART;
-	else if (!wbu_idle_stb)
-		wbu_idle_counter <= wbu_idle_counter + 1;
-
-	assign	wbu_idle_stb = wbu_idle_counter[DBGBUSIC-1];
-	*/
-
 	txuartlite	#(
 		// {{{
 		.TIMING_BITS(DBGBUSBITS[4:0]),
@@ -1898,8 +1874,8 @@ module	main(i_clk, i_reset,
 	) txv(
 		// {{{
 		.i_clk(    i_clk),
-		.i_wr(     wbu_tx_stb), // || wbu_idle_stb),
-		.i_data(   wbu_tx_data), // wbu_tx_stb ? wbu_tx_data : 8'h00),
+		.i_wr(     wbu_tx_stb),
+		.i_data(   wbu_tx_data),
 		.o_uart_tx(o_wbu_uart_tx),
 		.o_busy(   wbu_tx_busy)
 		// }}}

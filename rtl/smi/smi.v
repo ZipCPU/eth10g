@@ -239,7 +239,7 @@ module smi #(
 
 		assign	o_debug = {
 				((last_oen && !ck_oen)||(last_wen && !ck_wen)),
-				last_oen, last_wen, ck_oen, ck_wen,
+				o_smi_oen, last_wen && last_oen, ck_oen, ck_wen,
 				fif_err, ifif_full, ofif_empty, i_smi_sa,
 				(o_smi_oen) ? i_smi_data : o_smi_data
 			};

@@ -83,12 +83,12 @@ public:
 
 	virtual	void	define_traces(void) {
 		//
-		register_trace("last_oen",1,30);
-		register_trace("last_wen",1,29);
-		register_trace("ck_oen",  1,28);
-		register_trace("ck_wen",  1,27);
+		register_trace("o_smi_oen",1,30);
+		register_trace("last",     1,29);
+		register_trace("ck_oen",   1,28);
+		register_trace("ck_wen",   1,27);
 		//
-		register_trace("fif_err",1,26);
+		register_trace("fif_err",  1,26);
 		register_trace("ifif_full",1,25);
 		register_trace("ofif_empty", 1,24);
 		register_trace("i_smi_sa",6,18);

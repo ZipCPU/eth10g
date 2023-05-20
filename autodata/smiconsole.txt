@@ -62,7 +62,7 @@
 		IOBUF u_@$(PREFIX)io (
 			.I(o_@$(PREFIX)_sd[@$(PREFIX)_gk]),
 			.O(i_@$(PREFIX)_sd[@$(PREFIX)_gk]),
-			.T(!w_@$(PREFIX)_oen),
+			.T(w_@$(PREFIX)_oen),
 			.IO(io_@$(PREFIX)_sd[@$(PREFIX)_gk])
 		);
 	end endgenerate
