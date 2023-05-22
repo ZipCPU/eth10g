@@ -36,7 +36,7 @@
 ##
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth dropshort wbmarbiter
-TESTS += pktvfiford pktvfifowr
+TESTS += pktvfiford pktvfifowr cecbridge
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
@@ -51,6 +51,7 @@ DSHORT := dropshort
 WBMARB := wbmarbiter
 PKTVRD := pktvfiford
 PKTVWR := pktvfifowr
+CEC := cecbridge
 ## }}}
 
 ## Interfaces
@@ -153,6 +154,13 @@ $(PKTVWR)_prf512/PASS: $(PKTVWR).sby   $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
 	sby -f $(PKTVWR).sby prf512
 $(PKTVWR)_cvr/PASS: $(PKTVWR).sby   $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
 	sby -f $(PKTVWR).sby cvr
+## }}}
+
+.PHONY: $(CEC)
+## {{{
+$(CEC): $(CEC)_prf/PASS
+$(CEC)_prf/PASS: $(CEC).sby  $(RTL)/hdmi/cecbridge.v
+	sby -f $(CEC).sby prf
 ## }}}
 
 .PHONY: report

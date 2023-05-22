@@ -119,30 +119,6 @@
 		// }}}
 	);
 
-	/*
-	localparam 		@$(DEVID)INTERVAL = (100_000_000 / 10);
-	localparam		@$(DEVID)IC = $clog2(@$(DEVID)INTERVAL+1)+1;
-	// Verilator lint_off WIDTH
-	localparam [@$(DEVID)IC-1:0]	@$(DEVID)START = (1<<(@$(DEVID)IC-1))
-						- @$(DEVID)INTERVAL;
-	// Verilator lint_on  WIDTH
-	wire				@$(PREFIX)_idle_stb;
-	reg	[@$(DEVID)IC-1:0]	@$(PREFIX)_idle_counter;
-
-	always @(posedge i_clk)
-	if (i_reset)
-		@$(PREFIX)_idle_counter <= @$(DEVID)START;
-	else if ((@$(PREFIX)_tx_stb && (
-				@$(PREFIX)_tx_data != 8'hb0
-				&& @$(PREFIX)_tx_data != 8'h8a))
-			|| (@$(PREFIX)_idle_stb && !@$(PREFIX)_tx_busy))
-		@$(PREFIX)_idle_counter <= @$(DEVID)START;
-	else if (!@$(PREFIX)_idle_stb)
-		@$(PREFIX)_idle_counter <= @$(PREFIX)_idle_counter + 1;
-
-	assign	@$(PREFIX)_idle_stb = @$(PREFIX)_idle_counter[@$(DEVID)IC-1];
-	*/
-
 	txuartlite	#(
 		// {{{
 		.TIMING_BITS(@$(DEVID)BITS[4:0]),
@@ -151,8 +127,8 @@
 	) txv(
 		// {{{
 		.i_clk(    @$(CLOCK.WIRE)),
-		.i_wr(     @$(PREFIX)_tx_stb), // || @$(PREFIX)_idle_stb),
-		.i_data(   @$(PREFIX)_tx_data), // @$(PREFIX)_tx_stb ? @$(PREFIX)_tx_data : 8'h00),
+		.i_wr(     @$(PREFIX)_tx_stb),
+		.i_data(   @$(PREFIX)_tx_data),
 		.o_uart_tx(o_@$(PREFIX)_uart_tx),
 		.o_busy(   @$(PREFIX)_tx_busy)
 		// }}}

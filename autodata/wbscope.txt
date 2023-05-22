@@ -38,7 +38,7 @@
 @ACCESS=@$(DEVID)_SCOPE
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=wb32
-@LOG_CAPTURE_SIZE=12
+@$LOG_CAPTURE_SIZE=12
 @DATA_CLOCK=i_clk
 @CAPTURECE=1'b1
 @SYNCHRONOUS=1
@@ -50,9 +50,9 @@
 	// Remove this scope tag via inheritance when/if you connect the
 	// scope interrupt
 	//
-	// Virilator lint_off UNUSED
+	// Verilator lint_off UNUSED
 	wire	@$(PREFIX)_int;
-	// Virilator lint_on  UNUSED
+	// Verilator lint_on  UNUSED
 @MAIN.INSERT=
 	@$(CORE) #(
 		// {{{

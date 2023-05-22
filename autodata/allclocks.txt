@@ -61,12 +61,12 @@
 	assign	s_reset = pipe_reset[2];
 
 	PLLE2_BASE #(
-		.CLKFBOUT_MULT(8),
+		.CLKFBOUT_MULT(6),		// 200MHz*6 => 1200MHz
 		.CLKFBOUT_PHASE(0.0),
 		.CLKIN1_PERIOD(5),
-		.CLKOUT0_DIVIDE(16),		// Divide by 2x
-		.CLKOUT1_DIVIDE(4),		// Multiply by 2x
-		.CLKOUT2_DIVIDE(40)		// Divide by 5x
+		.CLKOUT0_DIVIDE(12),		// Divide by 2x
+		.CLKOUT1_DIVIDE(3),		// Multiply by 2x
+		.CLKOUT2_DIVIDE(30)		// Divide by 5x
 	) u_syspll (
 		.CLKOUT0(s_clk_nobuf),		// 100MHz
 		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz

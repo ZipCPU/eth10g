@@ -37,7 +37,7 @@ all:
 ## {{{
 CXX := g++
 OBJDIR := obj-pc
-SCOPES := smiscope
+SCOPES := smiscope flashscope fanscope cfgscope
 RTLD := ../../rtl
 ZIPSUPPORT := zipload zipstate zipdbg
 BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp devbus.cpp
@@ -62,6 +62,15 @@ netuart: $(OBJDIR)/netuart.o
 	$(CXX) $(CFLAGS) $^ -o $@
 
 wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -o $@
+
+cfgscope: $(OBJDIR)/cfgscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -o $@
+
+fanscope: $(OBJDIR)/fanscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -o $@
+
+flashscope: $(OBJDIR)/flashscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@
 
 smiscope: $(OBJDIR)/smiscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)

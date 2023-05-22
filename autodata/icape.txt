@@ -1,0 +1,121 @@
+################################################################################
+##
+## Filename: 	icape.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	A description of how to connect the wbicapetwo interface for
+##		Xilinx's ICAPE2 interface to a wishbone bus.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=cfg
+@NADDR=32
+@ACCESS=CFG_ACCESS
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb32
+@MAIN.PARAM=
+	localparam	ICAPE_LGDIV=3;
+@MAIN.DEFNS=
+	// Verilator lint_off	UNUSED
+	wire	[31:0]	@$(PREFIX)_debug;
+	// Verilator lint_on 	UNUSED
+@MAIN.INSERT=
+`ifdef	VERILATOR
+	reg	r_@$(PREFIX)_ack;
+
+	initial	r_@$(PREFIX)_ack = 1'b0;
+	always @(posedge i_clk)
+		r_@$(PREFIX)_ack <= @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_ack   = r_@$(PREFIX)_ack;
+	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
+	assign	@$(SLAVE.PREFIX)_idata = 32'h00;
+
+	assign	@$(PREFIX)_debug = 32'h00;
+
+	// Verilator lint_off UNUSED
+	wire	@$(PREFIX)_unused;
+	assign	@$(PREFIX)_unused = &{ 1'b0, ICAPE_LGDIV[31:0] };
+	// Verilator lint_on  UNUSED
+`else
+	wbicapetwo #(
+		.LGDIV(ICAPE_LGDIV)
+	) u_cfgport(
+		.i_clk(i_clk),
+		@$(SLAVE.ANSIPORTLIST),
+		.o_dbg(@$(PREFIX)_debug)
+	);
+`endif
+@REGS.NOTE=// FPGA CONFIG REGISTERS: 0x4e0-0x4ff
+@REGS.N=20
+@REGS.0=   0 R_CFG_CRC		FPGACRC
+@REGS.1=   1 R_CFG_FAR		FPGAFAR
+@REGS.2=   2 R_CFG_FDRI		FPGAFDRI
+@REGS.3=   3 R_CFG_FDRO		FPGAFDRO
+@REGS.4=   4 R_CFG_CMD		FPGACMD
+@REGS.5=   5 R_CFG_CTL0		FPGACTL0
+@REGS.6=   6 R_CFG_MASK		FPGAMASK
+@REGS.7=   7 R_CFG_STAT		FPGASTAT
+@REGS.8=   8 R_CFG_LOUT		FPGALOUT
+@REGS.9=   9 R_CFG_COR0		FPGACOR0
+@REGS.10= 10 R_CFG_MFWR		FPGAMFWR
+@REGS.11= 11 R_CFG_CBC		FPGACBC
+@REGS.12= 12 R_CFG_IDCODE	FPGAIDCODE
+@REGS.13= 13 R_CFG_AXSS		FPGAAXSS
+@REGS.14= 14 R_CFG_COR1		FPGACOR1
+@REGS.15= 16 R_CFG_WBSTAR	WBSTAR
+@REGS.16= 17 R_CFG_TIMER		CFGTIMER
+@REGS.17= 22 R_CFG_BOOTSTS	BOOTSTS
+@REGS.18= 24 R_CFG_CTL1		FPGACTL1
+@REGS.19= 31 R_CFG_BSPI		FPGABSPI
+@BDEF.DEFN=
+// Offsets for the ICAPE2 interface
+#define	CFG_CRC		0
+#define	CFG_FAR		1
+#define	CFG_FDRI	2
+#define	CFG_FDRO	3
+#define	CFG_CMD		4
+#define	CFG_CTL0	5
+#define	CFG_MASK	6
+#define	CFG_STAT	7
+#define	CFG_LOUT	8
+#define	CFG_COR0	9
+#define	CFG_MFWR	10
+#define	CFG_CBC		11
+#define	CFG_IDCODE	12
+#define	CFG_AXSS	13
+#define	CFG_COR1	14
+#define	CFG_WBSTAR	16
+#define	CFG_TIMER	17
+#define	CFG_BOOTSTS	22
+#define	CFG_CTL1	24
+#define	CFG_BSPI	31
+@BDEF.IONAME=io_icape[32]
+@BDEF.IOTYPE=unsigned
+@BDEF.OSDEF=_BOARD_HAS_ICAPTETWO
+@BDEF.OSVAL=static volatile @$THIS.BDEF.IOTYPE *const _icape = ((unsigned *)@$[0x%08x](THIS.BASE));
+@RTL.MAKE.GROUP=ICAP
+@RTL.MAKE.FILES=wbicapetwo.v

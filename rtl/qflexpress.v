@@ -302,7 +302,7 @@ module	qflexpress #(
 		// verilator lint_off UNUSED
 		wire	unused;
 		assign	unused = &{ 1'b0, bus_data, bus_addr, ign_cfg_err,
-					ign_wb_err };
+					ign_wb_err, r_last_cfg };
 		// verilator lint_on  UNUSED
 		// }}}
 	end else begin : NO_CFG_ARBITER
@@ -1281,15 +1281,13 @@ module	qflexpress #(
 	//
 	// WBScope debug definitions
 	// {{{
-	assign	o_dbg_trigger = (!cfg_mode)&&(r_last_cfg);
+	assign	o_dbg_trigger = bus_stb && !bus_stall; // (!cfg_mode)&&(r_last_cfg);
 	assign	o_debug = { o_dbg_trigger,
 			bus_cyc, cfg_bus_stb, mem_bus_stb, bus_ack, bus_stall,//6
 			o_qspi_cs_n, o_qspi_sck, o_qspi_dat, o_qspi_mod,// 8
 			i_qspi_dat, cfg_mode, cfg_cs, cfg_speed, cfg_dir,// 8
 			actual_sck, bus_we,
-			(((cfg_bus_stb)||(i_cfg_stb))
-				&&(bus_we)&&(!bus_stall)&&(!bus_ack))
-				? i_cfg_data[7:0] : o_wb_data[7:0]
+			(bus_stb && !bus_stall && bus_we) ? bus_data[7:0] : o_wb_data[7:0]
 			};
 	// }}}
 

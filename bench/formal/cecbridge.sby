@@ -1,0 +1,23 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+depth 10
+
+[engines]
+smtbmc
+
+[script]
+read -formal cecbridge.v
+--pycode-begin--
+cmd = "hierarchy -top cecbridge"
+output(cmd)
+--pycode-end--
+proc -norom
+prep
+
+[files]
+../../rtl/hdmi/cecbridge.v

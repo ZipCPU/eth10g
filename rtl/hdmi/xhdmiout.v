@@ -109,7 +109,7 @@ module	xhdmiout (
 		assign	w_word = d_word;
 	end else begin : ZERO_DELAY
 		assign	w_word = w_in_word;
-	endgenerate
+	end endgenerate
 	// }}}
 
 	OSERDESE2	#(		 // Master SERDES, for the upper bits

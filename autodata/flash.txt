@@ -78,7 +78,7 @@
 	IOBUF @$(PREFIX)_dat0 (
 		// {{{
 		.I(o_@$(PREFIX)_dat[0]),
-		.T(@$(PREFIX)_bmod[1] && @$(PREFIX)_bmod[0]),
+		.T(@$(PREFIX)_bmod == 2'b11),
 		.O(i_@$(PREFIX)_dat[0]),
 		.IO(io_@$(PREFIX)_dat[0])
 		// }}}
@@ -87,7 +87,7 @@
 	IOBUF @$(PREFIX)_dat1 (
 		// {{{
 		.I(o_@$(PREFIX)_dat[1]),
-		.T(!@$(PREFIX)_bmod[1] || @$(PREFIX)_bmod[0]),
+		.T(@$(PREFIX)_bmod != 2'b10),
 		.O(i_@$(PREFIX)_dat[1]),
 		.IO(io_@$(PREFIX)_dat[1])
 		// }}}
@@ -95,8 +95,8 @@
 
 	IOBUF @$(PREFIX)_dat2 (
 		// {{{
-		.I(o_@$(PREFIX)_dat[2]),
-		.T(@$(PREFIX)_bmod[1] && @$(PREFIX)_bmod[0]),
+		.I(!@$(PREFIX)_bmod[1] || o_@$(PREFIX)_dat[2]),
+		.T(@$(PREFIX)_bmod == 2'b11),
 		.O(i_@$(PREFIX)_dat[2]),
 		.IO(io_@$(PREFIX)_dat[2])
 		// }}}
@@ -104,8 +104,8 @@
 
 	IOBUF @$(PREFIX)_dat3 (
 		// {{{
-		.I(o_@$(PREFIX)_dat[3]),
-		.T(@$(PREFIX)_bmod[1] && @$(PREFIX)_bmod[0]),
+		.I(!@$(PREFIX)_bmod[1] || o_@$(PREFIX)_dat[3]),
+		.T(@$(PREFIX)_bmod == 2'b11),
 		.O(i_@$(PREFIX)_dat[3]),
 		.IO(io_@$(PREFIX)_dat[3])
 		// }}}

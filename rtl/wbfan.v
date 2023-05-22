@@ -85,7 +85,7 @@ module	wbfan (
 	wire	[31:0]	i2c_wb_data;
 
 	wire		ign_mem_cyc, mem_stb, ign_mem_we, ign_mem_sel;
-	wire	[3:0]	mem_addr;
+	wire	[4:0]	mem_addr;
 	wire	[7:0]	ign_mem_data;
 	reg	[7:0]	mem_data;
 	reg		mem_ack;
@@ -96,8 +96,8 @@ module	wbfan (
 	reg		pp_ms;
 	reg	[$clog2(CK_PER_MS)-1:0]	trigger_counter;
 
-	reg	[7:0]	temp_tmp;
-	reg	[15:0]	temp_data;
+	reg	[23:0]	temp_tmp;
+	reg	[31:0]	temp_data;
 
 	reg		pre_ack;
 	reg	[31:0]	pre_data;
@@ -131,7 +131,7 @@ module	wbfan (
 			if (i_wb_sel[1]) ctl_sys[15: 8] <= i_wb_data[15: 8];
 			if (i_wb_sel[2]) ctl_sys[23:16] <= i_wb_data[23:16];
 			if (i_wb_sel[3]) ctl_sys[31:24] <= i_wb_data[31:24];
-			end	
+			end
 		default: begin end
 		endcase
 	end
@@ -198,7 +198,7 @@ module	wbfan (
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// I2C Temperature reader: Address 7'b1001_000
+	// I2C Temperature reader: Address 7'b1001_000 and/or 7'b1001_001
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -219,23 +219,46 @@ module	wbfan (
 
 	// Our script
 	// {{{
-	// 0xb0		TARGET
-	// 0xa0		ABORT
-	// 0x81		WAIT
-	// 		START
-	// 0x70	90	SEND	0x48,WR		// Write to temp device
-	// 0x70 00	SEND	0x00		// Set the address
-	// 0x17		START
-	//      91	SEND	0x48,WR		// Write to temp device
-	// 0x36		RXK			// First byte of temperature
-	//		RXLN			//   Last byte of temperature
-	// 0x2c		STOP
-	//		JUMP
+	// TARGET:
+	//	CHANNEL	0
+	//	ABORT
+	//	WAIT
+	//	START			// @ 4.1
+	//	SEND	0x48,WR
+	//	SEND	0x00		// Temperature address
+	//	START
+	//	SEND	0x48,RD
+	//	RXK			// Read two bytes of temperature
+	//	RXN
+	//	STOP			// @B.1
+	//	START			// @C.0
+	//	SEND	0x49,WR
+	//	SEND	0x00		// Temperature address
+	//	START
+	//	SEND	0x49,RD
+	//	RXK			// Read two bytes of temperature
+	//	RXLN
+	//	STOP
+	//	JUMP
+	// Second start, if only TEMP1 is available
+	// TARGET:
+	//	ABORT
+	//	WAIT
+	//	START			// @C.0
+	//	SEND	0x49,WR
+	//	SEND	0x00		// Temperature address
+	//	START
+	//	SEND	0x49,RD
+	//	RXK			// Read two bytes of temperature
+	//	RXLN
+	//	STOP
+	//	JUMP
+	//	HALT
 	// }}}
 
 	wbi2ccpu #(
 		// {{{
-		.ADDRESS_WIDTH(4),
+		.ADDRESS_WIDTH(5),
 		.DATA_WIDTH(8),
 		.AXIS_ID_WIDTH(0),
 		.OPT_START_HALTED(1'b0),
@@ -279,27 +302,46 @@ module	wbfan (
 	always @(posedge i_clk)
 	if (mem_stb)
 	case(mem_addr)
-	4'd00:	mem_data <= 8'hb0;	// TARGET
-	4'd01:	mem_data <= 8'hd0;	// CHANNEL
-	4'd02:	mem_data <= 8'h00;	//	#0
-	4'd03:	mem_data <= 8'ha0;	// ABORT
-	4'd04:	mem_data <= 8'h81;	// WAIT | START
-	4'd05:	mem_data <= 8'h30;	// SEND
-	4'd06:	mem_data <= 8'h90;	//	#90
-	4'd07:	mem_data <= 8'h30;	// SEND
-	4'd08:	mem_data <= 8'h00;	//	#00
-	4'd09:	mem_data <= 8'h13;	// START | SEND
-	4'd10:	mem_data <= 8'h91;	//	#91
-	4'd11:	mem_data <= 8'h47;	// RXK | RXLN
-	4'd12:	mem_data <= 8'h2c;	// JUMP
-	default:
-		mem_data <= 8'h99;
+	5'h00:	mem_data <= 8'hb0;	// TARGET
+	5'h01:	mem_data <= 8'hd0;	// CHANNEL
+	5'h02:	mem_data <= 8'h00;	//	#0
+	5'h03:	mem_data <= 8'ha0;	// ABORT
+	5'h04:	mem_data <= 8'h81;	// WAIT | START
+	5'h05:	mem_data <= 8'h30;	// SEND
+	5'h06:	mem_data <= 8'h90;	//	#90
+	5'h07:	mem_data <= 8'h30;	// SEND
+	5'd08:	mem_data <= 8'h00;	//	#00
+	5'h09:	mem_data <= 8'h13;	// START | SEND
+	5'h0a:	mem_data <= 8'h91;	//	#91
+	5'h0b:	mem_data <= 8'h45;	// RXK | RXN
+	5'h0c:	mem_data <= 8'h21;	// STOP | START
+	5'h0d:	mem_data <= 8'h30;	// SEND
+	5'h0e:	mem_data <= 8'h92;	//	#92
+	5'h0f:	mem_data <= 8'h30;	// SEND
+	5'h10:	mem_data <= 8'h00;	//	#00
+	5'h11:	mem_data <= 8'h13;	// START | SEND
+	5'h12:	mem_data <= 8'h93;	//	#93
+	5'h13:	mem_data <= 8'h47;	// RXK  | RXLN
+	5'h14:	mem_data <= 8'h2c;	// STOP | JUMP
+	// Sensor #1 only (skip sensor #0)
+	5'h15:	mem_data <= 8'hb0;	// TARGET
+	5'h16:	mem_data <= 8'ha0;	// ABORT
+	5'h17:	mem_data <= 8'h81;	// WAIT | START
+	5'h18:	mem_data <= 8'h30;	// SEND 0x49,WR
+	5'h19:	mem_data <= 8'h92;	//	#92
+	5'h1a:	mem_data <= 8'h30;	// SEND 0x00
+	5'h1b:	mem_data <= 8'h00;	//
+	5'h1c:	mem_data <= 8'h13;	// START | SEND 0x49,RD
+	5'h1d:	mem_data <= 8'h93;	//	#93
+	5'h1e:	mem_data <= 8'h47;	// RXK  | RXLN
+	5'h1f:	mem_data <= 8'h2c;	// STOP | JUMP
+	// default: mem_data <= 8'h99;
 	endcase
 	// }}}
 
 	always @(posedge i_clk)
 	if (i2cd_valid)
-		temp_tmp <= i2cd_data;
+		temp_tmp <= { temp_tmp[15:0], i2cd_data };
 
 	always @(posedge i_clk)
 	if (i2cd_valid && i2cd_last)
@@ -330,7 +372,7 @@ module	wbfan (
 		2'b00: pre_data <= ctl_fpga;
 		2'b01: pre_data <= ctl_sys;
 		2'b10: pre_data[$clog2(CK_PER_SECOND)-1:0] <= tach_count;
-		2'b11: pre_data <= { {(16){temp_data[15]}}, temp_data };
+		2'b11: pre_data <= temp_data;
 		default: pre_data <= 32'h0;
 		endcase
 	end
