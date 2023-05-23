@@ -2,7 +2,7 @@
 //
 // Filename: 	mem2pkt.v
 // {{{
-// Project:	Demonstration SONAR project
+// Project:	10Gb Ethernet switch
 //
 // Purpose:	This module is designed to allow a CPU to send packets from
 //		a circular buffer region in memory.  To use:
@@ -90,11 +90,22 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2022, Gisselquist Technology, LLC
+// Copyright (C) 2023, Gisselquist Technology, LLC
 // {{{
-// The algorithms described in this file are proprietary to Gisselquist
-// Technology, LLC.  They may not be redistributed without the express
-// permission of an authorized representative of Gisselquist Technology.
+// This file is part of the ETH10G project.
+//
+// The ETH10G project contains free software and gateware, licensed under the
+// Apache License, Version 2.0 (the "License").  You may not use this project,
+// or this file, except in compliance with the License.  You may obtain a copy
+// of the License at
+// }}}
+//	http://www.apache.org/licenses/LICENSE-2.0
+// {{{
+// Unless required by applicable law or agreed to in writing, files
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+// License for the specific language governing permissions and limitations
+// under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
