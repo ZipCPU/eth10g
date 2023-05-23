@@ -355,7 +355,7 @@ module	pktvfiford #(
 	end endgenerate
 	// }}}
 
-	initial	{ o_wb_cyc, o_wb_stb } = 1'b0;
+	initial	{ o_wb_cyc, o_wb_stb } = 2'b0;
 	always @(posedge i_clk)
 	if (i_reset || i_cfg_reset_fifo || o_fifo_err || (o_wb_cyc && i_wb_err))
 	begin

@@ -74,27 +74,40 @@ public:
 	virtual	void	decode(DEVBUS::BUSW val) const {
 		int	clk, ckstb, ckstl,
 			wbstb, wbstl, wback,
-			csn, rdwrn, state,
-			cfgin, cfgout;
+			state, // csn, rdwrn,
+			cfgdat;
 
 		clk      = (val>>30)&1;
 		ckstb    = (val>>29)&1;
 		ckstl    = (val>>28)&1;
 		wbstb    = (val>>27)&1;
 		wback    = (val>>26)&1;
-		csn      = (val>>25)&1;
-		rdwrn    = (val>>24)&1;
+		// csn      = (val>>25)&1;
+		// rdwrn    = (val>>24)&1;
 		wbstl    = (val>>23)&1;
 		state    = (val>>18)&0x1f;
-		cfgin    = (val>> 8)&0x0ff;
-		cfgout   = (val    )&0x0ff;
+		cfgdat   = (val    )&0x0ffff;
 
-		printf("%s %s/%s  [%d%d%d] %2x [%02x - %02x]",
+		printf("%s %s/%s  [%d%d%d] %2x [%04x]",
 			(wbstb)?"STB":"   ",
 			(wbstl)?"STL":"   ",
 			(wback)?"ACK":"   ",
 			clk, ckstb, ckstl,
-			state, cfgin, cfgout);
+			state, cfgdat);
+	}
+
+	virtual	void	define_traces(void) {
+		//
+		register_trace("wb_stb",     1,31);
+		register_trace("clk_stb",    1,30);
+		register_trace("slow_clk",   1,29);
+		register_trace("i_wb_stb",   1,27);
+		register_trace("o_wb_ack",   1,26);
+		register_trace("cfg_cs_n",   1,25);
+		register_trace("cfg_rdwrn",  1,24);
+		register_trace("o_wb_stall", 1,23);
+		register_trace("state",      5,16);
+		register_trace("cfg_data",  16, 0);
 	}
 };
 

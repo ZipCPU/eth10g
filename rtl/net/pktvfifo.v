@@ -486,7 +486,7 @@ module	pktvfifo #(
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
 		//
-		.i_cfg_reset_fifo(reset_fifo), .i_cfg_mem_err(mem_err),
+		.i_cfg_reset_fifo(reset_fifo), // .i_cfg_mem_err(mem_err),
 		.i_cfg_baseaddr(r_baseaddr), .i_cfg_memsize(r_memsize),
 		.i_writeptr(w_writeptr), .o_readptr(w_readptr),
 		.o_fifo_err(rd_fifo_err),

@@ -184,7 +184,7 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 ## Flash / eMMC
 ## {{{
 #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
-## The flash clock pin is CCLK
+## The flash clock pin is CCLK_0
 #set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_flash_cs_n]
 
 #set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[0]]
@@ -227,9 +227,9 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 ### Address lines
 ### {{{
-#set_property -dict {PACKAGE_PIN AA10 IOSTANDARD SSTL15 [get_ports o_ddr3_ba[0]]
-#set_property -dict {PACKAGE_PIN AA7  IOSTANDARD SSTL15 [get_ports o_ddr3_ba[1]]
-#set_property -dict {PACKAGE_PIN Y7   IOSTANDARD SSTL15 [get_ports o_ddr3_ba[2]]
+#set_property -dict {PACKAGE_PIN AC7  IOSTANDARD SSTL15 [get_ports o_ddr3_ba[0]]
+#set_property -dict {PACKAGE_PIN V8   IOSTANDARD SSTL15 [get_ports o_ddr3_ba[1]]
+#set_property -dict {PACKAGE_PIN AC13 IOSTANDARD SSTL15 [get_ports o_ddr3_ba[2]]
 
 #set_property -dict {PACKAGE_PIN AF7  IOSTANDARD SSTL15 [get_ports o_ddr3_a[0]]
 #set_property -dict {PACKAGE_PIN AD8  IOSTANDARD SSTL15 [get_ports o_ddr3_a[1]]
