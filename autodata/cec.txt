@@ -43,20 +43,20 @@
 	inout	wire		io_hdmirx_cec, io_hdmitx_cec;
 @TOP.DEFNS=
 	// CEC declarations.
-	wire	i_hdmirx_cec, i_hemitx_cec;
-	wire	o_hdmirx_cec, o_hemitx_cec;
+	wire	i_hdmirx_cec, i_hdmitx_cec;
+	wire	o_hdmirx_cec, o_hdmitx_cec;
 @TOP.MAIN=
 		// CEC wires
 		i_hdmirx_cec, o_hdmirx_cec,
-		i_hemitx_cec, o_hemitx_cec
+		i_hdmitx_cec, o_hdmitx_cec
 @TOP.INSERT=
 	// CEC logic
-	IOBUF hdmirx_cec (.T(!o_hdmirx_cec), .I(1'b1), .O(i_hdmirx_cec), .IO(io_hdmirx_cec);
-	IOBUF hdmitx_cec (.T(!o_hdmitx_cec), .I(1'b1), .O(i_hdmitx_cec), .IO(io_hdmitx_cec);
+	IOBUF hdmirx_cec (.T(o_hdmirx_cec), .I(1'b0), .O(i_hdmirx_cec), .IO(io_hdmirx_cec));
+	IOBUF hdmitx_cec (.T(o_hdmitx_cec), .I(1'b0), .O(i_hdmitx_cec), .IO(io_hdmitx_cec));
 @MAIN.PORTLIST=
 		// CEC ports
 		i_hdmirx_cec, o_hdmirx_cec,
-		i_hemitx_cec, o_hemitx_cec
+		i_hdmitx_cec, o_hdmitx_cec
 @MAIN.IODECL=
 	input	wire	i_hdmirx_cec, i_hdmitx_cec;
 	output	wire	o_hdmirx_cec, o_hdmitx_cec;
@@ -73,6 +73,9 @@
 		.i_rxcec(i_hdmirx_cec), .o_rxcec(o_hdmirx_cec)
 	);
 	// }}}
+@RTL.MAKE.GROUP=CEC
+@RTL.MAKE.SUBD=hdmi
+@RTL.MAKE.FILES=cecbridge.v
 @SIM.TICK=
 		m_core->i_hdmirx_cec = m_core->o_hdmirx_cec;
 		m_core->i_hdmitx_cec = m_core->o_hdmitx_cec;

@@ -169,7 +169,7 @@ module	vidpipe #(
 				vm_height, hm_width;
 	// }}}
 
-	reg	[LGDIM-1:0]	cfg_mem_width;
+	wire	[LGDIM-1:0]	cfg_mem_width;
 	wire	[LGDIM-1:0]	hin_width,  hin_front, hin_synch, hin_raw;
 	wire	[LGDIM-1:0]	vin_height, vin_front, vin_synch, vin_raw;
 	wire			in_locked;
@@ -698,9 +698,10 @@ module	vidpipe #(
 	//
 	// Generate an empty frame
 	// {{{
+	localparam	[23:0]	TRANSPARENT = 24'h0;
 
 	vid_empty #(
-		.PW(24), .PIXEL(24'h0),
+		.PW(24), .PIXEL(TRANSPARENT),
 		.OPT_TUSER_IS_SOF(1'b0)
 	) u_empty (
 		// {{{
@@ -832,6 +833,32 @@ module	vidpipe #(
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
+	// Transparency
+	// {{{
+
+	// If the color == TRANSPARENT, alpha should be set to all 1'b1s,
+	// cfg_alpha otherwise.
+
+	wire			alph_valid, alph_ready,
+				alph_hlast, alph_vlast;
+	wire	[26-1:0]	alph_pixel;
+
+	skidbuffer #(
+		.OPT_LOWPOWER(1'b0), .OPT_OUTREG(1'b1),
+		.DW(28)
+	) alpha_skid (
+		.i_clk(i_pixclk), .i_reset(pix_reset),
+		.i_valid(wbpx_valid), .o_ready(wbpx_ready),
+			.i_data({ wbpx_vlast, wbpx_hlast,
+				(wbpx_data == TRANSPARENT)? 2'b11 : cfg_alpha,
+				wbpx_data }),
+		.o_valid(alph_valid), .i_ready(alph_ready),
+			.o_data({ alph_vlast, alph_hlast, alph_pixel })
+	);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
 	// out_*: Overlay WB Frame buffer onto the (empty or RX) stream
 	// {{{
 
@@ -850,12 +877,12 @@ module	vidpipe #(
 		.i_hpos(cfg_ovly_hpos), .i_vpos(cfg_ovly_vpos),
 		.o_err(ovly_err),
 		.S_PRI_TVALID(pipe_valid), .S_PRI_TREADY(pipe_ready),
-		.S_PRI_TDATA(pipe_data),
+			.S_PRI_TDATA(pipe_data),
 			.S_PRI_TLAST(pipe_vlast), .S_PRI_TUSER(pipe_hlast),
 		//
-		.S_OVW_TVALID(wbpx_valid), .S_OVW_TREADY(wbpx_ready),
-		.S_OVW_TDATA({ cfg_alpha, wbpx_data }),
-			.S_OVW_TLAST(wbpx_vlast), .S_OVW_TUSER(wbpx_hlast),
+		.S_OVW_TVALID(alph_valid), .S_OVW_TREADY(alph_ready),
+			.S_OVW_TDATA(alph_pixel),
+			.S_OVW_TLAST(alph_vlast), .S_OVW_TUSER(alph_hlast),
 		//
 		.M_VID_TVALID(out_valid), .M_VID_TREADY(out_ready),
 		.M_VID_TDATA(out_data),

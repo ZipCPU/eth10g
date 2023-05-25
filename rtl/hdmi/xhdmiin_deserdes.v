@@ -50,6 +50,8 @@ module	xhdmiin_deserdes #(
 
 	// Local declarations
 	// {{{
+	localparam	[0:0]	OPT_BITREVERSE = 1'b0; // (Not required)
+
 	wire	[5:0]	ignored_data;
 	wire	[1:0]	master_to_slave;
 	wire		ignored_output_hi;
@@ -87,7 +89,7 @@ module	xhdmiin_deserdes #(
 	generate if (IOBDELAY == "NONE")
 	begin
 
-		assign w_hs_wire         = i_hs_wire;
+		assign w_hs_wire         = i_pin;
 		assign w_hs_delayed_wire = 1'b0;
 
 	end else begin
@@ -98,6 +100,7 @@ module	xhdmiin_deserdes #(
 			.CINVCTRL_SEL("FALSE"),
 			.DELAY_SRC(DELAYSRC),
 			.HIGH_PERFORMANCE_MODE("TRUE"),
+			.REFCLK_FREQUENCY(300.0),
 			.IDELAY_TYPE("VAR_LOAD")
 		) delay(
 			.C(i_clk), 
@@ -112,7 +115,7 @@ module	xhdmiin_deserdes #(
 			.DATAIN(),
 			.DATAOUT(w_hs_delayed_wire),
 			.INC(1'b0),
-			.IDATAIN(i_hs_wire)
+			.IDATAIN(i_pin)
 		);
 
 	end endgenerate
@@ -202,8 +205,7 @@ module	xhdmiin_deserdes #(
 
 	// (Optionally) bit reverse our incoming data (we don't need to do this)
 	// {{{
-	localparam	[0:0]	OPT_BITREVERSE = 1'b0;
-	generate if (OPT_BITREV)
+	generate if (OPT_BITREVERSE)
 	begin
 		wire	[9:0]	w_brev;
 

@@ -41,8 +41,10 @@
 @TOP.DEFNS=
 	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
 			clk_feedback, clk_feedback_bufd,
-			s_lcl_pixclk_nobuf, s_clk4x_unbuffered;
+			s_lcl_pixclk_nobuf, s_clk4x_unbuffered, s_clk300;
 	reg	[2:0]	pipe_reset;
+	reg	[6:0]	refdly_reset_ctr;
+	wire		refdly_ready;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -66,11 +68,13 @@
 		.CLKIN1_PERIOD(5),
 		.CLKOUT0_DIVIDE(12),		// Divide by 2x
 		.CLKOUT1_DIVIDE(3),		// Multiply by 2x
-		.CLKOUT2_DIVIDE(30)		// Divide by 5x
+		.CLKOUT2_DIVIDE(30),		// Divide by 5x
+		.CLKOUT3_DIVIDE(4)		// Multiply by 3/2
 	) u_syspll (
 		.CLKOUT0(s_clk_nobuf),		// 100MHz
 		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz
 		.CLKOUT2(s_lcl_pixclk_nobuf),	//  40MHz
+		.CLKOUT3(s_clk300),		// 300MHz
 		//
 		.CLKFBOUT(clk_feedback),
 		.LOCKED(sysclk_locked),
@@ -82,6 +86,20 @@
 	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
 	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
 	// BUFG	sysclk_buffer(.I(s_lcl_pixclk_nobuf), .O(s_lcl_pixclk));
+
+	// IDELAYCTRL
+	// {{{
+	// Min reset width of 52ns, or 9 clocks at 150MHz
+	always @(posedge s_clk300 or negedge sysclk_locked)
+	if (!sysclk_locked)
+		refdly_reset_ctr <= 0;
+	else if (!refdly_reset_ctr[5])
+		refdly_reset_ctr <= refdly_reset_ctr + 1;
+
+	IDELAYCTRL
+	u_dlyctrl (.REFCLK(s_clk300), .RST(refdly_reset_ctr[5]),
+		.RDY(refdly_ready));
+	// }}}
 	// }}}
 ## }}}
 @PREFIX=clk200

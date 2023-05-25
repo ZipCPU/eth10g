@@ -168,7 +168,7 @@
 		//	this active high sets the DONE pin to high impedence,
 		//	setting it low allows the output of this pin to be as
 		//	stated above.
-		.USRDONETS(1'b0)
+		.USRDONETS(1'b1)
 	);
 	// }}}
 @MAIN.PORTLIST=

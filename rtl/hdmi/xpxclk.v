@@ -54,9 +54,10 @@ module	xpxclk (
 		input	wire		i_sysclk,
 		input	wire		i_hdmirx_clk_p, i_hdmirx_clk_n,
 		input	wire		i_lcl_pixclk,
-		input	wire		i_siclk_p, i_siclk_n,
+		// input	wire		i_siclk_p, i_siclk_n,
 		input	wire	[1:0]	i_cksel,
 		output	wire		o_hdmick_locked,
+		output	wire		o_siclk,
 		output	wire		o_hdmirx_clk,
 		output	wire		o_pixclk, o_hdmick
 		// }}}
@@ -70,16 +71,23 @@ module	xpxclk (
 
 	// Select lclck from either i_lcl_pixclk or i_siclk
 	// {{{
+`ifdef	SICLK
 	IBUFDS
-	ibuf_hdmi_ck (
+	ibuf_si_ck (
 		.I(i_siclk_p), .IB(i_siclk_n), .O(siclk)
 	);
+
+	assign	o_siclk = siclk;
 
 	BUFGMUX
 	lclpx (
 		.I0(i_lcl_pixclk), .I1(siclk), .S(i_cksel[0]),
 		.O(lclck)
 	);
+`else
+	assign	siclk = i_lcl_pixclk;
+	assign	o_siclk = 1'b0;
+`endif
 	// }}}
 
 	// Select preck from either lclck or hdmirx_clk
@@ -89,13 +97,16 @@ module	xpxclk (
 		.I(i_hdmirx_clk_p), .IB(i_hdmirx_clk_n), .O(hdmirx_ck)
 	);
 
-	BUFH
+/*
+	BUFG
 	u_bufh_hdmirx_clk (
 		.I(hdmirx_ck), .O(o_hdmirx_clk)
 	);
+*/
+	assign	o_hdmirx_clk = 1'b0;
 
 	BUFGMUX prepx (
-		.I0(lclck), .I1(o_hdmirx_clk), .S(i_cksel[1] && o_exck_present),
+		.I0(lclck), .I1(hdmirx_ck), .S(i_cksel[1]),
 		.O(preck)
 	);
 	// }}}
@@ -104,13 +115,13 @@ module	xpxclk (
 		// {{{
 		.CLKFBOUT_MULT(10),
 		.CLKFBOUT_PHASE(0.0),
-		.CLKIN1_PERIOD(5),	// Up to 200MHz input
+		.CLKIN1_PERIOD(6.6),	// Up to 200MHz input
 		.CLKOUT0_DIVIDE(10),
 		.CLKOUT1_DIVIDE(1)
 		// }}}
 	) u_hdmi_pll (
 		// {{{
-		.CLKIN(preck),		// Incoming clock
+		.CLKIN1(preck),		// Incoming clock
 		.PWRDWN(1'b0),
 		.CLKFBIN(clk_fb),
 		.CLKFBOUT(clk_fbout),

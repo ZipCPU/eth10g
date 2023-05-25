@@ -48,10 +48,16 @@
 		i_hdmitx_clk_p, i_hdmitx_clk_n,
 		o_hdmitx_p, o_hdmitx_n
 @TOP.IODECL=
+	input	wire		i_hdmirx_clk_p, i_hdmirx_clk_n;
+	input	wire	[2:0]	i_hdmirx_p, i_hdmirx_n;
+	input	wire		i_hdmitx_clk_p, i_hdmitx_clk_n;
+	output	wire	[2:0]	o_hdmitx_p, o_hdmitx_n;
 @TOP.DEFNS=
 	wire	[9:0]	hdmirx_red, hdmirx_grn, hdmirx_blu;
 	wire	[9:0]	hdmitx_red, hdmitx_grn, hdmitx_blu;
 	wire	[1:0]	w_pxclk_sel;
+	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk, s_siclk;
+	wire		pxrx_locked;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -66,13 +72,14 @@
 		.i_hdmirx_clk_p(i_hdmirx_clk_p),
 		.i_hdmirx_clk_n(i_hdmirx_clk_n),
 		.i_lcl_pixclk(s_lcl_pixclk_nobuf),
-		.i_siclk_p(i_clk_si_p),
-		.i_siclk_n(i_clk_si_n),
+		// .i_siclk_p(i_clk_si_p),
+		// .i_siclk_n(i_clk_si_n),
 		.i_cksel(w_pxclk_sel),
 		.o_hdmick_locked(pxrx_locked),
+		.o_siclk(s_siclk),
 		.o_hdmirx_clk(hdmirx_clk),
 		.o_pixclk(hdmi_ck),
-		.o_hdmck(hdmi_serdes_clk)
+		.o_hdmick(hdmi_serdes_clk)
 	);
 	// }}}
 
@@ -84,7 +91,7 @@
 		.i_ce(1'b1),
 		.i_delay(5'h0),
 		.o_delay(5'h0),
-		.i_hs_wire({ i_hdmi_p[2], i_hdmi_p[2] }),
+		.i_hs_wire({ i_hdmirx_p[2], i_hdmirx_n[2] }),
 		.o_word(hdmirx_red)
 	);
 
@@ -94,7 +101,7 @@
 		.i_ce(1'b1),
 		.i_delay(5'h0),
 		.o_delay(5'h0),
-		.i_hs_wire({ i_hdmi_p[1], i_hdmi_p[1] }),
+		.i_hs_wire({ i_hdmirx_p[1], i_hdmirx_n[1] }),
 		.o_word(hdmirx_grn)
 	);
 
@@ -104,7 +111,7 @@
 		.i_ce(1'b1),
 		.i_delay(5'h0),
 		.o_delay(5'h0),
-		.i_hs_wire({ i_hdmi_p[0], i_hdmi_p[0] }),
+		.i_hs_wire({ i_hdmirx_p[0], i_hdmirx_n[0] }),
 		.o_word(hdmirx_blu)
 	);
 	// }}}
@@ -115,8 +122,8 @@
 	u_hdmitx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
-		.i_word(hdmirx_red)
-		.o_port({ o_hdmitx_p[2], o_hdmitx_n[2] }),
+		.i_word(hdmirx_red),
+		.o_port({ o_hdmitx_p[2], o_hdmitx_n[2] })
 	);
 
 	xhdmiout
@@ -124,7 +131,7 @@
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
 		.i_word(hdmitx_grn),
-		.o_port({ i_hdmitx_p[1], i_hdmitx_n[1] })
+		.o_port({ o_hdmitx_p[1], o_hdmitx_n[1] })
 	);
 
 	xhdmiout
@@ -137,6 +144,12 @@
 	// }}}
 
 	// }}}
+@TOP.MAIN=
+		// HDMI control ports
+		hdmirx_clk, s_siclk, hdmi_ck,
+		hdmirx_red, hdmirx_grn, hdmirx_blu,
+		hdmitx_red, hdmitx_grn, hdmitx_blu,
+		w_pxclk_sel
 @MAIN.PORTLIST=
 		// HDMI control ports
 		i_hdmiclk, i_siclk, i_pixclk,
@@ -151,11 +164,11 @@
 	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
 	output	wire	[1:0]	o_pxclk_sel;
 	// }}}
-@MAIN.INCLUDE=
-	########################################################################
-	##
-	## HDMI Video processing pipeline
-	## {{{
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// HDMI Video processing pipeline
+	// {{{
 
 	vidpipe #(
 		.AW(@$(MASTER.BUS.AWID)),
@@ -174,7 +187,7 @@
 		.o_pxclk_sel(o_pxclk_sel)
 	);
 
-	## }}}
+	// }}}
 @REGS.N=17
 @REGS.0=   0  R_@$(DEVID) @$(DEVID) VIDCTRL
 @REGS.1=   1  R_SIFREQ    SIFREQ
@@ -193,3 +206,28 @@
 @REGS.14= 14  R_OVOFFSET  OVOFFSET
 @REGS.15= 15  R_FPS       FPS
 @REGS.16=256  R_CMAP      CMAP
+@XDC.INSERT=
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/hdmirx_ck]
+@RTL.MAKE.GROUP=HDMI
+@RTL.MAKE.SUBD=hdmi
+@RTL.MAKE.FILES= axishdmi.v axisvoverlay.v cecbridge.v hdmi2vga.v
+		hdmibitsync.v hdmipixelsync.v sync2stream.v synccount.v
+		tfrstb.v tfrvalue.v tmdsdecode.v tmdsencode.v vid_empty.v
+		vid_mux.v vidpipe.v vidstream2pix.v vid_wbframebuf.v
+		xhdmiin_deserdes.v xhdmiin.v xhdmiout.v xpxclk.v
+##
+################################################################################
+## The Si5324 clock
+##
+## The following, as written and contained in xpxclk, won't work.  The SI
+## clock comes in on a MGT clock pin, therefore it needs to go to a GTX*
+## before we can use it.  That should probably be handled here.  Until we do so,
+## however, we'll need to disable this clock.
+## @PREFIX=siclk
+## @CLOCK.NAME=siclk
+## @CLOCK.WIRE=i_siclk
+## @CLOCK.FREQUENCY=148500000
+## @TOP.PORTLIST=
+##		i_clk_si_p, i_clk_si_n
+## @TOP.IODECL=
+##	input	wire	i_clk_si_p, i_clk_si_n;

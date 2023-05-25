@@ -545,8 +545,11 @@ module	vid_wbframebuf #(
 
 		assign	M_VID_TVALID = !afifo_empty;
 		assign	M_VID_TDATA   = afifo_data;
-		assign	M_VID_HLAST   = afifo_hlast;
-		assign	M_VID_VLAST   = afifo_vlast;
+		always @(*)
+		begin
+			M_VID_HLAST   = afifo_hlast;
+			M_VID_VLAST   = afifo_vlast;
+		end
 
 		if (OPT_TUSER_IS_SOF)
 		begin : GEN_SOF

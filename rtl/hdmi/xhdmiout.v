@@ -128,14 +128,14 @@ module	xhdmiout (
 		.CLK(i_hsclk),	// HS clock
 		.CLKDIV(i_clk),
 		.OQ(w_hs_wire),
-		.D1(d_word[9]),
-		.D2(d_word[8]),
-		.D3(d_word[7]),
-		.D4(d_word[6]),
-		.D5(d_word[5]),
-		.D6(d_word[4]),
-		.D7(d_word[3]),
-		.D8(d_word[2]),
+		.D1(w_word[9]),
+		.D2(w_word[8]),
+		.D3(w_word[7]),
+		.D4(w_word[6]),
+		.D5(w_word[5]),
+		.D6(w_word[4]),
+		.D7(w_word[3]),
+		.D8(w_word[2]),
 		.RST(reset),
 		.TBYTEIN(1'b0), .TBYTEOUT(),
 		.T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0),
@@ -162,8 +162,8 @@ module	xhdmiout (
 		.CLKDIV(i_clk),
 		.D1(1'h0),
 		.D2(1'h0),
-		.D3(d_word[1]),
-		.D4(d_word[0]),
+		.D3(w_word[1]),
+		.D4(w_word[0]),
 		.D5(1'h0),
 		.D6(1'h0),
 		.D7(1'h0),
@@ -178,6 +178,6 @@ module	xhdmiout (
 	);
 
 	// Turn this high speed output into a pair of differential pins
-	OBUFDS	hdmibuf(.I(w_hs_wire), .O(o_hs_wire[1]), .OB(o_hs_wire[0]));
+	OBUFDS	hdmibuf(.I(w_hs_wire), .O(o_port[1]), .OB(o_port[0]));
 
 endmodule
