@@ -69,11 +69,13 @@ module	wbfan (
 
 	// Local declarations
 	// {{{
-	localparam	CK_PER_SECOND = 200_000_000,
-			CK_PER_MS = (CK_PER_SECOND / 1000);
-	reg	[31:0]	pwm_counter;
-	wire	[31:0]	pwm_brev;
-	reg	[31:0]	ctl_fpga, ctl_sys;
+	localparam	CK_PER_SECOND = 100_000_000,
+			CK_PER_MS = (CK_PER_SECOND / 1000),
+			PWM_HZ = 20_000;
+	localparam	MAX_PWM = (CK_PER_SECOND / PWM_HZ)-1;
+	localparam	LGPWM = $clog2(MAX_PWM+1);
+	reg	[LGPWM-1:0]	pwm_counter;
+	reg [LGPWM-1:0]	ctl_fpga, ctl_sys;
 
 	reg		ck_tach, last_tach;
 	reg	[1:0]	pipe_tach;
@@ -110,56 +112,55 @@ module	wbfan (
 
 	// ctl_fpga, ctl_sys
 	// {{{
-	initial	ctl_fpga = -1;
-	initial	ctl_sys  = -1;
+	initial	ctl_fpga = MAX_PWM[LGPWM-1:0];
+	initial	ctl_sys  = MAX_PWM[LGPWM-1:0];
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
-		ctl_fpga <= -1;
-		ctl_sys  <= -1;
-	end else if (i_wb_stb && i_wb_we && i_wb_addr[2] == 1'b1)
+		ctl_fpga <= MAX_PWM[LGPWM-1:0];
+		ctl_sys  <= MAX_PWM[LGPWM-1:0];
+	end else if (i_wb_stb && i_wb_we && i_wb_addr[2] == 1'b0)
 	begin
 		case(i_wb_addr[1:0])
 		2'b00: begin
 			if (i_wb_sel[0]) ctl_fpga[ 7: 0] <= i_wb_data[ 7: 0];
-			if (i_wb_sel[1]) ctl_fpga[15: 8] <= i_wb_data[15: 8];
-			if (i_wb_sel[2]) ctl_fpga[23:16] <= i_wb_data[23:16];
-			if (i_wb_sel[3]) ctl_fpga[31:24] <= i_wb_data[31:24];
+			if (i_wb_sel[1]) ctl_fpga[LGPWM-1: 8] <= i_wb_data[LGPWM-1: 8];
+			// if (i_wb_sel[2]) ctl_fpga[23:16] <= i_wb_data[23:16];
+			// if (i_wb_sel[3]) ctl_fpga[31:24] <= i_wb_data[31:24];
 			end
 		2'b01: begin
 			if (i_wb_sel[0]) ctl_sys[ 7: 0] <= i_wb_data[ 7: 0];
-			if (i_wb_sel[1]) ctl_sys[15: 8] <= i_wb_data[15: 8];
-			if (i_wb_sel[2]) ctl_sys[23:16] <= i_wb_data[23:16];
-			if (i_wb_sel[3]) ctl_sys[31:24] <= i_wb_data[31:24];
+			if (i_wb_sel[1]) ctl_sys[LGPWM-1: 8] <= i_wb_data[LGPWM-1: 8];
+			// if (i_wb_sel[2]) ctl_sys[23:16] <= i_wb_data[23:16];
+			// if (i_wb_sel[3]) ctl_sys[31:24] <= i_wb_data[31:24];
 			end
 		default: begin end
 		endcase
+	end else begin
+		if (ctl_fpga >= MAX_PWM[LGPWM-1:0])
+			ctl_fpga <= MAX_PWM[LGPWM-1:0];
+		if (ctl_sys >= MAX_PWM[LGPWM-1:0])
+			ctl_sys <= MAX_PWM[LGPWM-1:0];
 	end
 	// }}}
 
 	// pwm_counter
 	// {{{
 	always @(posedge i_clk)
+	if (pwm_counter >= MAX_PWM[LGPWM-1:0])
+		pwm_counter <= 0;
+	else
 		pwm_counter <= pwm_counter + 1;
 
-	assign	pwm_brev = BITREVERSE(pwm_counter);
-
-	function [31:0]	BITREVERSE(input [31:0] val);
-		reg	[31:0]	r;
-		integer		i;
-	begin
-		for(i=0; i<32; i=i+1)
-			r[i] = val[31-i];
-		BITREVERSE = r;
-	end endfunction
 	// }}}
 
 	// o_*_pwm
 	// {{{
+	// Need a 20kHz proper PWM signal, with an adjustable duty cycle
 	always @(posedge i_clk)
-		o_fpga_pwm <= (ctl_fpga >= pwm_brev);
+		o_fpga_pwm <=(ctl_fpga >= pwm_counter)||(ctl_fpga >= MAX_PWM[LGPWM-1:0]);
 	always @(posedge i_clk)
-		o_sys_pwm <= (ctl_sys >= pwm_brev);
+		o_sys_pwm  <= (ctl_sys >= pwm_counter)|| (ctl_sys >= MAX_PWM[LGPWM-1:0]);
 	// }}}
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -369,8 +370,8 @@ module	wbfan (
 	else begin
 		pre_data <= 0;
 		case(i_wb_addr[1:0])
-		2'b00: pre_data <= ctl_fpga;
-		2'b01: pre_data <= ctl_sys;
+		2'b00: pre_data[LGPWM-1:0] <= ctl_fpga;
+		2'b01: pre_data[LGPWM-1:0] <= ctl_sys;
 		2'b10: pre_data[$clog2(CK_PER_SECOND)-1:0] <= tach_count;
 		2'b11: pre_data <= temp_data;
 		default: pre_data <= 32'h0;
