@@ -76,6 +76,7 @@
 @RTL.MAKE.GROUP=CEC
 @RTL.MAKE.SUBD=hdmi
 @RTL.MAKE.FILES=cecbridge.v
+@SIM.CLOCK=clk
 @SIM.TICK=
 		m_core->i_hdmirx_cec = m_core->o_hdmirx_cec;
 		m_core->i_hdmitx_cec = m_core->o_hdmitx_cec;

@@ -135,7 +135,7 @@ public:
 #endif	// SDSPI_ACCESS
 		// From flash
 #ifdef	FLASH_ACCESS
-		m_flash = new FLASHSIM(FLASHLGLEN, false, 1, 6);
+		m_flash = new FLASHSIM(FLASHLGLEN, false, 1, 8);
 #endif // FLASH_ACCESS
 	}
 
@@ -198,6 +198,9 @@ public:
 		// }}}
 #endif	// INCLUDE_ZIPCPU
 
+		// SIM.TICK from cec
+		m_core->i_hdmirx_cec = m_core->o_hdmirx_cec;
+		m_core->i_hdmitx_cec = m_core->o_hdmitx_cec;
 		// SIM.TICK from sdcard
 		// SD Card simulation
 		// {{{

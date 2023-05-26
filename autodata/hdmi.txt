@@ -188,6 +188,7 @@
 	);
 
 	// }}}
+@REGS.NOTE=// HDMI video processing pipe registers
 @REGS.N=17
 @REGS.0=   0  R_@$(DEVID) @$(DEVID) VIDCTRL
 @REGS.1=   1  R_SIFREQ    SIFREQ

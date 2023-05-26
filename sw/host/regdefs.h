@@ -112,6 +112,7 @@
 #define	R_CFG_BOOTSTS   	0x00800558	// 00800500, wbregs names: BOOTSTS
 #define	R_CFG_CTL1      	0x00800560	// 00800500, wbregs names: FPGACTL1
 #define	R_CFG_BSPI      	0x0080057c	// 00800500, wbregs names: FPGABSPI
+// HDMI video processing pipe registers
 #define	R_HDMI          	0x00800800	// 00800800, wbregs names: HDMI, VIDCTRL
 #define	R_SIFREQ        	0x00800804	// 00800800, wbregs names: SIFREQ
 #define	R_PXFREQ        	0x00800808	// 00800800, wbregs names: PXFREQ
@@ -198,7 +199,7 @@
 #define	FLASHLGLEN	25
 //
 #define	FLASH_RDDELAY	1
-#define	FLASH_NDUMMY	6
+#define	FLASH_NDUMMY	8
 //
 #define	BKRAMBASE	0x01000000
 #define	BKRAMLEN	0x00040000

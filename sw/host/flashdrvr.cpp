@@ -53,7 +53,10 @@
 #define	FLASH_UNKNOWN	0
 #endif
 
-#define	MICRON_FLASHID	0x20ba1810
+#define	FLASH_NDUMMY	6
+
+// #define	MICRON_FLASHID	0x20ba1810
+#define	MICRON_FLASHID	0x20bb1910
 
 #define	CFG_USERMODE	(1<<12)
 #ifdef	QSPI_FLASH
@@ -76,18 +79,18 @@ static const unsigned	F_RESET = (CFG_USERMODE|0x0ff),
 					? (CFG_USERMODE|0x012)
 					: (CFG_USERMODE|0x002),
 			F_QPP   = (OPT_ADDR32)
-					? (CFG_USERMODE|0x032)
-					: (CFG_USERMODE|0x034),
+					? (CFG_USERMODE|0x034)
+					: (CFG_USERMODE|0x032),
 			F_READ  = (OPT_ADDR32)
-					? (CFG_USERMODE|0x003)
+					? (CFG_USERMODE|0x013)
 					: (CFG_USERMODE|0x003),
 			F_WRDI  = (CFG_USERMODE|0x004),
 			F_RDSR1 = (CFG_USERMODE|0x005),
 			F_WREN  = (CFG_USERMODE|0x006),
 			F_MFRID = (CFG_USERMODE|0x09f),
 			F_SE    = (OPT_ADDR32)	// Sector erase
-					? (CFG_USERMODE|0x0d8)
-					: (CFG_USERMODE|0x0dc),
+					? (CFG_USERMODE|0x0dc)
+					: (CFG_USERMODE|0x0d8),
 			F_END   = (CFG_USERMODE|CFG_USER_CS_n);
 
 #ifdef	R_FLASHSCOPE // Scope for the flash driver
@@ -183,8 +186,8 @@ void	FLASHDRVR::restore_quadio(DEVBUS *fpga) {
 			|(OPT_ADDR32 ? 0xec : 0xeb);
 
 	fpga->writeio(R_FLASHCFG, F_END);
-	/*
-	if (MICRON_FLASHID == m_id) {
+
+	if (1) { // MICRON_FLASHID == m_id) {
 		// printf("MICRON-flash\n");
 		// Need to enable XIP first for MICRON's flash
 		//
@@ -194,10 +197,9 @@ void	FLASHDRVR::restore_quadio(DEVBUS *fpga) {
 
 		// Then sending a 0xab, 0x81
 		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x81);
-		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0xf3);
+		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x63);
 		fpga->writeio(R_FLASHCFG, F_END);
 	}
-	*/
 
 	fpga->writeio(R_FLASHCFG, QUAD_IO_READ);
 	// 3 address bytes

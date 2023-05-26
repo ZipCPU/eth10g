@@ -2077,7 +2077,7 @@ module	main(i_clk, i_reset,
 		// {{{
 		.LGFLASHSZ(25), .OPT_CLKDIV(1),
 		.OPT_ENDIANSWAP(0),
-		.NDUMMY(6), .RDDELAY(1),
+		.NDUMMY(8), .RDDELAY(1),
 		.OPT_STARTUP_FILE("micron.hex"),
 `ifdef	FLASHCFG_ACCESS
 		.OPT_CFG(1'b1)
