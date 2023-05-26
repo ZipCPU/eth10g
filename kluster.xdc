@@ -425,3 +425,5 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 #set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVCMOS33} [get_ports o_tp[3]]
 ## }}}
 
+## Bitstream options
+set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]

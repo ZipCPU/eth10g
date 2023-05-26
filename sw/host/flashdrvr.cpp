@@ -53,7 +53,7 @@
 #define	FLASH_UNKNOWN	0
 #endif
 
-#define	FLASH_NDUMMY	6
+// #define	FLASH_NDUMMY	8	// Defined in regdefs.cpp
 
 // #define	MICRON_FLASHID	0x20ba1810
 #define	MICRON_FLASHID	0x20bb1910
@@ -197,7 +197,7 @@ void	FLASHDRVR::restore_quadio(DEVBUS *fpga) {
 
 		// Then sending a 0xab, 0x81
 		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x81);
-		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x63);
+		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x83);
 		fpga->writeio(R_FLASHCFG, F_END);
 	}
 
@@ -304,8 +304,6 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 	DEVBUS::BUSW	buf[SZPAGEW], bswapd[SZPAGEW];
 	unsigned	flashaddr = addr & FLASH_ADDR_MASK;
 
-	take_offline();
-
 	assert(len > 0);
 	assert(len <= PGLENB);
 	assert(PAGEOF(addr)==PAGEOF(addr+len-1));
@@ -323,9 +321,11 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 	}
 
 	if (empty_page) {
-		place_online();
+		// place_online();
 		return true;
 	}
+
+	take_offline();
 
 	// Write enable
 	m_fpga->writeio(R_FLASHCFG, F_END);
@@ -358,7 +358,7 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 	m_fpga->writeio(R_FLASHCFG, F_END);
 
 	printf("Writing page: 0x%08x - 0x%08x", addr, addr+len-1);
-	if ((m_debug)&&(verify_write))
+	if (m_debug && verify_write)
 		fflush(stdout);
 	else
 		printf("\n");

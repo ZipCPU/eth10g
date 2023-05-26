@@ -71,7 +71,7 @@ echo Write enable
 
 echo Write to the Volatile configuration register, enable XIP
 ./wbregs flashcfg 0x0001081	#
-./wbregs flashcfg 0x0001063	#
+./wbregs flashcfg 0x0001083	#
 ./wbregs flashcfg 0x0001100	#
 
 echo "Read Volatile configuration register (again)"

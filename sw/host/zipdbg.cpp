@@ -430,7 +430,7 @@ public:
 
 		if (m_show_cc) {
 			mvprintw(ln,40, " sCC :%16s", "");
-			dispreg(ln, 40, "sCC ", m_state.m_sR[14], (m_cursor==26));
+			dispreg(ln, 40, "sCC ", cc, (m_cursor==26));
 		} else {
 			mvprintw(ln,40, " sCC :%16s", "");
 			mvprintw(ln,40, "%ssCC :%s%s%s%s%s%s%s",

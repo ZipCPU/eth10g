@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest # contest sdtest gpiotoggle dmatest
+PROGRAMS := hello cputest ssddemo # contest sdtest gpiotoggle dmatest
 all:	$(PROGRAMS)
 #
 #
@@ -46,8 +46,7 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-TTTT    := tttt
-SOURCES := hello.c cputest.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
@@ -83,10 +82,10 @@ $(OBJDIR)/%.txt: $(OBJDIR)/%.o
 # linker script to build something that doesn't go into flash but directly into
 # RAM instead.
 #
-$(OBJDIR)/cputest.o: cputest.c
+$(OBJDIR)/cputest.o: cputest.c board.h
 	$(mk-objdir)
 	$(CC) $(CFLAGS) -c -Wa,-nocis -fno-builtin $< -o $@
-$(OBJDIR)/cputestcis.o: cputest.c
+$(OBJDIR)/cputestcis.o: cputest.c board.h
 	$(mk-objdir)
 	$(CC) $(CFLAGS) -c -Wa,-cis -fno-builtin $< -o $@
 $(OBJDIR)/cputest.s: cputest.c
@@ -114,45 +113,17 @@ $(OBJDIR)/gpiotoggle.o: gpiotoggle.c
 hello: $(OBJDIR)/hello.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
-rintftst: $(OBJDIR)/rintftst.o $(OBJDIR)/txfns.o board.ld $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
+ssddemo: $(OBJDIR)/ssddemo.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 sdtest: $(OBJDIR)/sdtest.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
-
-gpiotoggle: $(OBJDIR)/gpiotoggle.o bkram.ld $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
-
-hellostep: $(OBJDIR)/hellostep.o bkram.ld $(OBJDIR)/txfns.o $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
 lockcheck: $(OBJDIR)/lockcheck.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
 dmatest: $(OBJDIR)/dmatest.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
-
-clkgatechk: $(OBJDIR)/clkgatechk.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
-
-.PHONY: iftttt
-ifeq (,$(wildcard tttt/))
-iftttt:
-else
-iftttt: 
-	$(SUBMAKE) tttt/src ARCH=zip CROSS=zip- zip-tttt
-endif
-
-.PHONY: tttt
-tttt:
-	@bash -c "if [ ! -e $(TTTT)/src/Makefile ]; then git submodule add https://github.com/ZipCPU/tttt; git submodule init; git submodule update; fi"
-	CROSS=zip- ARCH=zip $(SUBMAKE) tttt/src ARCH=zip CROSS=zip- zip-tttt
-
-
-hellosim: hellosim.s
-	$(AS) $< -o $(OBJDIR)/hellosim.o
-	$(LD) -T bkram.ld $(OBJDIR)/hellosim.o -o $@
-
 
 define	mk-objdir
 	@bash -c "if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR)/; fi"
@@ -183,9 +154,6 @@ clean:
 	rm -rf $(addsuffix .map,$(PROGRAMS))
 	rm -rf $(addsuffix .txt,$(PROGRAMS))
 	rm -rf $(OBJDIR)/
-ifneq (,$(wildcard tttt/))
-	$(SUBMAKE) tttt/src ARCH=zip CROSS=zip- clean
-endif
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(OBJDIR)/depends.txt

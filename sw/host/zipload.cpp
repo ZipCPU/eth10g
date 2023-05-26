@@ -89,10 +89,11 @@ void	skip_bitfile_header(FILE *fp) {
 		//
 		0xaa, 0x99, 0x55, 0x66 };
 	unsigned char	buf[SEARCHLN];
+	size_t		sz;
 
 	rewind(fp);
-	fread(buf, sizeof(char), SEARCHLN, fp);
-	for(int start=0; start+MATCHLN<SEARCHLN; start++) {
+	sz = fread(buf, sizeof(char), SEARCHLN, fp);
+	for(int start=0; start+MATCHLN<sz; start++) {
 		int	mloc;
 
 		// Search backwards, since the starting bytes just aren't that
@@ -261,8 +262,7 @@ int main(int argc, char **argv) {
 	if (altbitfile) {
 		// {{{
 		FILE	*fp;
-		const unsigned	OFFSET=SECTOROF(FLASHBASE
-					+ (RESET_ADDRESS-FLASHBASE)/2);
+		const unsigned	OFFSET=SECTOROF((RESET_ADDRESS-FLASHBASE)/2);
 		uint64_t	sz = 0;
 
 		fp = fopen(altbitfile, "rb");
