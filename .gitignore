@@ -29,5 +29,6 @@ core
 *.ps
 *.yslog
 *.smt2
-vivado.jou
+vivado*.jou
 vivado_pid*
+*.autosave
