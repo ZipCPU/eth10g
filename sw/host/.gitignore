@@ -2,6 +2,8 @@ cfgscope
 fanscope
 flashid
 flashscope
+i2casm
+i2cscope
 netuart
 smiscope
 wbregs

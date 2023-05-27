@@ -52,15 +52,15 @@ SECTIONS
        .rocode @$[0x%08x](zip.RESET_ADDRESS) : ALIGN(4) {
                _boot_address = .;
                *(.start) *(.boot)
+               *(.text.startup)
+               *(.text*)
+               *(.rodata*) *(.strings)
        } > flash
        _kram_start = . ;
        _kram_end = . ;
        _ram_image_start = . ;
        .kernel : ALIGN_WITH_INPUT {
                *(.kernel)
-               *(.text.startup)
-               *(.text*)
-               *(.rodata*) *(.strings)
                *(.data) *(COMMON)
                }> bkram AT> flash
        _ram_image_end = . ;

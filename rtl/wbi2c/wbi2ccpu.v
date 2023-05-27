@@ -351,7 +351,8 @@ module	wbi2ccpu #(
 		// {{{
 		.ADDRESS_WIDTH(BAW),
 		.DATA_WIDTH(DW),
-		.INSN_WIDTH(8)
+		.INSN_WIDTH(8),
+		.OPT_LITTLE_ENDIAN(1'b0)
 		// }}}
 	) u_fetch (
 		// {{{
@@ -714,7 +715,7 @@ module	wbi2ccpu #(
 	if (i_reset)
 		r_aborted <= 1'b0;
 	else begin
-		if (i2c_abort && r_halted)
+		if (i2c_abort && !r_halted)
 			r_aborted <= 1'b1;
 
 		if (bus_write)
@@ -908,7 +909,9 @@ module	wbi2ccpu #(
 	end endgenerate
 	// }}}
 
-	assign	o_debug = { !r_halted || insn_valid, ovw_data[OVW_VALID],
+	assign	o_debug = {
+			r_aborted, // !r_halted || insn_valid,
+			ovw_data[OVW_VALID],
 			i2c_abort, i2c_stretch, half_insn,
 			r_wait, soft_halt_request,
 			w_control[21:0] };

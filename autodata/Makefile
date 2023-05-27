@@ -54,7 +54,7 @@ NETWORK := # vpktpassthru.txt			#
 GFX     := hdmi.txt cec.txt
 SCOPES  := smiscope.txt flashscope.txt fanscope.txt cfgscope.txt
 LDSCRIPT:= mem_bkram_only.txt mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
-OTHER   := i2ccpu.txt fan.txt sirefclk.txt
+OTHER   := i2ccpu.txt fan.txt sirefclk.txt i2cscope.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\
 	$(SCOPES) $(LDSCRIPT) $(OTHER)

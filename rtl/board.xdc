@@ -430,6 +430,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## Adding in any XDC_INSERT tags
 
+## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in sirefclk
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in zip_alt_moc

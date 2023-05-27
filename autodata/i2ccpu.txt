@@ -168,6 +168,7 @@
 ## regdefs.h / regdefs.cpp
 ##
 @REGS.N=4
+@REGS.NOTE=// I2C Controller registers
 @REGS.0= 0 R_@$(DEVID) @$(DEVID) @$(DEVID)_CTRL @$(DEVID)CTRL
 @REGS.1= 1 R_@$(DEVID)_OVW  @$(DEVID)_OVW @$(DEVID)_OVERRIDE
 @REGS.2= 2 R_@$(DEVID)_ADDR @$(DEVID)_ADDR @$(DEVID)_ADDRESS
@@ -203,4 +204,11 @@ typedef struct  @$(DEVID)_S        {
 ## RTL.MAKE.FILES *shoul* also include dblfetch, but that's a part of the CPU
 ## directory, so we don't include it here a second time
 @RTL.MAKE.FILES=wbi2ccpu.v axisi2c.v
+##
+## Makefile insert info
+##
+@SIM.CLOCK=clk
+@SIM.TICK=
+		m_core->i_i2c_scl = m_core->o_i2c_scl;
+		m_core->i_i2c_sda = m_core->o_i2c_sda;
 ##
