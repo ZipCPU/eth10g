@@ -34,7 +34,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
 `ifndef	DATESTAMP
-`define DATESTAMP 32'h20230526
-`define BUILDTIME 32'h00224227
+`define DATESTAMP 32'h20230527
+`define BUILDTIME 32'h00091858
 `endif
 //

@@ -194,6 +194,7 @@ module	vidpipe #(
 	wire			cfg_src_sel;
 	wire			cfg_ovly_enable;
 	wire	[LGDIM-1:0]	cfg_ovly_vpos, cfg_ovly_hpos;
+	reg	[LGDIM-1:0]	cfg_ovly_vpos_sys, cfg_ovly_hpos_sys;
 
 	wire		ign_px2sys_valid, ign_px2sys_ready;
 	wire		ign_sys2px_valid, ign_sys2px_ready;
@@ -319,7 +320,14 @@ module	vidpipe #(
 					cfg_mem_height <= i_wb_data[16 +: LGDIM];
 				end
 				// }}}
-			ADR_OVLYOFFSET: begin end
+			ADR_OVLYOFFSET: begin
+				// {{{
+				if (&i_wb_sel[1:0])
+					cfg_ovly_hpos_sys <= i_wb_data[ 0 +: LGDIM];
+				if (&i_wb_sel[2:1])
+					cfg_ovly_vpos_sys <= i_wb_data[16 +: LGDIM];
+				end
+				// }}}
 			// ADR_FPS: begin end
 			default: begin end
 			endcase
@@ -552,7 +560,7 @@ module	vidpipe #(
 	);
 
 	tfrvalue #(
-		.W(LGDIM*9+3+4)
+		.W(LGDIM*11+3+4)
 	) u_sys2px (
 		// {{{
 		.i_a_clk(i_clk), .i_a_reset_n(!pix_reset_sys),
@@ -563,6 +571,7 @@ module	vidpipe #(
 				cfg_alpha_sys,
 				cfg_cmap_mode_sys,
 				cfg_mem_width_sys,
+				cfg_ovly_hpos_sys, cfg_ovly_vpos_sys,
 				vm_raw_sys,    hm_raw_sys,
 				vm_synch_sys,  hm_synch_sys,
 				vm_front_sys,  hm_front_sys,
@@ -577,6 +586,7 @@ module	vidpipe #(
 				cfg_alpha,
 				cfg_cmap_mode,
 				cfg_mem_width,
+				cfg_ovly_hpos, cfg_ovly_vpos,
 				vout_raw,    hout_raw,
 				vout_synch,  hout_synch,
 				vout_front,  hout_front,
@@ -584,9 +594,6 @@ module	vidpipe #(
 				})
 		// }}}
 	);
-
-	assign	cfg_ovly_hpos = {(LGDIM){1'b0}};
-	assign	cfg_ovly_vpos = {(LGDIM){1'b0}};
 
 	assign	hm_width  = (cfg_src_sel) ? hin_width  : hout_width;
 	assign	hm_front  = (cfg_src_sel) ? hin_front  : hout_front;

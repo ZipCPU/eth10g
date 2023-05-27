@@ -71,6 +71,10 @@ module	xpxclk (
 
 	// Select lclck from either i_lcl_pixclk or i_siclk
 	// {{{
+// `define	SICLK
+	// This doesn't work b/c the SiCLK comes in via the MGT interface.
+	// It needs to run through a MGT clk handler first, before we can
+	// work with it here.
 `ifdef	SICLK
 	IBUFDS
 	ibuf_si_ck (
@@ -79,10 +83,10 @@ module	xpxclk (
 
 	assign	o_siclk = siclk;
 
-	BUFGMUX
+	xclksw
 	lclpx (
-		.I0(i_lcl_pixclk), .I1(siclk), .S(i_cksel[0]),
-		.O(lclck)
+		.i_sys_clk(i_sysclk), .i_clk_sel(i_cksel[0]),
+		.i_ck0(i_lcl_pixclk), .i_ck1(siclk), .o_clk(preck)
 	);
 `else
 	assign	siclk = i_lcl_pixclk;
@@ -97,17 +101,12 @@ module	xpxclk (
 		.I(i_hdmirx_clk_p), .IB(i_hdmirx_clk_n), .O(hdmirx_ck)
 	);
 
-/*
-	BUFG
-	u_bufh_hdmirx_clk (
-		.I(hdmirx_ck), .O(o_hdmirx_clk)
-	);
-*/
-	assign	o_hdmirx_clk = 1'b0;
+	assign	o_hdmirx_clk = hdmirx_ck;
 
-	BUFGMUX prepx (
-		.I0(lclck), .I1(hdmirx_ck), .S(i_cksel[1]),
-		.O(preck)
+	xclksw
+	prepx (
+		.i_sys_clk(i_sysclk), .i_clk_sel(i_cksel[1]),
+		.i_ck0(lclck), .i_ck1(hdmirx_ck), .o_clk(preck)
 	);
 	// }}}
 

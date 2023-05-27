@@ -34,7 +34,7 @@
 ##
 ## }}}
 @PREFIX=hdmi
-@DEVID=HDMI
+@DEVID=VIDPIPE
 @ACCESS=@$(DEVID)_ACCESS
 @NADDR=512
 @SLAVE.BUS=wb32
@@ -208,7 +208,36 @@
 @REGS.15= 15  R_FPS       FPS
 @REGS.16=256  R_CMAP      CMAP
 @XDC.INSERT=
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/hdmirx_ck]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
+@BDEF.INCLUDE=
+#include <stdint.h>
+@BDEF.DEFN=
+#ifndef @$(DEVID)_H
+#define @$(DEVID)_H
+
+typedef struct __attribute__((packed)) VIDMODE_S {
+	uint16_t	m_height,     m_width;
+	uint16_t	m_vporch,     m_hporch;
+	uint16_t	m_vsync,      m_hsync;
+	uint16_t	m_raw_height, m_raw_width;
+} VIDMODE;
+
+typedef struct __attribute__((packed)) @$(DEVID)_S {
+	uint32_t	v_control, v_sifreq, v_pxfreq, v_hdmifreq;
+	VIDMODE		v_in, v_src;
+	const char	*v_overlay;
+	uint16_t	v_ovheight, v_ovmemwords;
+	uint16_t	v_ovhpos,  v_ovypos;
+	unsigned	v_fps;
+	uint32_t	v_unused[256-16];
+	uint32_t	v_clrmap[256];
+} @$(DEVID);
+
+#endif // @$(DEVID)_H
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
 @RTL.MAKE.GROUP=HDMI
 @RTL.MAKE.SUBD=hdmi
 @RTL.MAKE.FILES= axishdmi.v axisvoverlay.v cecbridge.v hdmi2vga.v

@@ -488,7 +488,8 @@ module	wbi2ccpu #(
 
 		// Jump instruction
 		// {{{
-		if ((pf_valid && pf_ready && pf_insn[7:4] == CMD_JUMP)
+		if ((pf_valid && pf_ready && !imm_cycle
+						&& pf_insn[7:4] == CMD_JUMP)
 			||(half_valid && half_ready
 						&& half_insn[3:0] == CMD_JUMP))
 		begin
@@ -689,6 +690,8 @@ module	wbi2ccpu #(
 	else begin
 		if (insn_valid && s_tready && insn[11:8] == CMD_STOP
 				&& soft_halt_request)
+			r_halted <= 1'b1;
+		if (soft_halt_request && i2c_abort)
 			r_halted <= 1'b1;
 		if (pf_valid && pf_ready && pf_illegal)
 			r_halted <= 1'b1;

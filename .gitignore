@@ -32,3 +32,4 @@ core
 vivado*.jou
 vivado_pid*
 *.autosave
+pi/

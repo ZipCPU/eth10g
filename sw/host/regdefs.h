@@ -117,7 +117,7 @@
 #define	R_CFG_CTL1      	0x008005e0	// 00800580, wbregs names: FPGACTL1
 #define	R_CFG_BSPI      	0x008005fc	// 00800580, wbregs names: FPGABSPI
 // HDMI video processing pipe registers
-#define	R_HDMI          	0x00800800	// 00800800, wbregs names: HDMI, VIDCTRL
+#define	R_VIDPIPE       	0x00800800	// 00800800, wbregs names: VIDPIPE, VIDCTRL
 #define	R_SIFREQ        	0x00800804	// 00800800, wbregs names: SIFREQ
 #define	R_PXFREQ        	0x00800808	// 00800800, wbregs names: PXFREQ
 #define	R_HDMIFREQ      	0x0080080c	// 00800800, wbregs names: HDMIFREQ

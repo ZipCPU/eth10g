@@ -62,6 +62,9 @@
 // }}}
 
 
+#include <stdint.h>
+
+
 #ifndef	WBSCOPE_H
 #define	WBSCOPE_H
 
@@ -237,6 +240,30 @@ typedef struct  I2CCPU_S        {
 	// }}}
 
 
+#ifndef VIDPIPE_H
+#define VIDPIPE_H
+
+typedef struct __attribute__((packed)) VIDMODE_S {
+	uint16_t	m_height,     m_width;
+	uint16_t	m_vporch,     m_hporch;
+	uint16_t	m_vsync,      m_hsync;
+	uint16_t	m_raw_height, m_raw_width;
+} VIDMODE;
+
+typedef struct __attribute__((packed)) VIDPIPE_S {
+	uint32_t	v_control, v_sifreq, v_pxfreq, v_hdmifreq;
+	VIDMODE		v_in, v_src;
+	const char	*v_overlay;
+	uint16_t	v_ovheight, v_ovmemwords;
+	uint16_t	v_ovhpos,  v_ovypos;
+	unsigned	v_fps;
+	uint32_t	v_unused[256-16];
+	uint32_t	v_clrmap[256];
+} VIDPIPE;
+
+#endif // VIDPIPE_H
+
+
 #ifndef	FAN_H
 #define	FAN_H
 	////////////////////////////////////////////////////////////////////////
@@ -353,6 +380,10 @@ extern int _flash[1];
 #define	_BOARD_HAS_I2CCPU
 static volatile I2CCPU *const _i2c=((I2CCPU *)0x00800300);
 #endif	// I2CCPU_ACCESS
+#ifdef	VIDPIPE_ACCESS
+#define	_BOARD_HAS_VIDPIPE
+static volatile VIDPIPE *const _hdmi = ((VIDPIPE *)0x00800800);
+#endif	// VIDPIPE_ACCESS
 #ifdef	FAN_ACCESS
 #define	_BOARD_HAS_FAN
 static volatile FAN *const _fan=((FAN *)0x00800480);

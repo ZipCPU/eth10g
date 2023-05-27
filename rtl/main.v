@@ -68,7 +68,7 @@
 `define	SDSPI_ACCESS
 `define	FLASH_ACCESS
 `define	I2CCPU_ACCESS
-`define	HDMI_ACCESS
+`define	VIDPIPE_ACCESS
 `define	FAN_ACCESS
 `define	CFGSCOPE_SCOPE
 `define	BKRAM_ACCESS
@@ -2269,7 +2269,7 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// I2CCPU_ACCESS
 
-`ifdef	HDMI_ACCESS
+`ifdef	VIDPIPE_ACCESS
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -2303,7 +2303,7 @@ module	main(i_clk, i_reset,
 
 	// }}}
 	// }}}
-`else	// HDMI_ACCESS
+`else	// VIDPIPE_ACCESS
 	// {{{
 	// Null bus master
 	// {{{
@@ -2321,7 +2321,7 @@ module	main(i_clk, i_reset,
 
 	// }}}
 	// }}}
-`endif	// HDMI_ACCESS
+`endif	// VIDPIPE_ACCESS
 
 	wbdown #(
 		// {{{

@@ -464,7 +464,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in SIM
 ## From hdmi
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/hdmirx_ck]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 ## No XDC.INSERT tag in KEYS
 ## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in clk150
