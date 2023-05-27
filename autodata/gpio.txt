@@ -67,8 +67,8 @@
 	//
 	// GPIO adjustments
 	// {{{
-	assign	i_gpio = { 11'h0, i_hdmitx_hpd_n, i_si5324_int, sysclk_locked,
-				i_pi_reset, i_soft_reset };
+	assign	i_gpio = { 11'h0, pxrx_locked, i_hdmitx_hpd_n,
+			i_si5324_int, sysclk_locked, i_pi_reset, i_soft_reset };
 	assign	o_tp = o_gpio[3:0];
 	assign	o_si5324_rst = o_gpio[4];
 	assign	o_hdmirx_hpd_n = o_gpio[5];
@@ -122,6 +122,7 @@
 #define	GPIO_SYSCLK_LOCKED	0x000040000
 #define	GPIO_SI_INT		0x000080000
 #define	GPIO_HDMITXD		0x000100000
+#define	GPIO_PIXCLK_LOCKED	0x000200000
 //
 // @$(DEVID) output wires
 //

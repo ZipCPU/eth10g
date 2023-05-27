@@ -93,13 +93,13 @@ int main(int argc, char **argv) {
 	else
 		printf("HDMI TXD is *CLEAR*\n");
 
-	printf("SRC WIDTH  : %4d   SRC HEIGHT :%4d\n",
+	printf("SRC WIDTH  : %4d   SRC HEIGHT : %4d\n",
 		_hdmi->v_src.m_width, _hdmi->v_src.m_height);
-	printf("SRC H-PORCH:%4d    SRC V-PORCH:%4d\n",
+	printf("SRC H-PORCH: %4d   SRC V-PORCH: %4d\n",
 		_hdmi->v_src.m_hporch, _hdmi->v_src.m_vporch);
-	printf("SRC H-SYNC : %4d   SRC V-SYNC :%4d\n",
+	printf("SRC H-SYNC : %4d   SRC V-SYNC : %4d\n",
 		_hdmi->v_src.m_hsync, _hdmi->v_src.m_vsync);
-	printf("SRC H-RAW  : %4d   SRC V-RAW  :%4d\n",
+	printf("SRC H-RAW  : %4d   SRC V-RAW  : %4d\n",
 		_hdmi->v_src.m_raw_width, _hdmi->v_src.m_raw_height);
 
 	frq = _hdmi->v_sifreq;   printf("Si Clk   : %08x %9d\n", frq, frq);

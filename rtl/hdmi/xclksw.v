@@ -46,6 +46,8 @@ module	xclksw #(
 		// }}}
 	);
 
+	// Local declarations
+	// {{{
 	localparam [2:0]	CK_SET0   = 3'h0,
 				CK_REQ1   = 3'h1,
 				CK_FORCE1 = 3'h2,
@@ -55,21 +57,24 @@ module	xclksw #(
 	reg	[2:0]	state;
 	reg	[3:0]	ctr;
 	reg		hard_0, hard_1, r_sel;
+	// }}}
 
 	BUFGCTRL #(
+		// {{{
 		.INIT_OUT(1'b0),
 		.PRESELECT_I0(DEF_CLK ? "FALSE" : "TRUE"),
 		.PRESELECT_I1(DEF_CLK ? "TRUE"  : "FALSE")
+		// }}}
 	) u_bufg (
 		// {{{
 		// Clock zero
-		.CE0(1'b1),
+		.CE0(1'b1), // could also force w/ (!r_sel || !hard_0),
 		.IGNORE0(hard_0),
 		.S0(!r_sel),
 		.I0(i_ck0),
 		//
 		// Clock one
-		.CE1(1'b1),
+		.CE1(1'b1), // could also force w/ ( r_sel || !hard_1),
 		.IGNORE1(hard_1),
 		.S1(r_sel),
 		.I1(i_ck1),
@@ -111,12 +116,12 @@ module	xclksw #(
 	CK_REQ1: begin
 		// {{{
 		r_sel <= 1'b1;
+		hard_0 <= 1'b0;
 		hard_1 <= 1'b0;
 		ctr <= ctr - 1;
 		if (ctr == 0)
 		begin
 			state  <= CK_FORCE1;
-			hard_0 <= 1'b1;
 		end end
 		// }}}
 	CK_FORCE1: begin
@@ -153,11 +158,11 @@ module	xclksw #(
 		// {{{
 		r_sel <= 1'b0;
 		hard_0 <= 1'b0;
+		hard_1 <= 1'b0;
 		ctr <= ctr - 1;
 		if (ctr == 0)
 		begin
 			state  <= CK_FORCE0;
-			hard_1 <= 1'b0;
 		end end
 		// }}}
 	CK_FORCE0: begin

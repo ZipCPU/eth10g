@@ -58,6 +58,7 @@
 	wire	[1:0]	w_pxclk_sel;
 	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk, s_siclk;
 	wire		pxrx_locked;
+	wire [15-1:0]	set_hdmi_delay, actual_hdmi_delay;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -89,8 +90,8 @@
 	u_hdmirx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
-		.i_delay(5'h0),
-		.o_delay(5'h0),
+		.i_delay(set_hdmi_delay[14:10]),
+		.o_delay(actual_hdmi_delay[14:0]),
 		.i_hs_wire({ i_hdmirx_p[2], i_hdmirx_n[2] }),
 		.o_word(hdmirx_red)
 	);
@@ -99,8 +100,8 @@
 	u_hdmirx_grn(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
-		.i_delay(5'h0),
-		.o_delay(5'h0),
+		.i_delay(set_hdmi_delay[9:5]),
+		.o_delay(actual_hdmi_delay[9:5]),
 		.i_hs_wire({ i_hdmirx_p[1], i_hdmirx_n[1] }),
 		.o_word(hdmirx_grn)
 	);
@@ -109,8 +110,8 @@
 	u_hdmirx_blu(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
-		.i_delay(5'h0),
-		.o_delay(5'h0),
+		.i_delay(set_hdmi_delay[4:0]),
+		.o_delay(actual_hdmi_delay[4:0]),
 		.i_hs_wire({ i_hdmirx_p[0], i_hdmirx_n[0] }),
 		.o_word(hdmirx_blu)
 	);
@@ -148,13 +149,14 @@
 		// HDMI control ports
 		hdmirx_clk, s_siclk, hdmi_ck,
 		hdmirx_red, hdmirx_grn, hdmirx_blu,
-		hdmitx_red, hdmitx_grn, hdmitx_blu,
+		set_hdmi_delay, actual_hdmi_delay,
 		w_pxclk_sel
 @MAIN.PORTLIST=
 		// HDMI control ports
 		i_hdmiclk, i_siclk, i_pixclk,
 		i_hdmi_red, i_hdmi_grn, i_hdmi_blu,
 		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
+		o_hdmi_iodelay, i_hdmi_iodelay,
 		o_pxclk_sel
 @MAIN.IODECL=
 	// @$(PREFIX) declarations
@@ -162,6 +164,8 @@
 	input	wire		i_hdmiclk, i_siclk, i_pixclk;
 	input	wire	[9:0]	i_hdmi_red, i_hdmi_grn, i_hdmi_blu;
 	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
+	output	wire	[14:0]	o_hdmi_iodelay;
+	input	wire	[14:0]	i_hdmi_iodelay;
 	output	wire	[1:0]	o_pxclk_sel;
 	// }}}
 @MAIN.INSERT=
@@ -184,7 +188,9 @@
 		@$(MASTER.ANSIPORTLIST),
 		.o_hdmi_red(o_hdmi_red), .o_hdmi_grn(o_hdmi_grn),
 				.o_hdmi_blu(o_hdmi_blu),
-		.o_pxclk_sel(o_pxclk_sel)
+		.o_pxclk_sel(o_pxclk_sel),
+		.o_iodelay(o_hdmi_iodelay),
+		.i_iodelay(i_hdmi_iodelay)
 	);
 
 	// }}}

@@ -76,6 +76,7 @@ module	xpxclk (
 	// It needs to run through a MGT clk handler first, before we can
 	// work with it here.
 `ifdef	SICLK
+	// {{{
 	IBUFDS
 	ibuf_si_ck (
 		.I(i_siclk_p), .IB(i_siclk_n), .O(siclk)
@@ -86,11 +87,13 @@ module	xpxclk (
 	xclksw
 	lclpx (
 		.i_sys_clk(i_sysclk), .i_clk_sel(i_cksel[0]),
-		.i_ck0(i_lcl_pixclk), .i_ck1(siclk), .o_clk(preck)
+		.i_ck0(i_lcl_pixclk), .i_ck1(siclk), .o_clk(lclck)
 	);
+	// }}}
 `else
-	assign	siclk = i_lcl_pixclk;
-	assign	o_siclk = 1'b0;
+	assign	siclk   = i_lcl_pixclk;
+	assign	o_siclk = i_lcl_pixclk; // 1'b0;
+	assign	lclck   = i_lcl_pixclk;
 `endif
 	// }}}
 
@@ -112,11 +115,11 @@ module	xpxclk (
 
 	PLLE2_BASE #(
 		// {{{
-		.CLKFBOUT_MULT(10),
+		.CLKFBOUT_MULT(20),
 		.CLKFBOUT_PHASE(0.0),
 		.CLKIN1_PERIOD(6.6),	// Up to 200MHz input
-		.CLKOUT0_DIVIDE(10),
-		.CLKOUT1_DIVIDE(1)
+		.CLKOUT0_DIVIDE(20),
+		.CLKOUT1_DIVIDE(2)
 		// }}}
 	) u_hdmi_pll (
 		// {{{

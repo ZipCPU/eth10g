@@ -76,7 +76,9 @@ module	vidpipe #(
 		output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		// }}}
 		// Clock control
-		output	reg	[1:0]	o_pxclk_sel
+		output	reg	[1:0]	o_pxclk_sel,
+		output	reg	[14:0]	o_iodelay,
+		input	wire	[14:0]	i_iodelay
 		// }}}
 	);
 
@@ -328,7 +330,16 @@ module	vidpipe #(
 					cfg_ovly_vpos_sys <= i_wb_data[16 +: LGDIM];
 				end
 				// }}}
-			// ADR_FPS: begin end
+			ADR_FPS: begin
+				// {{{
+				if (i_wb_sel[1])
+					o_iodelay[4:0] <= i_wb_data[ 8+:5];
+				if (i_wb_sel[2])
+					o_iodelay[9:5] <= i_wb_data[16+:5];
+				if (i_wb_sel[3])
+					o_iodelay[14:10]<=i_wb_data[24+:5];
+				end
+				// }}}
 			default: begin end
 			endcase
 		end
@@ -435,7 +446,12 @@ module	vidpipe #(
 					{(WBLSB){1'b0}} };
 			end
 		ADR_OVLYOFFSET: begin end
-		ADR_FPS: pre_wb_data[7:0] <= frames_per_second;
+		ADR_FPS: begin
+				pre_wb_data[7:0] <= frames_per_second;
+				pre_wb_data[ 8 +: 5] <= i_iodelay[ 4: 0];
+				pre_wb_data[16 +: 5] <= i_iodelay[ 9: 5];
+				pre_wb_data[24 +: 5] <= i_iodelay[14:10];
+			end
 		endcase
 	end
 

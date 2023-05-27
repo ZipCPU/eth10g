@@ -376,8 +376,8 @@ set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat
 ## {{{
 set_property -dict {PACKAGE_PIN N23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_cec]
 set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVCMOS33} [get_ports o_hdmirx_hpd_n]
-#set_property -dict {PACKAGE_PIN P23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_scl]
-#set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_sda]
+set_property -dict {PACKAGE_PIN P23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_scl]
+set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_sda]
 
 set_property -dict {PACKAGE_PIN P24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[0]]
 set_property -dict {PACKAGE_PIN N24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[0]]
@@ -432,6 +432,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_mic
@@ -439,7 +440,6 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in scope_smi
 ## No XDC.INSERT tag in spio
 ## No XDC.INSERT tag in gpio
-## No XDC.INSERT tag in flashcfg
 ## No XDC.INSERT tag in cfg
 ## No XDC.INSERT tag in wbu
 ## No XDC.INSERT tag in zip_alt_uic
@@ -470,10 +470,11 @@ set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 ## No XDC.INSERT tag in clk150
 ## No XDC.INSERT tag in zip_tmb
 ## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in flashcfg
+## No XDC.INSERT tag in edid
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
 ## No XDC.INSERT tag in wbflashdn
-## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in alt
 ## No XDC.INSERT tag in cfgscope
 ## No XDC.INSERT tag in zip_jiffies

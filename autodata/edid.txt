@@ -36,7 +36,7 @@
 @PREFIX=edid
 @DEVID=EDID
 @LGMEMSZ=8
-@$NADDR=(1<<@$(LGMEMSZ)) / (@$(SLAVE.BUS.WIDTH)/8)
+@$NADDR=256 / 4
 @ACCESS=@$(DEVID)_ACCESS
 @SLAVE.BUS=wb32
 @SLAVE.TYPE=DOUBLE
@@ -136,6 +136,8 @@
 	);
 
 	assign	@$(PREFIX)_valid = i2c_valid && (i2c_id == 1);
+	assign	@$(PREFIX)_data  = i2c_data;
+	assign	@$(PREFIX)_last  = i2c_last;
 	// }}}
 @MAIN.ALT=
 	assign	o_@$(PREFIX)_scl = 1'b1;
@@ -153,7 +155,7 @@
 ##
 @BDEF.DEFN=
 @BDEF.IONAME=_@$(PREFIX)
-@BDEF.IOTYPE=@$(DEVID)
+@BDEF.IOTYPE=char
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME)=((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
 ##
