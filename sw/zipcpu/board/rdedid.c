@@ -33,6 +33,7 @@
 // }}}
 
 #include <stdio.h>
+#include "zipsys.h"
 #include "board.h"
 
 #include "edid.c"
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
 		"+---------------------------+\n");
 
 #ifdef	_BOARD_HAS_I2CSCOPE
-	_i2cscope->s_ctrl = 0x0400ffffu;
+	_i2cscope->s_ctrl = 0x04000000u;
 
 	// Now wait for the scope to prime
 	while(0 == (_i2cscope->s_ctrl & 0x10000000u))
@@ -61,9 +62,15 @@ int main(int argc, char **argv) {
 		c = _i2c->ic_control;
 	} while(0 == (c & 0x0080000));
 
+	printf("I2C Control = %08x\n", c);
 	printf("Commanding read EDID sequence ...\n");
 
 	_i2c->ic_address = (unsigned)i2casm;
+#ifdef	_BOARD_HAS_I2CSCOPE
+	_zip->z_tma = 0x00100000;
+	while(_zip->z_tma != 0);
+	_i2cscope->s_ctrl = 0x8c000000u;
+#endif
 
 	do {
 		c = _i2c->ic_control;
@@ -74,9 +81,9 @@ int main(int argc, char **argv) {
 		_i2c->ic_control = 0x0080000;
 	}
 
-#ifdef	_BOARD_HAS_I2CSCOPE
-	_i2cscope->s_ctrl = 0x8c00ffffu;
-#endif
+// #ifdef	_BOARD_HAS_I2CSCOPE
+//	_i2cscope->s_ctrl = 0x8c00ffffu;
+// #endif
 
 	if (c & 0x080000) {
 		printf("EDID Info:\n"
@@ -87,6 +94,13 @@ int main(int argc, char **argv) {
 
 			printf("%02x%s", ch & 0x0ff,((k&15)==15) ? "\n" :", ");
 		} printf("%02x\n", _edid[255] & 0x0ff);
+#ifdef	_BOARD_HAS_I2CSCOPE
+	// _zip->z_tma = 0x0ffffff;
+	// while(_zip->z_tma != 0);
+	// _i2cscope->s_ctrl = 0x8c00ffffu;
+	// printf("Scope complete\n");
+#endif
+
 	} else
 		printf(".. I2C operation aborted.  Is the monitor plugged in?\n");
 #endif
