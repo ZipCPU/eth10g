@@ -498,7 +498,7 @@ module	vidstream2pix #(
 	begin
 		pix_hlast <= 1;
 		pix_count <= 0;
-	end else if (!M_AXIS_TVALID || M_AXIS_TREADY)
+	end else if ((!M_AXIS_TVALID || M_AXIS_TREADY) && c_valid)
 	begin
 		if (!c_hlast)
 		begin

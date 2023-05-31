@@ -276,7 +276,7 @@ typedef struct __attribute__((packed)) VIDPIPE_S {
 	VIDMODE		v_in, v_src;
 	const char	*v_overlay;
 	uint16_t	v_ovheight, v_ovmemwords;
-	uint16_t	v_ovhpos,  v_ovypos;
+	uint16_t	v_ovypos,  v_ovhpos;
 	unsigned	v_fps;
 	uint32_t	v_unused[256-16];
 	uint32_t	v_clrmap[256];

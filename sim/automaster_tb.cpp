@@ -72,7 +72,7 @@ void	usage(void) {
 int	main(int argc, char **argv) {
 	// Variable declaration and initialization
 	// {{{
-#if	defined(VIDEO_ACCESS) || defined(OLED_ACCESS)
+#if	defined(VIDPIPE_ACCESS) || defined(OLED_ACCESS)
 	Gtk::Main	main_instance(argc, argv);
 #endif
 	Verilated::commandArgs(argc, argv);
@@ -223,9 +223,9 @@ int	main(int argc, char **argv) {
 
 	// Main while(1) loop
 	// {{{
-#if	defined(VIDEO_ACCESS) || defined(OLED_ACCESS)
+#if	defined(VIDPIPE_ACCESS) || defined(OLED_ACCESS)
 	tb->connect_idler();
-	Gtk::Main::run(*tb->m_hdmi);
+	Gtk::Main::run(*tb->m_hdmitx);
 #else
 	if (profile_fp) { // Profile the ZipCPU
 		// {{{

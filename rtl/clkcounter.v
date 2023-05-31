@@ -91,6 +91,11 @@ module	clkcounter #(
 		end
 
 		assign	sys_pps = r_sys_pps;
+
+		// Verilator lint_off UNUSED
+		wire	unused;
+		assign	unused = &{ 1'b0, i_sys_pps };
+		// Verilator lint_on  UNUSED
 	end else begin : COPY_PPS
 		assign	sys_pps = i_sys_pps;
 	end endgenerate

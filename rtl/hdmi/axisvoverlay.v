@@ -1078,18 +1078,22 @@ module	axisvoverlay #(
 		// mix_pixel
 		// {{{
 		for(clr=0; clr<COLORS; clr=clr+1)
-		begin
+		begin : MIXCLR
 			// Verilator lint_off UNUSED
-			reg	[BPP + ALPHA_BITS -1:0] pclr, oclr, sclr;
+			reg	[BPP + ALPHA_BITS:0] pclr, oclr, sclr;
+			wire	[BPP-1:0] pri_clr, ovw_clr;
+
+			assign	pri_clr = pri_pixel[clr * BPP +: BPP];
+			assign	ovw_clr = ovw_pixel[clr * BPP +: BPP];
 			// Verilator lint_on  UNUSED
 
 			always @(posedge ACLK)
 			if (pix_loaded && pix_ready)
-				pclr <= pri_pixel[clr * BPP +: BPP] * negalpha;
+				pclr <= pri_clr * alpha;
 
 			always @(posedge ACLK)
 			if (pix_loaded && pix_ready)
-				oclr <= ovw_pixel[clr * BPP +: BPP] * alpha;
+				oclr <= ovw_clr * negalpha;
 
 			always @(posedge ACLK)
 			if (mpy_loaded && mpy_ready)

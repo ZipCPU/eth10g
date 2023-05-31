@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi # contest sdtest gpiotoggle dmatest
+PROGRAMS := hello cputest ssddemo qkhdmi rdedid # contest sdtest
 all:	$(PROGRAMS)
 #
 #
@@ -46,7 +46,7 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdedid.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
@@ -117,6 +117,9 @@ ssddemo: $(OBJDIR)/ssddemo.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 qkhdmi: $(OBJDIR)/qkhdmi.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+rdedid: $(OBJDIR)/rdedid.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 sdtest: $(OBJDIR)/sdtest.o board.ld $(LIB)

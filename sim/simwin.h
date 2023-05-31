@@ -1,13 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	builddate.v
+// Filename:	simwin.h
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	This file records the date of the last build.  Running "make"
-//		in the main directory will create this file.  The `define found
-//	within it then creates a version stamp that can be used to tell which
-//	configuration is within an FPGA and so forth.
+// Purpose:	
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -32,9 +29,56 @@
 // under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
-// }}}
-`ifndef	DATESTAMP
-`define DATESTAMP 32'h20230531
-`define BUILDTIME 32'h00160128
-`endif
 //
+// }}}
+#ifndef	SIMWIN_H
+#define	SIMWIN_H
+
+#include <gtkmm.h>
+#include "image.h"
+#include "videomode.h"
+
+class	SIMWIN	: public Gtk::Window {
+protected:
+	VIDEOMODE	m_vmode;
+
+public:
+	SIMWIN(void) : m_vmode(640,480) {};
+	SIMWIN(const int w, const int h) : m_vmode(w,h) {};
+	SIMWIN(const char *h, const char *v) : m_vmode(h,v) {};
+
+	virtual	bool syncd(void)  const= 0;
+
+	int  width(void)  const {
+		return m_vmode.width();
+	}
+
+	int  height(void) const {
+		return	m_vmode.height();
+	}
+
+	int  raw_width(void)  const {
+		return m_vmode.raw_width();
+	}
+
+	int  raw_height(void) const {
+		return m_vmode.raw_height();
+	}
+	int  hsync(void)  const {
+		return	m_vmode.hsync();
+	}
+	int  vsync(void)  const {
+		return	m_vmode.vsync();
+	}
+	int hporch(void)  const {
+		return	m_vmode.hporch();
+	}
+	int vporch(void)  const {
+		return	m_vmode.vporch();
+	}
+	int clocks_per_frame(void) const {
+		return	m_vmode.pixels_per_frame();
+	}
+};
+
+#endif

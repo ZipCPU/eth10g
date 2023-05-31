@@ -85,18 +85,17 @@
 		.i_clk(s_clk), .i_hsclk(s_clk4x),
 		.i_ce(w_@$(PREFIX)_ce),
 		.i_word(w_@$(PREFIX)_word),
-		.o_pin({ o_siref_clk_p, o_siref_clk_n })
+		.o_pin({ o_siref_clk_p, o_siref_clk_n }),
+		.o_clk(s_@$(PREFIX)_clk)
 		// }}}
 	);
 	// }}}
 @TOP.MAIN=
 		// Clock Generator ports
-		w_@$(PREFIX)_word,
-		w_@$(PREFIX)_ce
+		w_@$(PREFIX)_word, w_@$(PREFIX)_ce
 @MAIN.PORTLIST=
 		// Clock generator ports
-		o_@$(PREFIX)_word,
-		o_@$(PREFIX)_ce
+		o_@$(PREFIX)_word, o_@$(PREFIX)_ce
 @MAIN.IODECL=
 	output	wire	[7:0]	o_@$(PREFIX)_word;
 	output	wire		o_@$(PREFIX)_ce;

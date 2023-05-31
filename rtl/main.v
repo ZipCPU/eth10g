@@ -116,8 +116,7 @@
 module	main(i_clk, i_reset,
 	// {{{
 		// Clock generator ports
-		o_sirefclk_word,
-		o_sirefclk_ce,
+		o_sirefclk_word, o_sirefclk_ce,
 			i_fan_sda, i_fan_scl,
 			o_fan_sda, o_fan_scl,
 			o_fpga_pwm, o_sys_pwm, i_fan_tach,
@@ -388,7 +387,7 @@ module	main(i_clk, i_reset,
 	// {{{
 `ifndef	VERILATOR
 	wire		cpu_prof_stb;
-	wire	[20+1:0]	cpu_prof_addr;
+	wire	[20+$clog2(512/8)-1:0]	cpu_prof_addr;
 	wire [31:0]	cpu_prof_ticks;
 `endif
 	// All we define here is a set of scope wires

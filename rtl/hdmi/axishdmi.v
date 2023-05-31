@@ -88,7 +88,7 @@ module	axishdmi #(
 	reg		r_newline, r_newframe, lost_sync;
 	reg		vsync, hsync;
 	reg	[1:0]	hdmi_type;
-	reg	[3:0]	hdmi_ctl;
+	wire	[3:0]	hdmi_ctl;
 	reg	[11:0]	hdmi_data;
 	reg	[7:0]	red_pixel, grn_pixel, blu_pixel;
 	reg		pre_line;
@@ -150,7 +150,7 @@ module	axishdmi #(
 		// }}}
 	end else if (w_external_sync)
 	begin
-		hpos      <= i_hm_width;
+		hpos      <= i_hm_width-1;
 		r_newline <= 0;
 		hrd       <= 0;
 		hsync <= 1'b0;
@@ -364,8 +364,7 @@ module	axishdmi #(
 	end else
 		hdmi_type <= CTL_PERIOD;
 
-	always @(*)
-		hdmi_ctl = 4'h1;
+	assign	hdmi_ctl = 4'h1;
 	// }}}
 
 	// hdmi_data

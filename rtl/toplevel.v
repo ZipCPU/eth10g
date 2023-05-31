@@ -58,7 +58,7 @@ module	toplevel(
 		// SPIO interface
 		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led,
 		// GPIO ports
-		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n,
+		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
 		o_hdmirx_hpd_n,
 		// UART/host to wishbone interface
@@ -77,7 +77,7 @@ module	toplevel(
 			o_i2c_mxrst_n,
 		i_hdmirx_clk_p, i_hdmirx_clk_n,
 		i_hdmirx_p, i_hdmirx_n,
-		i_hdmitx_clk_p, i_hdmitx_clk_n,
+		o_hdmitx_clk_p, o_hdmitx_clk_n,
 		o_hdmitx_p, o_hdmitx_n,
 			io_hdmirx_scl, io_hdmirx_sda);
 	//
@@ -159,7 +159,7 @@ module	toplevel(
 	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
 	output	wire	[8-1:0]	o_led;
 	// GPIO wires
-	input	wire		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n;
+	input	wire		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n;
 	output	wire	[3:0]	o_tp;
 	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
 	input	wire		i_si5324_int;
@@ -188,7 +188,7 @@ module	toplevel(
 	output	wire	o_i2c_mxrst_n;
 	input	wire		i_hdmirx_clk_p, i_hdmirx_clk_n;
 	input	wire	[2:0]	i_hdmirx_p, i_hdmirx_n;
-	input	wire		i_hdmitx_clk_p, i_hdmitx_clk_n;
+	output	wire		o_hdmitx_clk_p, o_hdmitx_clk_n;
 	output	wire	[2:0]	o_hdmitx_p, o_hdmitx_n;
 	inout	wire	io_hdmirx_scl, io_hdmirx_sda;
 
@@ -283,8 +283,7 @@ module	toplevel(
 
 	main	thedesign(s_clk, s_reset,
 		// Clock Generator ports
-		w_sirefclk_word,
-		w_sirefclk_ce,
+		w_sirefclk_word, w_sirefclk_ce,
 		// FAN/fan
 		i_fan_sda, i_fan_scl,
 		o_fan_sda, o_fan_scl,
@@ -315,6 +314,7 @@ module	toplevel(
 		// HDMI control ports
 		hdmirx_clk, s_siclk, hdmi_ck,
 		hdmirx_red, hdmirx_grn, hdmirx_blu,
+		hdmitx_red, hdmitx_grn, hdmitx_blu,
 		set_hdmi_delay, actual_hdmi_delay,
 		w_pxclk_sel,
 		// I2CCPU
@@ -363,7 +363,8 @@ module	toplevel(
 		.i_clk(s_clk), .i_hsclk(s_clk4x),
 		.i_ce(w_sirefclk_ce),
 		.i_word(w_sirefclk_word),
-		.o_pin({ o_siref_clk_p, o_siref_clk_n })
+		.o_pin({ o_siref_clk_p, o_siref_clk_n }),
+		.o_clk(s_sirefclk_clk)
 		// }}}
 	);
 	// }}}
@@ -408,8 +409,12 @@ module	toplevel(
 	//
 	// GPIO adjustments
 	// {{{
-	assign	i_gpio = { 11'h0, pxrx_locked, i_hdmitx_hpd_n,
-			i_si5324_int, sysclk_locked, i_pi_reset, i_soft_reset };
+	// Set to '1' when there's something to say.  Hence, the reset
+	//	inputs will be '1' when the reset is active, the HDMI detect
+	//	will be '1' when an HDMI is detected, the PLL lock signals
+	//	will be '1' when not locked, etc.
+	assign	i_gpio = { 11'h0, !pxrx_locked, !i_hdmitx_hpd_n,
+		i_si5324_int,!sysclk_locked,!i_pi_reset_n,i_soft_reset };
 	assign	o_tp = o_gpio[3:0];
 	assign	o_si5324_rst = o_gpio[4];
 	assign	o_hdmirx_hpd_n = o_gpio[5];
@@ -714,7 +719,7 @@ module	toplevel(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
 		.i_delay(set_hdmi_delay[14:10]),
-		.o_delay(actual_hdmi_delay[14:0]),
+		.o_delay(actual_hdmi_delay[14:10]),
 		.i_hs_wire({ i_hdmirx_p[2], i_hdmirx_n[2] }),
 		.o_word(hdmirx_red)
 	);
@@ -742,6 +747,14 @@ module	toplevel(
 
 	// Output the HDMI TX data lines
 	// {{{
+	xhdmiout
+	u_hdmitx_clk(
+		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
+		.i_ce(1'b1),
+		.i_word(10'b11111_00000),
+		.o_port({ o_hdmitx_clk_p, o_hdmitx_clk_n })
+	);
+
 	xhdmiout
 	u_hdmitx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),

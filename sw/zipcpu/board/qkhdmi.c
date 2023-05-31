@@ -54,6 +54,8 @@ int main(int argc, char **argv) {
 #else
 	unsigned	frq;
 
+	(*_gpio) = GPIO_TRACE_SET;
+
 	if ((*_gpio) & GPIO_HDMITXD)
 		printf("HDMI TXD is *SET*\n");
 	else
@@ -71,22 +73,23 @@ int main(int argc, char **argv) {
 
 	// Set up the overlay
 	// {{{
-	_hdmi->v_overlay = grayimg;
+	_hdmi->v_overlay = (void *)0;
 	// We have a width of 800 pixels * 2 bits per pixel=>1600 bits=>200Bytes
 	//	We have a bus width of 512 bits, or 64 bytes
 	//	Lines must be bus aligned, we round 200Bytes up to the nearest
 	//	  64 byte boundary, so ... ovmemwords = 256
-	_hdmi->v_ovmemwords = 256; // (800*2+511)/512;
+	_hdmi->v_ovmemwords = 800;
 	_hdmi->v_ovheight= 491;
 	_hdmi->v_ovhpos  =   0;
 	_hdmi->v_ovypos  =  54;
+	_hdmi->v_overlay = grayimg;
 	// }}}
 
 	_hdmi->v_control = 0x0100;	// Release it all from reset
 
-	_zip->z_tma = 0x7fffffff;
-	while(_zip->z_tma != 0)
-		;
+	// _zip->z_tma = 0x7fffffff;
+	// while(_zip->z_tma != 0)
+	//	;
 
 	if ((*_gpio) & GPIO_HDMITXD)
 		printf("HDMI TXD is *SET*\n");

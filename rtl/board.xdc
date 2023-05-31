@@ -74,7 +74,7 @@ set_property -dict {PACKAGE_PIN C19 IOSTANDARD LVCMOS33} [get_ports o_fan_sys]
 
 ## External resets
 ## {{{
-set_property -dict {PACKAGE_PIN A18 IOSTANDARD LVCMOS33} [get_ports i_pi_reset]
+set_property -dict {PACKAGE_PIN A18 IOSTANDARD LVCMOS33} [get_ports i_pi_reset_n]
 set_property -dict {PACKAGE_PIN A20 IOSTANDARD LVCMOS18} [get_ports i_soft_reset]
 ## }}}
 
@@ -397,8 +397,8 @@ set_property -dict {PACKAGE_PIN K25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[1]
 set_property -dict {PACKAGE_PIN K26 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[1]]
 set_property -dict {PACKAGE_PIN M25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[2]]
 set_property -dict {PACKAGE_PIN L25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[2]]
-#set_property -dict {PACKAGE_PIN N19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_p]
-#set_property -dict {PACKAGE_PIN M20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_n]
+set_property -dict {PACKAGE_PIN N19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_p]
+set_property -dict {PACKAGE_PIN M20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_n]
 ## }}}
 
 ## PCIe
@@ -426,6 +426,10 @@ set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVCMOS33} [get_ports o_tp[3]]
 ## }}}
 
 ## Bitstream options
+set_property CONFIG_MODE SPIx4 [current_design]
+set_property BITSTREAM.CONFIG.CONFIGRATE 26 [current_design]
+set_property CONFIG_VOLTAGE 2.5 [current_design]
+set_property CFGBVS VCCO [current_design]
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## Adding in any XDC_INSERT tags

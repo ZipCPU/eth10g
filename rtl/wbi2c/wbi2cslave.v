@@ -89,6 +89,7 @@ module	wbi2cslave #(
 	localparam	[1:0]	BUS_IDLE = 2'b00,
 				BUS_READ = 2'b01,
 				BUS_SEND = 2'b10;
+	localparam	PL=2;
 
 	reg	[31:0]	mem	[0:((1<<(MEM_ADDR_BITS-2))-1)];
 	reg	[4:0]	wr_stb;
@@ -251,7 +252,6 @@ module	wbi2cslave #(
 	//
 
 	// 2FF Synchronizer
-	localparam	PL=2;
 	always @(posedge i_clk)
 		i2c_pipe <= { i2c_pipe[(2*PL-3):0], i_i2c_scl, i_i2c_sda };
 

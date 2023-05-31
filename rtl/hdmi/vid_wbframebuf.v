@@ -64,6 +64,7 @@ module	vid_wbframebuf #(
 		// Verilator lint_on  SYNCASYNCNET
 		// Video information
 		// {{{
+		input	wire			i_cfg_en,
 		input	wire	[LGFRAME-1:0]	i_height, i_mem_words,
 		input	wire	[AW-1:0]	i_baseaddr,
 		// }}}
@@ -135,7 +136,7 @@ module	vid_wbframebuf #(
 	// {{{
 	initial { o_wb_cyc, o_wb_stb } = 2'b00;
 	always @(posedge i_clk)
-	if (wb_reset)
+	if (wb_reset || !i_cfg_en)
 		{ o_wb_cyc, o_wb_stb } <= 2'b00;
 	else if (o_wb_cyc)
 	begin
@@ -172,7 +173,7 @@ module	vid_wbframebuf #(
 		last_ack <= 0;
 	else
 		last_ack <= (wb_outstanding + (o_wb_stb ? 1:0)
-				<= 2 +(i_wb_ack ? 1:0));
+				<= 1 +(i_wb_ack ? 1:0));
 	// }}}
 
 	// last_request
@@ -189,7 +190,7 @@ module	vid_wbframebuf #(
 	// o_wb_addr, wb_[hv]pos, wb_[hv]last
 	// {{{
 	always @(posedge i_clk)
-	if (wb_reset)
+	if (wb_reset || !i_cfg_en)
 	begin
 		// {{{
 		wb_hpos <= 0;
@@ -245,7 +246,7 @@ module	vid_wbframebuf #(
 
 	// rx_[hv]pos, rx_[hv]last
 	always @(posedge i_clk)
-	if (wb_reset)
+	if (wb_reset || !i_cfg_en)
 	begin
 		// {{{
 		rx_hpos  <= 0;

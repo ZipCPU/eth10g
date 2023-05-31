@@ -40,12 +40,15 @@
 //
 // `define	DIFFERENTIAL
 // }}}
-module	xgenclk (
+module	xgenclk #(
+		parameter [0:0]	OPT_LCLCLOCK = 1'b0
+	) (
 		// {{{
 		input	wire		i_clk, i_ce,
 		input	wire		i_hsclk,	// @ 4x i_clk frequency
 		input	wire	[7:0]	i_word,
-		output	wire	[1:0]	o_pin
+		output	wire	[1:0]	o_pin,
+		output	wire		o_clk
 		// }}}
 	);
 
@@ -99,9 +102,29 @@ module	xgenclk (
 		// }}}
 	);
 
-	OBUFDS
-	u_genclkio(
-		.I(w_pin), .O(o_pin[1]), .OB(o_pin[0])
-	);
+	generate if (OPT_LCLCLOCK)
+	begin : GEN_CLK_REFLECTION
+		wire	w_clk;
+
+		IOBUFDS
+		u_genclkio(
+			.T(high_z),.I(w_pin),.IO(o_pin[1]), .IOB(o_pin[0]),
+			.O(w_clk)
+		);
+
+		// BUFG	clkgen_buf(.I(w_clk), .O(o_clk));
+		// BUFR	#(.BUFR_DIVIDE("BYPASS"), .SIM_DEVICE("7SERIES")) clkgen_buf(.I(w_clk), .O(o_clk));
+		// BUFH	clkgen_buf(.I(w_clk), .O(o_clk));
+		// wire tmp; BUFMR	clkgen_buf(.I(w_clk), .O(tmp)); BUFR aux(.I(tmp), .O(o_clk));
+		// assign	o_clk = w_clk;
+		assign	o_clk = 1'b0;
+	end else begin : NO_REFLECTION
+		OBUFDS
+		u_genclkio(
+			.I(w_pin), .O(o_pin[1]), .OB(o_pin[0])
+		);
+
+		assign	o_clk = 1'b0;
+	end endgenerate
 
 endmodule

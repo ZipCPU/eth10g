@@ -142,7 +142,7 @@
 	// {{{
 `ifndef	VERILATOR
 	wire		cpu_prof_stb;
-	wire	[@$(MASTER.BUS.AWID)+1:0]	cpu_prof_addr;
+	wire	[@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)-1:0]	cpu_prof_addr;
 	wire [31:0]	cpu_prof_ticks;
 `endif
 	// All we define here is a set of scope wires

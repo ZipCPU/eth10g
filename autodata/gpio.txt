@@ -45,12 +45,12 @@
 @INT.GPIO.PIC=altpic
 @TOP.PORTLIST=
 		// @$(DEVID) ports
-		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n,
+		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
 		o_hdmirx_hpd_n
 @TOP.IODECL=
 	// GPIO wires
-	input	wire		i_pi_reset, i_soft_reset, i_hdmitx_hpd_n;
+	input	wire		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n;
 	output	wire	[3:0]	o_tp;
 	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
 	input	wire		i_si5324_int;
@@ -67,8 +67,12 @@
 	//
 	// GPIO adjustments
 	// {{{
-	assign	i_gpio = { 11'h0, pxrx_locked, i_hdmitx_hpd_n,
-			i_si5324_int, sysclk_locked, i_pi_reset, i_soft_reset };
+	// Set to '1' when there's something to say.  Hence, the reset
+	//	inputs will be '1' when the reset is active, the HDMI detect
+	//	will be '1' when an HDMI is detected, the PLL lock signals
+	//	will be '1' when not locked, etc.
+	assign	i_gpio = { 11'h0, !pxrx_locked, !i_hdmitx_hpd_n,
+		i_si5324_int,!sysclk_locked,!i_pi_reset_n,i_soft_reset };
 	assign	o_tp = o_gpio[3:0];
 	assign	o_si5324_rst = o_gpio[4];
 	assign	o_hdmirx_hpd_n = o_gpio[5];

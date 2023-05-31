@@ -74,7 +74,7 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 ## External resets
 ## {{{
-#set_property -dict {PACKAGE_PIN A18 IOSTANDARD LVCMOS33} [get_ports i_pi_reset]
+#set_property -dict {PACKAGE_PIN A18 IOSTANDARD LVCMOS33} [get_ports i_pi_reset_n]
 #set_property -dict {PACKAGE_PIN A20 IOSTANDARD LVCMOS18} [get_ports i_soft_reset]
 ## }}}
 
@@ -426,4 +426,8 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 ## }}}
 
 ## Bitstream options
+set_property CONFIG_MODE SPIx4 [current_design]
+set_property BITSTREAM.CONFIG.CONFIGRATE 26 [current_design]
+set_property CONFIG_VOLTAGE 2.5 [current_design]
+set_property CFGBVS VCCO [current_design]
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]

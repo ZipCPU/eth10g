@@ -58,7 +58,7 @@ CFLAGS	:= -O3 -std=gnu++14 -faligned-new -Wall $(INCS) $(GFXFLAGS)
 #
 ##
 ## PROJECT sources for this project
-SIMSOURCES:= flashsim.cpp sdspisim.cpp dbluartsim.cpp zipelf.cpp byteswap.cpp memsim.cpp
+SIMSOURCES:= flashsim.cpp sdspisim.cpp dbluartsim.cpp zipelf.cpp byteswap.cpp memsim.cpp hdmisim.cpp
 SIMOBJECTS:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SIMSOURCES)))
 # SIMHEADERS:= $(foreach header,$(subst .cpp,.h,$(SIMSOURCES)),$(wildcard $(header)))
 VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o $(OBJDIR)/verilated_threads.o

@@ -63,7 +63,8 @@ module	xclksw #(
 		// {{{
 		.INIT_OUT(1'b0),
 		.PRESELECT_I0(DEF_CLK ? "FALSE" : "TRUE"),
-		.PRESELECT_I1(DEF_CLK ? "TRUE"  : "FALSE")
+		.PRESELECT_I1(DEF_CLK ? "TRUE"  : "FALSE"),
+		.SIM_DEVICE("7SERIES")
 		// }}}
 	) u_bufg (
 		// {{{

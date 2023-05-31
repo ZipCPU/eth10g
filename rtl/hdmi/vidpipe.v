@@ -317,8 +317,8 @@ module	vidpipe #(
 				// {{{
 				if (&i_wb_sel[1:0])
 					// cfg_mem_words <= { {(WBLSB){1'b0}}, i_wb_data[LGDIM-1:WBLSB] };
-					cfg_mem_width_sys <= { {(WBLSB){1'b0}}, i_wb_data[LGDIM-1:WBLSB] };
-				if (&i_wb_sel[2:1])
+					cfg_mem_width_sys <= i_wb_data[LGDIM-1:0];
+				if (&i_wb_sel[3:2])
 					cfg_mem_height <= i_wb_data[16 +: LGDIM];
 				end
 				// }}}
@@ -326,7 +326,7 @@ module	vidpipe #(
 				// {{{
 				if (&i_wb_sel[1:0])
 					cfg_ovly_hpos_sys <= i_wb_data[ 0 +: LGDIM];
-				if (&i_wb_sel[2:1])
+				if (&i_wb_sel[3:2])
 					cfg_ovly_vpos_sys <= i_wb_data[16 +: LGDIM];
 				end
 				// }}}
@@ -442,8 +442,7 @@ module	vidpipe #(
 		ADR_OVLYSIZE: begin
 			pre_wb_data[16 +: LGDIM] <= cfg_mem_height;
 			pre_wb_data[ 0 +: LGDIM] <= {
-					cfg_mem_width_sys[LGDIM-WBLSB-1:0],
-					{(WBLSB){1'b0}} };
+					cfg_mem_width_sys[LGDIM-1:0] };
 			end
 		ADR_OVLYOFFSET: begin end
 		ADR_FPS: begin
@@ -784,6 +783,7 @@ module	vidpipe #(
 	) u_framebuf (
 		// {{{
 		.i_clk(i_clk), .i_pixclk(i_pixclk), .i_reset(pix_reset_sys),
+		.i_cfg_en(cfg_ovly_enable_sys),
 		.i_height(cfg_mem_height), .i_mem_words(cfg_mem_words),
 		.i_baseaddr(cfg_framebase),
 		// Wishbone (DMA) bus master
