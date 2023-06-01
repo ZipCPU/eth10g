@@ -131,7 +131,7 @@
 	u_hdmitx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
 		.i_ce(1'b1),
-		.i_word(hdmirx_red),
+		.i_word(hdmitx_red),
 		.o_port({ o_hdmitx_p[2], o_hdmitx_n[2] })
 	);
 

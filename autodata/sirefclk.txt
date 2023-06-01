@@ -100,7 +100,8 @@
 	output	wire	[7:0]	o_@$(PREFIX)_word;
 	output	wire		o_@$(PREFIX)_ce;
 @MAIN.DEFNS=
-	reg	[30:0]	r_@$(PREFIX)_data;
+	reg		r_@$(PREFIX)_en;
+	reg	[29:0]	r_@$(PREFIX)_data;
 	wire		w_@$(PREFIX)_unused_stb;
 	reg		r_@$(PREFIX)_ack;
 @MAIN.INSERT=
@@ -108,7 +109,11 @@
 	//
 	// Generated clock handling
 	// {{{
-	initial	r_@$(PREFIX)_data = 31'd20;
+	//
+	// Set to 0x2f85_1ec0 for 148.5MHz
+	//
+	initial	r_@$(PREFIX)_en   = 1'b0;
+	initial	r_@$(PREFIX)_data = 30'd20000;
 	always @(posedge @$(SLAVE.BUS.CLOCK.WIRE))
 	if (@$(SLAVE.PREFIX)_stb && @$(SLAVE.PREFIX)_we)
 	begin
@@ -119,7 +124,10 @@
 		if (@$(SLAVE.PREFIX)_sel[2])
 			r_@$(PREFIX)_data[23:16] <= @$(SLAVE.PREFIX)_data[23:16];
 		if (@$(SLAVE.PREFIX)_sel[3])
-			r_@$(PREFIX)_data[30:24] <= @$(SLAVE.PREFIX)_data[30:24];
+		begin
+			r_@$(PREFIX)_en <= !@$(SLAVE.PREFIX)_data[31];
+			r_@$(PREFIX)_data[29:24]<= @$(SLAVE.PREFIX)_data[29:24];
+		end
 	end
 
 	always @(posedge @$(SLAVE.BUS.CLOCK.WIRE))
@@ -130,8 +138,9 @@
 
 	assign	@$(SLAVE.PREFIX)_ack   = r_@$(PREFIX)_ack;
 	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
-	assign	@$(SLAVE.PREFIX)_idata = { 1'b0, r_@$(PREFIX)_data };
-	assign	o_@$(PREFIX)_ce = r_@$(PREFIX)_data[30];
+	assign	@$(SLAVE.PREFIX)_idata = { !r_@$(PREFIX)_en,
+						1'b0, r_@$(PREFIX)_data };
+	assign	o_@$(PREFIX)_ce = r_@$(PREFIX)_en;
 
 	genclk
 	clock_generator(

@@ -106,18 +106,24 @@ module	xgenclk #(
 	begin : GEN_CLK_REFLECTION
 		wire	w_clk;
 
-		IOBUFDS
-		u_genclkio(
-			.T(high_z),.I(w_pin),.IO(o_pin[1]), .IOB(o_pin[0]),
-			.O(w_clk)
-		);
+		// IOBUFDS
+		// u_genclkio(
+		//	.T(high_z),.I(w_pin),.IO(o_pin[1]), .IOB(o_pin[0]),
+		//	.O(w_clk)
+		// );
+
+		IOBUF u_genclkio_p(.T(high_z),.I(w_pin),.IO(o_pin[1]),
+				.O(w_clk));
+		// OBUF u_genclkio_n(.T(high_z),.I(w_pin),.IO(!o_pin[0]));
+		assign o_pin[0] = 1'b0;
+		// OBUF u_genclkio_n(.T(high_z),.I(w_pin),.IO(!o_pin[0]));
 
 		// BUFG	clkgen_buf(.I(w_clk), .O(o_clk));
 		// BUFR	#(.BUFR_DIVIDE("BYPASS"), .SIM_DEVICE("7SERIES")) clkgen_buf(.I(w_clk), .O(o_clk));
 		// BUFH	clkgen_buf(.I(w_clk), .O(o_clk));
 		// wire tmp; BUFMR	clkgen_buf(.I(w_clk), .O(tmp)); BUFR aux(.I(tmp), .O(o_clk));
-		// assign	o_clk = w_clk;
-		assign	o_clk = 1'b0;
+		assign	o_clk = w_clk;
+		// assign	o_clk = 1'b0;
 	end else begin : NO_REFLECTION
 		OBUFDS
 		u_genclkio(

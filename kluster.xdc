@@ -21,6 +21,10 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 #set_property -dict { PACKAGE_PIN R21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_p]
 #set_property -dict { PACKAGE_PIN P21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_n]
+
+## #set_property -dict { PACKAGE_PIN R21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_p]
+## #set_property -dict { PACKAGE_PIN P21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_n]
+
 ## }}}
 
 ## UART

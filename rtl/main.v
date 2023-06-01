@@ -349,7 +349,8 @@ module	main(i_clk, i_reset,
 	// These declarations come from the @MAIN.DEFNS keys found in the
 	// various components comprising the design.
 	//
-	reg	[30:0]	r_sirefclk_data;
+	reg		r_sirefclk_en;
+	reg	[29:0]	r_sirefclk_data;
 	wire		w_sirefclk_unused_stb;
 	reg		r_sirefclk_ack;
 	// FAN/fan Controller
@@ -1510,7 +1511,11 @@ module	main(i_clk, i_reset,
 	//
 	// Generated clock handling
 	// {{{
-	initial	r_sirefclk_data = 31'd20;
+	//
+	// Set to 0x2f85_1ec0 for 148.5MHz
+	//
+	initial	r_sirefclk_en   = 1'b0;
+	initial	r_sirefclk_data = 30'd20000;
 	always @(posedge i_clk)
 	if (wb32_sirefclk_stb && wb32_sirefclk_we)
 	begin
@@ -1521,7 +1526,10 @@ module	main(i_clk, i_reset,
 		if (wb32_sirefclk_sel[2])
 			r_sirefclk_data[23:16] <= wb32_sirefclk_data[23:16];
 		if (wb32_sirefclk_sel[3])
-			r_sirefclk_data[30:24] <= wb32_sirefclk_data[30:24];
+		begin
+			r_sirefclk_en <= !wb32_sirefclk_data[31];
+			r_sirefclk_data[29:24]<= wb32_sirefclk_data[29:24];
+		end
 	end
 
 	always @(posedge i_clk)
@@ -1532,8 +1540,9 @@ module	main(i_clk, i_reset,
 
 	assign	wb32_sirefclk_ack   = r_sirefclk_ack;
 	assign	wb32_sirefclk_stall = 1'b0;
-	assign	wb32_sirefclk_idata = { 1'b0, r_sirefclk_data };
-	assign	o_sirefclk_ce = r_sirefclk_data[30];
+	assign	wb32_sirefclk_idata = { !r_sirefclk_en,
+						1'b0, r_sirefclk_data };
+	assign	o_sirefclk_ce = r_sirefclk_en;
 
 	genclk
 	clock_generator(
