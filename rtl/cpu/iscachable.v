@@ -49,6 +49,7 @@ module iscachable(
 		o_cachable = 1'b0;
 		// Bus master: wbwide
 		// Bus master: wb32
+		// Bus master: wb32_dio
 		// Bus master: wb32_sio
 		// bkram
 		if ((i_addr[25:0] & 26'h3800000) == 26'h1000000)

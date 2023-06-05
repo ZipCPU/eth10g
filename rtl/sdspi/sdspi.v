@@ -167,7 +167,7 @@ module	sdspi #(
 
 	//
 	//
-	reg		card_removed, card_present;
+	wire		card_removed, card_present;
 	//
 	reg	[3:0]	r_lgblklen;
 	wire	[3:0]	max_lgblklen;
@@ -218,7 +218,7 @@ module	sdspi #(
 		assign	write_stb = ((wb_stb)&&( i_wb_we) && i_wb_sel != 0);
 		// assign	read_stb  = ((wb_stb)&&(!i_wb_we));
 		assign	wb_sel = i_wb_sel;
-		assign	wb_cmd_stb  = (!r_cmd_busy)&&(write_stb && i_wb_sel != 0)
+		assign	wb_cmd_stb  = (!r_cmd_busy)&& write_stb && (&i_wb_sel)
 				&&(i_wb_addr==SDSPI_CMD_ADDRESS);
 		assign	wb_addr = i_wb_addr;
 		assign	wb_data = i_wb_data;
@@ -405,7 +405,7 @@ module	sdspi #(
 		write_fifo_a_addr <= spi_write_addr[LGFIFOLN-1:0];
 		// write_fifo_a_mask <= 4'hf;
 	end else begin
-		write_fifo_a      <= write_stb &&(wb_addr == SDSPI_FIFO_A_ADDR) && wb_sel != 0;
+		write_fifo_a      <= write_stb &&(wb_addr == SDSPI_FIFO_A_ADDR) &&(&wb_sel);
 		write_fifo_a_data <= wb_data;
 		write_fifo_a_addr <= fifo_wb_addr;
 		// write_fifo_a_mask <= 4'hf;
@@ -420,7 +420,7 @@ module	sdspi #(
 		write_fifo_b_addr <= spi_write_addr[LGFIFOLN-1:0];
 		// write_fifo_b_mask <= 4'hf;
 	end else begin
-		write_fifo_b      <= write_stb &&(wb_addr == SDSPI_FIFO_B_ADDR) && wb_sel != 0;
+		write_fifo_b      <= write_stb &&(wb_addr == SDSPI_FIFO_B_ADDR) && (&wb_sel);
 		write_fifo_b_data <= wb_data;
 		write_fifo_b_addr <= fifo_wb_addr;
 		// write_fifo_b_mask <= 4'hf;
@@ -718,15 +718,16 @@ module	sdspi #(
 	begin : GEN_CARD_DETECT
 		reg	[2:0]	raw_card_present;
 		reg	[9:0]	card_detect_counter;
+		reg		r_card_removed, r_card_present;
 
-		initial	card_removed = 1'b1;
+		initial	r_card_removed = 1'b1;
 		always @(posedge i_clk)
 		if (i_sd_reset)
-			card_removed <= 1'b1;
+			r_card_removed <= 1'b1;
 		else if (!card_present)
-			card_removed <= 1'b1;
+			r_card_removed <= 1'b1;
 		else if (wb_cmd_stb && wb_data[CARD_REMOVED_BIT])
-			card_removed <= 1'b0;
+			r_card_removed <= 1'b0;
 
 		initial	raw_card_present = 0;
 		always @(posedge i_clk)
@@ -739,20 +740,20 @@ module	sdspi #(
 		else if (!(&card_detect_counter))
 			card_detect_counter <= card_detect_counter + 1;
 
-		initial card_present = 1'b0;
+		initial r_card_present = 1'b0;
 		always @(posedge i_clk)
 		if (i_sd_reset || !raw_card_present[2])
-			card_present <= 1'b0;
+			r_card_present <= 1'b0;
 		else if (&card_detect_counter)
-			card_present <= 1'b1;
+			r_card_present <= 1'b1;
+
+		assign	card_present = r_card_present;
+		assign	card_removed = r_card_removed;
 
 	end else begin : NO_CARD_DETECT_SIGNAL
 
-		always @(*)
-			card_present = 1'b1;
-
-		always @(*)
-			card_removed = 1'b0;
+		assign	card_present = 1'b1;
+		assign	card_removed = 1'b0;
 
 	end endgenerate
 	// }}}

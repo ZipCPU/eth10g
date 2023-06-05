@@ -26,11 +26,16 @@
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prflp</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#ffa4a4>ERROR</TD><TD>pktvfiford</TD><TD>_prf</TD><TD rowspan=1>Virtual Packet FIFO (Read)</TD></TR>
+<TR><TD bgcolor=#ffa4a4>FAIL</TD><TD>pktvfiford</TD><TD>_prf</TD><TD rowspan=3>Virtual Packet FIFO (Read)</TD></TR>
+<TR><TD bgcolor=#ffa4a4>FAIL</TD><TD>pktvfiford</TD><TD>_prf512</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfiford</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>6 Cover points</TD><TD>pktvfifowr</TD><TD>_cvr</TD><TD rowspan=3>Virtual Packet FIFO (Write)</TD></TR>
-<TR><TD bgcolor=#e5e5e5>Unknown</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#e5e5e5>Unknown</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#ffffca>0 Cover points</TD><TD>wbi2cdma</TD><TD>_cvr</TD><TD rowspan=2>Low throughput I2C DMA</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>wbi2cdma</TD><TD>_prf</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#ffffca>0 Cover points</TD><TD>wbmarbiter</TD><TD>_cvr</TD><TD rowspan=2>Wishbone N:1 arbiter</TD></TR>
 <TR><TD bgcolor=#ffffca>14 steps of BMC</TD><TD>wbmarbiter</TD><TD>_prf</TD></TR>

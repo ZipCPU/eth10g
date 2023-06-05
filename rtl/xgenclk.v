@@ -104,6 +104,7 @@ module	xgenclk #(
 
 	generate if (OPT_LCLCLOCK)
 	begin : GEN_CLK_REFLECTION
+		// {{{
 		wire	w_clk;
 
 		// IOBUFDS
@@ -123,7 +124,7 @@ module	xgenclk #(
 		// BUFH	clkgen_buf(.I(w_clk), .O(o_clk));
 		// wire tmp; BUFMR	clkgen_buf(.I(w_clk), .O(tmp)); BUFR aux(.I(tmp), .O(o_clk));
 		assign	o_clk = w_clk;
-		// assign	o_clk = 1'b0;
+		// }}}
 	end else begin : NO_REFLECTION
 		OBUFDS
 		u_genclkio(

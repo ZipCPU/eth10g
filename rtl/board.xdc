@@ -441,6 +441,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in sirefclk
 ## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_mic
@@ -469,7 +470,6 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in wbdown
 ## No XDC.INSERT tag in DEFAULT
 ## No XDC.INSERT tag in flash
-## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in SIM
 ## From hdmi
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
@@ -485,6 +485,7 @@ set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 ## No XDC.INSERT tag in wbflashdn
 ## No XDC.INSERT tag in alt
 ## No XDC.INSERT tag in cfgscope
+## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in zip_jiffies
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc

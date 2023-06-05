@@ -158,7 +158,12 @@
 `else
 			|| (@$(PREFIX)_id == 1)
 `endif
-			|| (@$(PREFIX)_id > 1));
+`ifdef	I2CDMA_ACCESS
+			|| (@$(PREFIX)_id == 2 && i2cdma_ready)
+`else
+			|| (@$(PREFIX)_id == 2)
+`endif
+			|| (@$(PREFIX)_id > 2));
 
 	// }}}
 @MAIN.ALT=
@@ -212,3 +217,38 @@ typedef struct  @$(DEVID)_S        {
 		m_core->i_i2c_scl = m_core->o_i2c_scl;
 		m_core->i_i2c_sda = m_core->o_i2c_sda;
 ##
+@PREFIX=i2cdma
+@DEVID=I2CDMA
+@ACCESS=@$(DEVID)_ACCESS
+@NADDR=4
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=DOUBLE
+@MASTER.BUS=wbwide
+@MASTER.TYPE=DMA
+@MASTER.ANSPREFIX=dma_
+@MAIN.DEFNS=
+	wire	@$(PREFIX)_ready;
+@MAIN.INSERT=
+	wbi2cdma #(
+		.AW(@$(MASTER.BUS.AWID)), .DW(@$(MASTER.BUS.WIDTH)), .SW(8),
+		.OPT_LITTLE_ENDIAN(1'b0)
+	) u_@$(PREFIX) (
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		//
+		@$(SLAVE.ANSIPORTLIST),
+		.S_VALID(i2c_valid && i2c_id == 2), .S_READY(@$(PREFIX)_ready),
+			.S_DATA(i2c_data), .S_LAST(i2c_last),
+		@$(MASTER.ANSIPORTLIST)
+	);
+
+@MAIN.ALT=
+	assign	@$(prefix)_ready = 1'b0;
+@RTL.MAKE.GROUP=@$(DEVID)
+@RTL.MAKE.SUBD=wbi2c
+@RTL.MAKE.FILES=wbi2cdma.v
+@REGS.N=4
+@REGS.0=0 R_@$(DEVID)      @$(DEVID)
+@REGS.1=1 R_@$(DEVID)_ADDR @$(DEVID)ADDR
+@REGS.2=2 R_@$(DEVID)_BASE @$(DEVID)BASE
+@REGS.3=3 R_@$(DEVID)_LEN  @$(DEVID)LEN

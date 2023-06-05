@@ -68,54 +68,58 @@
 // scope_smi compressed scope
 #define	R_SMISCOPE      	0x00800280	// 00800280, wbregs names: SMISCOPE
 #define	R_SMISCOPED     	0x00800284	// 00800280, wbregs names: SMISCOPED
-// I2C Controller registers
-#define	R_I2CCPU        	0x00800300	// 00800300, wbregs names: I2CCPU, I2CCPU_CTRL, I2CCPUCTRL
-#define	R_I2CCPU_OVW    	0x00800304	// 00800300, wbregs names: I2CCPU_OVW, I2CCPU_OVERRIDE
-#define	R_I2CCPU_ADDR   	0x00800308	// 00800300, wbregs names: I2CCPU_ADDR, I2CCPU_ADDRESS
-#define	R_I2CCPU_CKCOUNT	0x0080030c	// 00800300, wbregs names: I2CCPUCLK, I2CCPU_CKCOUNT
 // SD-SPI addresses
-#define	R_SDSPI_CTRL    	0x00800380	// 00800380, wbregs names: SDCARD
-#define	R_SDSPI_DATA    	0x00800384	// 00800380, wbregs names: SDDATA
-#define	R_SDSPI_FIFOA   	0x00800388	// 00800380, wbregs names: SDFIFOA, SDFIF0, SDFIFA
-#define	R_SDSPI_FIFOB   	0x0080038c	// 00800380, wbregs names: SDFIFOB, SDFIF1, SDFIFB
+#define	R_SDSPI_CTRL    	0x00800300	// 00800300, wbregs names: SDCARD
+#define	R_SDSPI_DATA    	0x00800304	// 00800300, wbregs names: SDDATA
+#define	R_SDSPI_FIFOA   	0x00800308	// 00800300, wbregs names: SDFIFOA, SDFIF0, SDFIFA
+#define	R_SDSPI_FIFOB   	0x0080030c	// 00800300, wbregs names: SDFIFOB, SDFIF1, SDFIFB
 // CONSOLE registers
-#define	R_CONSOLE_FIFO  	0x00800404	// 00800400, wbregs names: UFIFO
-#define	R_CONSOLE_UARTRX	0x00800408	// 00800400, wbregs names: RX
-#define	R_CONSOLE_UARTTX	0x0080040c	// 00800400, wbregs names: TX
-#define	R_FAN_FPGAPWM   	0x00800480	// 00800480, wbregs names: FAN_FPGAPWM
-#define	R_FAN_SYSPWM    	0x00800484	// 00800480, wbregs names: FAN_SYSPWM
-#define	R_FAN_TACH      	0x00800488	// 00800480, wbregs names: FAN_TACH
-#define	R_FAN_TEMP      	0x0080048c	// 00800480, wbregs names: FAN_TEMP
-#define	R_FAN           	0x00800490	// 00800480, wbregs names: FAN_CTRL
-#define	R_FAN_OVW       	0x00800494	// 00800480, wbregs names: FAN_OVW, FAN_OVERRIDE
-#define	R_FAN_ADDR      	0x00800498	// 00800480, wbregs names: FAN_ADDR, FAN_ADDRESS
-#define	R_FAN_CKCOUNT   	0x0080049c	// 00800480, wbregs names: FANCLK, FAN_CKCOUNT
-#define	R_BUILDTIME     	0x00800500	// 00800500, wbregs names: BUILDTIME
-#define	R_GPIO          	0x00800504	// 00800504, wbregs names: GPIO, GPI, GPO
-#define	R_SIREFCLK      	0x00800508	// 00800508, wbregs names: SIREFCLK
-#define	R_SPIO          	0x0080050c	// 0080050c, wbregs names: SPIO
-#define	R_VERSION       	0x00800510	// 00800510, wbregs names: VERSION
+#define	R_CONSOLE_FIFO  	0x00800384	// 00800380, wbregs names: UFIFO
+#define	R_CONSOLE_UARTRX	0x00800388	// 00800380, wbregs names: RX
+#define	R_CONSOLE_UARTTX	0x0080038c	// 00800380, wbregs names: TX
+#define	R_FAN_FPGAPWM   	0x00800400	// 00800400, wbregs names: FAN_FPGAPWM
+#define	R_FAN_SYSPWM    	0x00800404	// 00800400, wbregs names: FAN_SYSPWM
+#define	R_FAN_TACH      	0x00800408	// 00800400, wbregs names: FAN_TACH
+#define	R_FAN_TEMP      	0x0080040c	// 00800400, wbregs names: FAN_TEMP
+#define	R_FAN           	0x00800410	// 00800400, wbregs names: FAN_CTRL
+#define	R_FAN_OVW       	0x00800414	// 00800400, wbregs names: FAN_OVW, FAN_OVERRIDE
+#define	R_FAN_ADDR      	0x00800418	// 00800400, wbregs names: FAN_ADDR, FAN_ADDRESS
+#define	R_FAN_CKCOUNT   	0x0080041c	// 00800400, wbregs names: FANCLK, FAN_CKCOUNT
 // FPGA CONFIG REGISTERS: 0x4e0-0x4ff
-#define	R_CFG_CRC       	0x00800580	// 00800580, wbregs names: FPGACRC
-#define	R_CFG_FAR       	0x00800584	// 00800580, wbregs names: FPGAFAR
-#define	R_CFG_FDRI      	0x00800588	// 00800580, wbregs names: FPGAFDRI
-#define	R_CFG_FDRO      	0x0080058c	// 00800580, wbregs names: FPGAFDRO
-#define	R_CFG_CMD       	0x00800590	// 00800580, wbregs names: FPGACMD
-#define	R_CFG_CTL0      	0x00800594	// 00800580, wbregs names: FPGACTL0
-#define	R_CFG_MASK      	0x00800598	// 00800580, wbregs names: FPGAMASK
-#define	R_CFG_STAT      	0x0080059c	// 00800580, wbregs names: FPGASTAT
-#define	R_CFG_LOUT      	0x008005a0	// 00800580, wbregs names: FPGALOUT
-#define	R_CFG_COR0      	0x008005a4	// 00800580, wbregs names: FPGACOR0
-#define	R_CFG_MFWR      	0x008005a8	// 00800580, wbregs names: FPGAMFWR
-#define	R_CFG_CBC       	0x008005ac	// 00800580, wbregs names: FPGACBC
-#define	R_CFG_IDCODE    	0x008005b0	// 00800580, wbregs names: FPGAIDCODE
-#define	R_CFG_AXSS      	0x008005b4	// 00800580, wbregs names: FPGAAXSS
-#define	R_CFG_COR1      	0x008005b8	// 00800580, wbregs names: FPGACOR1
-#define	R_CFG_WBSTAR    	0x008005c0	// 00800580, wbregs names: WBSTAR
-#define	R_CFG_TIMER     	0x008005c4	// 00800580, wbregs names: CFGTIMER
-#define	R_CFG_BOOTSTS   	0x008005d8	// 00800580, wbregs names: BOOTSTS
-#define	R_CFG_CTL1      	0x008005e0	// 00800580, wbregs names: FPGACTL1
-#define	R_CFG_BSPI      	0x008005fc	// 00800580, wbregs names: FPGABSPI
+#define	R_CFG_CRC       	0x00800480	// 00800480, wbregs names: FPGACRC
+#define	R_CFG_FAR       	0x00800484	// 00800480, wbregs names: FPGAFAR
+#define	R_CFG_FDRI      	0x00800488	// 00800480, wbregs names: FPGAFDRI
+#define	R_CFG_FDRO      	0x0080048c	// 00800480, wbregs names: FPGAFDRO
+#define	R_CFG_CMD       	0x00800490	// 00800480, wbregs names: FPGACMD
+#define	R_CFG_CTL0      	0x00800494	// 00800480, wbregs names: FPGACTL0
+#define	R_CFG_MASK      	0x00800498	// 00800480, wbregs names: FPGAMASK
+#define	R_CFG_STAT      	0x0080049c	// 00800480, wbregs names: FPGASTAT
+#define	R_CFG_LOUT      	0x008004a0	// 00800480, wbregs names: FPGALOUT
+#define	R_CFG_COR0      	0x008004a4	// 00800480, wbregs names: FPGACOR0
+#define	R_CFG_MFWR      	0x008004a8	// 00800480, wbregs names: FPGAMFWR
+#define	R_CFG_CBC       	0x008004ac	// 00800480, wbregs names: FPGACBC
+#define	R_CFG_IDCODE    	0x008004b0	// 00800480, wbregs names: FPGAIDCODE
+#define	R_CFG_AXSS      	0x008004b4	// 00800480, wbregs names: FPGAAXSS
+#define	R_CFG_COR1      	0x008004b8	// 00800480, wbregs names: FPGACOR1
+#define	R_CFG_WBSTAR    	0x008004c0	// 00800480, wbregs names: WBSTAR
+#define	R_CFG_TIMER     	0x008004c4	// 00800480, wbregs names: CFGTIMER
+#define	R_CFG_BOOTSTS   	0x008004d8	// 00800480, wbregs names: BOOTSTS
+#define	R_CFG_CTL1      	0x008004e0	// 00800480, wbregs names: FPGACTL1
+#define	R_CFG_BSPI      	0x008004fc	// 00800480, wbregs names: FPGABSPI
+// I2C Controller registers
+#define	R_I2CCPU        	0x00800600	// 00800600, wbregs names: I2CCPU, I2CCPU_CTRL, I2CCPUCTRL
+#define	R_I2CCPU_OVW    	0x00800604	// 00800600, wbregs names: I2CCPU_OVW, I2CCPU_OVERRIDE
+#define	R_I2CCPU_ADDR   	0x00800608	// 00800600, wbregs names: I2CCPU_ADDR, I2CCPU_ADDRESS
+#define	R_I2CCPU_CKCOUNT	0x0080060c	// 00800600, wbregs names: I2CCPUCLK, I2CCPU_CKCOUNT
+#define	R_I2CDMA        	0x00800640	// 00800640, wbregs names: I2CDMA
+#define	R_I2CDMA_ADDR   	0x00800644	// 00800640, wbregs names: I2CDMAADDR
+#define	R_I2CDMA_BASE   	0x00800648	// 00800640, wbregs names: I2CDMABASE
+#define	R_I2CDMA_LEN    	0x0080064c	// 00800640, wbregs names: I2CDMALEN
+#define	R_BUILDTIME     	0x00800680	// 00800680, wbregs names: BUILDTIME
+#define	R_GPIO          	0x00800684	// 00800684, wbregs names: GPIO, GPI, GPO
+#define	R_SIREFCLK      	0x00800688	// 00800688, wbregs names: SIREFCLK
+#define	R_SPIO          	0x0080068c	// 0080068c, wbregs names: SPIO
+#define	R_VERSION       	0x00800690	// 00800690, wbregs names: VERSION
 // HDMI video processing pipe registers
 #define	R_VIDPIPE       	0x00800800	// 00800800, wbregs names: VIDPIPE, VIDCTRL
 #define	R_SIFREQ        	0x00800804	// 00800800, wbregs names: SIFREQ

@@ -59,6 +59,7 @@
 `define	I2CSCOPE_SCOPC
 `define	SIREFCLK_ACCESS
 `define	FAN_ACCESS
+`define	I2CCPU_ACCESS
 `define	SMISCOPE_SCOPC
 `define	SPIO_ACCESS
 `define	GPIO_ACCESS
@@ -68,10 +69,10 @@
 `define	FANSCOPE_SCOPC
 `define	SDSPI_ACCESS
 `define	FLASH_ACCESS
-`define	I2CCPU_ACCESS
 `define	VIDPIPE_ACCESS
 `define	EDID_ACCESS
 `define	CFGSCOPE_SCOPE
+`define	I2CDMA_ACCESS
 `define	BKRAM_ACCESS
 `define	BUSCONSOLE_ACCESS
 //
@@ -120,6 +121,8 @@ module	main(i_clk, i_reset,
 			i_fan_sda, i_fan_scl,
 			o_fan_sda, o_fan_scl,
 			o_fpga_pwm, o_sys_pwm, i_fan_tach,
+			i_i2c_sda, i_i2c_scl,
+			o_i2c_sda, o_i2c_scl,
 		// SPIO interface
 		i_sw, i_btn, o_led,
 		// GPIO ports
@@ -153,8 +156,6 @@ module	main(i_clk, i_reset,
 		o_sdcard_clk, o_sdcard_cmd, o_sdcard_data, i_sdcard_data, i_sdcard_detect,
 		// The Universal QSPI Flash
 		o_flash_cs_n, o_flash_sck, o_flash_dat, i_flash_dat, o_flash_mod,
-			i_i2c_sda, i_i2c_scl,
-			o_i2c_sda, o_i2c_scl,
 		// HDMI control ports
 		i_hdmiclk, i_siclk, i_pixclk,
 		i_hdmi_red, i_hdmi_grn, i_hdmi_blu,
@@ -246,6 +247,11 @@ module	main(i_clk, i_reset,
 	output	wire	o_fpga_pwm, o_sys_pwm;
 	input	wire	i_fan_tach;
 	// }}}
+	// I2C Port declarations
+	// {{{
+	input	wire	i_i2c_sda, i_i2c_scl;
+	output	wire	o_i2c_sda, o_i2c_scl;
+	// }}}
 	// SPIO interface
 	input	wire	[8-1:0]	i_sw;
 	input	wire	[5-1:0]	i_btn;
@@ -296,11 +302,6 @@ module	main(i_clk, i_reset,
 	output	wire	[3:0]	o_flash_dat;
 	input	wire	[3:0]	i_flash_dat;
 	output	wire	[1:0]	o_flash_mod;
-	// I2C Port declarations
-	// {{{
-	input	wire	i_i2c_sda, i_i2c_scl;
-	output	wire	o_i2c_sda, o_i2c_scl;
-	// }}}
 	// hdmi declarations
 	// {{{
 	input	wire		i_hdmiclk, i_siclk, i_pixclk;
@@ -357,6 +358,18 @@ module	main(i_clk, i_reset,
 	// {{{
 	// Verilator lint_off UNUSED
 	wire	[31:0]	fan_debug;
+	// Verilator lint_on  UNUSED
+	// }}}
+	// I2C Controller
+	// {{{
+	// Verilator lint_off UNUSED
+	localparam	I2C_ID_WIDTH=(2 == 0) ? 1 : 2;
+
+	wire		i2c_valid, i2c_ready, i2c_last;
+	wire	[7:0]	i2c_data;
+	wire	[I2C_ID_WIDTH-1:0]	i2c_id;
+
+	wire	[31:0]	i2c_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
 	wire	[8-1:0]	w_led;
@@ -422,18 +435,6 @@ module	main(i_clk, i_reset,
 	wire		flash_dbg_trigger;
 	wire	[31:0]	flash_debug;
 	// Verilator lint_on  UNUSED
-	// I2C Controller
-	// {{{
-	// Verilator lint_off UNUSED
-	localparam	I2C_ID_WIDTH=(2 == 0) ? 1 : 2;
-
-	wire		i2c_valid, i2c_ready, i2c_last;
-	wire	[7:0]	i2c_data;
-	wire	[I2C_ID_WIDTH-1:0]	i2c_id;
-
-	wire	[31:0]	i2c_debug;
-	// Verilator lint_on  UNUSED
-	// }}}
 	// EDID I2C Controller
 	// {{{
 	// Verilator lint_off UNUSED
@@ -452,6 +453,7 @@ module	main(i_clk, i_reset,
 	// Verilator lint_off UNUSED
 	wire	cfgscope_int;
 	// Verilator lint_on  UNUSED
+	wire	i2cdma_ready;
 	////////////////////////////////////////////////////////////////////////
 	//
 	// WBUBUS: Console definitions
@@ -482,6 +484,15 @@ module	main(i_clk, i_reset,
 
 	// Bus wbwide
 	// {{{
+	// Wishbone definitions for bus wbwide, component i2c
+	// Verilator lint_off UNUSED
+	wire		wbwide_i2cm_cyc, wbwide_i2cm_stb, wbwide_i2cm_we;
+	wire	[19:0]	wbwide_i2cm_addr;
+	wire	[511:0]	wbwide_i2cm_data;
+	wire	[63:0]	wbwide_i2cm_sel;
+	wire		wbwide_i2cm_stall, wbwide_i2cm_ack, wbwide_i2cm_err;
+	wire	[511:0]	wbwide_i2cm_idata;
+	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component wbu_arbiter
 	// Verilator lint_off UNUSED
 	wire		wbwide_wbu_arbiter_cyc, wbwide_wbu_arbiter_stb, wbwide_wbu_arbiter_we;
@@ -500,15 +511,6 @@ module	main(i_clk, i_reset,
 	wire		wbwide_zip_stall, wbwide_zip_ack, wbwide_zip_err;
 	wire	[511:0]	wbwide_zip_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus wbwide, component i2c
-	// Verilator lint_off UNUSED
-	wire		wbwide_i2cm_cyc, wbwide_i2cm_stb, wbwide_i2cm_we;
-	wire	[19:0]	wbwide_i2cm_addr;
-	wire	[511:0]	wbwide_i2cm_data;
-	wire	[63:0]	wbwide_i2cm_sel;
-	wire		wbwide_i2cm_stall, wbwide_i2cm_ack, wbwide_i2cm_err;
-	wire	[511:0]	wbwide_i2cm_idata;
-	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component hdmi
 	// Verilator lint_off UNUSED
 	wire		wbwide_hdmi_cyc, wbwide_hdmi_stb, wbwide_hdmi_we;
@@ -517,6 +519,15 @@ module	main(i_clk, i_reset,
 	wire	[63:0]	wbwide_hdmi_sel;
 	wire		wbwide_hdmi_stall, wbwide_hdmi_ack, wbwide_hdmi_err;
 	wire	[511:0]	wbwide_hdmi_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wbwide, component i2cdma
+	// Verilator lint_off UNUSED
+	wire		wbwide_i2cdma_cyc, wbwide_i2cdma_stb, wbwide_i2cdma_we;
+	wire	[19:0]	wbwide_i2cdma_addr;
+	wire	[511:0]	wbwide_i2cdma_data;
+	wire	[63:0]	wbwide_i2cdma_sel;
+	wire		wbwide_i2cdma_stall, wbwide_i2cdma_ack, wbwide_i2cdma_err;
+	wire	[511:0]	wbwide_i2cdma_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component wbdown
 	// Verilator lint_off UNUSED
@@ -602,6 +613,42 @@ module	main(i_clk, i_reset,
 	wire		wb32_version_stall, wb32_version_ack, wb32_version_err;
 	wire	[31:0]	wb32_version_idata;
 	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32(DIO), component i2c
+	// Verilator lint_off UNUSED
+	wire		wb32_i2cs_cyc, wb32_i2cs_stb, wb32_i2cs_we;
+	wire	[9:0]	wb32_i2cs_addr;
+	wire	[31:0]	wb32_i2cs_data;
+	wire	[3:0]	wb32_i2cs_sel;
+	wire		wb32_i2cs_stall, wb32_i2cs_ack, wb32_i2cs_err;
+	wire	[31:0]	wb32_i2cs_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32(DIO), component i2cdma
+	// Verilator lint_off UNUSED
+	wire		wb32_i2cdma_cyc, wb32_i2cdma_stb, wb32_i2cdma_we;
+	wire	[9:0]	wb32_i2cdma_addr;
+	wire	[31:0]	wb32_i2cdma_data;
+	wire	[3:0]	wb32_i2cdma_sel;
+	wire		wb32_i2cdma_stall, wb32_i2cdma_ack, wb32_i2cdma_err;
+	wire	[31:0]	wb32_i2cdma_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32(DIO), component wb32_sio
+	// Verilator lint_off UNUSED
+	wire		wb32_sio_cyc, wb32_sio_stb, wb32_sio_we;
+	wire	[9:0]	wb32_sio_addr;
+	wire	[31:0]	wb32_sio_data;
+	wire	[3:0]	wb32_sio_sel;
+	wire		wb32_sio_stall, wb32_sio_ack, wb32_sio_err;
+	wire	[31:0]	wb32_sio_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32(DIO), component edid
+	// Verilator lint_off UNUSED
+	wire		wb32_edids_cyc, wb32_edids_stb, wb32_edids_we;
+	wire	[9:0]	wb32_edids_addr;
+	wire	[31:0]	wb32_edids_data;
+	wire	[3:0]	wb32_edids_sel;
+	wire		wb32_edids_stall, wb32_edids_ack, wb32_edids_err;
+	wire	[31:0]	wb32_edids_idata;
+	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component flashcfg
 	// Verilator lint_off UNUSED
 	wire		wb32_flashcfg_cyc, wb32_flashcfg_stb, wb32_flashcfg_we;
@@ -656,15 +703,6 @@ module	main(i_clk, i_reset,
 	wire		wb32_scope_smi_stall, wb32_scope_smi_ack, wb32_scope_smi_err;
 	wire	[31:0]	wb32_scope_smi_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus wb32, component i2c
-	// Verilator lint_off UNUSED
-	wire		wb32_i2cs_cyc, wb32_i2cs_stb, wb32_i2cs_we;
-	wire	[9:0]	wb32_i2cs_addr;
-	wire	[31:0]	wb32_i2cs_data;
-	wire	[3:0]	wb32_i2cs_sel;
-	wire		wb32_i2cs_stall, wb32_i2cs_ack, wb32_i2cs_err;
-	wire	[31:0]	wb32_i2cs_idata;
-	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component sdcard
 	// Verilator lint_off UNUSED
 	wire		wb32_sdcard_cyc, wb32_sdcard_stb, wb32_sdcard_we;
@@ -692,15 +730,6 @@ module	main(i_clk, i_reset,
 	wire		wb32_fan_stall, wb32_fan_ack, wb32_fan_err;
 	wire	[31:0]	wb32_fan_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus wb32, component wb32_sio
-	// Verilator lint_off UNUSED
-	wire		wb32_sio_cyc, wb32_sio_stb, wb32_sio_we;
-	wire	[9:0]	wb32_sio_addr;
-	wire	[31:0]	wb32_sio_data;
-	wire	[3:0]	wb32_sio_sel;
-	wire		wb32_sio_stall, wb32_sio_ack, wb32_sio_err;
-	wire	[31:0]	wb32_sio_idata;
-	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component cfg
 	// Verilator lint_off UNUSED
 	wire		wb32_cfg_cyc, wb32_cfg_stb, wb32_cfg_we;
@@ -710,14 +739,14 @@ module	main(i_clk, i_reset,
 	wire		wb32_cfg_stall, wb32_cfg_ack, wb32_cfg_err;
 	wire	[31:0]	wb32_cfg_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus wb32, component edid
+	// Wishbone definitions for bus wb32, component wb32_dio
 	// Verilator lint_off UNUSED
-	wire		wb32_edids_cyc, wb32_edids_stb, wb32_edids_we;
-	wire	[9:0]	wb32_edids_addr;
-	wire	[31:0]	wb32_edids_data;
-	wire	[3:0]	wb32_edids_sel;
-	wire		wb32_edids_stall, wb32_edids_ack, wb32_edids_err;
-	wire	[31:0]	wb32_edids_idata;
+	wire		wb32_dio_cyc, wb32_dio_stb, wb32_dio_we;
+	wire	[9:0]	wb32_dio_addr;
+	wire	[31:0]	wb32_dio_data;
+	wire	[3:0]	wb32_dio_sel;
+	wire		wb32_dio_stall, wb32_dio_ack, wb32_dio_err;
+	wire	[31:0]	wb32_dio_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component hdmi
 	// Verilator lint_off UNUSED
@@ -804,7 +833,7 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(4), .NS(3), .AW(20), .DW(512),
+		.NM(5), .NS(3), .AW(20), .DW(512),
 		.SLAVE_ADDR({
 			// Address width    = 20
 			// Address LSBs     = 6
@@ -825,64 +854,74 @@ module	main(i_clk, i_reset,
 	wbwide_xbar(
 		.i_clk(i_clk), .i_reset(i_reset),
 		.i_mcyc({
+			wbwide_i2cdma_cyc,
 			wbwide_hdmi_cyc,
-			wbwide_i2cm_cyc,
 			wbwide_zip_cyc,
-			wbwide_wbu_arbiter_cyc
+			wbwide_wbu_arbiter_cyc,
+			wbwide_i2cm_cyc
 		}),
 		.i_mstb({
+			wbwide_i2cdma_stb,
 			wbwide_hdmi_stb,
-			wbwide_i2cm_stb,
 			wbwide_zip_stb,
-			wbwide_wbu_arbiter_stb
+			wbwide_wbu_arbiter_stb,
+			wbwide_i2cm_stb
 		}),
 		.i_mwe({
+			wbwide_i2cdma_we,
 			wbwide_hdmi_we,
-			wbwide_i2cm_we,
 			wbwide_zip_we,
-			wbwide_wbu_arbiter_we
+			wbwide_wbu_arbiter_we,
+			wbwide_i2cm_we
 		}),
 		.i_maddr({
+			wbwide_i2cdma_addr,
 			wbwide_hdmi_addr,
-			wbwide_i2cm_addr,
 			wbwide_zip_addr,
-			wbwide_wbu_arbiter_addr
+			wbwide_wbu_arbiter_addr,
+			wbwide_i2cm_addr
 		}),
 		.i_mdata({
+			wbwide_i2cdma_data,
 			wbwide_hdmi_data,
-			wbwide_i2cm_data,
 			wbwide_zip_data,
-			wbwide_wbu_arbiter_data
+			wbwide_wbu_arbiter_data,
+			wbwide_i2cm_data
 		}),
 		.i_msel({
+			wbwide_i2cdma_sel,
 			wbwide_hdmi_sel,
-			wbwide_i2cm_sel,
 			wbwide_zip_sel,
-			wbwide_wbu_arbiter_sel
+			wbwide_wbu_arbiter_sel,
+			wbwide_i2cm_sel
 		}),
 		.o_mstall({
+			wbwide_i2cdma_stall,
 			wbwide_hdmi_stall,
-			wbwide_i2cm_stall,
 			wbwide_zip_stall,
-			wbwide_wbu_arbiter_stall
+			wbwide_wbu_arbiter_stall,
+			wbwide_i2cm_stall
 		}),
 		.o_mack({
+			wbwide_i2cdma_ack,
 			wbwide_hdmi_ack,
-			wbwide_i2cm_ack,
 			wbwide_zip_ack,
-			wbwide_wbu_arbiter_ack
+			wbwide_wbu_arbiter_ack,
+			wbwide_i2cm_ack
 		}),
 		.o_mdata({
+			wbwide_i2cdma_idata,
 			wbwide_hdmi_idata,
-			wbwide_i2cm_idata,
 			wbwide_zip_idata,
-			wbwide_wbu_arbiter_idata
+			wbwide_wbu_arbiter_idata,
+			wbwide_i2cm_idata
 		}),
 		.o_merr({
+			wbwide_i2cdma_err,
 			wbwide_hdmi_err,
-			wbwide_i2cm_err,
 			wbwide_zip_err,
-			wbwide_wbu_arbiter_err
+			wbwide_wbu_arbiter_err,
+			wbwide_i2cm_err
 		}),
 		// Slave connections
 		.o_scyc({
@@ -1001,41 +1040,107 @@ module	main(i_clk, i_reset,
 	assign	wb32_version_data= wb32_sio_data;
 	assign	wb32_version_sel = wb32_sio_sel;
 	//
-	// No class DOUBLE peripherals on the "wb32" bus
+	// wb32 Bus logic to handle 4 DOUBLE slaves
 	//
+	//
+	reg	[1:0]	r_wb32_dio_ack;
+	// # dlist = 4, nextlg(#dlist) = 2
+	reg	[1:0]	r_wb32_dio_bus_select;
+	reg	[31:0]	r_wb32_dio_data;
 
+	// DOUBLE peripherals are not allowed to stall.
+	assign	wb32_dio_stall = 1'b0;
+
+	// DOUBLE peripherals return their acknowledgments in two
+	// clocks--always, allowing us to collect this logic together
+	// in a slave independent manner.  Here, the acknowledgment
+	// is treated as a two stage shift register, cleared on any
+	// reset, or any time the cycle line drops.  (Dropping the
+	// cycle line aborts the transaction.)
+	initial	r_wb32_dio_ack = 0;
+	always	@(posedge i_clk)
+	if (i_reset || !wb32_dio_cyc)
+		r_wb32_dio_ack <= 0;
+	else
+		r_wb32_dio_ack <= { r_wb32_dio_ack[0], (wb32_dio_stb) };
+	assign	wb32_dio_ack = r_wb32_dio_ack[1];
+
+	// Since it costs us two clocks to go through this
+	// logic, we'll take one of those clocks here to set
+	// a selection index, and then on the next clock we'll
+	// use this index to select from among the vaious
+	// possible bus return values
+	always @(posedge i_clk)
+	casez(wb32_dio_addr[6:4])
+	3'b0_00: r_wb32_dio_bus_select <= 2'd0;
+	3'b0_01: r_wb32_dio_bus_select <= 2'd1;
+	3'b0_10: r_wb32_dio_bus_select <= 2'd2;
+	3'b1_??: r_wb32_dio_bus_select <= 2'd3;
+	default: r_wb32_dio_bus_select <= 0;
+	endcase
+
+	always	@(posedge i_clk)
+	casez(r_wb32_dio_bus_select)
+	2'd0: r_wb32_dio_data <= wb32_i2cs_idata;
+	2'd1: r_wb32_dio_data <= wb32_i2cdma_idata;
+	2'd2: r_wb32_dio_data <= wb32_sio_idata;
+	2'd3: r_wb32_dio_data <= wb32_edids_idata;
+	endcase
+
+	assign	wb32_dio_idata = r_wb32_dio_data;
+
+	assign	wb32_i2cs_cyc = wb32_dio_cyc;
+	assign	wb32_i2cs_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h0);  // 0x000 - 0x00f
+	assign	wb32_i2cs_we  = wb32_dio_we;
+	assign	wb32_i2cs_addr= wb32_dio_addr;
+	assign	wb32_i2cs_data= wb32_dio_data;
+	assign	wb32_i2cs_sel = wb32_dio_sel;
+	assign	wb32_i2cdma_cyc = wb32_dio_cyc;
+	assign	wb32_i2cdma_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h1);  // 0x040 - 0x04f
+	assign	wb32_i2cdma_we  = wb32_dio_we;
+	assign	wb32_i2cdma_addr= wb32_dio_addr;
+	assign	wb32_i2cdma_data= wb32_dio_data;
+	assign	wb32_i2cdma_sel = wb32_dio_sel;
+	assign	wb32_sio_cyc = wb32_dio_cyc;
+	assign	wb32_sio_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h2);  // 0x080 - 0x09f
+	assign	wb32_sio_we  = wb32_dio_we;
+	assign	wb32_sio_addr= wb32_dio_addr;
+	assign	wb32_sio_data= wb32_dio_data;
+	assign	wb32_sio_sel = wb32_dio_sel;
+	assign	wb32_edids_cyc = wb32_dio_cyc;
+	assign	wb32_edids_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h4) ==  3'h4);  // 0x100 - 0x1ff
+	assign	wb32_edids_we  = wb32_dio_we;
+	assign	wb32_edids_addr= wb32_dio_addr;
+	assign	wb32_edids_data= wb32_dio_data;
+	assign	wb32_edids_sel = wb32_dio_sel;
 	assign	wb32_flashcfg_err= 1'b0;
 	assign	wb32_cfgscope_err= 1'b0;
 	assign	wb32_fanscope_err= 1'b0;
 	assign	wb32_flashdbg_err= 1'b0;
 	assign	wb32_i2cscope_err= 1'b0;
 	assign	wb32_scope_smi_err= 1'b0;
-	assign	wb32_i2cs_err= 1'b0;
 	assign	wb32_sdcard_err= 1'b0;
 	assign	wb32_uart_err= 1'b0;
 	assign	wb32_fan_err= 1'b0;
-	assign	wb32_sio_err= 1'b0;
 	assign	wb32_cfg_err= 1'b0;
-	assign	wb32_edids_err= 1'b0;
+	assign	wb32_dio_err= 1'b0;
 	assign	wb32_hdmi_err= 1'b0;
 	//
 	// Connect the wb32 bus components together using the wbxbar()
 	//
 	//
 	wbxbar #(
-		.NM(1), .NS(14), .AW(10), .DW(32),
+		.NM(1), .NS(12), .AW(10), .DW(32),
 		.SLAVE_ADDR({
 			// Address width    = 10
 			// Address LSBs     = 2
 			// Slave name width = 9
 			{ 10'h200 }, //      hdmi: 0x800
-			{ 10'h180 }, //      edid: 0x600
-			{ 10'h160 }, //       cfg: 0x580
-			{ 10'h140 }, //  wb32_sio: 0x500
-			{ 10'h120 }, //       fan: 0x480
-			{ 10'h100 }, //      uart: 0x400
-			{ 10'h0e0 }, //    sdcard: 0x380
-			{ 10'h0c0 }, //       i2c: 0x300
+			{ 10'h180 }, //  wb32_dio: 0x600
+			{ 10'h120 }, //       cfg: 0x480
+			{ 10'h100 }, //       fan: 0x400
+			{ 10'h0e0 }, //      uart: 0x380
+			{ 10'h0c0 }, //    sdcard: 0x300
 			{ 10'h0a0 }, // scope_smi: 0x280
 			{ 10'h080 }, //  i2cscope: 0x200
 			{ 10'h060 }, //  flashdbg: 0x180
@@ -1048,13 +1153,11 @@ module	main(i_clk, i_reset,
 			// Address LSBs     = 2
 			// Slave name width = 9
 			{ 10'h200 }, //      hdmi
-			{ 10'h3c0 }, //      edid
+			{ 10'h380 }, //  wb32_dio
 			{ 10'h3e0 }, //       cfg
-			{ 10'h3e0 }, //  wb32_sio
 			{ 10'h3e0 }, //       fan
 			{ 10'h3e0 }, //      uart
 			{ 10'h3e0 }, //    sdcard
-			{ 10'h3e0 }, //       i2c
 			{ 10'h3e0 }, // scope_smi
 			{ 10'h3e0 }, //  i2cscope
 			{ 10'h3e0 }, //  flashdbg
@@ -1098,13 +1201,11 @@ module	main(i_clk, i_reset,
 		// Slave connections
 		.o_scyc({
 			wb32_hdmi_cyc,
-			wb32_edids_cyc,
+			wb32_dio_cyc,
 			wb32_cfg_cyc,
-			wb32_sio_cyc,
 			wb32_fan_cyc,
 			wb32_uart_cyc,
 			wb32_sdcard_cyc,
-			wb32_i2cs_cyc,
 			wb32_scope_smi_cyc,
 			wb32_i2cscope_cyc,
 			wb32_flashdbg_cyc,
@@ -1114,13 +1215,11 @@ module	main(i_clk, i_reset,
 		}),
 		.o_sstb({
 			wb32_hdmi_stb,
-			wb32_edids_stb,
+			wb32_dio_stb,
 			wb32_cfg_stb,
-			wb32_sio_stb,
 			wb32_fan_stb,
 			wb32_uart_stb,
 			wb32_sdcard_stb,
-			wb32_i2cs_stb,
 			wb32_scope_smi_stb,
 			wb32_i2cscope_stb,
 			wb32_flashdbg_stb,
@@ -1130,13 +1229,11 @@ module	main(i_clk, i_reset,
 		}),
 		.o_swe({
 			wb32_hdmi_we,
-			wb32_edids_we,
+			wb32_dio_we,
 			wb32_cfg_we,
-			wb32_sio_we,
 			wb32_fan_we,
 			wb32_uart_we,
 			wb32_sdcard_we,
-			wb32_i2cs_we,
 			wb32_scope_smi_we,
 			wb32_i2cscope_we,
 			wb32_flashdbg_we,
@@ -1146,13 +1243,11 @@ module	main(i_clk, i_reset,
 		}),
 		.o_saddr({
 			wb32_hdmi_addr,
-			wb32_edids_addr,
+			wb32_dio_addr,
 			wb32_cfg_addr,
-			wb32_sio_addr,
 			wb32_fan_addr,
 			wb32_uart_addr,
 			wb32_sdcard_addr,
-			wb32_i2cs_addr,
 			wb32_scope_smi_addr,
 			wb32_i2cscope_addr,
 			wb32_flashdbg_addr,
@@ -1162,13 +1257,11 @@ module	main(i_clk, i_reset,
 		}),
 		.o_sdata({
 			wb32_hdmi_data,
-			wb32_edids_data,
+			wb32_dio_data,
 			wb32_cfg_data,
-			wb32_sio_data,
 			wb32_fan_data,
 			wb32_uart_data,
 			wb32_sdcard_data,
-			wb32_i2cs_data,
 			wb32_scope_smi_data,
 			wb32_i2cscope_data,
 			wb32_flashdbg_data,
@@ -1178,13 +1271,11 @@ module	main(i_clk, i_reset,
 		}),
 		.o_ssel({
 			wb32_hdmi_sel,
-			wb32_edids_sel,
+			wb32_dio_sel,
 			wb32_cfg_sel,
-			wb32_sio_sel,
 			wb32_fan_sel,
 			wb32_uart_sel,
 			wb32_sdcard_sel,
-			wb32_i2cs_sel,
 			wb32_scope_smi_sel,
 			wb32_i2cscope_sel,
 			wb32_flashdbg_sel,
@@ -1194,13 +1285,11 @@ module	main(i_clk, i_reset,
 		}),
 		.i_sstall({
 			wb32_hdmi_stall,
-			wb32_edids_stall,
+			wb32_dio_stall,
 			wb32_cfg_stall,
-			wb32_sio_stall,
 			wb32_fan_stall,
 			wb32_uart_stall,
 			wb32_sdcard_stall,
-			wb32_i2cs_stall,
 			wb32_scope_smi_stall,
 			wb32_i2cscope_stall,
 			wb32_flashdbg_stall,
@@ -1210,13 +1299,11 @@ module	main(i_clk, i_reset,
 		}),
 		.i_sack({
 			wb32_hdmi_ack,
-			wb32_edids_ack,
+			wb32_dio_ack,
 			wb32_cfg_ack,
-			wb32_sio_ack,
 			wb32_fan_ack,
 			wb32_uart_ack,
 			wb32_sdcard_ack,
-			wb32_i2cs_ack,
 			wb32_scope_smi_ack,
 			wb32_i2cscope_ack,
 			wb32_flashdbg_ack,
@@ -1226,13 +1313,11 @@ module	main(i_clk, i_reset,
 		}),
 		.i_sdata({
 			wb32_hdmi_idata,
-			wb32_edids_idata,
+			wb32_dio_idata,
 			wb32_cfg_idata,
-			wb32_sio_idata,
 			wb32_fan_idata,
 			wb32_uart_idata,
 			wb32_sdcard_idata,
-			wb32_i2cs_idata,
 			wb32_scope_smi_idata,
 			wb32_i2cscope_idata,
 			wb32_flashdbg_idata,
@@ -1242,13 +1327,11 @@ module	main(i_clk, i_reset,
 		}),
 		.i_serr({
 			wb32_hdmi_err,
-			wb32_edids_err,
+			wb32_dio_err,
 			wb32_cfg_err,
-			wb32_sio_err,
 			wb32_fan_err,
 			wb32_uart_err,
 			wb32_sdcard_err,
-			wb32_i2cs_err,
 			wb32_scope_smi_err,
 			wb32_i2cscope_err,
 			wb32_flashdbg_err,
@@ -1604,6 +1687,67 @@ module	main(i_clk, i_reset,
 	// }}}
 	// }}}
 `endif	// FAN_ACCESS
+
+`ifdef	I2CCPU_ACCESS
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	// The I2C Controller
+	// {{{
+
+	wbi2ccpu #(
+		.ADDRESS_WIDTH(20),
+		.DATA_WIDTH(512),
+		.AXIS_ID_WIDTH(2)
+	) i2ci (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+		.i_wb_cyc(wb32_i2cs_cyc), .i_wb_stb(wb32_i2cs_stb), .i_wb_we(wb32_i2cs_we),
+			.i_wb_addr(wb32_i2cs_addr[2-1:0]),
+			.i_wb_data(wb32_i2cs_data), // 32 bits wide
+			.i_wb_sel(wb32_i2cs_sel),  // 32/8 bits wide
+		.o_wb_stall(wb32_i2cs_stall),.o_wb_ack(wb32_i2cs_ack), .o_wb_data(wb32_i2cs_idata),
+		.o_pf_cyc(wbwide_i2cm_cyc), .o_pf_stb(wbwide_i2cm_stb), .o_pf_we(wbwide_i2cm_we),
+			.o_pf_addr(wbwide_i2cm_addr[20-1:0]),
+			.o_pf_data(wbwide_i2cm_data), // 512 bits wide
+			.o_pf_sel(wbwide_i2cm_sel),  // 512/8 bits wide
+		.i_pf_stall(wbwide_i2cm_stall), .i_pf_ack(wbwide_i2cm_ack), .i_pf_data(wbwide_i2cm_idata), .i_pf_err(wbwide_i2cm_err),
+		.i_i2c_sda(i_i2c_sda), .i_i2c_scl(i_i2c_scl),
+		.o_i2c_sda(o_i2c_sda), .o_i2c_scl(o_i2c_scl),
+		.M_AXIS_TVALID(i2c_valid), .M_AXIS_TREADY(i2c_ready),
+			.M_AXIS_TDATA(i2c_data), .M_AXIS_TLAST(i2c_last),
+			.M_AXIS_TID(i2c_id),
+		.i_sync_signal(1'b0),
+		//
+		.o_debug(i2c_debug)
+		// }}}
+	);
+
+	assign	i2c_ready = (!i2c_valid) || (1'b0
+			|| (i2c_id == 0)		// NULL address
+`ifdef	EDID_ACCESS
+			|| (i2c_id == 1 && edid_ready)
+`else
+			|| (i2c_id == 1)
+`endif
+`ifdef	I2CDMA_ACCESS
+			|| (i2c_id == 2 && i2cdma_ready)
+`else
+			|| (i2c_id == 2)
+`endif
+			|| (i2c_id > 2));
+
+	// }}}
+	// }}}
+`else	// I2CCPU_ACCESS
+	// {{{
+	assign	o_i2c_scl = 1'b1;
+	assign	o_i2c_sda = 1'b1;
+	// Null bus master
+	// {{{
+	// }}}
+	// }}}
+`endif	// I2CCPU_ACCESS
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -2279,74 +2423,6 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// FLASH_ACCESS
 
-`ifdef	I2CCPU_ACCESS
-	// {{{
-	////////////////////////////////////////////////////////////////////////
-	//
-	// The I2C Controller
-	// {{{
-
-	wbi2ccpu #(
-		.ADDRESS_WIDTH(20),
-		.DATA_WIDTH(512),
-		.AXIS_ID_WIDTH(2)
-	) i2ci (
-		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
-		.i_wb_cyc(wb32_i2cs_cyc), .i_wb_stb(wb32_i2cs_stb), .i_wb_we(wb32_i2cs_we),
-			.i_wb_addr(wb32_i2cs_addr[2-1:0]),
-			.i_wb_data(wb32_i2cs_data), // 32 bits wide
-			.i_wb_sel(wb32_i2cs_sel),  // 32/8 bits wide
-		.o_wb_stall(wb32_i2cs_stall),.o_wb_ack(wb32_i2cs_ack), .o_wb_data(wb32_i2cs_idata),
-		.o_pf_cyc(wbwide_i2cm_cyc), .o_pf_stb(wbwide_i2cm_stb), .o_pf_we(wbwide_i2cm_we),
-			.o_pf_addr(wbwide_i2cm_addr[20-1:0]),
-			.o_pf_data(wbwide_i2cm_data), // 512 bits wide
-			.o_pf_sel(wbwide_i2cm_sel),  // 512/8 bits wide
-		.i_pf_stall(wbwide_i2cm_stall), .i_pf_ack(wbwide_i2cm_ack), .i_pf_data(wbwide_i2cm_idata), .i_pf_err(wbwide_i2cm_err),
-		.i_i2c_sda(i_i2c_sda), .i_i2c_scl(i_i2c_scl),
-		.o_i2c_sda(o_i2c_sda), .o_i2c_scl(o_i2c_scl),
-		.M_AXIS_TVALID(i2c_valid), .M_AXIS_TREADY(i2c_ready),
-			.M_AXIS_TDATA(i2c_data), .M_AXIS_TLAST(i2c_last),
-			.M_AXIS_TID(i2c_id),
-		.i_sync_signal(1'b0),
-		//
-		.o_debug(i2c_debug)
-		// }}}
-	);
-
-	assign	i2c_ready = (!i2c_valid) || (1'b0
-			|| (i2c_id == 0)		// NULL address
-`ifdef	EDID_ACCESS
-			|| (i2c_id == 1 && edid_ready)
-`else
-			|| (i2c_id == 1)
-`endif
-			|| (i2c_id > 1));
-
-	// }}}
-	// }}}
-`else	// I2CCPU_ACCESS
-	// {{{
-	assign	o_i2c_scl = 1'b1;
-	assign	o_i2c_sda = 1'b1;
-	// Null bus master
-	// {{{
-	// }}}
-	// Null bus slave
-	// {{{
-
-	//
-	// In the case that there is no wb32_i2cs peripheral
-	// responding on the wb32 bus
-	assign	wb32_i2cs_ack   = 1'b0;
-	assign	wb32_i2cs_err   = (wb32_i2cs_stb);
-	assign	wb32_i2cs_stall = 0;
-	assign	wb32_i2cs_idata = 0;
-
-	// }}}
-	// }}}
-`endif	// I2CCPU_ACCESS
-
 `ifdef	VIDPIPE_ACCESS
 	// {{{
 	////////////////////////////////////////////////////////////////////////
@@ -2464,18 +2540,6 @@ module	main(i_clk, i_reset,
 	// {{{
 	assign	o_edid_scl = 1'b1;
 	assign	o_edid_sda = 1'b1;
-	// Null bus slave
-	// {{{
-
-	//
-	// In the case that there is no wb32_edids peripheral
-	// responding on the wb32 bus
-	assign	wb32_edids_ack   = 1'b0;
-	assign	wb32_edids_err   = (wb32_edids_stb);
-	assign	wb32_edids_stall = 0;
-	assign	wb32_edids_idata = 0;
-
-	// }}}
 	// }}}
 `endif	// EDID_ACCESS
 
@@ -2556,6 +2620,39 @@ module	main(i_clk, i_reset,
 	// }}}
 	// }}}
 `endif	// CFGSCOPE_SCOPE
+
+`ifdef	I2CDMA_ACCESS
+	// {{{
+	wbi2cdma #(
+		.AW(20), .DW(512), .SW(8),
+		.OPT_LITTLE_ENDIAN(1'b0)
+	) u_i2cdma (
+		.i_clk(i_clk),
+		.i_reset(i_reset),
+		//
+		.i_wb_cyc(wb32_i2cdma_cyc), .i_wb_stb(wb32_i2cdma_stb), .i_wb_we(wb32_i2cdma_we),
+			.i_wb_addr(wb32_i2cdma_addr[2-1:0]),
+			.i_wb_data(wb32_i2cdma_data), // 32 bits wide
+			.i_wb_sel(wb32_i2cdma_sel),  // 32/8 bits wide
+		.o_wb_stall(wb32_i2cdma_stall),.o_wb_ack(wb32_i2cdma_ack), .o_wb_data(wb32_i2cdma_idata),
+		.S_VALID(i2c_valid && i2c_id == 2), .S_READY(i2cdma_ready),
+			.S_DATA(i2c_data), .S_LAST(i2c_last),
+		.o_dma_cyc(wbwide_i2cdma_cyc), .o_dma_stb(wbwide_i2cdma_stb), .o_dma_we(wbwide_i2cdma_we),
+			.o_dma_addr(wbwide_i2cdma_addr[20-1:0]),
+			.o_dma_data(wbwide_i2cdma_data), // 512 bits wide
+			.o_dma_sel(wbwide_i2cdma_sel),  // 512/8 bits wide
+		.i_dma_stall(wbwide_i2cdma_stall), .i_dma_ack(wbwide_i2cdma_ack), .i_dma_data(wbwide_i2cdma_idata), .i_dma_err(wbwide_i2cdma_err)
+	);
+
+	// }}}
+`else	// I2CDMA_ACCESS
+	// {{{
+	assign	@$(prefix)_ready = 1'b0;
+	// Null bus master
+	// {{{
+	// }}}
+	// }}}
+`endif	// I2CDMA_ACCESS
 
 `ifdef	BKRAM_ACCESS
 	// {{{

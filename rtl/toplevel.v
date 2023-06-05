@@ -55,6 +55,8 @@ module	toplevel(
 		o_siref_clk_p, o_siref_clk_n,
 			io_temp_sda, io_temp_scl,
 			o_fan_pwm, o_fan_sys, i_fan_tach,
+			io_i2c_sda, io_i2c_scl,
+			o_i2c_mxrst_n,
 		// SPIO interface
 		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led,
 		// GPIO ports
@@ -73,8 +75,6 @@ module	toplevel(
 		o_sdcard_clk, io_sdcard_cmd, io_sdcard_dat, i_sdcard_cd_n,
 		// Top level Quad-SPI I/O ports
 		o_flash_cs_n, io_flash_dat,
-			io_i2c_sda, io_i2c_scl,
-			o_i2c_mxrst_n,
 		i_hdmirx_clk_p, i_hdmirx_clk_n,
 		i_hdmirx_p, i_hdmirx_n,
 		o_hdmitx_clk_p, o_hdmitx_clk_n,
@@ -154,6 +154,8 @@ module	toplevel(
 	inout	wire	io_temp_sda, io_temp_scl;
 	output	wire	o_fan_pwm, o_fan_sys;
 	input	wire	i_fan_tach;
+	inout	wire	io_i2c_sda, io_i2c_scl;
+	output	wire	o_i2c_mxrst_n;
 	// SPIO interface
 	input	wire	[8-1:0]	i_sw;
 	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
@@ -184,8 +186,6 @@ module	toplevel(
 	// Quad SPI flash
 	output	wire		o_flash_cs_n;
 	inout	wire	[3:0]	io_flash_dat;
-	inout	wire	io_i2c_sda, io_i2c_scl;
-	output	wire	o_i2c_mxrst_n;
 	input	wire		i_hdmirx_clk_p, i_hdmirx_clk_n;
 	input	wire	[2:0]	i_hdmirx_p, i_hdmirx_n;
 	output	wire		o_hdmitx_clk_p, o_hdmitx_clk_n;
@@ -209,6 +209,13 @@ module	toplevel(
 	// {{{
 	wire	i_fan_sda, i_fan_scl,
 		o_fan_sda, o_fan_scl;
+	// }}}
+	// I2CCPU definitions
+	// {{{
+	wire	i_i2c_sda, i_i2c_scl,
+		o_i2c_sda, o_i2c_scl;
+	reg		r_i2c_mxrst_n;
+	reg	[2:0]	r_i2c_mxrst_dly;
 	// }}}
 	wire	[8-1:0]	w_led;
 	wire	[5-1:0]	w_btn;
@@ -246,13 +253,6 @@ module	toplevel(
 	wire		w_flash_sck, w_flash_cs_n;
 	wire	[1:0]	flash_bmod;
 	wire	[3:0]	flash_dat;
-	// I2CCPU definitions
-	// {{{
-	wire	i_i2c_sda, i_i2c_scl,
-		o_i2c_sda, o_i2c_scl;
-	reg		r_i2c_mxrst_n;
-	reg	[2:0]	r_i2c_mxrst_dly;
-	// }}}
 	wire	[9:0]	hdmirx_red, hdmirx_grn, hdmirx_blu;
 	wire	[9:0]	hdmitx_red, hdmitx_grn, hdmitx_blu;
 	wire	[1:0]	w_pxclk_sel;
@@ -288,6 +288,9 @@ module	toplevel(
 		i_fan_sda, i_fan_scl,
 		o_fan_sda, o_fan_scl,
 		o_fan_pwm, o_fan_sys, i_fan_tach,
+		// I2CCPU
+		i_i2c_sda, i_i2c_scl,
+		o_i2c_sda, o_i2c_scl,
 		i_sw, w_btn, w_led,
 		// GPIO wires
 		i_gpio, o_gpio,
@@ -308,9 +311,6 @@ module	toplevel(
 		o_sdcard_clk, w_sdcard_cmd, w_sdcard_data, i_sdcard_data, !i_sdcard_cd_n,
 		// Quad SPI flash
 		w_flash_cs_n, w_flash_sck, flash_dat, io_flash_dat, flash_bmod,
-		// I2CCPU
-		i_i2c_sda, i_i2c_scl,
-		o_i2c_sda, o_i2c_scl,
 		// HDMI control ports
 		hdmirx_clk, s_siclk, hdmi_ck,
 		hdmirx_red, hdmirx_grn, hdmirx_blu,
@@ -398,6 +398,46 @@ module	toplevel(
 		.IO(io_temp_sda)
 		// }}}
 	);
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// I2C IO buffers
+	// {{{
+
+	// We need these in order to (properly) ensure the high impedance
+	// states (pull ups) of the I2C I/O lines.  Our goals are:
+	//
+	//	o_i2c_X	io_i2c_X		Derived:T
+	//	1'b0		1'b0			1'b0
+	//	1'b1		1'bz			1'b1
+	//
+	IOBUF i2csclp(
+		// {{{
+		.I(1'b0),
+		.T(o_i2c_scl),
+		.O(i_i2c_scl),
+		.IO(io_i2c_scl)
+		// }}}
+	);
+
+	IOBUF i2csdap(
+		// {{{
+		.I(1'b0),
+		.T(o_i2c_sda),
+		.O(i_i2c_sda),
+		.IO(io_i2c_sda)
+		// }}}
+	);
+
+	initial	{ r_i2c_mxrst_n, r_i2c_mxrst_dly } = 0;
+	always @(posedge s_clk or negedge sysclk_locked)
+	if (!sysclk_locked)
+		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
+	else
+		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
+
+	assign	o_i2c_mxrst_n = r_i2c_mxrst_n;
 	// }}}
 
 	assign	o_led = { w_led[8-1:2], (w_led[1] || !sysclk_locked),
@@ -646,46 +686,6 @@ module	toplevel(
 		//	stated above.
 		.USRDONETS(1'b1)
 	);
-	// }}}
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// I2C IO buffers
-	// {{{
-
-	// We need these in order to (properly) ensure the high impedance
-	// states (pull ups) of the I2C I/O lines.  Our goals are:
-	//
-	//	o_i2c_X	io_i2c_X		Derived:T
-	//	1'b0		1'b0			1'b0
-	//	1'b1		1'bz			1'b1
-	//
-	IOBUF i2csclp(
-		// {{{
-		.I(1'b0),
-		.T(o_i2c_scl),
-		.O(i_i2c_scl),
-		.IO(io_i2c_scl)
-		// }}}
-	);
-
-	IOBUF i2csdap(
-		// {{{
-		.I(1'b0),
-		.T(o_i2c_sda),
-		.O(i_i2c_sda),
-		.IO(io_i2c_sda)
-		// }}}
-	);
-
-	initial	{ r_i2c_mxrst_n, r_i2c_mxrst_dly } = 0;
-	always @(posedge s_clk or negedge sysclk_locked)
-	if (!sysclk_locked)
-		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
-	else
-		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
-
-	assign	o_i2c_mxrst_n = r_i2c_mxrst_n;
 	// }}}
 
 	////////////////////////////////////////////////////////////////////////

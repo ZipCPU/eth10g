@@ -102,6 +102,23 @@ typedef struct  FAN_S        {
 	// }}}
 
 
+#ifndef	I2CCPU_H
+#define	I2CCPU_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// I2C CPU data structures
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+typedef struct  I2CCPU_S        {
+	unsigned	ic_control, ic_override, ic_address, ic_clkcount;
+} I2CCPU;
+
+#endif	// I2CCPU_H
+	// }}}
+
+
 #ifndef	WBSCOPE_H
 #define	WBSCOPE_H
 
@@ -244,23 +261,6 @@ typedef	struct SDSPI_S {
 // }}}
 
 
-#ifndef	I2CCPU_H
-#define	I2CCPU_H
-	////////////////////////////////////////////////////////////////////////
-	//
-	// I2C CPU data structures
-	// {{{
-	////////////////////////////////////////////////////////////////////////
-	//
-	//
-typedef struct  I2CCPU_S        {
-	unsigned	ic_control, ic_override, ic_address, ic_clkcount;
-} I2CCPU;
-
-#endif	// I2CCPU_H
-	// }}}
-
-
 #ifndef VIDPIPE_H
 #define VIDPIPE_H
 
@@ -343,46 +343,46 @@ static volatile WBSCOPE *const _i2cscope = ((WBSCOPE *)0x00800200);
 #endif	// I2CSCOPE_SCOPC
 #ifdef	FAN_ACCESS
 #define	_BOARD_HAS_FAN
-static volatile FAN *const _fan=((FAN *)0x00800480);
+static volatile FAN *const _fan=((FAN *)0x00800400);
 #endif	// FAN_ACCESS
+#ifdef	I2CCPU_ACCESS
+#define	_BOARD_HAS_I2CCPU
+static volatile I2CCPU *const _i2c=((I2CCPU *)0x00800600);
+#endif	// I2CCPU_ACCESS
 #ifdef	SMISCOPE_SCOPC
 #define	_BOARD_HAS_SMISCOPE
 static volatile WBSCOPE *const _scope_smi = ((WBSCOPE *)0x00800280);
 #endif	// SMISCOPE_SCOPC
 #ifdef	SPIO_ACCESS
 #define	_BOARD_HAS_SPIO
-static volatile unsigned *const _spio = ((unsigned *)0x0080050c);
+static volatile unsigned *const _spio = ((unsigned *)0x0080068c);
 #endif	// SPIO_ACCESS
 #ifdef	GPIO_ACCESS
 #define	_BOARD_HAS_GPIO
-static volatile unsigned *const _gpio = ((unsigned *)0x00800504);
+static volatile unsigned *const _gpio = ((unsigned *)0x00800684);
 #endif	// GPIO_ACCESS
 #ifdef	CFG_ACCESS
 #define	_BOARD_HAS_ICAPTETWO
-static volatile unsigned *const _icape = ((unsigned *)0x00000580);
+static volatile unsigned *const _icape = ((unsigned *)0x00000480);
 #endif	// CFG_ACCESS
 #ifdef	VERSION_ACCESS
 #define	_BOARD_HAS_VERSION
-static volatile unsigned *const _version = ((unsigned *)0x00800510);
+static volatile unsigned *const _version = ((unsigned *)0x00800690);
 #endif	// VERSION_ACCESS
 #define	_BOARD_HAS_BUILDTIME
-static volatile unsigned *const _buildtime = ((unsigned *)0x00800500);
+static volatile unsigned *const _buildtime = ((unsigned *)0x00800680);
 #ifdef	FANSCOPE_SCOPC
 #define	_BOARD_HAS_FANSCOPE
 static volatile WBSCOPE *const _fanscope = ((WBSCOPE *)0x00800100);
 #endif	// FANSCOPE_SCOPC
 #ifdef	SDSPI_ACCESS
 #define	_BOARD_HAS_SDSPI
-static volatile SDSPI *const _sdcard = ((SDSPI *)0x00800380);
+static volatile SDSPI *const _sdcard = ((SDSPI *)0x00800300);
 #endif	// SDSPI_ACCESS
 #ifdef	FLASH_ACCESS
 #define	_BOARD_HAS_FLASH
 extern int _flash[1];
 #endif	// FLASH_ACCESS
-#ifdef	I2CCPU_ACCESS
-#define	_BOARD_HAS_I2CCPU
-static volatile I2CCPU *const _i2c=((I2CCPU *)0x00800300);
-#endif	// I2CCPU_ACCESS
 #ifdef	VIDPIPE_ACCESS
 #define	_BOARD_HAS_VIDPIPE
 static volatile VIDPIPE *const _hdmi = ((VIDPIPE *)0x00800800);
@@ -393,7 +393,7 @@ static volatile unsigned * const _flashcfg = ((unsigned *)(0x00800000));
 #endif	// FLASHCFG_ACCESS
 #ifdef	EDID_ACCESS
 #define	_BOARD_HAS_EDID
-static volatile char *const _edid=((char *)0x00800600);
+static volatile char *const _edid=((char *)0x00800700);
 #endif	// EDID_ACCESS
 #ifdef	CFGSCOPE_SCOPE
 #define	_BOARD_HAS_CFGSCOPE
@@ -405,7 +405,7 @@ extern char	_bkram[0x00040000];
 #endif	// BKRAM_ACCESS
 #ifdef	BUSCONSOLE_ACCESS
 #define	_BOARD_HAS_BUSCONSOLE
-static volatile CONSOLE *const _uart = ((CONSOLE *)0x00800400);
+static volatile CONSOLE *const _uart = ((CONSOLE *)0x00800380);
 #endif	// BUSCONSOLE_ACCESS
 #ifdef	FLASHSCOPE_SCOPC
 #define	_BOARD_HAS_FLASHSCOPE

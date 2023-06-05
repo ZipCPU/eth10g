@@ -83,7 +83,8 @@ int	main(int argc, char **argv) {
 #endif
 			*profile_file = NULL,
 			*trace_file = NULL; // "trace.vcd";
-	bool	debug_flag = false, willexit = false, verbose_flag = false;
+	bool	debug_flag = false, willexit = false, verbose_flag = false,
+			use_gui = false;
 	FILE	*profile_fp;
 	uint64_t	limit_time_ns = 0l, limit_time_ps = 0l;
 
@@ -102,6 +103,8 @@ int	main(int argc, char **argv) {
 			case 'd': debug_flag = true;
 				if (trace_file == NULL)
 					trace_file = "trace.vcd";
+				break;
+			case 'g': use_gui = true;
 				break;
 			case 'l':
 				limit_time_ns = strtoul(argv[++argn], NULL, 0);
@@ -224,9 +227,11 @@ int	main(int argc, char **argv) {
 	// Main while(1) loop
 	// {{{
 #if	defined(VIDPIPE_ACCESS) || defined(OLED_ACCESS)
-	tb->connect_idler();
-	Gtk::Main::run(*tb->m_hdmitx);
-#else
+	if (use_gui) {
+		tb->connect_idler();
+		Gtk::Main::run(*tb->m_hdmitx);
+	} else
+#endif
 	if (profile_fp) { // Profile the ZipCPU
 		// {{{
 		unsigned last_instruction_tick = 0;
@@ -268,7 +273,6 @@ int	main(int argc, char **argv) {
 		while(!Verilated::gotFinish())
 			tb->tick();
 		// }}}
-#endif
 	// }}}
 
 	tb->close();

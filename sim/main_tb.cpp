@@ -188,6 +188,9 @@ public:
 		//
 		// SIM.TICK tags go here for SIM.CLOCK=clk
 		//
+		// SIM.TICK from i2c
+		m_core->i_i2c_scl = m_core->o_i2c_scl;
+		m_core->i_i2c_sda = m_core->o_i2c_sda;
 		// SIM.TICK from gpio
 		pausetrace((m_core->o_gpio & 0x040) ? false:true);
 		// SIM.TICK from wbu
@@ -228,9 +231,6 @@ public:
 			m_core->o_flash_dat,
 			m_core->o_flash_mod);
 #endif // FLASH_ACCESS
-		// SIM.TICK from i2c
-		m_core->i_i2c_scl = m_core->o_i2c_scl;
-		m_core->i_i2c_sda = m_core->o_i2c_sda;
 	}
 
 	// Evaluating clock clk200
