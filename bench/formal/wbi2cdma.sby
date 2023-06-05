@@ -1,0 +1,30 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+prf: depth 5
+
+[engines]
+smtbmc
+
+[script]
+read -formal wbi2cdma.v
+read -formal fwb_master.v
+read -formal fwb_slave.v
+read -formal skidbuffer.v
+--pycode-begin--
+cmd = "hierarchy -top wbi2cdma"
+cmd += " -chparam DW 512 -chparam AW 21"
+cmd += " -chparam OPT_LOWPOWER 0"
+output(cmd)
+--pycode-end--
+prep -top wbi2cdma
+
+[files]
+fwb_master.v
+fwb_slave.v
+../../rtl/wbi2c/wbi2cdma.v
+../../rtl/wb2axip/skidbuffer.v

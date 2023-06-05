@@ -1,0 +1,100 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Mon Jun  5 15:10:56 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1525 600
+[pos] -1 -1
+*-5.748147 60 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 362
+[signals_width] 232
+[sst_expanded] 1
+[sst_vpaned_height] 156
+@28
+wbi2cdma.i_clk
+wbi2cdma.i_reset
+wbi2cdma.r_reset
+wbi2cdma.bus_err
+wbi2cdma.r_overflow
+@200
+-
+@28
+wbi2cdma.i_wb_cyc
+wbi2cdma.i_wb_stb
+wbi2cdma.i_wb_we
+wbi2cdma.i_wb_addr[1:0]
+@22
+wbi2cdma.i_wb_data[31:0]
+wbi2cdma.i_wb_sel[3:0]
+@28
+wbi2cdma.o_wb_stall
+wbi2cdma.o_wb_ack
+@22
+wbi2cdma.o_wb_data[31:0]
+@200
+-
+@28
+wbi2cdma.S_VALID
+wbi2cdma.S_READY
+@22
+wbi2cdma.S_DATA[7:0]
+@28
+wbi2cdma.S_LAST
+[color] 3
+wbi2cdma.skd_valid
+wbi2cdma.skd_ready
+@22
+[color] 3
+wbi2cdma.skd_data[7:0]
+@29
+[color] 3
+wbi2cdma.skd_last
+@22
+wbi2cdma.s_count[11:0]
+@200
+-
+@28
+wbi2cdma.o_dma_cyc
+wbi2cdma.o_dma_stb
+wbi2cdma.o_dma_we
+@22
+wbi2cdma.o_dma_addr[20:0]
+wbi2cdma.o_dma_data[511:0]
+wbi2cdma.o_dma_sel[63:0]
+@28
+wbi2cdma.i_dma_stall
+wbi2cdma.i_dma_ack
+@22
+wbi2cdma.i_dma_data[511:0]
+@28
+wbi2cdma.i_dma_err
+@200
+-
+@22
+wbi2cdma.subaddr[5:0]
+wbi2cdma.current_addr[26:0]
+wbi2cdma.r_baseaddr[26:0]
+wbi2cdma.r_memlen[26:0]
+wbi2cdma.fdma_addr[26:0]
+@200
+-
+@28
+wbi2cdma.fwb_nreqs[1:0]
+wbi2cdma.fwb_nacks[1:0]
+wbi2cdma.fwb_noutstanding[1:0]
+@200
+-
+@22
+wbi2cdma.fdma_nreqs[3:0]
+wbi2cdma.fdma_nacks[3:0]
+wbi2cdma.fdma_noutstanding[3:0]
+@200
+-
+@22
+wbi2cdma.next_baseaddr[26:0]
+wbi2cdma.next_memlen[26:0]
+@28
+wbi2cdma.wb_last
+[pattern_trace] 1
+[pattern_trace] 0

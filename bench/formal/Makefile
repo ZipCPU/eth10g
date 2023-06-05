@@ -36,7 +36,7 @@
 ##
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth dropshort wbmarbiter
-TESTS += pktvfiford pktvfifowr cecbridge
+TESTS += pktvfiford pktvfifowr cecbridge wbi2cdma
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
@@ -52,12 +52,14 @@ WBMARB := wbmarbiter
 PKTVRD := pktvfiford
 PKTVWR := pktvfifowr
 CEC := cecbridge
+I2CDMA := wbi2cdma
 ## }}}
 
 ## Interfaces
 ## {{{
 FAXIN := faxin_master.v faxin_slave.v
 WB    := fwb_master.v fwb_slave.v
+SKID  := $(RTL)/wb2axip/skidbuffer.v
 ## }}}
 
 .PHONY: $(NARB)
@@ -162,6 +164,16 @@ $(CEC): $(CEC)_prf/PASS
 $(CEC)_prf/PASS: $(CEC).sby  $(RTL)/hdmi/cecbridge.v
 	sby -f $(CEC).sby prf
 ## }}}
+
+.PHONY: $(I2CDMA)
+## {{{
+$(I2CDMA): $(I2CDMA)_prf/PASS $(I2CDMA)_cvr/PASS
+$(I2CDMA)_prf/PASS: $(I2CDMA).sby  $(RTL)/wbi2c/$(I2CDMA).v $(WB) $(SKID)
+	sby -f $(I2CDMA).sby prf
+$(I2CDMA)_cvr/PASS: $(I2CDMA).sby  $(RTL)/wbi2c/$(I2CDMA).v $(WB) $(SKID)
+	sby -f $(I2CDMA).sby cvr
+## }}}
+
 
 .PHONY: report
 report:

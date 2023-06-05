@@ -44,6 +44,7 @@ $dir = ".";
 	"dropshort",
 	"pktvfiford",
 	"pktvfifowr",
+	"wbi2cdma",
 	"wbmarbiter"
 	);
 
@@ -54,6 +55,7 @@ $dir = ".";
 	"dropshort"     => "Abort short packets",
 	"pktvfiford"    => "Virtual Packet FIFO (Read)",
 	"pktvfifowr"    => "Virtual Packet FIFO (Write)",
+	"wbi2cdma"      => "Low throughput I2C DMA",
 	"wbmarbiter"    => "Wishbone N:1 arbiter"
 	);
 ## }}}
