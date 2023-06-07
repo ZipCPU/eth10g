@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi rdedid # contest sdtest
+PROGRAMS := hello cputest ssddemo qkhdmi rdedid sdinfo sisetup # contest
 all:	$(PROGRAMS)
 #
 #
@@ -46,19 +46,21 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdedid.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdedid.c sisetup.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
 LDSCRIPT:= board.ld
-LFLAGS  := -T $(LDSCRIPT) -L../zlib
+LFLAGS  := -T $(LDSCRIPT) -L../zlib -L../fatfs
 LBKRAM  := -T bkram.ld -L../zlib
-CFLAGS  := -O3 -I../zlib -I../../../rtl
+CFLAGS  := -O3 -I../zlib -I../../../rtl -I../fatfs
 LIBS    := -lc -lzeth -lgcc
+LIBFAT  := -lfatfs
 INSTALLD=$(shell bash -c "which zip-gcc | sed -e 's/.cross-tools.*$\//'")
 NLIBD=$(INSTALLD)/cross-tools/zip/lib
 ZLIBD=../zlib
 LIB=$(ZLIBD)/libzeth.a $(NLIBD)/libg.a $(NLIBD)/libc.a
+FAT:=../fatfs/libfatfs.a
 #
 # For source analysis, the following macros are defined:
 #
@@ -122,7 +124,10 @@ qkhdmi: $(OBJDIR)/qkhdmi.o board.ld $(LIB)
 rdedid: $(OBJDIR)/rdedid.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
-sdtest: $(OBJDIR)/sdtest.o board.ld $(LIB)
+sdinfo: $(OBJDIR)/sdinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -o $@
+
+sisetup: $(OBJDIR)/sisetup.o board.ld $(LIB) $(FAT)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 lockcheck: $(OBJDIR)/lockcheck.o $(OBJDIR)/txfns.o bkram.ld $(LIB)

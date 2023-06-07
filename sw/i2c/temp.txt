@@ -1,0 +1,35 @@
+	TEMP=0x48
+
+	TARGET
+	CHANNEL	0
+	ABORT
+	WAIT
+	START			// @ 4.1
+	SEND	0x48,WR	
+	SEND	0x00		// Temperature address
+	START
+	SEND	0x48,RD
+	RXK			// Read two bytes of temperature
+	RXN
+	STOP			// @B.1
+	START			// @C.0
+	SEND	0x49,WR
+	SEND	0x00		// Temperature address
+	START
+	SEND	0x49,RD
+	RXK			// Read two bytes of temperature
+	RXLN
+	STOP
+	JUMP
+	TARGET
+	ABORT
+	WAIT
+	START			// @C.0
+	SEND	0x49,WR
+	SEND	0x00		// Temperature address
+	START
+	SEND	0x49,RD
+	RXK			// Read two bytes of temperature
+	RXLN
+	STOP
+	JUMP

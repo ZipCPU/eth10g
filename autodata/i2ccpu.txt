@@ -217,6 +217,10 @@ typedef struct  @$(DEVID)_S        {
 		m_core->i_i2c_scl = m_core->o_i2c_scl;
 		m_core->i_i2c_sda = m_core->o_i2c_sda;
 ##
+################################################################################
+################################################################################
+################################################################################
+##
 @PREFIX=i2cdma
 @DEVID=I2CDMA
 @ACCESS=@$(DEVID)_ACCESS
@@ -252,3 +256,27 @@ typedef struct  @$(DEVID)_S        {
 @REGS.1=1 R_@$(DEVID)_ADDR @$(DEVID)ADDR
 @REGS.2=2 R_@$(DEVID)_BASE @$(DEVID)BASE
 @REGS.3=3 R_@$(DEVID)_LEN  @$(DEVID)LEN
+##
+## board.h
+##
+@BDEF.DEFN=
+#ifndef	@$(DEVID)_H
+#define	@$(DEVID)_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// I2C DMA data structures
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+typedef struct  @$(DEVID)_S        {
+	unsigned	id_control, id_current, id_base, id_memlen;
+} @$(DEVID);
+
+#endif	// @$(DEVID)_H
+	// }}}
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME)=((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+##

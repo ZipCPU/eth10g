@@ -362,7 +362,7 @@ module	wbi2cdma #(
 	if (r_reset)
 		current_addr <= r_baseaddr;
 	else if (o_dma_stb && !i_dma_stall)
-		current_addr <= { o_dma_addr, subaddr };
+		current_addr <= { o_dma_addr, subaddr } + 1;
 	// }}}
 
 	// Keep Verilator happy

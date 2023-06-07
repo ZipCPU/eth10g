@@ -116,7 +116,8 @@ module	wbi2ccpu #(
 		parameter	ADDRESS_WIDTH = 29,
 		parameter	DATA_WIDTH = 32,
 		parameter	I2C_WIDTH = 8,
-		parameter	AXIS_ID_WIDTH = 0,
+		parameter	AXIS_ID_WIDTH = 2,
+		parameter [((AXIS_ID_WIDTH>0)?AXIS_ID_WIDTH:1)-1:0] DEF_CHANNEL = 0,
 		localparam	AW = ADDRESS_WIDTH,
 		localparam	DW = DATA_WIDTH,
 		localparam	RW = I2C_WIDTH,
@@ -886,8 +887,8 @@ module	wbi2ccpu #(
 			mid_axis_pkt <= !M_AXIS_TLAST;
 
 		always @(posedge i_clk)
-		if (i_reset)
-			r_channel <= 0;
+		if (i_reset || r_halted)
+			r_channel <= DEF_CHANNEL;
 		else if (insn_valid && insn[11:8] == CMD_CHANNEL && s_tready)
 			r_channel <= insn[AXIS_ID_WIDTH-1:0];
 

@@ -1,0 +1,33 @@
+	I2CMX=0xe8		// 1110_100x
+	SI5324=0xd0		// 1101_000x
+
+	CHANNEL	2
+	START
+	SEND	I2CMX|WR
+	SEND	0x85
+	STOP
+	START
+	SEND	SI5324|WR
+	SEND	129
+	START
+	SEND	SI5324|RD
+	RXK
+	RXK
+	RXK
+	RXN
+	STOP
+	START
+	SEND	SI5324|WR
+	SEND	134
+	START
+	SEND	SI5324|RD
+	RXK
+	RXLN
+	STOP
+	START
+	SEND	SI5324|WR
+	SEND	131
+	SEND	0	// Clear interrupt flags
+	SEND	0	// Clear frequency offset flags, and loss of lock flag
+	STOP
+	HALT

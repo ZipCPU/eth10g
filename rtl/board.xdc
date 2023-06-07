@@ -16,14 +16,17 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 #set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n]
 #create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk_si_p]
 
+#set_property -dict { PACKAGE_PIN B26 } [get_ports i_emcclk]
+#create_clock -period 15.0 -name EMCCLK -waveform { 0.0 7.5 } -add [get_ports i_emcclk]
+
 #set_property -dict { PACKAGE_PIN B26 IOSTANDARD LVCMOS18 } [get_ports i_clk_66mhz_p]
 #create_clock -period 15.0 -name INITREF -waveform { 0.0 7.5 } -add [get_ports i_clk_66mhz_p]
 
 set_property -dict { PACKAGE_PIN R21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_p]
 set_property -dict { PACKAGE_PIN P21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_n]
 
-## #set_property -dict { PACKAGE_PIN R21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_p]
-## #set_property -dict { PACKAGE_PIN P21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_n]
+#set_property -dict { PACKAGE_PIN R21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_p]
+#set_property -dict { PACKAGE_PIN P21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_n]
 
 ## }}}
 
@@ -89,8 +92,8 @@ set_property -dict {PACKAGE_PIN V21  IOSTANDARD LVCMOS18} [get_ports io_i2c_scl]
 set_property -dict {PACKAGE_PIN AE22 IOSTANDARD LVCMOS18} [get_ports io_i2c_sda]
 set_property -dict {PACKAGE_PIN AE26 IOSTANDARD LVCMOS18} [get_ports io_temp_scl]
 set_property -dict {PACKAGE_PIN AD26 IOSTANDARD LVCMOS18} [get_ports io_temp_sda]
-set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports i_si5324_int]
-set_property -dict {PACKAGE_PIN V24  IOSTANDARD LVCMOS18} [get_ports o_si5324_rst]
+set_property -dict {PACKAGE_PIN V24  IOSTANDARD LVCMOS18} [get_ports i_si5324_int]
+set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports o_si5324_rst]
 ## }}}
 
 ## ETH10G
@@ -108,16 +111,16 @@ set_property -dict {PACKAGE_PIN V24  IOSTANDARD LVCMOS18} [get_ports o_si5324_rs
 #set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
 
 ## LinkUp LEDs
-#set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
-#set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[1]]
-#set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[2]]
-#set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[3]]
+set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
+set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[1]]
+set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[2]]
+set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[3]]
 
 ## Activity LEDs
-#set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[0]]
-#set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[1]]
-#set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[2]]
-#set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
+set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[0]]
+set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[1]]
+set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[2]]
+set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
 
 ## Network transmit/outputs
 #set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
@@ -438,6 +441,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## Adding in any XDC_INSERT tags
 
+## No XDC.INSERT tag in netled
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in sirefclk
 ## No XDC.INSERT tag in fan

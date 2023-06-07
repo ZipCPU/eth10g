@@ -155,3 +155,8 @@
 @RTL.MAKE.FILES=genclk.v xgenclk.v
 @REGS.N=1
 @REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.IOTYPE=unsigned
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+

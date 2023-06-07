@@ -1,0 +1,20 @@
+@PREFIX=netled
+@DEVID=NETLED
+@ACCESS=NETLED_ACCESS
+@MAIN.PORTLIST=
+		o_gnet_linkup, o_gnet_activity
+@MAIN.IODECL=
+	output	wire	[3:0]	o_gnet_linkup, o_gnet_activity;
+@TOP.MAIN=
+		// 10Gb Ethernet LED controls
+		o_gnet_linkup, o_gnet_activity
+@MAIN.INSERT=
+	netled
+	u_netled(
+		.i_clk(i_clk),
+		.o_linkup(o_gnet_linkup),
+		.o_activity(o_gnet_activity)
+	);
+@RTL.MAKE.GROUP=NETLED
+@RTL.MAKE.SUBD=.
+@RTL.MAKE.FILES=netled.v
