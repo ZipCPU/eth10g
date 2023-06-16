@@ -5,10 +5,11 @@ xilinx
 obj_dir
 obj-pc
 obj-zip
-*.o
 *.a
-*.vcd
 *.fst
+*.o
+*.vcd
+*.vvp
 .swp
 .*.swp
 .*.swo
