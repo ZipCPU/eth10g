@@ -1,0 +1,208 @@
+################################################################################
+##
+## Filename: 	sdio.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to connect an SDIO peripheral to a wishbone
+##		bus, as used by autofpga.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=sdcard
+@DEVID=SDIO
+@NAME=SDIO SD Card
+@NADDR=8
+@$NUMIO=4
+@ACCESS=SDIO_ACCESS
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb32
+## @SCOPE.TRIGGER=@$(PREFIX)_debug[31]
+## @SCOPE.DATA=@$(PREFIX)_debug
+@INT.SDCARD.WIRE= @$(PREFIX)_int
+@INT.SDCARD.PIC= syspic
+@CARD_DETECT=1'b1
+@OPT_SERDES=1'b0
+@OPT_DDR=1'b1
+@TOP.PORTLIST=
+		// @$(NAME)
+		o_@$(PREFIX)_clk, io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat, i_@$(PREFIX)_cd_n
+@TOP.IODECL=
+	// @$(NAME)
+	// {{{
+	output	wire		o_@$(PREFIX)_clk;
+	inout	wire		io_@$(PREFIX)_cmd;
+	inout	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat;
+	input	wire		i_@$(PREFIX)_cd_n;
+	// }}}
+@TOP.DEFNS=
+	// @$(NAME) definitions
+	// {{{
+	wire	i_@$(PREFIX)_ds;
+	// }}}
+@TOP.MAIN=
+		// @$(NAME)
+		o_@$(PREFIX)_clk, i_@$(PREFIX)_ds,
+		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
+		!i_@$(PREFIX)_cd_n
+@TOP.INSERT=
+	assign	i_@$(PREFIX)_ds = 1'b0;
+@MAIN.PORTLIST=
+		// @$(NAME)
+		o_@$(PREFIX)_clk, i_@$(PREFIX)_ds,
+`ifdef	VERILATOR
+		io_@$(PREFIX)_cmd_tristate,
+		o_@$(PREFIX)_cmd, i_@$(PREFIX)_cmd,
+		io_@$(PREFIX)_dat_tristate,
+		o_@$(PREFIX)_dat, i_@$(PREFIX)_dat,
+`else
+		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
+`endif
+		i_@$(PREFIX)_detect
+@MAIN.IODECL=
+	// @$(NAME) declarations
+	// {{{
+	output	wire		o_@$(PREFIX)_clk;
+	input	wire		i_@$(PREFIX)_ds;
+`ifdef	VERILATOR
+	output	wire		io_@$(PREFIX)_cmd_tristate;
+	output	wire		o_@$(PREFIX)_cmd;
+	input	wire		i_@$(PREFIX)_cmd;
+	output	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat_tristate;
+	output	wire	[@$(NUMIO)-1:0]	o_@$(PREFIX)_dat;
+	input	wire	[@$(NUMIO)-1:0]	i_@$(PREFIX)_dat;
+`else
+	inout	wire		io_@$(PREFIX)_cmd;
+	inout	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat;
+`endif
+	input	wire		i_@$(PREFIX)_detect;
+	// }}}
+@MAIN.DEFNS=
+	// @$(NAME) definitions
+	// Verilator lint_off UNUSED
+	wire	[31:0]	@$(PREFIX)_debug;
+	// Verilator lint_on  UNUSED
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// @$(NAME) handling
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	sdio_top #(
+		.NUMIO(@$(NUMIO)),
+		.OPT_SERDES(@$(OPT_SERDES)),
+		.OPT_DDR(@$(OPT_DDR)),
+		.OPT_CARD_DETECT(@$(CARD_DETECT)),
+		.MW(@$(SLAVE.BUS.WIDTH))
+	) u_@$(PREFIX)(
+		// {{{
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		@$(SLAVE.ANSIPORTLIST),
+		.o_ck(o_@$(PREFIX)_clk),
+		.i_ds(i_@$(PREFIX)_ds),
+`ifdef	VERILATOR
+		.io_cmd_tristate(io_@$(PREFIX)_cmd_tristate),
+		.o_cmd(o_@$(PREFIX)_cmd),
+		.i_cmd(i_@$(PREFIX)_cmd),
+		.io_dat_tristate(io_@$(PREFIX)_dat_tristate),
+		.o_dat(o_@$(PREFIX)_dat),
+		.i_dat(i_@$(PREFIX)_dat),
+`else
+		.io_cmd(io_@$(PREFIX)_cmd),
+		.io_dat(io_@$(PREFIX)_dat),
+`endif
+		.i_card_detect(i_@$(PREFIX)_detect),
+		.o_int(@$(PREFIX)_int),
+		.o_debug(@$(PREFIX)_debug)
+		// }}}
+	);
+
+	// }}}
+@MAIN.ALT=
+	assign	o_@$(PREFIX)_clk = 1'b1;
+`ifdef	VERILATOR
+	assign	io_@$(PREFIX)_cmd_tristate = 1'b1;
+	assign	o_@$(PREFIX)_cmd = 1'b1;
+	assign	io_@$(PREFIX)_data_tristate  = -1;
+	assign	o_@$(PREFIX)_data = -1;
+`else	// VERILATOR
+	assign	io_@$(PREFIX)_cmd  = 1'b1;
+	assign	io_@$(PREFIX)_dat  = -1;
+`endif	// VERILATOR
+@REGS.N=5
+@REGS.NOTE= // @$(NAME) addresses
+@REGS.0= 0 R_@$(DEVID)_CTRL  	SDCARD
+@REGS.1= 1 R_@$(DEVID)_DATA 	SDDATA
+@REGS.2= 2 R_@$(DEVID)_FIFOA	SDFIFOA, SDFIF0, SDFIFA
+@REGS.3= 3 R_@$(DEVID)_FIFOB	SDFIFOB, SDFIF1, SDFIFB
+@REGS.4= 4 R_@$(DEVID)_PHY	SDPHY
+@BDEF.DEFN=
+////////////////////////////////////////////////////////////////////////////////
+//
+// @$(NAME) constants
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+//
+//
+
+#define	@$(DEVID)_CMD		0x000040
+#define	@$(DEVID)_ACMD		(0x040+55) // CMD55
+#define	@$(DEVID)_FIFO_OP	0x000800	// Read only
+#define	@$(DEVID)_WRITEOP	0x000c00	// Write to the FIFO
+#define	@$(DEVID)_ALTFIFO	0x001000
+// #define	@$(DEVID)_DMA	0x002000
+#define	@$(DEVID)_BUSY		0x004000
+#define	@$(DEVID)_ERROR		0x008000
+#define	@$(DEVID)_CLEARERR	0x008000
+// #define	@$(DEVID)_CRCERR	0x020000
+// #define	@$(DEVID)_FRAMERR	0x030000
+// #define	@$(DEVID)_REMOVED	0x040000
+// #define	@$(DEVID)_PRESENTN	0x080000
+// #define	@$(DEVID)_RESET		0x100000	// Read only
+// #define	@$(DEVID)_WATCHDOG	0x200000	// Read only
+#define	@$(DEVID)_GO_IDLE	((@$(DEVID)_CLEARERR|@$(DEVID)_CMD)+0)
+#define	@$(DEVID)_READ_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_FIFO_OP)+17)
+#define	@$(DEVID)_WRITE_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_WRITEOP)+24)
+
+typedef	struct @$(DEVID)_S {
+	unsigned	sdio_ctrl, sdio_data, sdio_fifo[2];
+	unsigned	sdio_phy, sdio_unused[3];
+} @$(DEVID);
+// }}}
+@BDEF.IONAME=_sdcard
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+@SIM.CLOCK=clk
+@SIM.INCLUDE=
+// #include "sdiosim.h"
+@RTL.MAKE.GROUP= SDIO
+@RTL.MAKE.SUBD=sdspi
+@RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v

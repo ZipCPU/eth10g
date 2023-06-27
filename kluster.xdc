@@ -188,7 +188,7 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 #set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
 ## }}}
 
-## Flash / eMMC
+## Flash
 ## {{{
 #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
 ## The flash clock pin is CCLK_0
@@ -198,11 +198,22 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 #set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[1]]
 #set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[2]]
 #set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[3]]
-## #set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[4]]
-## #set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[5]]
-## #set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[6]]
-## #set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[7]]
-#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports io_emmc_ds]
+## }}}
+
+## eMMC
+## {{{
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
+
+#set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
+#set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
+#set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
+#set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
+#set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
+#set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
+#set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
+#set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
+#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 ## }}}
 
 ## SATA

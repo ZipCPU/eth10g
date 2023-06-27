@@ -64,7 +64,7 @@ void	closeup(int v) {
 class	SDIOSCOPE : public SCOPE {
 public:
 	SDIOSCOPE(DEVBUS *fpga, unsigned addr, bool vecread = true)
-		: SCOPE(fpga, addr, true, vecread) {};
+		: SCOPE(fpga, addr, false, vecread) {};
 	~SDIOSCOPE(void) {}
 	virtual	void	decode(DEVBUS::BUSW val) const {
 		// int	scl, sda;

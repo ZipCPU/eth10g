@@ -5,6 +5,7 @@ flashscope
 i2casm
 i2cscope
 netuart
+sdioscope
 smiscope
 wbregs
 zipdbg

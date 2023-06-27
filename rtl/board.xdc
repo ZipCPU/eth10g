@@ -188,7 +188,7 @@ set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_d
 set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
 ## }}}
 
-## Flash / eMMC
+## Flash
 ## {{{
 #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
 ## The flash clock pin is CCLK_0
@@ -198,11 +198,22 @@ set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat
 set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[1]]
 set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[2]]
 set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[3]]
-## #set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[4]]
-## #set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[5]]
-## #set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[6]]
-## #set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[7]]
-#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports io_emmc_ds]
+## }}}
+
+## eMMC
+## {{{
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
+
+#set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
+#set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
+#set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
+#set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
+#set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
+#set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
+#set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
+#set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
+#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 ## }}}
 
 ## SATA
@@ -446,6 +457,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in sirefclk
 ## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in i2c
+## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_mic
@@ -489,7 +501,6 @@ set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 ## No XDC.INSERT tag in wbflashdn
 ## No XDC.INSERT tag in alt
 ## No XDC.INSERT tag in cfgscope
-## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in zip_jiffies
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
@@ -499,5 +510,6 @@ set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in flashdbg
+## No XDC.INSERT tag in sdioscope
 ## No XDC.INSERT tag in mem_bkram_only
 ## No XDC.INSERT tag in mem_flash_bkram
