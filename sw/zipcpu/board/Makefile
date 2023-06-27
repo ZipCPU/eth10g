@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi rdedid sisetup # sdinfo contest
+PROGRAMS := hello cputest ssddemo qkhdmi rdedid # sisetup sdinfo contest
 all:	$(PROGRAMS)
 #
 #
