@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi rdedid sdinfo sisetup # contest
+PROGRAMS := hello cputest ssddemo qkhdmi rdedid sisetup # sdinfo contest
 all:	$(PROGRAMS)
 #
 #
@@ -51,9 +51,9 @@ HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
 LDSCRIPT:= board.ld
-LFLAGS  := -T $(LDSCRIPT) -L../zlib -L../fatfs
+LFLAGS  := -T $(LDSCRIPT) -L../zlib # -L../fatfs
 LBKRAM  := -T bkram.ld -L../zlib
-CFLAGS  := -O3 -I../zlib -I../../../rtl -I../fatfs
+CFLAGS  := -O3 -I../zlib -I../../../rtl # -I../fatfs
 LIBS    := -lc -lzeth -lgcc
 LIBFAT  := -lfatfs
 INSTALLD=$(shell bash -c "which zip-gcc | sed -e 's/.cross-tools.*$\//'")
