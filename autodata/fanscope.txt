@@ -4,8 +4,9 @@
 ## {{{
 ## Project:	10Gb Ethernet switch
 ##
-## Purpose:	Describes how to connect an SD-SPI debugging port to a wishbone
-##		scope, then to be connected to the bus by autofpga.
+## Purpose:	Describes how to connect the fan controller's debugging port
+##		to a wishbone scope, then to be connected to the bus by
+##	autofpga.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
