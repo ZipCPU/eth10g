@@ -308,9 +308,13 @@ module	sdio #(
 
 	//
 	// Make verilator happy
+	// {{{
+	// verilator coverage_off
 	// verilator lint_off UNUSED
-	// wire	unused;
-	// assign	unused = i_wb_cyc;
+	wire	unused;
+	assign	unused = &{ 1'b0, i_cmd_busy };
 	// verilator lint_on  UNUSED
+	// verilator coverage_on
+	// }}}
 endmodule
 

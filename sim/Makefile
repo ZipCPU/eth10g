@@ -44,7 +44,7 @@ RTLD	:= ../rtl
 VOBJDR	:= $(RTLD)/obj_dir
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
 VROOT	:= $(VERILATOR_ROOT)
-VVERSION:= vversion.sh
+VVERSION:= ./vversion.sh
 VDEFS   := $(shell $(VVERSION))
 VINCD   := $(VROOT)/include
 VINC	:= -I$(VINCD) -I$(VINCD)/vltstd -I$(VOBJDR)

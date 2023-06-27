@@ -95,8 +95,8 @@ module	sdcmd #(
 	// {{{
 	localparam [1:0]	R_NONE = 2'b00,
 				R_R1   = 2'b01,
-				R_R2   = 2'b10,
-				R_R1b  = 2'b11;
+				R_R2   = 2'b10;
+				// R_R1b  = 2'b11;
 
 	localparam [1:0]	ECODE_TIMEOUT = 2'b00,
 				ECODE_OKAY    = 2'b01,

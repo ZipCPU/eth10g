@@ -93,7 +93,7 @@ module	sdtxframe #(
 	reg	[NCRC*16-1:0]	di_crc_8d, nxt_crc_8d, new_crc_8d, crc_8d_reg;
 
 	reg		ck_valid;
-	wire		ck_ready;
+	// wire		ck_ready;
 	reg	[4:0]	ck_counts;
 	reg	[31:0]	ck_data, ck_sreg;
 	// }}}
@@ -681,7 +681,7 @@ module	sdtxframe #(
 	// Final outputs
 	// {{{
 	assign	tx_valid = ck_valid;
-	assign	ck_ready = (i_ckstb || (i_hlfck && cfg_ddr)); // && tx_ready;
+	// assign ck_ready = (i_ckstb || (i_hlfck && cfg_ddr)); // && tx_ready;
 	assign	tx_data  = ck_data;
 	// }}}
 
