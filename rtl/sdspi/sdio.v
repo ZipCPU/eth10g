@@ -249,7 +249,6 @@ module	sdio #(
 		//
 		.o_cmd_en(o_cmd_en), .o_cmd_data(o_cmd_data),
 		.i_cmd_strb(i_cmd_strb), .i_cmd_data(i_cmd_data),
-			.i_dat_busy(i_cmd_busy),
 		.S_ASYNC_VALID(S_AC_VALID), .S_ASYNC_DATA(S_AC_DATA),
 		//
 		.o_cmd_response(rsp_stb), .o_resp(rsp_id),
