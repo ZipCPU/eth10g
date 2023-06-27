@@ -275,7 +275,7 @@ module	sdio #(
 		.S_VALID(tx_en && tx_mem_valid), .S_READY(tx_mem_ready),
 		.S_DATA(tx_mem_data), .S_LAST(tx_mem_last),
 		//
-		.tx_valid(o_data_en), .tx_ready(1'b1),
+		.tx_valid(o_data_en), // .tx_ready(1'b1),
 		.tx_data(o_tx_data)
 		// }}}
 	);
