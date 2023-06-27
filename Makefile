@@ -137,11 +137,11 @@ autodata: check-autofpga
 	$(call copyif-changed,$(AUTOD)/board.h,sw/zipcpu/board/board.h)
 	$(call copyif-changed,$(AUTOD)/bkram.ld,sw/zipcpu/board/bkram.ld)
 	$(call copyif-changed,$(AUTOD)/board.ld,sw/zipcpu/board/board.ld)
-	$(call copyif-changed,$(AUTOD)/sdram.ld,sw/zipcpu/board/sdram.ld)
 	$(call copyif-changed,$(AUTOD)/rtl.make.inc,rtl/make.inc)
 	$(call copyif-changed,$(AUTOD)/testb.h,$(SIMD)/testb.h)
 	$(call copyif-changed,$(AUTOD)/main_tb.cpp,$(SIMD)/main_tb.cpp)
 
+# $(call copyif-changed,$(AUTOD)/sdram.ld,sw/zipcpu/board/sdram.ld)
 # $(call copyif-changed,$(AUTOD)/board.ld,sw/boot/board.ld)
 # $(call copyif-changed,$(AUTOD)/bootrom.ld,sw/zipcpu/boot/bootrom.ld)
 # $(call copyif-changed,$(AUTOD)/bootrom.ld,sw/zipcpu/board/bootrom.ld)
