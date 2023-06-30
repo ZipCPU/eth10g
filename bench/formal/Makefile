@@ -35,10 +35,11 @@
 ################################################################################
 ##
 ## }}}
-TESTS := axinarbiter axinbroadcast axinwidth dropshort wbmarbiter
-TESTS += pktvfiford pktvfifowr cecbridge wbi2cdma
+TESTS := axinarbiter axinbroadcast axinwidth dropshort	# wbmarbiter
+TESTS += pktvfifowr cecbridge wbi2cdma			# pktvfiford
 .PHONY: $(TESTS)
 all: $(TESTS)
+full: all wbmarbiter pktvfiford
 RTL := ../../rtl
 RTLNET := ../../rtl/net
 

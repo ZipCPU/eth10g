@@ -48,7 +48,7 @@ module dropshort #(
 		input	wire				S_VALID,
 		output	wire				S_READY,
 		input	wire	[DW-1:0]		S_DATA,
-		input	wire	[$clog2(DW)-1:0]	S_BYTES,
+		input	wire	[$clog2(DW/8)-1:0]	S_BYTES,
 		input	wire				S_ABORT,
 		input	wire				S_LAST,
 		// }}}
@@ -57,7 +57,7 @@ module dropshort #(
 		output	reg				M_VALID,
 		input	wire				M_READY,
 		output	reg	[DW-1:0]		M_DATA,
-		output	reg	[$clog2(DW)-1:0]	M_BYTES,
+		output	reg	[$clog2(DW/8)-1:0]	M_BYTES,
 		output	reg				M_ABORT,
 		output	reg				M_LAST
 		// }}}
@@ -275,6 +275,7 @@ module dropshort #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Lowpower checking
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
