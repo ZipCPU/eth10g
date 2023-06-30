@@ -50,7 +50,7 @@ module axincdc #(
 		input	wire				S_VALID,
 		output	wire				S_READY,
 		input	wire	[DW-1:0]		S_DATA,
-		input	wire	[$clog2(DW)-1:0]	S_BYTES,
+		input	wire	[$clog2(DW/8)-1:0]	S_BYTES,
 		input	wire				S_ABORT,
 		input	wire				S_LAST,
 		// }}}
@@ -61,14 +61,14 @@ module axincdc #(
 		output	wire				M_VALID,
 		input	wire				M_READY,
 		output	wire	[DW-1:0]		M_DATA,
-		output	wire	[$clog2(DW)-1:0]	M_BYTES,
+		output	wire	[$clog2(DW/8)-1:0]	M_BYTES,
 		output	wire				M_ABORT,
 		output	wire				M_LAST
 		// }}}
 		// }}}
 	);
 
-	wire	w_full, w_empty;
+	wire	w_full, w_empty, w_abort;
 	reg	s_midpkt, s_abort;
 
 	// s_midpkt
@@ -95,7 +95,7 @@ module axincdc #(
 
 	afifo #(
 		.LGFIFO(LGFIFO),
-		.WIDTH(1+1+$clog2(DW)+DW)
+		.WIDTH(1+1+$clog2(DW/8)+DW)
 	) u_afifo (
 		// {{{
 		.i_wclk(S_CLK),		.i_wr_reset_n(S_ARESETN),
@@ -106,11 +106,12 @@ module axincdc #(
 		//
 		.i_rclk(M_CLK),		.i_rd_reset_n(M_ARESETN),
 		.i_rd(M_READY),
-		.o_rd_data({ M_ABORT, M_LAST, M_BYTES, M_DATA }),
+		.o_rd_data({ w_abort, M_LAST, M_BYTES, M_DATA }),
 		.o_rd_empty(w_empty)
 		// }}}
 	);
 
 	assign	M_VALID = !w_empty;
 	assign	S_READY = S_ABORT || (!w_full && !s_abort);
+	assign  M_ABORT = w_abort && M_VALID;
 endmodule

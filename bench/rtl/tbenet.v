@@ -86,22 +86,25 @@ module	tbenet (
 	// Verilator lint_on  WIDTH
 	localparam	BSMSB = 12;
 
+	localparam	[6:0]	IDL = 7'h07;
 	localparam [65:0]	PKTPREFIX= { 8'hab, {(6){8'haa}},
 								8'h78, 2'b10 },
-				PKTHALFPREFIX = { {(4){7'h07}},
-					32'haa_aa_aa_aa, 8'h33, 2'b10 },
+				PKTHALFPREFIX = {
+					24'haa_aa_aa, 2'b00,
+					{(4){IDL}},
+					8'h33, 2'b10 },
 				PKTFAULTSTART = { 32'haa_aa_aa_aa,
 					32'haa_00_00_00, 8'h66, 2'b10 },
 	//
 				PKTFAULT={ 24'h020000, 8'h00,
 					24'h020000, 8'h55, 2'b10 },
 				PKTFAULTLFT={ 24'h020000, 4'h0,
-					{(4){7'h07}}, 8'h2d, 2'b10 },
-				PKTFAULTRHT={ {(4){7'h07}}, 4'h0,
+					{(4){IDL}}, 8'h2d, 2'b10 },
+				PKTFAULTRHT={ {(4){IDL}}, 4'h0,
 					24'h020000, 8'h4b, 2'b10 },
 	//
-				PKTEOP  ={ {(8){7'h07}},8'h87, 2'b10 },
-				PKTIDLE  ={ {(8){7'h07}},8'h1e, 2'b10 };
+				PKTEOP  ={ {(8){IDL}},8'h87, 2'b10 },
+				PKTIDLE  ={ {(8){IDL}},8'h1e, 2'b10 };
 	localparam	[31:0]	PKT_SOP = 32'hab_aa_aa_aa;
 
 `ifdef	VERILATOR
@@ -129,14 +132,15 @@ module	tbenet (
 	reg	[1:0]	spkt_active;
 	reg		spkt_half, spkt_fault;
 	reg	[57:0]	rxfill;
-	reg	[65:0]	rxword, rxpay, prerxpay;
+	reg	[65:0]	rxword, rxpay, prerxpay,
+			last_rx_payload, last_tx_payload;
 	reg	[6:0]	rxwphase;
 	reg		rxwlock, rxmatch;
 	reg	[3:0]	rxwlock_count;
 	reg		rxw_valid;
 
 	reg		pl_state, pl_valid, pl_last, pl_fault;
-	reg	[2:0]	pl_bytes;
+	reg	[3:0]	pl_bytes;
 	reg	[63:0]	pl_data;
 	reg		pl_started, pl_half, pl_offset;
 	reg	[31:0]	pl_mem;
@@ -211,17 +215,31 @@ module	tbenet (
 
 	// Find the center of the baud: apply a crude filter, look for the max
 	// {{{
-	// bsmatchacc -- The crude (matched?) filter
+	// bsmatchacc = The output of the crude (matched?) filter
+	// Here, for a filter, we're using an 8-sample triangle wave.
+	//	Coefficients are: 2, 1, 0, -1, -2, -1, 0, 1
 	always @(rxsubavg[0])
 	begin
 		// Verilator lint_off WIDTH
 		bsmatchacc = 0;
 		for(ip=0; ip<OVERSAMPLE_RATIO; ip=ip+1)
 		begin
-			if (ip < OVERSAMPLE_RATIO/4)
+			if (ip == 0)
+				bsmatchacc = bsmatchacc + 2 * rxsubavg[ip];
+			else if (ip == OVERSAMPLE_RATIO/4)
+			begin end
+			else if (ip == OVERSAMPLE_RATIO/2)
+				bsmatchacc = bsmatchacc - 2 * rxsubavg[ip];
+			else if (ip == 3*OVERSAMPLE_RATIO/4)
+			begin end
+			else if (ip < OVERSAMPLE_RATIO/4)
 				bsmatchacc = bsmatchacc + rxsubavg[ip];
+			else if (ip == OVERSAMPLE_RATIO/4)
+			begin end
 			else if (ip < 3*OVERSAMPLE_RATIO/4)
 				bsmatchacc = bsmatchacc - rxsubavg[ip];
+			else if (ip == 3*OVERSAMPLE_RATIO/4)
+			begin end
 			else
 				bsmatchacc = bsmatchacc + rxsubavg[ip];
 		end
@@ -271,7 +289,7 @@ module	tbenet (
 
 	// M_RESET, M_ABORT, via asynchronous reset synchronizer
 	// {{{
-	initial	{ M_RESETn, m_reset_pipe } <= 0;
+	initial	{ M_RESETn, m_reset_pipe } = 0;
 	always @(posedge sample_clk)
 		{ M_RESETn, m_reset_pipe } <= { m_reset_pipe, 1'b1 };
 
@@ -443,7 +461,7 @@ module	tbenet (
 		else if (rxpay == PKTHALFPREFIX || rxpay == PKTFAULTSTART)
 			{ pl_offset, pl_half } <= 2'b11;
 		else if (rxw_valid && !pl_state && pl_half)
-			{ pl_offset, pl_half } <= 2'b00;
+			{ pl_offset, pl_half } <= { 1'b0, (pl_half && pl_bytes>0)};
 		else if (rxpay[1:0] != 2'b01 && !pl_started)
 			// Clear the offset and half for all other controls
 			{ pl_offset, pl_half } <= 2'b00;
@@ -476,13 +494,20 @@ module	tbenet (
 		pl_bytes  <= 0;		// Bytes in our buffer, modulo 8
 		pl_last   <= 1'b0;	// Is the buffer the last data?
 		pl_fault  <= 1'b0;	// Has there been a fault of some type?
+
+		last_rx_payload <= 66'h0;;
 	end else if (rxw_valid)
 	begin
+		last_rx_payload <= rxpay;
+
 		pl_fault <= 1'b0;
-		pl_last  <= 1'b0;
+		pl_last  <= (pl_bytes > 0);
+		pl_bytes <= (pl_bytes[3]) ? { 1'b0, pl_bytes[2:0] }: 4'h0;
+		{ pl_data, pl_mem } <= { 64'h0, pl_data[63:32] };
 		if (rxpay[1:0] == 2'b01)
 		begin
 			// {{{
+			pl_last  <= 0;
 			if (!pl_started)
 			begin
 				{ pl_data, pl_mem } <= 96'h0;
@@ -491,19 +516,19 @@ module	tbenet (
 			begin
 				{ pl_data, pl_mem } <= {
 						rxpay[65:2], pl_data[63:32] };
-				pl_bytes <= 3'h4;
+				pl_bytes <= (pl_offset) ? 4'h0 : 4'h4;
 			end else begin
 				{ pl_data, pl_mem } <= { rxpay[65:2], 32'h0 };
-				pl_bytes <= 3'h0;
+				pl_bytes <= 4'h8;
 			end
 			// }}}
 		end else case(rxpay[9:2])	// Decode the control codes
 		8'h1e: begin	// C0-C7
 			// {{{
 			pl_started <= 0;
-			pl_mem   <= 0;
-			pl_data  <= 0;
-			pl_bytes <= 0;
+			// pl_mem   <= 0;
+			// pl_data  <= 0;
+			// pl_bytes <= 0;
 			end
 			// }}}
 		8'h2d: begin	// C0-C3, FAULT
@@ -511,8 +536,8 @@ module	tbenet (
 			pl_started <= 0;
 			pl_mem   <= 0;
 			pl_data  <= 0;
-			pl_bytes <= 0;
-			pl_last  <= 0;
+			// pl_bytes <= 0;
+			// pl_last  <= 0;
 			pl_fault <= 1;
 			end
 			// }}}
@@ -521,7 +546,7 @@ module	tbenet (
 			pl_started <= 1;
 			pl_mem   <= 0;
 			pl_data  <= 0;
-			pl_bytes <= 0;
+			// pl_bytes <= 0;
 			end
 			// }}}
 		8'h66: begin	// FAULT, START
@@ -537,8 +562,8 @@ module	tbenet (
 			pl_started <= 0;
 			pl_mem   <= 0;
 			pl_data  <= 0;
-			pl_bytes <= 0;
-			pl_last  <= 0;
+			// pl_bytes <= 0;
+			// pl_last  <= 0;
 			pl_fault <= !pl_half;
 			end
 			// }}}
@@ -583,7 +608,7 @@ module	tbenet (
 			else
 				{ pl_data, pl_mem } <= { 56'h0, rxpay[17:10], 32'h0};
 
-			pl_bytes <= pl_bytes + 4'h1;
+			pl_bytes <= pl_bytes[2:0] + 4'h1;
 			pl_last  <= 1'b1;
 			end
 			// }}}
@@ -594,7 +619,7 @@ module	tbenet (
 			else
 				{ pl_data, pl_mem } <= { 48'h0, rxpay[25:10], 32'h0};
 
-			pl_bytes <= pl_bytes + 4'h2;
+			pl_bytes <= pl_bytes[2:0] + 4'h2;
 			pl_last  <= 1'b1;
 			end
 			// }}}
@@ -604,7 +629,7 @@ module	tbenet (
 				{ pl_data, pl_mem } <= { 40'h0, rxpay[33:10], pl_data[63:32] };
 			else
 				{ pl_data, pl_mem } <= { 40'h0, rxpay[33:10], 32'h0};
-			pl_bytes <= pl_bytes + 4'h3;
+			pl_bytes <= pl_bytes[2:0] + 4'h3;
 			pl_last  <= 1'b1;
 			end
 			// }}}
@@ -614,7 +639,7 @@ module	tbenet (
 				{ pl_data, pl_mem } <= { 32'h0, rxpay[41:10], pl_data[63:32] };
 			else
 				{ pl_data, pl_mem } <= { 32'h0, rxpay[41:10], 32'h0};
-			pl_bytes <= pl_bytes + 4'h4;
+			pl_bytes <= pl_bytes[2:0] + 4'h4;
 			pl_last  <= 1'b1;
 			end
 			// }}}
@@ -624,8 +649,8 @@ module	tbenet (
 				{ pl_data, pl_mem } <= { 24'h0, rxpay[49:10], pl_data[63:32] };
 			else
 				{ pl_data, pl_mem } <= { 24'h0, rxpay[49:10], 32'h0};
-			pl_bytes <= pl_bytes + 4'h5;
-			pl_last  <= 1'b1;
+			pl_bytes <= pl_bytes[2:0] + 4'h5;
+			pl_last  <= !pl_half;
 			end
 			// }}}
 		8'he1: begin	// D0-D5, T6, C7
@@ -634,8 +659,8 @@ module	tbenet (
 				{ pl_data, pl_mem } <= { 16'h0, rxpay[57:10], pl_data[63:32] };
 			else
 				{ pl_data, pl_mem } <= { 16'h0, rxpay[57:10], 32'h0};
-			pl_bytes <= pl_bytes + 4'h6;
-			pl_last  <= 1'b1;
+			pl_bytes <= pl_bytes[2:0] + 4'h6;
+			pl_last  <= !pl_half;
 			end
 			// }}}
 		8'hff: begin	// D0-D6, T7
@@ -644,8 +669,8 @@ module	tbenet (
 				{ pl_data, pl_mem } <= { 8'h0, rxpay[65:10], pl_data[63:32] };
 			else
 				{ pl_data, pl_mem } <= { 8'h0, rxpay[65:10], 32'h0};
-			pl_bytes <= pl_bytes + 4'h7;
-			pl_last  <= 1'b1;
+			pl_bytes <= pl_bytes[2:0] + 4'h7;
+			pl_last  <= !pl_half;
 			end
 			// }}}
 		default: begin
@@ -683,7 +708,6 @@ module	tbenet (
 			M_DATA <= { pl_data[31:0], pl_mem };
 		else
 			M_DATA <= pl_data;
-		M_BYTES <= pl_bytes;
 	end
 
 	always @(posedge sample_clk or negedge M_RESETn)
@@ -693,9 +717,9 @@ module	tbenet (
 		M_BYTES <= 0;
 	end else if (rxw_valid)
 	begin
-		M_LAST  <= pl_last
+		M_LAST  <= (pl_last && pl_bytes <= 4'h8)
 				|| (!pl_half && rxpay[9:0] == { 8'h87, 2'b10 });
-		M_BYTES <= pl_bytes;
+		M_BYTES <= (pl_last && pl_bytes <= 4'h8) ? pl_bytes[2:0] : 3'h0;
 	end
 	// }}}
 
@@ -763,7 +787,12 @@ module	tbenet (
 	if (!S_RESETn)
 		spkt_active <= 2'b00;
 	else if (stxstb)
-		spkt_active <= { spkt_active[0], (S_VALID && !S_FAULT) };
+	begin
+		if (spkt_half && S_VALID && S_READY && S_LAST)
+			spkt_active <= 2'b00;
+		else
+			spkt_active<= { spkt_active[0], (S_VALID && !S_FAULT) };
+	end
 	// }}}
 
 	assign	S_READY = stxstb && S_RESETn && !eop
@@ -797,15 +826,15 @@ module	tbenet (
 			spkt_last  <= 0;
 		end else if (S_VALID && S_READY && !S_FAULT)
 		begin
-			spkt_bytes <= { 1'b0, S_BYTES[1:0] };
+			spkt_bytes <= S_BYTES[1:0];
 			spkt_data  <= S_DATA;
 			spkt_last  <= S_LAST;
 			if (S_BYTES == 0)
-				spkt_bytes <= 3'h4;
-		end else if (!S_VALID || S_FAULT)
+				spkt_bytes <= 2'b00;
+		end else if (S_VALID || S_FAULT)
 		begin // Prepare for beginning the next packet
 			spkt_data  <= PKT_SOP;
-			spkt_bytes <= 3'h0;
+			spkt_bytes <= 2'h0;
 		end
 	end
 	// }}}
@@ -816,9 +845,9 @@ module	tbenet (
 	// 66b codeword.
 	always @(*)
 	begin
-		new_txbytes = spkt_bytes + ((S_BYTES[1:0] == 2'b00) ? 3'h4
-						: { 1'b0, S_BYTES[1:0] })
-			+ (spkt_half ? 3'h4: 0);
+		new_txbytes = ((spkt_bytes == 2'b00) ? 3'h4 : {1'b0,spkt_bytes})
+			+((S_VALID && S_READY) ? ((S_BYTES[1:0] == 2'b00) ? 3'h4
+					: { 1'b0, S_BYTES[1:0] }) : 3'h0);
 		pending_eop = 0;
 
 		txpay = PKTIDLE;
@@ -827,7 +856,7 @@ module	tbenet (
 		else if (eop)
 			txpay = PKTEOP;
 		else if ((S_VALID && S_READY && !S_FAULT)
-				|| (!S_FAULT && spkt_active==2'b10))
+				|| (!S_FAULT && spkt_active[1]==1'b1))
 		begin // Within a data packet
 			// {{{
 			if (S_VALID && !S_LAST) // In the middle of a packet
@@ -837,12 +866,12 @@ module	tbenet (
 				txpay={ S_DATA,spkt_data, 2'b01 };
 				pending_eop = 1;		// == S_LAST
 				end
-			1:txpay={48'h0, spkt_data[ 7:0], 8'h99, 2'b10 };
-			2:txpay={40'h0, spkt_data[15:0], 8'haa, 2'b10 };
-			3:txpay={32'h0, spkt_data[23:0], 8'hb4, 2'b10 };
-			4:txpay={24'h0, spkt_data[31:0], 8'hcc, 2'b10 };
-			5:txpay={16'h0, S_DATA[ 7:0], spkt_data, 8'hd2, 2'b10 };
-			6:txpay={ 8'h0, S_DATA[15:0], spkt_data, 8'he1, 2'b10 };
+			1:txpay={{(6){IDL}},6'h0,spkt_data[ 7:0],8'h99, 2'b10 };
+			2:txpay={{(5){IDL}},5'h0,spkt_data[15:0],8'haa, 2'b10 };
+			3:txpay={{(4){IDL}},4'h0,spkt_data[23:0],8'hb4, 2'b10 };
+			4:txpay={{(3){IDL}},3'h0,spkt_data[31:0],8'hcc, 2'b10 };
+			5:txpay={{(2){IDL}},2'b00, S_DATA[ 7:0], spkt_data, 8'hd2, 2'b10 };
+			6:txpay={IDL,1'b0,S_DATA[15:0],spkt_data,8'he1, 2'b10 };
 			7:txpay={       S_DATA[23:0], spkt_data, 8'hff, 2'b10 };
 			endcase
 			// }}}
@@ -875,8 +904,14 @@ module	tbenet (
 	if (!S_RESETn)
 		eop <= 0;
 	else if (stxstb && spkt_half)
-		eop <= pending_eop;
+		eop <= pending_eop && S_VALID;
 	// }}}
+
+	always @(posedge txclk)
+	if (!S_RESETn)
+		last_tx_payload <= 0;
+	else if (stxstb && spkt_half)
+		last_tx_payload <= txpay;
 
 	// o_tx, txfill, txsreg
 	// {{{
