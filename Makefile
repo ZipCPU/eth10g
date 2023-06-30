@@ -33,7 +33,7 @@
 ##
 ## }}}
 .PHONY: all
-all:	check-install datestamp autodata sim sw
+all:	check-install datestamp autodata sim sw test
 #
 # Defines and directories
 ## {{{
@@ -181,7 +181,7 @@ sim: rtl check-gpp
 ## A master target to build all of the support software
 ##
 .PHONY: sw
-sw: sw-host sw-zlib sw-board # sw-boot
+sw: sw-host sw-zlib sw-fatfs sw-board # sw-boot
 
 .PHONY: sw-host host
 ## {{{
@@ -203,11 +203,21 @@ sw-zlib: check-zip-gcc
 	+@$(SUBMAKE) sw/zipcpu/zlib
 ## }}}
 
+.PHONY: sw-fatfs fatfs
+## {{{
+fatfs: sw-fatfs
+##
+## Build the hardware specific newlib library
+##
+sw-fatfs: check-zip-gcc
+	+@$(SUBMAKE) sw/zipcpu/fatfs
+## }}}
+
 .PHONY: sw-board
 ## {{{
 ## Build the board software.  This may (or may not) use the software library
 ##
-sw-board: sw-zlib check-zip-gcc
+sw-board: sw-zlib check-zip-gcc # sw-fatfs
 	+@$(SUBMAKE) sw/zipcpu/board
 ## }}}
 
@@ -224,7 +234,7 @@ sw-board: sw-zlib check-zip-gcc
 ##
 ## Test targets
 ## {{{
-.PHONY: test
+.PHONY: test formal
 
 #
 # Run "Hello World", and ... see if this all works
@@ -238,6 +248,14 @@ sw-board: sw-zlib check-zip-gcc
 #	$(SIMD)/main_tb sw/board/sdtest
 
 #test: hello
+
+formal:
+	$(SUBMAKE) bench/formal
+
+vtest:	sim
+	$(SUBMAKE) sim test
+
+test: formal vtest
 ## }}}
 ################################################################################
 ##
