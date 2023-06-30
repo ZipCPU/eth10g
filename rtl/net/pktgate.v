@@ -55,7 +55,7 @@ module	pktgate #(
 		input	wire			S_AXIN_VALID,
 		output	reg			S_AXIN_READY,
 		input	wire [DW-1:0]		S_AXIN_DATA,
-		input	wire [$clog2(DW):0]	S_AXIN_BYTES,
+		input	wire [$clog2(DW/8)-1:0]	S_AXIN_BYTES,
 		input	wire			S_AXIN_LAST,
 		input	wire			S_AXIN_ABORT,
 		//
@@ -63,7 +63,7 @@ module	pktgate #(
 		output	reg			M_AXIN_VALID,
 		input	wire			M_AXIN_READY,
 		output	wire [DW-1:0]		M_AXIN_DATA,
-		output	wire [$clog2(DW):0]	M_AXIN_BYTES,
+		output	wire [$clog2(DW/8)-1:0]	M_AXIN_BYTES,
 		output	wire			M_AXIN_LAST,
 		output	wire			M_AXIN_ABORT
 		// }}}
@@ -71,7 +71,7 @@ module	pktgate #(
 
 	// Register/net declarations
 	// {{{
-	localparam	FW = 1 + $clog2(DW) + DW;
+	localparam	FW = 1 + $clog2(DW/8) + DW;
 	reg			lastv;
 	wire			r_full, eop_next, r_empty;
 	reg	[FW-1:0]	mem	[0:(FLEN-1)];
@@ -171,7 +171,7 @@ module	pktgate #(
 	always @(posedge S_AXI_ACLK)
 	if (w_wr)
 		mem[wr_addr[(LGFLEN-1):0]] <= { S_AXIN_LAST,
-				S_AXIN_BYTES[$clog2(DW)-1:0], S_AXIN_DATA };
+				S_AXIN_BYTES[$clog2(DW/8)-1:0], S_AXIN_DATA };
 	// }}}
 
 	// rd_addr, the read address pointer
@@ -243,7 +243,7 @@ module	pktgate #(
 			memv = mem[rd_addr[LGFLEN-1:0]];
 			if (r_empty)
 				memv = { S_AXIN_LAST,
-						S_AXIN_BYTES[$clog2(DW)-1:0],
+						S_AXIN_BYTES[$clog2(DW/8)-1:0],
 						S_AXIN_DATA };
 		end
 
@@ -251,8 +251,7 @@ module	pktgate #(
 			last_override <= 0 && (M_AXIN_VALID && !M_AXIN_READY && M_AXIN_LAST);
 
 		assign	M_AXIN_DATA = memv[DW-1:0];
-		assign	M_AXIN_BYTES = { (memv[DW +: $clog2(DW)]==0),
-						memv[DW +: $clog2(DW)] };
+		assign	M_AXIN_BYTES = memv[DW +: $clog2(DW/8)];
 
 		assign	M_AXIN_LAST = memv[FW-1] || last_override;
 		// }}}
@@ -266,8 +265,7 @@ module	pktgate #(
 			memv = mem[rd_addr[LGFLEN-1:0]];
 
 		assign	M_AXIN_DATA = memv[DW-1:0];
-		assign	M_AXIN_BYTES = { (memv[DW +: $clog2(DW)]==0),
-						memv[DW +: $clog2(DW)] };
+		assign	M_AXIN_BYTES = memv[DW +: $clog2(DW/8)];
 
 		assign	M_AXIN_LAST = memv[FW-1];
 		// }}}
@@ -297,7 +295,7 @@ module	pktgate #(
 
 		always @(posedge S_AXI_ACLK)
 			bypass_data <= { (S_AXIN_LAST || S_AXIN_ABORT),
-				S_AXIN_BYTES[$clog2(DW)-1:0], S_AXIN_DATA };
+				S_AXIN_BYTES[$clog2(DW/8)-1:0], S_AXIN_DATA };
 
 		initial mem[0] = 0;
 		initial rd_data = 0;
@@ -308,7 +306,7 @@ module	pktgate #(
 
 		always @(*)
 		if (OPT_READ_ON_EMPTY && r_empty)
-			rdval = { S_AXIN_LAST, S_AXIN_BYTES[$clog2(DW)-1:0],
+			rdval = { S_AXIN_LAST, S_AXIN_BYTES[$clog2(DW/8)-1:0],
 							S_AXIN_DATA };
 		else if (bypass_valid)
 			rdval = bypass_data;
@@ -316,8 +314,7 @@ module	pktgate #(
 			rdval = rd_data;
 
 		assign	M_AXIN_DATA = rdval[DW-1:0];
-		assign	M_AXIN_BYTES = { (rdval[DW +: $clog2(DW)]==0),
-						rdval[DW +: $clog2(DW)] };
+		assign	M_AXIN_BYTES = rdval[DW +: $clog2(DW/8)];
 		assign	M_AXIN_LAST = rdval[FW-1];
 		// }}}
 		// }}}
@@ -358,7 +355,7 @@ module	pktgate #(
 	// {{{
 	// verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0, fill, S_AXIN_BYTES[$clog2(DW)], r_empty };
+	assign	unused = &{ 1'b0, fill, r_empty };
 	// verilator lint_on  UNUSED
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////
