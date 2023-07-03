@@ -64,7 +64,7 @@ module scoreboard (
 	// Local declarations
 	// {{{
 	wire		CRC_FIFO_VALID;
-	reg	CRC_FIFO_READY;
+	wire		CRC_FIFO_READY;
 	wire	[63:0]	CRC_FIFO_DATA;
 	wire	[2:0]	CRC_FIFO_BYTES;
 	wire		CRC_FIFO_LAST;
@@ -125,21 +125,17 @@ module scoreboard (
 
 	// model_stream_word
 	// {{{
-	initial CRC_FIFO_READY = 0;
+    assign CRC_FIFO_READY = (MODEL_AXIN_VALID && MODEL_AXIN_READY) ? 1 : 0;
 	initial	model_stream_word = 0;
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
-	begin
-		CRC_FIFO_READY <= 0;
 		model_stream_word <= 0;
-	end else if (MODEL_AXIN_VALID && MODEL_AXIN_READY)
+	else if (MODEL_AXIN_VALID && MODEL_AXIN_READY)
 	begin
-		CRC_FIFO_READY <= 1;
 		model_stream_word <= model_stream_word + 1;
 		if (MODEL_AXIN_LAST)
 			model_stream_word <= 0;
-	end else
-		CRC_FIFO_READY <= 0;
+	end
 	// }}}
 
 	initial	model_packets_rcvd = 0;
@@ -148,8 +144,6 @@ module scoreboard (
 		model_packets_rcvd <= 0;
 	else if (MODEL_AXIN_VALID && MODEL_AXIN_READY && MODEL_AXIN_LAST)
 		model_packets_rcvd <= model_packets_rcvd + 1;
-
-	// assign CRC_AXIN_READY = 1'b1;
 
 	initial	crc_stream_word = 0;
 	always @(posedge S_AXI_ACLK)
@@ -169,7 +163,6 @@ module scoreboard (
 	else if (CRC_AXIN_VALID && CRC_AXIN_READY && CRC_AXIN_LAST)
 		crc_packets_rcvd <= crc_packets_rcvd + 1;
 
-    
 	initial is_first_data = 1;
 	initial is_passed = 0;
 	always @(posedge S_AXI_ACLK)
@@ -191,7 +184,8 @@ module scoreboard (
 			is_passed <= 1;
 		else
 			is_passed <= 0;
-	end else
+	end 
+	else if (!CRC_FIFO_VALID && !MODEL_AXIN_VALID)
 		is_passed <= !is_first_data;
-
+		
 endmodule
