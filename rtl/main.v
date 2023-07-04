@@ -2090,6 +2090,7 @@ module	main(i_clk, i_reset,
 		// {{{
 		.i_clk(i_clk),
 		.i_reset(i_reset),
+		.i_hsclk(1'b0),
 		.i_wb_cyc(wb32_sdcard_cyc), .i_wb_stb(wb32_sdcard_stb), .i_wb_we(wb32_sdcard_we),
 			.i_wb_addr(wb32_sdcard_addr[3-1:0]),
 			.i_wb_data(wb32_sdcard_data), // 32 bits wide
