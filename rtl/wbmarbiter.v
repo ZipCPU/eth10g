@@ -130,6 +130,18 @@ module wbmarbiter #(
 	assign	ack_wr =|(s_stb & ~s_stall);
 	assign	ack_rd = m_ack;
 
+`ifdef	FORMAL
+	// {{{
+	wire	[LGFIFO:0]	f_first_addr, f_second_addr,
+				f_distance_to_first, f_distance_to_second;
+	wire			f_first_in_fifo, f_second_in_fifo;
+	wire	[NIN-1:0]	f_first_data, f_second_data;
+	wire	[LGFIFO:0]	f_wraddr, f_rdaddr;
+	wire [NIN-1:0]		f_ch_empty;
+	wire [NIN*(LGFIFO+1)-1:0] f_ch_last_addr;
+	// }}}
+`endif
+
 	sfifo #(
 		.BW(NIN),
 		.LGFLEN(LGFIFO)
@@ -140,6 +152,19 @@ module wbmarbiter #(
 		.o_full(ack_full), .o_fill(ack_fill),
 		.i_rd(ack_rd), .o_data(ack_fifo_data),
 		.o_empty(ack_empty)
+`ifdef	FORMAL
+		// {{{
+		, .f_first_addr(f_first_addr),
+		.f_second_addr(f_second_addr),
+		.f_first_data(f_first_data),
+		.f_second_data(f_second_data),
+		.f_first_in_fifo(f_first_in_fifo),
+		.f_second_in_fifo(f_second_in_fifo),
+		.f_distance_to_first(f_distance_to_first),
+		.f_distance_to_second(f_distance_to_second),
+		.f_wraddr(f_wraddr), .f_rdaddr(f_rdaddr)
+		// }}}
+`endif
 		// }}}
 	);
 
@@ -154,6 +179,16 @@ module wbmarbiter #(
 		fif_rdaddr <= 0;
 	else if (ack_rd && !ack_empty)
 		fif_rdaddr <= fif_rdaddr + 1;
+
+`ifdef	FORMAL
+	always @(*)
+	if (!fifo_reset)
+		assert(fif_wraddr == f_wraddr);
+
+	always @(*)
+	if (!fifo_reset)
+		assert(fif_rdaddr == f_rdaddr);
+`endif
 
 	// Need to do some extra work, just to deal with potential bus errors
 	// and dropped CYC lines
@@ -170,6 +205,10 @@ module wbmarbiter #(
 		reg			empty;
 		reg	[LGFIFO:0]	last_addr;
 
+		// last_addr
+		// {{{
+		// last_addr == fif_rdaddr if we are empty, or if we have only
+		//   one address in the FIFO
 		always @(posedge i_clk)
 		if (fifo_reset)
 			last_addr <= 0;
@@ -177,7 +216,10 @@ module wbmarbiter #(
 			last_addr <= fif_wraddr;
 		else if (ack_rd && last_addr == fif_rdaddr)
 			last_addr <= fif_rdaddr + 1;
+		// }}}
 
+		// empty
+		// {{{
 		initial	empty = 1;
 		always @(posedge i_clk)
 		if (fifo_reset || !s_cyc[gk])
@@ -188,7 +230,10 @@ module wbmarbiter #(
 			empty <= 1;
 		else if (ack_rd && last_addr == fif_rdaddr)
 			empty <= 1;
+		// }}}
 
+		// flushing[gk]
+		// {{{
 		always @(posedge i_clk)
 		if (fifo_reset)
 			flushing[gk] <= 0;
@@ -196,18 +241,24 @@ module wbmarbiter #(
 			flushing[gk] <= 0;
 		else if (!s_cyc[gk])
 			flushing[gk] <= 1;
+		// }}}
 
 		assign	s_stall[gk] = flushing[gk] || (grant != (1<<gk))
 				|| ack_full || (m_stb && m_stall)
 				|| (m_cyc && m_err);
 
 		// initial	ack[gk] = 0;
+		// ack[gk]
+		// {{{
 		always @(posedge i_clk)
 		if (i_reset || !m_cyc || !s_cyc[gk] || empty)
 			ack[gk] <= 0;
 		else
 			ack[gk] <= m_ack && ack_fifo_data[gk];
+		// }}}
 
+		// err[gk]
+		// {{{
 		always @(posedge i_clk)
 		if (i_reset || !m_cyc || !s_cyc[gk])
 			err[gk] <= 0;
@@ -215,11 +266,45 @@ module wbmarbiter #(
 			err[gk] <= 0;
 		else if (m_err && !ack_empty)
 			err[gk] <= 1'b1;
+		// }}}
 
 `ifdef	FORMAL
+		// {{{
 		always @(*)
 		if (ack_empty)
 			assert(empty);
+
+		reg	[LGFIFO:0]	f_dist_to_last;
+		always @(*)
+			f_dist_to_last = last_addr - f_rdaddr;
+
+		always @(*)
+		if (!fifo_reset)
+			assert(f_dist_to_last <= ack_fill);
+
+		always @(*)
+		if (!fifo_reset && f_dist_to_last == ack_fill)
+			assert(empty);
+
+		/*
+		if (!fifo_reset)
+			assert(empty == ((f_dist_to_last == ack_fill)
+					&& (ack_empty || !ack_fifo_data[gk])));
+		*/
+
+		always @(*)
+		if (!fifo_reset && last_addr != fif_rdaddr
+					&& f_first_addr == last_addr)
+			assert(f_first_in_fifo && f_first_data & (1<<gk));
+
+		always @(*)
+		if (!fifo_reset && last_addr != fif_rdaddr
+					&& f_second_addr == last_addr)
+			assert(f_second_in_fifo && f_second_data & (1<<gk));
+
+		assign	f_ch_empty[gk] = empty;
+		assign	f_ch_last_addr[gk*(LGFIFO+1) +: (LGFIFO+1)] = last_addr;
+		// }}}
 `endif
 	end endgenerate
 
@@ -314,6 +399,8 @@ module wbmarbiter #(
 	localparam	F_LGDEPTH = LGFIFO+1;
 	reg			f_past_valid;
 	wire	[F_LGDEPTH-1:0]	fwbm_nreqs, fwbm_nacks, fwbm_outstanding;
+	wire	[F_LGDEPTH-1:0]	fwbs_nreqs, fwbs_nacks, fwbs_outstanding;
+	(* anyconst *) reg	[$clog2(NIN)-1:0]	fc_checkid;
 
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
@@ -322,33 +409,29 @@ module wbmarbiter #(
 	always @(*)
 	if (!f_past_valid)
 		assume(i_reset);
-
-	generate for(gk=0; gk<NIN; gk=gk+1)
-	begin : GEN_FWBSLAVE
-		wire	[F_LGDEPTH-1:0]	fwbs_nreqs, fwbs_nacks,
-					fwbs_outstanding;
-
-		fwb_slave #(
-			.AW(AW), .DW(DW), .F_LGDEPTH(F_LGDEPTH)
-		) fwb (
-			// {{{
-				.i_clk(i_clk), .i_reset(i_reset),
-			//
-			.i_wb_cyc(s_cyc[gk]), .i_wb_stb(s_stb[gk]),
-					.i_wb_we(s_we[gk]),
-			.i_wb_addr(s_addr[gk*AW +: AW]),
-				.i_wb_data(s_data[gk*DW +: DW]),
-				.i_wb_sel(s_sel[gk*DW/8 +: DW/8]),
-			.i_wb_ack(s_ack[gk]), .i_wb_stall(s_stall[gk]),
-			.i_wb_idata(s_idata[gk*DW +: DW]),
-			.i_wb_err(s_err[gk]),
-			.f_nreqs(fwbs_nreqs),
-			.f_nacks(fwbs_nacks),
-			.f_outstanding(fwbs_outstanding)
-			// }}}
-		);
-
-	end endgenerate
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Bus checks
+	// {{{
+	fwb_slave #(
+		.AW(AW), .DW(DW), .F_LGDEPTH(F_LGDEPTH)
+	) fwb (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+		//
+		.i_wb_cyc(s_cyc[fc_checkid]), .i_wb_stb(s_stb[fc_checkid]),
+				.i_wb_we(s_we[fc_checkid]),
+		.i_wb_addr(s_addr[fc_checkid*AW +: AW]),
+			.i_wb_data(s_data[fc_checkid*DW +: DW]),
+			.i_wb_sel(s_sel[fc_checkid*DW/8 +: DW/8]),
+		.i_wb_ack(s_ack[fc_checkid]), .i_wb_stall(s_stall[fc_checkid]),
+		.i_wb_idata(s_idata[fc_checkid*DW +: DW]),
+		.i_wb_err(s_err[fc_checkid]),
+		.f_nreqs(fwbs_nreqs),
+		.f_nacks(fwbs_nacks),
+		.f_outstanding(fwbs_outstanding)
+		// }}}
+	);
 
 	fwb_master #(
 		.AW(AW), .DW(DW), .F_LGDEPTH(F_LGDEPTH)
@@ -365,6 +448,154 @@ module wbmarbiter #(
 		.f_outstanding(fwbm_outstanding)
 		// }}}
 	);
+
+
+	wire			f_known_data, fc_ack;
+	wire	[LGFIFO:0]	f_known_checkid, fc_last_addr, fc_last_distance,
+				f_known_noncheckid;
+	wire			fc_empty;
+
+	assign	fc_empty = f_ch_empty[fc_checkid];
+	assign	fc_last_addr = f_ch_last_addr >> (fc_checkid * (LGFIFO+1));
+	assign	fc_last_distance = fc_last_addr - f_rdaddr;
+
+	assign	f_known_data = (f_first_in_fifo && f_distance_to_first == 0)
+			|| (f_second_in_fifo && f_distance_to_second == 0);
+
+	assign	f_known_checkid =
+		((f_first_in_fifo && (f_first_data & (1<<fc_checkid))) ? 1:0)
+		+((f_second_in_fifo && (f_second_data & (1<<fc_checkid)))? 1:0);
+
+	assign	f_known_noncheckid =
+		((f_first_in_fifo&&(0==(f_first_data & (1<<fc_checkid))))? 1:0)
+		+((f_second_in_fifo&&(0==(f_second_data&(1<<fc_checkid))))?1:0);
+
+	assign	fc_ack = (s_ack & (1<<fc_checkid)) ? 1:0;
+
+	always @(*)
+	if (!i_reset)
+		assume((s_cyc & s_stb) == s_stb);
+
+	generate for(gk=0; gk<NIN; gk=gk+1)
+	begin
+		always @(*)
+		if (!i_reset && s_stb[gk])
+			assume(s_cyc[gk]);
+
+		always @(posedge i_clk)
+		if (!f_past_valid || $past(i_reset))
+			assume(!s_cyc[gk] && !s_stb[gk]);
+		else if ($past(s_stb[gk] && s_stall[gk]))
+		begin
+			assume(s_cyc[gk]);
+			assume(s_stb[gk]);
+			assume($stable(s_we[gk]));
+			assume($stable(s_addr[gk * AW +: AW]));
+			assume($stable(s_data[gk * DW +: DW]));
+			assume($stable(s_sel[ gk * (DW/8) +: (DW/8)]));
+		end
+
+	end endgenerate
+
+	always @(*)
+	if (!i_reset)
+	begin
+		// assert(empty == ((f_dist_to_last == ack_fill)
+		//			&& (ack_empty || !ack_fifo_data[gk])));
+		if (f_first_in_fifo)
+		begin
+			assert($onehot(f_first_data));
+			if (fc_last_addr == f_first_addr && f_first_addr != f_rdaddr)
+				assert(f_first_data & (1<<fc_checkid));
+			if (f_first_data & (1<<fc_checkid))
+			begin
+				assert(f_distance_to_first <= fc_last_distance);
+			end else begin
+				assert(fc_last_distance == 0
+					|| fc_last_distance != f_distance_to_first);
+				assert(f_distance_to_first < ack_fill);
+			end
+		end
+
+		if (f_second_in_fifo)
+		begin
+			assert($onehot(f_second_data));
+			if (fc_last_addr == f_second_addr && f_second_addr != f_rdaddr)
+				assert(f_second_data & (1<<fc_checkid));
+			if (f_second_data & (1<<fc_checkid))
+			begin
+				assert(f_distance_to_second <= fc_last_distance);
+			end else begin
+				assert(fc_last_distance == 0
+					|| fc_last_distance != f_distance_to_second);
+				assert(f_distance_to_second < ack_fill);
+			end
+
+			if (fc_last_distance >= f_distance_to_second) // ***
+				assert(fwbs_outstanding <= fc_last_distance+1
+						- f_known_noncheckid + fc_ack);
+		end
+
+		if (fc_last_addr == f_wraddr)
+			assert(ack_empty);
+
+		// f_known_checkid+fc_ack<= fwbs_outstanding <= ack_fill+fc_ack
+		assert(fwbs_outstanding >= f_known_checkid + fc_ack);
+		assert(fwbs_outstanding <= ack_fill+fc_ack-f_known_noncheckid);
+		assert(fc_last_distance <= ack_fill);
+		assert(fwbs_outstanding <= fc_last_distance
+						+ fc_ack + (ack_empty ? 0 :1));
+		assert(fwbm_outstanding + (m_stb ? 1:0) + (fc_ack ? 1:0)
+			>= fwbs_outstanding);				// ***
+		assert(ack_fill == fwbm_outstanding + (m_stb ? 1:0));
+		if (fc_empty)
+		begin
+			assert(fwbs_outstanding == (fc_ack ? 1:0));
+			assert(fc_last_distance == 0);
+			assert(ack_empty
+				|| ((ack_fifo_data & (1<<fc_checkid))==0));
+		end else begin
+			assert(!ack_empty);
+			assert(fc_last_distance != 0
+				|| (ack_fifo_data & (1<<fc_checkid)));
+		end
+
+		assume((flushing & (1<<fc_checkid))==0);
+		if (ack_empty)
+		begin
+		end else if (!f_known_data)
+		begin
+			assume($onehot(ack_fifo_data));
+
+			if(fc_empty)
+			begin
+				assume((ack_fifo_data & (1<<fc_checkid))==0);
+			end else if (fc_last_distance == 0)
+			begin
+				assume(ack_fifo_data & (1<<fc_checkid));
+			end
+
+			if (fwbs_outstanding == f_known_checkid + fc_ack)
+			begin
+				assume((ack_fifo_data & (1<<fc_checkid))==0);
+			end
+
+			if (fwbs_outstanding == ack_fill - f_known_noncheckid + fc_ack)
+			begin
+				assume(ack_fifo_data & (1<<fc_checkid));
+			end
+
+			if (fwbs_outstanding == fc_last_distance + fc_ack + 1)
+			begin
+				assume(ack_fifo_data & (1<<fc_checkid));
+			end
+
+			if (fwbs_outstanding == fc_last_distance
+						+ fc_ack + (ack_empty ? 0 :1))
+				assume(ack_fifo_data & (1<<fc_checkid));
+		end
+	end
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// OPT_LOWPOWER
@@ -387,6 +618,34 @@ module wbmarbiter #(
 	end endgenerate
 
 	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// "Careless" assumptions
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	always @(*)
+	if (!i_reset && fwbm_nreqs != fwbm_nacks)
+		assume(m_cyc);
+
+	always @(*)
+	if (!i_reset && fwbs_nreqs != fwbs_nacks)
+		assume(s_cyc[fc_checkid]);
+
+	always @(*)
+	if (!i_reset && m_cyc)
+		assume(!m_err);
+
+	always @(*)
+	if (!i_reset)
+		assert(err == 0);
+
+	always @(*)
+	if (!i_reset)
+		assume(fc_checkid == 0);
+
 `endif
 // }}}
 endmodule

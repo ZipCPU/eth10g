@@ -1,0 +1,137 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Tue Jun 27 21:56:28 2023
+[*]
+[dumpfile_mtime] "Tue Jun 27 20:58:04 2023"
+[dumpfile_size] 117718
+[timestart] 0
+[size] 1920 1013
+[pos] -1 -1
+*-5.226169 50 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] wbmarbiter.
+[sst_width] 343
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 292
+@28
+wbmarbiter.i_clk
+wbmarbiter.i_reset
+@200
+-
+@28
+wbmarbiter.fc_checkid[1:0]
+@200
+-
+@800200
+-SLAVE
+@22
+wbmarbiter.s_cyc[3:0]
+wbmarbiter.s_stb[3:0]
+wbmarbiter.s_we[3:0]
+wbmarbiter.s_addr[111:0]
+wbmarbiter.s_data[255:0]
+wbmarbiter.s_sel[31:0]
+wbmarbiter.s_stall[3:0]
+wbmarbiter.s_ack[3:0]
+wbmarbiter.s_idata[255:0]
+wbmarbiter.s_err[3:0]
+@200
+-
+@28
+wbmarbiter.fwbs_nreqs[2:0]
+wbmarbiter.fwbs_nacks[2:0]
+wbmarbiter.fwbs_outstanding[2:0]
+@1000200
+-SLAVE
+@22
+wbmarbiter.grant[3:0]
+@28
+wbmarbiter.fc_ack
+@800200
+-MASTER
+@28
+wbmarbiter.m_cyc
+wbmarbiter.m_stb
+wbmarbiter.m_we
+@22
+wbmarbiter.m_addr[27:0]
+wbmarbiter.m_data[63:0]
+wbmarbiter.m_sel[7:0]
+@28
+wbmarbiter.m_stall
+wbmarbiter.m_ack
+@22
+wbmarbiter.m_idata[63:0]
+@28
+wbmarbiter.m_err
+@200
+-
+@28
+wbmarbiter.fwbm_nreqs[2:0]
+wbmarbiter.fwbm_nacks[2:0]
+wbmarbiter.fwbm_outstanding[2:0]
+@1000200
+-MASTER
+@23
+wbmarbiter.flushing[3:0]
+@28
+wbmarbiter.FLUSH_ACKS<0>.f_dist_to_last[2:0]
+wbmarbiter.FLUSH_ACKS<1>.f_dist_to_last[2:0]
+wbmarbiter.FLUSH_ACKS<2>.empty
+wbmarbiter.FLUSH_ACKS<2>.f_dist_to_last[2:0]
+wbmarbiter.FLUSH_ACKS<3>.empty
+wbmarbiter.FLUSH_ACKS<3>.f_dist_to_last[2:0]
+@200
+-
+@28
+wbmarbiter.fif_rdaddr[2:0]
+wbmarbiter.fif_wraddr[2:0]
+@800200
+-FIFO
+@28
+wbmarbiter.ack_wr
+@22
+wbmarbiter.u_ack_fifo.i_data[3:0]
+@28
+wbmarbiter.ack_empty
+@22
+wbmarbiter.ack_fifo_data[3:0]
+@28
+wbmarbiter.ack_fill[2:0]
+wbmarbiter.ack_full
+wbmarbiter.ack_rd
+@22
+wbmarbiter.u_ack_fifo.o_data[3:0]
+@200
+-
+@28
+wbmarbiter.f_known_data
+wbmarbiter.f_known_checkid[1:0]
+@200
+-
+@28
+wbmarbiter.f_first_in_fifo
+wbmarbiter.f_first_addr[2:0]
+@22
+wbmarbiter.f_first_data[3:0]
+@28
+wbmarbiter.f_distance_to_first[2:0]
+@200
+-
+@28
+wbmarbiter.f_second_in_fifo
+wbmarbiter.f_second_addr[2:0]
+@22
+wbmarbiter.f_second_data[3:0]
+@28
+wbmarbiter.f_distance_to_second[2:0]
+@1000200
+-FIFO
+@22
+wbmarbiter.flushing[3:0]
+wbmarbiter.err[3:0]
+@28
+wbmarbiter.FLUSH_ACKS<0>.empty
+wbmarbiter.FLUSH_ACKS<0>.last_addr[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

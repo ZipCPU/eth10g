@@ -12,6 +12,7 @@ depth 15
 smtbmc
 
 [script]
+read -define F_PEEK
 read -formal sfifo.v
 read -formal pktarbiter.v
 read -formal wbmarbiter.v
