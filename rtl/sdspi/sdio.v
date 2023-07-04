@@ -11,8 +11,8 @@
 //	sdwb:		Wishbone bus handler.  Also includes FIFO memory.
 //	sdckgen:	Digital clock divider
 //	sdcmd:		Request commands, process responses
-//	sdrxframer:	Process receive frames into memory writes
-//	sdtxframer:	Process memory reads into frames to transmit
+//	sdrxframe:	Process receive frames into memory writes
+//	sdtxframe:	Process memory reads into frames to transmit
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -232,6 +232,7 @@ module	sdio #(
 	);
 
 	sdcmd #(
+		.OPT_DS(OPT_SERDES),
 		.MW(MW),
 		.LGLEN(LGFIFO-$clog2(MW/8))
 	) u_sdcmd (
@@ -275,15 +276,17 @@ module	sdio #(
 		.S_VALID(tx_en && tx_mem_valid), .S_READY(tx_mem_ready),
 		.S_DATA(tx_mem_data), .S_LAST(tx_mem_last),
 		//
-		.tx_valid(o_data_en), // .tx_ready(1'b1),
-		.tx_data(o_tx_data)
+		.tx_valid(o_data_en), .tx_data(o_tx_data)
 		// }}}
 	);
 
 	sdrxframe #(
+		// {{{
+		.OPT_DS(OPT_SERDES),
 		.LGLEN(LGFIFO),
 		.MW(MW),
 		.LGTIMEOUT(LGTIMEOUT)
+		// }}}
 	) u_rxframe (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || soft_reset),

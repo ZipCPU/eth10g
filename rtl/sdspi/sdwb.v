@@ -150,6 +150,7 @@ module	sdwb #(
 	reg	[1:0]	r_width;
 	reg	[7:0]	r_ckspeed;
 	reg	[31:0]	w_cmd_word, w_phy_ctrl;
+	reg	[15:0]	blk_words;
 
 	integer	ika, ikb;
 	localparam	NFIFOW = (1<<LGFIFO) / (MW/8);
@@ -576,7 +577,7 @@ module	sdwb #(
 		o_int <= 1'b0;
 	else begin
 		o_int <= 1'b0;
-		if (i_cmd_response)
+		if (i_cmd_done && cmd_busy)
 			o_int <= 1'b1;
 		if (o_tx_en && o_tx_mem_valid && o_tx_mem_last)
 			o_int <= 1'b1;
@@ -646,7 +647,12 @@ module	sdwb #(
 		fif_b_rdaddr = (o_tx_en &&  r_fifo) ? tx_mem_addr[LGFIFO32-1:$clog2(MW/32)] : fif_rdaddr;
 
 	always @(*)
-		pre_tx_last = o_tx_en && (tx_mem_addr[LGFIFO32-1:$clog2(MW/32)] >= (1<<(lgblk-2))-1);
+		blk_words = (1<<(lgblk-2))-1;
+
+	// Verilator lint_off WIDTH
+	always @(*)
+		pre_tx_last = o_tx_en && (tx_mem_addr[LGFIFO32-1:$clog2(MW/32)] >= blk_words);
+	// Verilator lint_on  WIDTH
 
 	always @(posedge i_clk)
 	if (!o_tx_mem_valid || i_tx_mem_ready || r_fifo)

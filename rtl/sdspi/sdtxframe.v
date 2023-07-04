@@ -93,7 +93,6 @@ module	sdtxframe #(
 	reg	[NCRC*16-1:0]	di_crc_8d, nxt_crc_8d, new_crc_8d, crc_8d_reg;
 
 	reg		ck_valid;
-	// wire		ck_ready;
 	reg	[4:0]	ck_counts;
 	reg	[31:0]	ck_data, ck_sreg;
 	// }}}
@@ -196,11 +195,14 @@ module	sdtxframe #(
 			endcase
 		end
 		// }}}
-	P_LAST: if (pre_ready)
+	P_LAST: begin
+		if (pre_ready)
 		begin
 			pre_valid <= 0;
 			pre_data <= {(32){1'b1}};
-			if (!tx_valid)
+		end
+
+		if (!tx_valid)
 				pstate <= P_IDLE;
 		end
 	endcase
@@ -330,7 +332,7 @@ module	sdtxframe #(
 	// crc_*_reg: Advance CRC calculations sequentially w/ new data
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || !i_en)
+	if (i_reset || (!i_en && !tx_valid))
 	begin
 		crc_1w_reg <= 0;
 		crc_2w_reg <= 0;
@@ -740,12 +742,20 @@ module	sdtxframe #(
 		assert(cfg_period <= P_4D);
 
 	always @(posedge i_clk)
-	if (!i_reset && i_en)
+	if (!i_reset && $past(tx_valid))
+		assume(i_en);
+
+	always @(posedge i_clk)
+	if (!i_reset && (i_en || $past(i_en)))
 	begin
 		assume($stable(i_cfg_ddr));
 		assume($stable(i_cfg_spd));
 		assume($stable(i_cfg_width));
+	end
 
+	always @(posedge i_clk)
+	if (!i_reset && i_en)
+	begin
 		assert(i_cfg_ddr   == cfg_ddr);
 		assert(i_cfg_width == cfg_width);
 	end
@@ -1057,7 +1067,7 @@ module	sdtxframe #(
 	// {{{
 	always @(*)
 	if (!i_reset)
-		assert(pre_count <= 3);
+		assert(pre_count <= 7);
 
 	always @(*)
 	if (!i_reset && pstate == P_DATA)
@@ -1067,19 +1077,19 @@ module	sdtxframe #(
 	if (!i_reset && pstate == P_DATA)
 	begin
 		case(cfg_width)
-		WIDTH_1W: assert(pre_count == 1);
-		WIDTH_4W: assert(pre_count == 2);
+		WIDTH_1W: assert(pre_count == 0);
+		WIDTH_4W: assert(pre_count == (cfg_ddr) ? 3 : 1);
 		default: // WIDTH_8W
-			assert(pre_count == 3);
+			assert(pre_count == (cfg_ddr) ? 7 : 3);
 		endcase
 	end else if (!i_reset && pstate == P_CRC)
 	begin
 		assert(pre_valid);
 		case(cfg_width)
-		WIDTH_1W: assert(pre_count <= 1);
-		WIDTH_4W: assert(pre_count <= 2);
+		WIDTH_1W: assert(pre_count == 0);
+		WIDTH_4W: assert(pre_count <= (cfg_ddr) ? 3 : 1);
 		default: // WIDTH_8W
-			assert(pre_count <= 3);
+			assert(pre_count <= (cfg_ddr) ? 7 : 3);
 		endcase
 	end else if (!i_reset && pstate == P_LAST)
 	begin
@@ -1213,15 +1223,15 @@ module	sdtxframe #(
 			begin
 				case(cfg_width)
 				WIDTH_1W: cover(1);		// !!!
-				WIDTH_4W: cover(1);		// !!!
-				WIDTH_8W: cover(1);		// !!!
+				WIDTH_4W: cover(1);
+				WIDTH_8W: cover(1);
 				default: begin end
 				endcase
 			end else begin
 				case(cfg_width)
 				WIDTH_1W: cover(1);		// !!!
-				WIDTH_4W: cover(1);		// !!!
-				WIDTH_8W: cover(1);		// !!!
+				WIDTH_4W: cover(1);
+				WIDTH_8W: cover(1);
 				default: begin end
 				endcase
 			end

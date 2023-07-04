@@ -181,7 +181,7 @@ module	sdfrontend #(
 			pck_sreg <= { pck_sreg[0], next_pedge };
 
 		always @(*)
-		if (!i_afifo_reset_n || i_data_en)
+		if (i_cmd_en)
 			cmd_sample_ck = 0;
 		else
 			// Verilator lint_off WIDTH
@@ -371,7 +371,7 @@ module	sdfrontend #(
 		// DATA
 		// {{{
 		for(gk=0; gk<NUMIO; gk=gk+1)
-		begin
+		begin : DRIVE_DDR_IO
 			wire	enable;
 
 			assign	enable = i_reset || (i_data_en && (i_pp_data
@@ -388,7 +388,7 @@ module	sdfrontend #(
 			);
 
 		end for(gk=NUMIO; gk<8; gk=gk+1)
-		begin
+		begin : NO_DDR_IO
 			assign	{ pre_dat[8+gk], pre_dat[gk] } = 2'b00;
 		end
 
@@ -434,11 +434,11 @@ module	sdfrontend #(
 			pck_sreg <= { pck_sreg[3:0], next_pedge };
 
 		always @(*)
-		if (!i_afifo_reset_n || i_data_en)
+		if (i_cmd_en)
 			cmd_sample_ck = 0;
 		else
 			// Verilator lint_off WIDTH
-			cmd_sample_ck = { pck_sreg[5:0], next_pedge } >> i_sample_shift;
+			cmd_sample_ck = { pck_sreg[5:0], next_pedge } >> i_sample_shift[4:2];
 			// Verilator lint_on  WIDTH
 		// }}}
 
@@ -551,7 +551,8 @@ module	sdfrontend #(
 		// Verilator lint_off UNUSED
 		wire	unused_ddr;
 		assign	unused_ddr = &{ 1'b0, i_hsclk, i_ds, i_tx_data[23:0],
-				i_sdclk[6:4], i_sdclk[2:0] };
+				i_sdclk[6:4], i_sdclk[2:0], i_afifo_reset_n,
+				i_sample_shift[1:0] };
 		// Verilator lint_on  UNUSED
 		// Verilator coverage_on
 		// }}}

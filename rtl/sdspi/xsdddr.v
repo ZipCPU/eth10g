@@ -35,6 +35,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 `default_nettype	none
+`ifdef	VERILATOR
+`define	OPENSIM
+`endif
+`ifdef	IVERILOG
+`define	OPENSIM
+`endif
 // }}}
 module	xsdddr #(
 		parameter [0:0]		OPT_BIDIR = 1'b1
@@ -58,7 +64,7 @@ module	xsdddr #(
 	always @(posedge i_clk)
 		high_z <= !i_en && OPT_BIDIR;
 
-`ifdef	VERILATOR
+`ifdef	OPENSIM
 	// {{{
 	reg	[1:0]	r_out;
 
@@ -69,7 +75,7 @@ module	xsdddr #(
 	assign	io_pin_tristate = high_z;
 	assign	o_pin = w_out;
 
-	assign	w_in   = w_out;
+	assign	w_in  = (high_z) ? i_pin : w_out;
 	// }}}
 `else
 	ODDR #(
@@ -95,11 +101,9 @@ module	xsdddr #(
 	generate if (OPT_BIDIR)
 	begin : GEN_BIDIRECTIONAL
 		// {{{
-`ifdef	VERILATOR
+`ifdef	OPENSIM
 		reg		r_p, r_n;
 		reg	[1:0]	r_in;
-
-		assign	w_in = (high_z) ? i_pin : o_pin;
 
 		always @(posedge i_clk)
 			r_p <= w_in;

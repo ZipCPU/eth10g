@@ -42,7 +42,7 @@ module sdio_top #(
 		// }}}
 	) (
 		// {{{
-		input	wire			i_clk, i_reset,
+		input	wire			i_clk, i_reset, i_hsclk,
 		// Control (Wishbone) interface
 		// {{{
 		input	wire		i_wb_cyc, i_wb_stb, i_wb_we,
@@ -148,7 +148,7 @@ module sdio_top #(
 		.OPT_SERDES(OPT_SERDES), .OPT_DDR(OPT_DDR), .NUMIO(NUMIO)
 	) u_sdfrontend (
 		// {{{
-		.i_clk(i_clk), .i_hsclk(1'b0), .i_reset(i_reset),
+		.i_clk(i_clk), .i_hsclk(i_hsclk), .i_reset(i_reset),
 		.i_cfg_ddr(cfg_ddr), .i_sample_shift(cfg_sample_shift),
 		// Tx path
 		// {{{

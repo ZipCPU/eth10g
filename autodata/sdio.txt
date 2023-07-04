@@ -124,6 +124,7 @@
 		// {{{
 		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
 		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		.i_hsclk(1'b0),
 		@$(SLAVE.ANSIPORTLIST),
 		.o_ck(o_@$(PREFIX)_clk),
 		.i_ds(i_@$(PREFIX)_ds),

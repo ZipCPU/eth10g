@@ -38,6 +38,7 @@
 module	sdcmd #(
 		// {{{
 		// parameter	MW = 32,
+		parameter [0:0]	OPT_DS = 1'b0,
 		// parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter	LGTIMEOUT = 26,	// 500ms expected
 		parameter	LGLEN = 9,
@@ -226,7 +227,7 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset || !waiting_on_response || active)
 		new_data <= 0;
-	else if (cfg_ds)
+	else if (OPT_DS && cfg_ds)
 		new_data <= S_ASYNC_VALID;
 	else
 		new_data <= |i_cmd_strb;
@@ -237,7 +238,7 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset || !waiting_on_response || active)
 		resp_count <= 0;
-	else if (cfg_ds)
+	else if (OPT_DS && cfg_ds)
 	begin
 		if (S_ASYNC_VALID)
 			resp_count <= resp_count + 2;
@@ -251,7 +252,7 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset || !waiting_on_response || active)
 		rx_sreg <= 0;
-	else if (cfg_ds)
+	else if (OPT_DS && cfg_ds)
 	begin
 		if (S_ASYNC_VALID)
 			rx_sreg <= { rx_sreg[37:0], S_ASYNC_DATA[1:0] };
@@ -266,7 +267,7 @@ module	sdcmd #(
 
 	assign	w_done = waiting_on_response
 			&&((cmd_type == R_R2 && o_mem_valid && o_mem_addr >= 3)
-			|| (cmd_type[0] && resp_count >= 48));
+			|| (cmd_type[0] && resp_count == 48));
 
 	assign	w_no_response = (active && cmd_type == R_NONE && i_ckstb
 						// Verilator lint_off WIDTH
@@ -284,10 +285,10 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset || !waiting_on_response || cmd_type == R_NONE)
 		o_cmd_response <= 1'b0;
-	else if (cmd_type[1])
-		o_cmd_response <= (resp_count == 48);
+	else if (!cmd_type[1])
+		o_cmd_response <= (resp_count == 48) && !r_done;
 	else // if (cmd_type == R_R2)
-		o_cmd_response <= (resp_count == 136);
+		o_cmd_response <= (resp_count == 136) && !r_done;
 	// }}}
 
 	// o_resp, o_arg
@@ -398,7 +399,7 @@ module	sdcmd #(
 		rx_timeout <= 0;
 		rx_timeout_counter <= -1;
 	end else if (// (cmd_type == R_R1b && i_dat_busy) ||
-			(i_cfg_ds && S_ASYNC_VALID)
+			(OPT_DS && i_cfg_ds && S_ASYNC_VALID)
 			|| (!i_cfg_ds && i_cmd_strb != 0))
 	begin
 		// Recommended timeout is 500ms
@@ -431,28 +432,30 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset || !waiting_on_response)
 		crc_fill <= 0;
-	else if ((cfg_ds && S_ASYNC_VALID)
-			|| (!cfg_ds && i_cmd_strb == 2'b11))
+	else if ((OPT_DS && cfg_ds && S_ASYNC_VALID)
+			|| ((!OPT_DS || !cfg_ds) && i_cmd_strb == 2'b11))
 	begin
 		if (resp_count >= 6)
 			crc_fill <= STEPCRC(STEPCRC(crc_fill,
-					rx_sreg[7]), rx_sreg[6]);
-	end else if (!i_cfg_ds && i_cmd_strb[1] && resp_count >= 7)
-		crc_fill <= STEPCRC(crc_fill, rx_sreg[7]);
+					i_cmd_data[1]), i_cmd_data[0]);
+	end else if (!i_cfg_ds && i_cmd_strb[1])
+		crc_fill <= STEPCRC(crc_fill, i_cmd_data[1]);
 
-	assign	crc_err = w_done && (crc_fill != resp_count[7:1]);
+	assign	crc_err = w_done && (crc_fill != CRC_POLYNOMIAL);
 
 
-	function automatic [6:0] STEPCRC(input [6:0] fill,
-							input i_bit);
+	function automatic [6:0] STEPCRC(input [6:0] fill, input i_bit);
+		// {{{
 	begin
 		if (fill[6] ^ i_bit)
 			STEPCRC = { fill[5:0], 1'b0 } ^ CRC_POLYNOMIAL;
 		else
 			STEPCRC = { fill[5:0], 1'b0 };
 	end endfunction
+	// }}}
 
 	function automatic [6:0] CMDCRC(input [39:0] cmd);
+		// {{{
 		reg	[6:0]	fill;
 		integer		icrc;
 	begin
@@ -463,6 +466,7 @@ module	sdcmd #(
 
 		CMDCRC = fill;
 	end endfunction
+	// }}}
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -498,10 +502,24 @@ module	sdcmd #(
 `endif
 	// }}}
 
+	reg	r_done;
+
+	initial	r_done = 1'b0;
+	always @(posedge i_clk)
+	if (i_reset || rx_timeout || w_no_response || o_done)
+		r_done <= 1'b0;
+	else if (w_done)
+		r_done <= 1'b1;
+	// else // if (i_ckstb)
+	//	r_done <= 1'b0;
+
 	initial	o_done = 1'b0;
 	always @(posedge i_clk)
-		o_done <= (rx_timeout || w_done || w_no_response) && !i_reset
-				&& !o_done;
+	if (i_reset || o_done)
+		o_done <= 1'b0;
+	else
+		o_done <= (rx_timeout || w_no_response
+			|| (r_done && i_ckstb));
 
 	// r_busy is true if we are unable to accept a command
 	initial	r_busy = 1'b0;
@@ -613,7 +631,7 @@ module	sdcmd #(
 		assume(!i_cmd_strb[0]);
 
 	always @(*)
-	if (!i_reset && !cfg_ds)
+	if (!i_reset && (!OPT_DS || !cfg_ds))
 		assume(!S_ASYNC_VALID);
 
 	always @(*)
