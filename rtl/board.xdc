@@ -99,16 +99,16 @@ set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports o_si5324_rs
 ## ETH10G
 ## {{{
 ## LOS
-#set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[0]]
-#set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[1]]
-#set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[2]]
-#set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[3]]
+set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[0]]
+set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[1]]
+set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[2]]
+set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[3]]
 
 ## TX Disable
-#set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[0]]
-#set_property -dict {PACKAGE_PIN N18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[1]]
-#set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[2]]
-#set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
+set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[0]]
+set_property -dict {PACKAGE_PIN N18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[1]]
+set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[2]]
+set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
 
 ## LinkUp LEDs
 set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
@@ -123,24 +123,24 @@ set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activ
 set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
 
 ## Network transmit/outputs
-#set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
-#set_property -dict {PACKAGE_PIN P1} [get_ports o_gnet_n[0]]
-#set_property -dict {PACKAGE_PIN M2} [get_ports o_gnet_p[1]]
-#set_property -dict {PACKAGE_PIN M1} [get_ports o_gnet_n[1]]
-#set_property -dict {PACKAGE_PIN K2} [get_ports o_gnet_p[2]]
-#set_property -dict {PACKAGE_PIN K1} [get_ports o_gnet_n[2]]
-#set_property -dict {PACKAGE_PIN H2} [get_ports o_gnet_p[3]]
-#set_property -dict {PACKAGE_PIN H1} [get_ports o_gnet_n[3]]
+set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
+set_property -dict {PACKAGE_PIN P1} [get_ports o_gnet_n[0]]
+set_property -dict {PACKAGE_PIN M2} [get_ports o_gnet_p[1]]
+set_property -dict {PACKAGE_PIN M1} [get_ports o_gnet_n[1]]
+set_property -dict {PACKAGE_PIN K2} [get_ports o_gnet_p[2]]
+set_property -dict {PACKAGE_PIN K1} [get_ports o_gnet_n[2]]
+set_property -dict {PACKAGE_PIN H2} [get_ports o_gnet_p[3]]
+set_property -dict {PACKAGE_PIN H1} [get_ports o_gnet_n[3]]
 
 ## Network receive/input
-#set_property -dict {PACKAGE_PIN R4} [get_ports i_gnet_p[0]]
-#set_property -dict {PACKAGE_PIN R3} [get_ports i_gnet_n[0]]
-#set_property -dict {PACKAGE_PIN N4} [get_ports i_gnet_p[1]]
-#set_property -dict {PACKAGE_PIN N3} [get_ports i_gnet_n[1]]
-#set_property -dict {PACKAGE_PIN L4} [get_ports i_gnet_p[2]]
-#set_property -dict {PACKAGE_PIN L3} [get_ports i_gnet_n[2]]
-#set_property -dict {PACKAGE_PIN J4} [get_ports i_gnet_p[3]]
-#set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
+set_property -dict {PACKAGE_PIN R4} [get_ports i_gnet_p[0]]
+set_property -dict {PACKAGE_PIN R3} [get_ports i_gnet_n[0]]
+set_property -dict {PACKAGE_PIN N4} [get_ports i_gnet_p[1]]
+set_property -dict {PACKAGE_PIN N3} [get_ports i_gnet_n[1]]
+set_property -dict {PACKAGE_PIN L4} [get_ports i_gnet_p[2]]
+set_property -dict {PACKAGE_PIN L3} [get_ports i_gnet_n[2]]
+set_property -dict {PACKAGE_PIN J4} [get_ports i_gnet_p[3]]
+set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
 
 ## }}}
 
@@ -452,9 +452,9 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## Adding in any XDC_INSERT tags
 
-## No XDC.INSERT tag in netled
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_mic
@@ -493,7 +493,6 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
 ## No XDC.INSERT tag in wbflashdn
-## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in alt
 ## No XDC.INSERT tag in cfgscope
 ## No XDC.INSERT tag in i2cdma
@@ -503,6 +502,7 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 ## No XDC.INSERT tag in zip_alt_upc
 ## No XDC.INSERT tag in TMA
 ## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in gnet
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in flashdbg

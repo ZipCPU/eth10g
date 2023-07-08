@@ -63,7 +63,7 @@ module txgetports #(
 		// {{{
 		output	reg				TBL_REQUEST,
 		input	wire				TBL_VALID,
-		output	reg	[MACW-1:0]		TBL_MAC,
+		output	wire	[MACW-1:0]		TBL_MAC,
 		input	wire	[NETH-1:0]		TBL_PORT,
 		// }}}
 		// Outgoing packet data, following destination lookup

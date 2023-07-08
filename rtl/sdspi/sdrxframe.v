@@ -475,10 +475,10 @@ module	sdrxframe #(
 			// {{{
 			// Note that in ASYNC mode, all rails are used (IIRC)
 			crc[gk] <= STEPCRC( STEPCRC( STEPCRC( STEPCRC(crc[gk],
-								S_ASYNC_DATA[gk+24]),
-							S_ASYNC_DATA[gk+16]),
-						S_ASYNC_DATA[gk+8]),
-					S_ASYNC_DATA[gk]);
+					S_ASYNC_DATA[gk+24]),
+					S_ASYNC_DATA[gk+16]),
+					S_ASYNC_DATA[gk+ 8]),
+					S_ASYNC_DATA[gk   ]);
 			// }}}
 		end
 		// }}}

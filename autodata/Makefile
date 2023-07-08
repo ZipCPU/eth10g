@@ -50,11 +50,11 @@ DBGBUS  := wbuconsole.txt		# smibus.txt
 MEMORY  := bkram.txt flash.txt		# sdram.txt # bkrom.txt
 DISKDR  := sdio.txt			# sata.txt emmc.txt
 CPU     := zipmaster.txt smiconsole.txt		# pic.txt
-NETWORK := # vpktpassthru.txt			#
+NETWORK := netrouter.txt # netduplex.txt		# vpktpassthru.txt
 GFX     := # hdmi.txt cec.txt edid.txt
 SCOPES  := smiscope.txt flashscope.txt fanscope.txt cfgscope.txt sdioscope.txt
 LDSCRIPT:= mem_bkram_only.txt mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
-OTHER   := i2ccpu.txt fan.txt sirefclk.txt i2cscope.txt netled.txt # siclkcounter.txt
+OTHER   := i2ccpu.txt fan.txt sirefclk.txt i2cscope.txt # netled.txt # siclkcounter.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\
 	$(SCOPES) $(LDSCRIPT) $(OTHER)

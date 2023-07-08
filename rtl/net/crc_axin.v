@@ -60,17 +60,17 @@ module	crc_axin #(
 		input   wire [$clog2(DATA_WIDTH/8):0]	S_AXIN_BYTES,
 		// Indicates boundary of last packet
 		input	wire			S_AXIN_LAST,
-        input	wire			S_AXIN_ABORT,
+	        input	wire			S_AXIN_ABORT,
 		// }}}
 
 		// M_AXIN_*: Outgoing data
 		output	reg				M_AXIN_VALID,
-		input   wire			M_AXIN_READY,
+		input   wire				M_AXIN_READY,
 		output	reg	[DATA_WIDTH-1:0]	M_AXIN_DATA,
 		output  reg [$clog2(DATA_WIDTH/8):0]	M_AXIN_BYTES,
 		// Indicates boundary of last packet
-		output	reg 			M_AXIN_LAST,
-		output	reg 			M_AXIN_ABORT
+		output	reg 				M_AXIN_LAST,
+		output	reg 				M_AXIN_ABORT
 		// }}}
 	);
 

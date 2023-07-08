@@ -69,7 +69,7 @@ module dropshort #(
 			BW = $clog2(DW/8);
 	reg	[MSB:0]	pktlen;
 	reg		midpacket;
-	wire	[$clog2(DW/8):0]	i_bytes;
+	reg	[$clog2(DW/8):0]	i_bytes;
 
 	// pktlen
 	// {{{
@@ -148,9 +148,11 @@ module dropshort #(
 	else if (!M_VALID || M_READY)
 	begin
 		M_ABORT <= 0;
+		// Verilator lint_off WIDTH
 		if (S_VALID && S_READY && S_LAST && !pktlen[MSB])
 			M_ABORT <= ({ pktlen,{(BW){1'b0}} } + i_bytes
 								< MINBYTES);
+		// Verilator lint_on  WIDTH
 	end
 	// }}}
 

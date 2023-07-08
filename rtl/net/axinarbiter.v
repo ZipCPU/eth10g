@@ -70,7 +70,7 @@ module axinarbiter #(
 	genvar			gk;
 	integer			ik;
 
-	reg	[NIN-1:0]	grant;
+	wire	[NIN-1:0]	grant;
 	wire	[NIN-1:0]	midpkt;
 	reg	[DW-1:0]	merged_data;
 	reg [WBITS-1:0]	merged_bytes;

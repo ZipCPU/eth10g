@@ -47,7 +47,12 @@ module	p64bscrambler #(
 		// {{{
 		input	wire				i_clk, i_reset_n,
 		//
+		input	wire				i_valid,
+		output	wire				o_ready,
 		input	wire	[DATA_WIDTH-1:0]	i_data,
+		//
+		output	reg				o_valid,
+		input	wire				i_ready,
 		output	reg	[DATA_WIDTH-1:0]	o_data
 		// }}}
 	);
@@ -69,9 +74,20 @@ module	p64bscrambler #(
 	always @(posedge i_clk)
 	if (!i_reset_n)
 		r_fill <= 0;
-	else
+	else if (i_ready)
 		// Self synchronizing
 		r_fill <= next_fill;
+	// }}}
+
+	// o_valid
+	// {{{
+	always @(posedge i_clk)
+	if (!i_reset_n)
+		o_valid <= 0;
+	else if (i_valid)
+		o_valid <= 1'b1;
+	else if (o_ready)
+		o_valid <= 1'b0;
 	// }}}
 
 	// o_data
@@ -79,28 +95,30 @@ module	p64bscrambler #(
 	always @(posedge i_clk)
 	if (!i_reset_n)
 		o_data <= 0;
-	else
+	else if (i_ready)
 		o_data <= scrambled;
 	// }}}
 
+	assign	o_ready = !o_valid || i_ready;
+
 	function automatic [PB+DW-1:0] SCRAMBLE(
 		// {{{
-			input [PB-1:0]	i_fill,
-			input [DW-1:0]	i_data);
+			input [PB-1:0]	s_fill,
+			input [DW-1:0]	s_data);
 
 		integer ik;
 		reg	[DW-1:0]	data_out;
 		reg	[PB-1:0]	state;
 	begin
 		data_out = 0;
-		data_out[1:0] = i_data[1:0];
-		state = i_fill;
+		data_out[1:0] = s_data[1:0];
+		state = s_fill;
 		for(ik=2; ik<DW; ik=ik+1)
 		begin
-			data_out[ik] = i_data[ik] ^ (^(POLYNOMIAL & state));
+			data_out[ik] = s_data[ik] ^ (^(POLYNOMIAL & state));
 			if (OPT_RX)
 			begin
-				state = { state[PB-2:0], i_data[ik] };
+				state = { state[PB-2:0], s_data[ik] };
 			end else begin
 				state = { state[PB-2:0], data_out[ik] };
 			end

@@ -173,29 +173,8 @@
 //
 //
 
-#define	@$(DEVID)_CMD		0x000040
-#define	@$(DEVID)_ACMD		(0x040+55) // CMD55
-#define	@$(DEVID)_FIFO_OP	0x000800	// Read only
-#define	@$(DEVID)_WRITEOP	0x000c00	// Write to the FIFO
-#define	@$(DEVID)_ALTFIFO	0x001000
-// #define	@$(DEVID)_DMA	0x002000
-#define	@$(DEVID)_BUSY		0x004000
-#define	@$(DEVID)_ERROR		0x008000
-#define	@$(DEVID)_CLEARERR	0x008000
-// #define	@$(DEVID)_CRCERR	0x020000
-// #define	@$(DEVID)_FRAMERR	0x030000
-// #define	@$(DEVID)_REMOVED	0x040000
-// #define	@$(DEVID)_PRESENTN	0x080000
-// #define	@$(DEVID)_RESET		0x100000	// Read only
-// #define	@$(DEVID)_WATCHDOG	0x200000	// Read only
-#define	@$(DEVID)_GO_IDLE	((@$(DEVID)_CLEARERR|@$(DEVID)_CMD)+0)
-#define	@$(DEVID)_READ_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_FIFO_OP)+17)
-#define	@$(DEVID)_WRITE_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_WRITEOP)+24)
+// These will be defined in sdiodrv.h for the SDIO controller
 
-typedef	struct @$(DEVID)_S {
-	unsigned	sdio_ctrl, sdio_data, sdio_fifo[2];
-	unsigned	sdio_phy, sdio_unused[3];
-} @$(DEVID);
 // }}}
 @BDEF.IONAME=_sdcard
 @BDEF.IOTYPE=@$(DEVID)

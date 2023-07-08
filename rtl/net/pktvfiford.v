@@ -114,7 +114,8 @@ module	pktvfiford #(
 		// than MAXLEN will generate a FIFO error.
 		parameter	MAXLEN = 256, // (1<<(AW+$clog2(BUSDW/8))),
 		parameter [0:0]	OPT_LOWPOWER = 1,
-		parameter [0:0]	OPT_LITTLE_ENDIAN = 0
+		parameter [0:0]	OPT_LITTLE_ENDIAN = 0,
+		localparam	WBLSB = $clog2(BUSDW/8)
 		// }}}
 	) (
 		// {{{
@@ -158,8 +159,6 @@ module	pktvfiford #(
 	// {{{
 	// Local parameters
 	// {{{
-	localparam	WBLSB = $clog2(BUSDW/8);
-
 	localparam	[1:0]	RD_IDLE      = 2'h0,
 				RD_SIZE      = 2'h1,
 				RD_PACKET    = 2'h2,
@@ -199,7 +198,7 @@ module	pktvfiford #(
 
 	wire			full_return, false_ack;
 	reg	[AW+WBLSB-1:0]	return_len, next_return_len;
-	reg	[BUSDW/8-1:0]	ptrsel;
+	wire	[BUSDW/8-1:0]	ptrsel;
 
 	wire	fifo_commit;
 

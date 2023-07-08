@@ -1,0 +1,203 @@
+################################################################################
+##
+## Filename: 	netduplex.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=gnet
+@ACCESS=ETH_DUPLEX
+@$NDEV=4
+@TOP.PORTLIST=
+			i_gnet_los, o_gnettx_disable,
+			o_gnet_linkup, o_gnet_activity,
+			o_gnet_p, o_gnet_n,
+			i_gnet_p, i_gnet_n,
+@TOP.IODECL=
+	// 10Gb Ethernet
+	input	wire	[@$(NDEV)-1:0]	i_gnet_los;
+	output	wire	[@$(NDEV)-1:0]	o_gnettx_disable;
+	output	wire	[@$(NDEV)-1:0]	o_gnet_linkup;
+	output	wire	[@$(NDEV)-1:0]	o_gnet_activity;
+	output	wire	[@$(NDEV)-1:0]	o_gnet_p, o_gnet_n;
+	input	wire	[@$(NDEV)-1:0]	i_gnet_p, i_gnet_n;
+@TOP.DEFNS=
+	// 10Gb Ethernet
+	wire				i_clk_156mhz_p, i_clk_156mhz_n;
+	wire	[@$(NDEV)-1:0]		gnet_rx_clk, gnet_tx_clk;
+	wire	[@$(NDEV)-1:0]		gnet_rx_valid, gnet_tx_ready;
+	wire	[66*@$(NDEV)-1:0]	gnet_rx_data;
+	wire	[66*@$(NDEV)-1:0]	gnet_tx_data;
+	wire	[@$(NDEV)-1:0]		gnet_phy_fault;
+@TOP.INSERT=
+	assign	o_gnettx_disable = 0;
+
+	xgtxphy #(
+		.NDEV(@$(NDEV))
+	) u_gnet_gtx_phy (
+		// {{{
+		.i_wb_clk(s_clk),
+		.o_phy_fault(gnet_phy_fault),
+		//
+		.S_CLK(  gnet_tx_clk),
+		.S_READY(gnet_tx_ready),
+		.S_DATA( gnet_tx_data),
+		//
+		.M_CLK(  gnet_rx_clk),
+		.M_VALID(gnet_rx_valid),
+		.M_DATA( gnet_rx_data),
+		//
+		.i_refck_p(i_clk_156mhz_p), .i_refck_n(i_clk_156mhz_n),
+		.i_rx_p(i_gnet_p), .i_rx_n(i_gnet_n),
+		.o_tx_p(o_gnet_p), .o_tx_n(o_gnet_n)
+		// }}}
+	);
+@TOP.MAIN=
+		gnet_rx_clk, gnet_rx_valid, gnet_rx_data,
+		gnet_tx_clk, gnet_tx_ready, gnet_tx_data,
+		gnet_phy_fault, o_gnet_linkup, o_gnet_activity
+@MAIN.PORTLIST=
+		i_@$(PREFIX)_rx_clk, i_@$(PREFIX)_rx_valid,i_@$(PREFIX)_rx_data,
+		i_@$(PREFIX)_tx_clk, i_@$(PREFIX)_tx_ready,o_@$(PREFIX)_tx_data,
+		i_@$(PREFIX)_phy_fault,o_@$(PREFIX)_linkup,o_@$(PREFIX)_activity
+@MAIN.IODECL=
+	// 10Gb Ethernet
+	// {{{
+	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_rx_clk,
+					i_@$(PREFIX)_rx_valid;
+	input	wire [66*@$(NDEV)-1:0]	i_@$(PREFIX)_rx_data;
+	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_tx_clk,
+					i_@$(PREFIX)_tx_ready;
+	output	wire [66*@$(NDEV)-1:0]	o_@$(PREFIX)_tx_data;
+	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_phy_fault;
+	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_linkup;
+	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_activity;
+	// }}}
+@MAIN.DEFNS=
+	// Incoming 10Gb packet signaling
+	// {{{
+	wire	[@$(NDEV)-1:0]		@$(PREFIX)_rx_valid,
+					@$(PREFIX)_rx_ready,
+					@$(PREFIX)_rx_last,
+					@$(PREFIX)_rx_abort;
+	wire	[128*@$(NDEV)-1:0]	@$(PREFIX)_rx_data;
+	wire	[4*@$(NDEV)-1:0]	@$(PREFIX)_rx_bytes;
+	// }}}
+	// Outoging 10Gb packet signaling
+	// {{{
+	wire	[@$(NDEV)-1:0]		@$(PREFIX)_tx_valid,
+					@$(PREFIX)_tx_ready,
+					@$(PREFIX)_tx_last,
+					@$(PREFIX)_tx_abort;
+	wire	[128*@$(NDEV)-1:0]	@$(PREFIX)_tx_data;
+	wire	[4*@$(NDEV)-1:0]	@$(PREFIX)_tx_bytes;
+	// }}}
+	genvar	g_@$(PREFIX);
+@MAIN.INSERT=
+	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+1)
+	begin : GEN_ETHERNET_DECODE
+		netpath
+		u_netpath (
+			// {{{
+			.i_sys_clk(i_clk),
+			.i_reset_n(!i_reset),
+			.i_rx_clk(i_@$(PREFIX)_rx_clk[g_@$(PREFIX)]),
+			.i_tx_clk(i_@$(PREFIX)_tx_clk[g_@$(PREFIX)]),
+			.o_link_up(o_@$(PREFIX)_linkup[g_@$(PREFIX)]),
+			.o_activity(o_@$(PREFIX)_activity[g_@$(PREFIX)]),
+			// PHY interface
+			// {{{
+			.i_phy_fault(i_@$(PREFIX)_phy_fault[g_@$(PREFIX)]),
+			.i_raw_valid(i_@$(PREFIX)_rx_valid[g_@$(PREFIX)]),
+			.i_raw_data(i_@$(PREFIX)_rx_data[66*g_@$(PREFIX)+:66]),
+			//
+			.i_raw_ready(i_@$(PREFIX)_tx_ready[g_@$(PREFIX)]),
+			.o_raw_data(o_@$(PREFIX)_tx_data[66*g_@$(PREFIX)+:66]),
+			// }}}
+			// Incoming (received) packet AXIN source
+			// {{{
+			.M_VALID(@$(PREFIX)_rx_valid[g_@$(PREFIX)]),
+			.M_READY(@$(PREFIX)_rx_ready[g_@$(PREFIX)]),
+			.M_DATA( @$(PREFIX)_rx_data[128*g_@$(PREFIX)+: 128]),
+			.M_BYTES(@$(PREFIX)_rx_bytes[4*g_@$(PREFIX)+: 4]),
+			.M_LAST( @$(PREFIX)_rx_last[g_@$(PREFIX)]),
+			.M_ABORT(@$(PREFIX)_rx_abort[g_@$(PREFIX)]),
+			// }}}
+			// Outgoing (transmit) packet AXIN sink
+			// {{{
+			.S_VALID(@$(PREFIX)_tx_valid[g_@$(PREFIX)]),
+			.S_READY(@$(PREFIX)_tx_ready[g_@$(PREFIX)]),
+			.S_DATA( @$(PREFIX)_tx_data[128*g_@$(PREFIX)+: 128]),
+			.S_BYTES(@$(PREFIX)_tx_bytes[4*g_@$(PREFIX)+: 4]),
+			.S_LAST( @$(PREFIX)_tx_last[g_@$(PREFIX)]),
+			.S_ABORT(@$(PREFIX)_tx_abort[g_@$(PREFIX)])
+			// }}}
+			// }}}
+		);
+	end for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+2)
+	begin : GEN_PORT_HANDLING
+		// {{{
+		if (g_@$(PREFIX)+1 < @$(NDEV))
+		begin : GEN_SWAP
+			// g_@$(PREFIX) -> g_@$(PREFIX)+1
+			assign	@$(PREFIX)_tx_valid[g_@$(PREFIX)+1] = @$(PREFIX)_rx_valid[g_@$(PREFIX)];
+			assign	@$(PREFIX)_rx_ready[g_@$(PREFIX)+1] = @$(PREFIX)_tx_ready[g_@$(PREFIX)];
+			assign	@$(PREFIX)_tx_data[128*(g_@$(PREFIX)+1)+: 128] = @$(PREFIX)_rx_data[128*g_@$(PREFIX)+: 128];
+			assign	@$(PREFIX)_tx_bytes[4*(g_@$(PREFIX)+1)+: 4] = @$(PREFIX)_rx_bytes[4*g_@$(PREFIX)+: 4];
+			assign	@$(PREFIX)_tx_last[g_@$(PREFIX)+1] = @$(PREFIX)_rx_last[g_@$(PREFIX)];
+			assign	@$(PREFIX)_tx_abort[g_@$(PREFIX)+1] = @$(PREFIX)_rx_abort[g_@$(PREFIX)];
+
+			///////
+
+			assign	@$(PREFIX)_tx_valid[g_@$(PREFIX)] = @$(PREFIX)_rx_valid[g_@$(PREFIX)+1];
+			assign	@$(PREFIX)_rx_ready[g_@$(PREFIX)] = @$(PREFIX)_tx_ready[g_@$(PREFIX)+1];
+			assign	@$(PREFIX)_tx_data[128*g_@$(PREFIX)+: 128] = @$(PREFIX)_rx_data[128*(g_@$(PREFIX)+1)+: 128];
+			assign	@$(PREFIX)_tx_bytes[4*g_@$(PREFIX)+: 4] = @$(PREFIX)_rx_bytes[4*(g_@$(PREFIX)+1)+: 4];
+			assign	@$(PREFIX)_tx_last[g_@$(PREFIX)] = @$(PREFIX)_rx_last[g_@$(PREFIX)+1];
+			assign	@$(PREFIX)_tx_abort[g_@$(PREFIX)] = @$(PREFIX)_rx_abort[g_@$(PREFIX)+1];
+		end else begin : GEN_PASSTHROUGH
+			assign	@$(PREFIX)_tx_valid[g_@$(PREFIX)] = @$(PREFIX)_rx_valid[g_@$(PREFIX)];
+			assign	@$(PREFIX)_rx_ready[g_@$(PREFIX)] = @$(PREFIX)_tx_ready[g_@$(PREFIX)];
+			assign	@$(PREFIX)_tx_data[128*g_@$(PREFIX)+: 128] = @$(PREFIX)_rx_data[128*g_@$(PREFIX)+: 128];
+			assign	@$(PREFIX)_tx_bytes[4*g_@$(PREFIX)+: 4] = @$(PREFIX)_rx_bytes[4*g_@$(PREFIX)+: 4];
+			assign	@$(PREFIX)_tx_last[g_@$(PREFIX)] = @$(PREFIX)_rx_last[g_@$(PREFIX)];
+			assign	@$(PREFIX)_tx_abort[g_@$(PREFIX)] = @$(PREFIX)_rx_abort[g_@$(PREFIX)];
+		end
+		// }}}
+	end endgenerate
+@RTL.MAKE.GROUP=NET
+@RTL.MAKE.SUBD=net
+@RTL.MAKE.FILES= axinbroadcast.v axincdc.v axinwidth.v crc_axin.v dropshort.v
+	netpath.v netskid.v p642pkt.v p64bscrambler.v pkt2p64b.v pktgate.v
+	xgtxphy.v
+@SIM.CLOCK=clk
+@SIM.TICK=
+		m_core->i_@$(PREFIX)_rx_valid = 0;
+		m_core->i_@$(PREFIX)_phy_fault= 0;
+		m_core->i_@$(PREFIX)_tx_ready = (1<<@$(NDEV))-1;

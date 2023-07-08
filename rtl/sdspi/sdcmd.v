@@ -122,6 +122,9 @@ module	sdcmd #(
 
 	reg	[6:0]	crc_fill;
 	reg		r_busy, new_data;
+
+	reg		r_done;
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -219,7 +222,7 @@ module	sdcmd #(
 	if (i_reset)
 		{ cfg_ds, cfg_dbl, cmd_type } <= 4'b0;
 	else if (i_cmd_request && !o_busy)
-		{ cfg_ds, cfg_dbl, cmd_type } <= { i_cfg_ds, i_cfg_dbl, i_cmd_type };
+		{ cfg_ds, cfg_dbl, cmd_type } <= { (i_cfg_ds && OPT_DS), i_cfg_dbl, i_cmd_type };
 	// }}}
 
 	// new_data
@@ -238,13 +241,16 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset || !waiting_on_response || active)
 		resp_count <= 0;
-	else if (OPT_DS && cfg_ds)
+	else if (resp_count < 192)
 	begin
-		if (S_ASYNC_VALID)
-			resp_count <= resp_count + 2;
-	end else
-		resp_count <= resp_count + (i_cmd_strb[1] ? 1:0)
-				+ (i_cmd_strb[0] ? 1:0);
+		if (OPT_DS && cfg_ds)
+		begin
+			if (S_ASYNC_VALID)
+				resp_count <= resp_count + 2;
+		end else
+			resp_count <= resp_count + (i_cmd_strb[1] ? 1:0)
+					+ (i_cmd_strb[0] ? 1:0);
+	end
 	// }}}
 
 	// rx_sreg
@@ -502,8 +508,6 @@ module	sdcmd #(
 `endif
 	// }}}
 
-	reg	r_done;
-
 	initial	r_done = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset || rx_timeout || w_no_response || o_done)
@@ -512,6 +516,32 @@ module	sdcmd #(
 		r_done <= 1'b1;
 	// else // if (i_ckstb)
 	//	r_done <= 1'b0;
+`ifdef	FORMAL
+	always @(*)
+	if (!i_reset)
+	begin
+		if (!r_busy)
+		begin
+			assert(!r_done);
+		end
+		if (active)
+		begin
+			assert(!r_done);
+		end
+		if (cmd_type[0] && resp_count < 48)
+		begin
+			assert(!r_done);
+		end
+		if (cmd_type == R_R2 && resp_count < 136)
+		begin
+			assert(!r_done);
+		end
+		if (cmd_type == R_NONE)
+		begin
+			assert(!waiting_on_response);
+		end
+	end
+`endif
 
 	initial	o_done = 1'b0;
 	always @(posedge i_clk)
@@ -631,6 +661,10 @@ module	sdcmd #(
 		assume(!i_cmd_strb[0]);
 
 	always @(*)
+	if (!i_reset && !OPT_DS)
+		assert(!cfg_ds);
+
+	always @(*)
 	if (!i_reset && (!OPT_DS || !cfg_ds))
 		assume(!S_ASYNC_VALID);
 
@@ -686,7 +720,7 @@ module	sdcmd #(
 		f_last_resp_count <= resp_count;
 
 	always @(*)
-	if (!i_reset && cfg_ds)
+	if (!i_reset && (cfg_ds && OPT_DS))
 		assert(!resp_count[0]);
 
 	always @(*)
@@ -710,20 +744,52 @@ module	sdcmd #(
 		if (active)
 			assert(resp_count == 0);
 
-		if (resp_count < 8+32)
+		if (resp_count < 8+32 || cmd_type != R_R2 || active)
 		begin
 			assert(mem_addr == 0);
-		end else if (cmd_type == R_R2)
+		end else if (r_done)
+		begin
+			assert(mem_addr == 4);
+		end else if (waiting_on_response)
 		begin
 			assert(mem_addr + o_mem_valid == ((f_last_resp_count-8)>>5));
 		end
 
 		if (cmd_type == R_NONE)
+		begin
 			assert(resp_count == 0);
-		if (resp_count > 50 && !w_done && r_busy)
+		end
+
+		if (cmd_type[0] && resp_count == 48 && r_busy)
+		begin
+			assert(w_done || r_done);
+		end
+
+		if (cmd_type[0] && resp_count > 48 && r_busy)
+		begin
+			assert(w_done || r_done);
+		end
+
+		if (resp_count > 50 && !r_done && r_busy)
+		begin
 			assert(cmd_type == R_R2);
-		if (r_busy && !o_done)
+		end
+
+		if (!r_busy)
+			assert(!waiting_on_response);
+		if (!active && r_busy && !o_done)
+			assert(waiting_on_response);
+
+		if (r_busy && (resp_count > (8+128)))
+		begin
+			assert(w_done || r_done);
+		end
+
+		if (r_busy && !r_done)
+		begin
 			assert(o_mem_addr <= 3);
+		end
+
 	end
 
 	////////////////////////////////////////////////////////////////////////

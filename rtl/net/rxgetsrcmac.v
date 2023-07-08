@@ -179,7 +179,7 @@ module rxgetsrcmac #(
 		// }}}
 	end else begin : GEN_WIDE_MAC
 		// {{{
-		reg	last_data[DW*MAXPOSN-1:0];
+		reg	[DW*MAXPOSN-1:0]	last_data;
 
 		always @(posedge i_clk)
 		if (OPT_LOWPOWER && (i_reset || skd_abort))

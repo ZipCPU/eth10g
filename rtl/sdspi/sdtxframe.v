@@ -203,7 +203,7 @@ module	sdtxframe #(
 		end
 
 		if (!tx_valid)
-				pstate <= P_IDLE;
+			pstate <= P_IDLE;
 		end
 	endcase
 
@@ -476,6 +476,11 @@ module	sdtxframe #(
 		ck_valid    <= pre_valid || ck_stop_bit;
 		ck_stop_bit <= pre_valid;
 	end
+`ifdef	FORMAL
+	always @(*)
+	if (!i_reset && (ck_stop_bit || pre_valid))
+		assert(ck_valid);
+`endif
 	// }}}
 
 	initial	ck_counts = 0;
@@ -635,7 +640,7 @@ module	sdtxframe #(
 		ck_data  <= -1;
 		ck_sreg  <= -1;
 
-		ck_counts <= 0;
+		ck_counts <= (start_packet && i_cfg_ddr && !i_hlfck) ? 1:0;
 
 		if (start_packet)	// Implies i_ckstb
 		case(cfg_period)
@@ -703,12 +708,133 @@ module	sdtxframe #(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
+	reg	f_ckstb, f_hlfck;
+	(* keep *)	reg	[9+5:0]	fb_count, fd_offset, fd_count,
+					f_loaded_count;
+	(* keep *)	reg	[9:0]	fs_count;
+			reg	[10:0]	fcrc_count;
+	(* keep *)	reg		fs_last;
+	wire		f_step, fload_xtra;
+
+	assign	f_step = f_ckstb || (cfg_ddr && f_hlfck);
+	assign	fload_xtra = tx_valid && f_step; // || fb_count == fd_offset);
+
+	always @(*)
+	begin
+		if (fb_count < fd_offset)
+			f_loaded_count = 0;
+		else if (!tx_valid)
+			f_loaded_count = fb_count - fd_offset;
+		else case(cfg_period)
+		P_1D: case(cfg_width)
+			// {{{
+			WIDTH_1W: f_loaded_count = fd_count + ck_counts + (fload_xtra ? 1:0);
+			WIDTH_4W: f_loaded_count = fd_count + (ck_counts*4) + (fload_xtra ? 4:0);
+			WIDTH_8W: f_loaded_count = fd_count + (ck_counts*8) + (fload_xtra ? 8:0);
+			endcase
+			// }}}
+		P_2D: case(cfg_width)
+			// {{{
+			WIDTH_1W: f_loaded_count = fd_count + ck_counts*2 + (fload_xtra ? 2:0);
+			WIDTH_4W: f_loaded_count = fd_count + ck_counts*8 + (fload_xtra ? 8:0);
+			WIDTH_8W: f_loaded_count = fd_count + ck_counts*16 + (fload_xtra ? 16:0);
+			endcase
+			// }}}
+		P_4D: case(cfg_width)
+			// {{{
+			WIDTH_1W: f_loaded_count = fd_count + ck_counts*4 + (fload_xtra ? 4:0);
+			WIDTH_4W: f_loaded_count = fd_count + ck_counts*16 + (fload_xtra ? 16:0);
+			WIDTH_8W: f_loaded_count = fd_count + ck_counts*32 + (fload_xtra ? 32:0);
+			endcase
+			// }}}
+		endcase
+	end
+
+	always @(posedge i_clk)
+	if (i_reset)
+		{ f_ckstb, f_hlfck } <= 2'b00;
+	else
+		{ f_ckstb, f_hlfck } <= { i_ckstb, i_hlfck };
+
+	// fb_count -- count bits sent, including starting word
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset || !tx_valid)
+		fb_count <= 0;
+	else if (f_ckstb || (cfg_ddr && f_hlfck)) case(cfg_width)
+	WIDTH_1W: begin
+		case(cfg_period)
+		P_1D: fb_count <= fb_count + 1;
+		P_2D: fb_count <= fb_count + 2;
+		default: fb_count <= fb_count + 4;
+		endcase end
+	WIDTH_4W: begin
+		case(cfg_period)
+		P_1D: fb_count <= fb_count + 4;
+		P_2D: fb_count <= fb_count + 8;
+		default: fb_count <= fb_count + 16;
+		endcase end
+	default: begin
+		case(cfg_period)
+		P_1D: fb_count <= fb_count + 8;
+		P_2D: fb_count <= fb_count + 16;
+		default: fb_count <= fb_count + 32;
+		endcase end
+	endcase
+	// }}}
+
+	initial	fs_last = 0;
+	always @(posedge i_clk)
+	if (i_reset || !i_en || (pstate == P_LAST && !tx_valid))
+	begin
+		fs_count <= 0;
+		fs_last  <= 0;
+		fcrc_count <= 0;
+	end else if (S_VALID && S_READY)
+	begin
+		fs_count <= fs_count + 1;
+		fcrc_count <= fs_count + 1;
+		fs_last  <= S_LAST;
+	end else if (pre_valid && pre_ready)
+		fcrc_count <= fcrc_count + 1;
+
+	// fd_offset, fd_count: bit count, not including the starting word
+	// {{{
+	always @(*)
+	begin
+		fd_offset = 1;
+		case(cfg_width)
+		WIDTH_1W: begin
+			case(cfg_period)
+			P_1D: fd_offset = (cfg_ddr ? 2:1);
+			P_2D: fd_offset = 2;
+			default: fd_offset = 4;
+			endcase end
+		WIDTH_4W: begin
+			case(cfg_period)
+			P_1D: fd_offset = (cfg_ddr ?  8: 4);
+			P_2D: fd_offset = 8;
+			default: fd_offset = 16;
+			endcase end
+		default: begin
+			case(cfg_period)
+			P_1D: fd_offset = (cfg_ddr ? 16: 8);
+			P_2D: fd_offset = 16;
+			default: fd_offset= 32;
+			endcase end
+		endcase
+	end
+
+	always @(*)
+	if (fb_count > fd_offset)
+		fd_count = fb_count - fd_offset;
+	else
+		fd_count = 0;
+	// }}}
+
 	reg	f_past_valid, f_pending_half;
-	reg	[9:0]	fs_count;
-	reg		fs_last;
 	(* anyconst *)	reg	[9:0]	fc_posn;
 	(* anyconst *)	reg	[31:0]	fc_data;
-	reg	[9+5:0]	fb_count, fd_offset, fd_count;
 	wire	[9:0]	fp_count;
 
 
@@ -795,7 +921,7 @@ module	sdtxframe #(
 
 	always @(*)
 	if (!OPT_SERDES)
-		assume(!i_ckstb || !i_hlfstb);
+		assume(!i_ckstb || !i_hlfck);
 
 	initial	f_pending_half = 1'b0;
 	always @(posedge i_clk)
@@ -807,8 +933,12 @@ module	sdtxframe #(
 		f_pending_half <= 1'b0;
 
 	always @(*)
-	if (i_en && i_cfg_spd < 2)
-		assume(i_ckstb && i_hlfck);
+	if (i_en) case(i_cfg_spd)
+	0: assume(i_ckstb && i_hlfck);
+	1: assume(i_ckstb && i_hlfck);
+	2: assume(i_ckstb ^ i_hlfck);
+	default: assume(!i_ckstb || !i_hlfck);
+	endcase
 
 	always @(*)
 	if (i_en && i_cfg_spd == 2)
@@ -891,6 +1021,13 @@ module	sdtxframe #(
 	endcase
 	// }}}
 
+	always @(posedge i_clk)
+	if (!i_reset && pstate == P_CRC || pstate == P_DATA)
+		assert(tx_valid && pre_valid);
+
+	always @(posedge i_clk)
+	if (!i_reset && pstate == P_IDLE)
+		assert(!tx_valid);
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -906,6 +1043,24 @@ module	sdtxframe #(
 	always @(*)
 	if (!i_en)
 		assume(!S_VALID);
+
+	// always @(posedge i_clk)
+	// if (fs_last)
+	//	assume(!i_en);
+
+	always @(posedge i_clk)
+	if (!i_reset && pstate == P_IDLE)
+		assert(fs_count == 0);
+
+	always @(*)
+	if (!i_reset)
+	begin
+		if (!fs_last)
+		begin
+			assert(fcrc_count == fs_count);
+		end else
+			assert(fcrc_count >= fs_count);
+	end
 	// }}}
 
 	always @(posedge i_clk)
@@ -921,29 +1076,29 @@ module	sdtxframe #(
 	end else if ($past(S_VALID && !S_LAST))
 		assume(S_VALID);
 
-	initial	fs_last = 0;
-	always @(posedge i_clk)
-	if (i_reset || !i_en)
-	begin
-		fs_count <= 0;
-		fs_last <= 0;
-	end else if (S_VALID && S_READY)
-	begin
-		fs_count <= fs_count + 1;
-		fs_last  <= S_LAST;
-	end
-
 	always @(*)
 	if (fs_last)
 		assume(!S_VALID);
 
 	always @(*)
-	if (fs_count == 10'h3fe)
+	if (fs_count == 10'h3df)
 		assume(!S_VALID || S_LAST);
 
 	always @(*)
-	if (&fs_count)
-		assert(!S_VALID);
+	if (!i_reset && fs_count >= 10'h3e0)
+		assert(fs_last);
+
+	always @(*)
+	if (!i_reset && fs_count==0)
+		assert(!fs_last);
+
+	always @(posedge i_clk)
+	if (!i_reset && (pstate == P_CRC || pstate == P_LAST))
+		assert(fs_last);
+
+	always @(posedge i_clk)
+	if (!i_reset && pstate == P_DATA)
+		assert(!fs_last && S_VALID && fs_count > 0);
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -955,95 +1110,52 @@ module	sdtxframe #(
 	if (S_VALID && fs_count == fc_posn)
 		assume(fc_data == S_DATA);
 
-	// fb_count -- count bits sent, including starting word
-	// {{{
-	always @(posedge i_clk)
-	if (i_reset || !tx_valid)
-		fb_count <= 0;
-	else case(cfg_width)
-	WIDTH_1W: begin
-		case(cfg_period)
-		P_1D: fb_count <= fb_count + 1;
-		P_2D: fb_count <= fb_count + 2;
-		default: fb_count <= fb_count + 4;
-		endcase end
-	WIDTH_4W: begin
-		case(cfg_period)
-		P_1D: fb_count <= fb_count + 4;
-		P_2D: fb_count <= fb_count + 8;
-		default: fb_count <= fb_count + 16;
-		endcase end
-	default: begin
-		case(cfg_period)
-		P_1D: fb_count <= fb_count + 8;
-		P_2D: fb_count <= fb_count + 16;
-		default: fb_count <= fb_count + 32;
-		endcase end
-	endcase
-	// }}}
-
-	// fd_offset, fd_count: bit count, not including the starting word
-	// {{{
-	always @(*)
-	begin
-		fd_offset = 1;
-		case(cfg_width)
-		WIDTH_1W: begin
-			case(cfg_period)
-			P_1D: fd_offset = (cfg_ddr ? 2:1);
-			P_2D: fd_offset = 2;
-			default: fd_offset = 4;
-			endcase end
-		WIDTH_4W: begin
-			case(cfg_period)
-			P_1D: fd_offset = (cfg_ddr ?  8: 4);
-			P_2D: fd_offset = 8;
-			default: fd_offset = 16;
-			endcase end
-		default: begin
-			case(cfg_period)
-			P_1D: fd_offset = (cfg_ddr ? 16: 8);
-			P_2D: fd_offset = 16;
-			default: fd_offset= 32;
-			endcase end
-		endcase
-	end
-
-	always @(*)
-	if (fb_count > fd_offset)
-		fd_count = fb_count - fd_offset;
-	else
-		fd_count = 0;
-	// }}}
-
 	// Start bit checking
 	// {{{
 	always @(*)
 	if (!i_reset && tx_valid && fb_count < fd_offset)
 	begin
-		assert(ck_counts == 0);
-		case(cfg_width)
-		WIDTH_1W: case(cfg_period)
-			P_1D:	assert({ tx_data[24], tx_data[16], tx_data[8], tx_data[0] } == 4'b0);
-			P_2D:	assert({ tx_data[24], tx_data[16], tx_data[8], tx_data[0] }
-					== (cfg_ddr) ? 4'b0000 : 4'b1100);
-			P_4D:	assert({ tx_data[24], tx_data[16], tx_data[8], tx_data[0] } == 4'b1100);
+		if (!f_step)
+		begin
+			case({(cfg_ddr && !f_pending_half), cfg_width})
+			{1'b0,WIDTH_1W}: assert(fb_count==1);
+			{1'b1,WIDTH_1W}: assert(fb_count==2);
+			{1'b0,WIDTH_4W}: assert(fb_count==4);
+			{1'b1,WIDTH_1W}: assert(fb_count==8);
+			{1'b0,WIDTH_8W}: assert(fb_count==8);
+			{1'b1,WIDTH_8W}: assert(fb_count==16);
+			default: assert(0);
+			endcase
+		end
+		assert(ck_counts == ((cfg_ddr && f_pending_half) ? 1:0));
+		assert(fs_count <= 1);
+		assert(fd_count == 0);
+		assert(pstate == P_DATA || (pstate == P_CRC && fs_count == 1));
+		case(cfg_period)
+		P_1D: case(cfg_width)
+			WIDTH_1W: assert((cfg_ddr && !f_pending_half)
+				|| ({ tx_data[24], tx_data[16], tx_data[8], tx_data[0] } == 4'b0));
+			WIDTH_4W: assert((cfg_ddr && !f_pending_half)
+				|| ({ tx_data[27:24], tx_data[19:16],
+					tx_data[11:8], tx_data[3:0] } == 16'b0));
+			WIDTH_8W: assert((cfg_ddr && !f_pending_half)
+				|| tx_data == 32'h0);
 			default: begin end
 			endcase
-		WIDTH_4W: case(cfg_period)
-			P_1D:	assert({ tx_data[27:24], tx_data[19:16],
-					tx_data[11:8], tx_data[3:0] } == 16'b0);
-			P_2D:	assert({ tx_data[27:24], tx_data[19:16],
+		P_2D: case(cfg_width)
+			WIDTH_1W: assert({ tx_data[24], tx_data[16], tx_data[8], tx_data[0] }
+					== (cfg_ddr) ? 4'b0000 : 4'b1100);
+			WIDTH_4W:	assert({ tx_data[27:24], tx_data[19:16],
 					tx_data[11:8], tx_data[3:0] }
 					== (cfg_ddr) ? 16'h00 : 16'hff00);
-			P_4D:	assert({ tx_data[27:24], tx_data[19:16],
-					tx_data[11:8], tx_data[3:0] } == 16'hff00);
+			WIDTH_8W:	assert(tx_data == (cfg_ddr) ? 32'h00 : 32'hffff_0000);
 			default: begin end
 			endcase
-		WIDTH_8W: case(cfg_period)
-			P_1D:	assert(tx_data == 32'h0);
-			P_2D:	assert(tx_data == (cfg_ddr) ? 32'h00 : 32'hffff_0000);
-			P_4D:	assert(tx_data == 32'hffff_0000);
+		P_4D: case(cfg_width)
+			WIDTH_1W: assert({ tx_data[24], tx_data[16], tx_data[8], tx_data[0] } == 4'b1100);
+			WIDTH_4W: assert({ tx_data[27:24], tx_data[19:16],
+					tx_data[11:8], tx_data[3:0] } == 16'hff00);
+			WIDTH_8W: assert(tx_data == 32'hffff_0000);
 			default: begin end
 			endcase
 		endcase
@@ -1098,6 +1210,46 @@ module	sdtxframe #(
 	// }}}
 
 	always @(*)
+	if (!i_reset && pstate == P_DATA)
+	begin
+		if (fs_count < 2)
+		begin
+			assert(fd_count == 0);
+		end else begin
+			assert(fs_count == (pre_valid ? 1:0) + f_loaded_count[14:5]);
+		end
+	end
+
+	always @(*)
+	if (!i_reset && pstate == P_CRC)
+	begin
+		assert(pre_valid);
+		assert(fcrc_count == 1 + f_loaded_count[14:5]);
+
+		case(cfg_width)
+		WIDTH_1W: assert(fcrc_count == fs_count);
+		WIDTH_4W: assert(fcrc_count == fs_count + (((cfg_ddr) ? 3 : 1)-pre_count));
+		WIDTH_8W: assert(fcrc_count == fs_count + (((cfg_ddr) ? 7 : 3)-pre_count));
+		endcase
+	end
+
+	always @(*)
+	if (!i_reset && pstate == P_LAST)
+	begin
+		case(cfg_width)
+		WIDTH_1W: assert(fcrc_count == fs_count + 1 + (pre_valid ? 0:1));
+		WIDTH_4W: assert(fcrc_count == fs_count + 1 + (pre_valid ? 0:1)
+				+ (((cfg_ddr) ? 3 : 1)-pre_count));
+		WIDTH_8W: assert(fcrc_count == fs_count + 1 + (pre_valid ? 0:1)
+				+ (((cfg_ddr) ? 7 : 3)-pre_count));
+		endcase
+	end
+
+	always @(*)
+	if (!i_reset && (pstate == P_IDLE || !tx_valid))
+		assert(ck_counts == 0);
+
+	always @(*)
 	if (!i_reset && fb_count >= fd_offset)
 	case(cfg_period)
 	P_1D: case(cfg_width)
@@ -1132,15 +1284,87 @@ module	sdtxframe #(
 		WIDTH_4W: begin
 				assert(ck_counts <= 1);
 			end
-		WIDTH_8W: if (pstate == P_DATA) begin
+		WIDTH_8W: begin
+			assert(ck_counts == 0);
+			if (pstate == P_DATA) begin
 				assert(fd_count + 32 == { fp_count, 5'h0 });
-				assert(ck_counts == 0);
 				if (fd_count == { fc_posn, 5'h0 })
 					assert(ck_data == fc_data);
-			end
+			end end
 		endcase
 		// }}}
 	endcase
+
+	// Verify fb_count modulo step is always zero
+	// {{{
+	always @(*)
+	if (!i_reset)
+	begin
+		case(cfg_period)
+		P_1D: case(cfg_width)
+			// {{{
+			WIDTH_1W: begin end
+			WIDTH_4W: assert(fb_count[1:0] == 2'b0);
+			WIDTH_8W: assert(fb_count[2:0] == 3'b0);
+			endcase
+			// }}}
+		P_2D: case(cfg_width)
+			// {{{
+			WIDTH_1W: assert(fb_count[0] == 1'b0);
+			WIDTH_4W: assert(fb_count[2:0] == 3'b0);
+			WIDTH_8W: assert(fb_count[3:0] == 4'b0);
+			endcase
+			// }}}
+		P_4D: case(cfg_width)
+			// {{{
+			WIDTH_1W: assert(fb_count[1:0] == 2'h0);
+			WIDTH_4W: assert(fb_count[3:0] == 4'h0);
+			WIDTH_8W: assert(fb_count[4:0] == 5'h0);
+			endcase
+			// }}}
+		endcase
+	end
+	// }}}
+
+	// Verify f_loaded_count[4:0]
+	// {{{
+	always @(*)
+	if (!i_reset)
+	begin
+		// assert(f_loaded_count[4:0] == 0);
+		if (pstate == P_DATA || pstate == P_CRC) case(cfg_period)
+		P_1D: case(cfg_width)
+			WIDTH_1W: assert(f_loaded_count[4:0] == 5'h00);
+			WIDTH_4W: assert(f_loaded_count[4:0] == 5'h00);
+			WIDTH_8W: assert(f_loaded_count[4:0] == 5'h00);
+			default: begin end
+			endcase
+		P_2D: case(cfg_width)
+			WIDTH_1W: assert(f_loaded_count[4:0] == (f_step ? 5'h00 : 5'h04));
+			WIDTH_4W: assert(f_loaded_count[4:0] == (f_step ? 5'h00 : 5'h08));
+			WIDTH_8W: assert(f_loaded_count[4:0] == 5'h0);
+			default: begin end
+			endcase
+		P_4D: case(cfg_width)
+			WIDTH_1W: assert(f_loaded_count[4:0] == (f_step ? 5'h00 : 5'h08));
+			WIDTH_4W: assert(f_loaded_count[4:0] == (f_step ? 5'h00 : 5'h10));
+			WIDTH_8W: assert(f_loaded_count[4:0] == 5'h0);
+			default: begin end
+			endcase
+		default: begin end
+		endcase
+	end
+	// }}}
+
+	// Verify ck_count[LSB] for DDR
+	// {{{
+	always @(*)
+	if (!i_reset && tx_valid && cfg_ddr && cfg_period == P_1D)
+	begin
+		assert(ck_counts[0] == f_pending_half
+			|| (!pre_valid && pstate == P_LAST && ck_counts==0));
+	end
+	// }}}
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////

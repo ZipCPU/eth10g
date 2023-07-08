@@ -177,7 +177,7 @@ module	pktvfifo #(
 		output	wire	[PKTDW-1:0]	M_DATA,
 		output	wire	[PKTBYW-1:0]	M_BYTES,
 		output	wire			M_LAST,
-		output	wire			M_ABORT
+		output	reg			M_ABORT
 		// }}}
 		// }}}
 	);

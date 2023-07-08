@@ -291,7 +291,9 @@ module	axinwidth #(
 	end else begin : IW_GREATER
 		// {{{
 		// Try IW=64, OW=32		(I need this for the project)
+		// Verilator lint_off WIDTH
 		localparam [$clog2(IW/8):0]	FULL_OUTWORD = OW/8;
+		// Verilator lint_on  WIDTH
 
 		reg	[IW-OW-1:0]	data_parse;
 		reg	[$clog2(IW/8):0] remaining_bytes;

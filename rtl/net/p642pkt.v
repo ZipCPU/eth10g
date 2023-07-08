@@ -40,7 +40,8 @@ module	p642pkt (
 		input	wire		RX_CLK, S_ARESETN,
 		//
 		input	wire		i_phy_fault,
-		output	reg		o_remote_fault, o_local_fault,
+		output	reg		o_remote_fault,
+		output	wire		o_local_fault,
 		output	wire		o_link_up,
 		//
 		input	wire		RX_VALID,
@@ -72,6 +73,8 @@ module	p642pkt (
 			//				SYNC_CONTROL },
 			// R_LPIDLE = { 32'h06060606, 32'h0606061e,
 			//				SYNC_CONTROL };
+	localparam	[23:0]	REMOTE_FAULT = 24'h02;
+	localparam		LNKMSB = 26;
 
 	reg		pstate, phalf, poffset;
 
@@ -79,6 +82,17 @@ module	p642pkt (
 	reg	[63:0]	dly_data;
 	reg	[31:0]	dly_half;
 	reg	[3:0]	dly_bytes;
+
+	// Fault detection registers
+	reg		r_local_fault;
+	reg	[6:0]	watchdog_counter;
+	reg		watchdog_timeout;
+	reg	[LNKMSB:0]	link_up_counter;
+
+	reg			max_packet_fault;
+	reg	[18:0]		max_packet_counter;
+
+	reg			powering_up;
 	// }}}
 
 	// Processing steps:
@@ -355,20 +369,18 @@ module	p642pkt (
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
-	localparam	[23:0]	REMOTE_FAULT = 24'h02;
-	localparam		LNKMSB = 26;
-
-	reg	[6:0]	watchdog_counter;
-	reg		watchdog_timeout;
-	reg	[LNKMSB:0]	link_up_counter;
 
 	// Local & Remote fault detection
+	// {{{
+	// These faults are all determined by the data sent.  If no data
+	// gets sent, or if we never lock (and hence RX_VALID stays low),
+	// then we'll never know a fault
 	initial	o_remote_fault = 1'b0;
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
 	begin
 		o_remote_fault <= 1'b0;
-		o_local_fault  <= 1'b0;
+		r_local_fault  <= 1'b0;
 	end else if (RX_VALID)
 	begin
 		case(RX_DATA[9:2])
@@ -384,28 +396,33 @@ module	p642pkt (
 			o_remote_fault <= 1'b0;
 
 		case(RX_DATA[9:2])
-		8'h1e: o_local_fault <= 1'b0;
-		8'h2d: o_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
-		8'h33: o_local_fault <= 1'b0;
-		8'h66: o_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		8'h55: o_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
-		8'h78: o_local_fault <= 1'b0;
-		8'h4b: o_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		8'h87: o_local_fault <= 1'b0;
-		8'h99: o_local_fault <= 1'b0;
-		8'haa: o_local_fault <= 1'b0;
-		8'hb4: o_local_fault <= 1'b0;
-		8'hcc: o_local_fault <= 1'b0;
-		8'hd2: o_local_fault <= 1'b0;
-		8'he1: o_local_fault <= 1'b0;
-		8'hff: o_local_fault <= 1'b0;
-		default: o_local_fault <= 1'b1;
+		8'h1e: r_local_fault <= 1'b0;
+		8'h2d: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		8'h33: r_local_fault <= 1'b0;
+		8'h66: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
+		8'h55: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		8'h78: r_local_fault <= 1'b0;
+		8'h4b: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
+		8'h87: r_local_fault <= 1'b0;
+		8'h99: r_local_fault <= 1'b0;
+		8'haa: r_local_fault <= 1'b0;
+		8'hb4: r_local_fault <= 1'b0;
+		8'hcc: r_local_fault <= 1'b0;
+		8'hd2: r_local_fault <= 1'b0;
+		8'he1: r_local_fault <= 1'b0;
+		8'hff: r_local_fault <= 1'b0;
+		default: r_local_fault <= 1'b1;
 		endcase
 
 		if (RX_DATA[1:0] != SYNC_CONTROL)
-			o_local_fault <= 1'b0;
+			r_local_fault <= 1'b0;
 	end
+	// }}}
 
+	// watchdog_timeout
+	// {{{
+	// If the PHY never produces any data for us, then we have a watchdog
+	// error condition.
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
 	begin
@@ -420,19 +437,57 @@ module	p642pkt (
 			watchdog_counter <= watchdog_counter - 1;
 		watchdog_timeout <= (watchdog_counter <= 1);
 	end
+	// }}}
 
+	// max_packet_fault
+	// {{{
+	// It is a fault to have a continuous packet with no control characters.
+	// In this case, our maximum packet length is still excessively large,
+	// set (above) at 2^19 words, or 2^22 (4MB) bytes.
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
+	begin
+		max_packet_counter <= 0;
+		max_packet_fault <=  0;
+	end else if (RX_VALID)
+	begin
+		if (RX_DATA[1:0] == SYNC_CONTROL)
+		begin
+			max_packet_counter <= -1;
+			max_packet_fault <=  0;
+		end else if (max_packet_counter != 0)
+		begin
+			max_packet_counter <= max_packet_counter - 1;
+			max_packet_fault <= (max_packet_counter <= 1);
+		end
+	end
+	// }}}
+
+	// link_up_counter--used to stretch faults and errors so the eye can
+	// see them
+	// {{{
+	always @(posedge RX_CLK or negedge S_ARESETN)
+	if (!S_ARESETN)
 		link_up_counter <= 0;
-	else if (watchdog_timeout || o_remote_fault || o_local_fault)
+	else if (watchdog_timeout || o_remote_fault || o_local_fault
+			|| max_packet_fault || powering_up)
 		link_up_counter <= 0;
 	else if (!link_up_counter[LNKMSB])
 		link_up_counter <= link_up_counter+1;
 	// else
 	//	link is solidly good
+	// }}}
+
+	always @(posedge RX_CLK or negedge S_ARESETN)
+	if (!S_ARESETN)
+		powering_up <= 1'b1;
+	else if (RX_VALID)
+		powering_up <= 1'b0;
 
 	assign	o_link_up = link_up_counter[LNKMSB];
 
+	assign o_local_fault = (powering_up || r_local_fault
+						|| watchdog_timeout);
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

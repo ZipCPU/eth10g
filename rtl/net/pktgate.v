@@ -60,12 +60,12 @@ module	pktgate #(
 		input	wire			S_AXIN_ABORT,
 		//
 		// Read interface
-		output	reg			M_AXIN_VALID,
+		output	wire			M_AXIN_VALID,
 		input	wire			M_AXIN_READY,
 		output	wire [DW-1:0]		M_AXIN_DATA,
 		output	wire [$clog2(DW/8)-1:0]	M_AXIN_BYTES,
 		output	wire			M_AXIN_LAST,
-		output	wire			M_AXIN_ABORT
+		output	reg			M_AXIN_ABORT
 		// }}}
 	);
 
@@ -337,7 +337,6 @@ module	pktgate #(
 	else if (S_AXIN_VALID && S_AXIN_READY)
 		s_midpacket <= !S_AXIN_LAST;
 
-	// FIXME!
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
 		M_AXIN_ABORT <= 1'b0;
