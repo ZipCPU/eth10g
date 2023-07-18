@@ -54,13 +54,13 @@ module	sdfrontend #(
 		input	wire		i_cmd_en,
 		input	wire		i_pp_cmd,	// Push/pull cmd lines
 		input	wire	[1:0]	i_cmd_data,
-		output	wire		o_cmd_busy,
 		//
-		input	wire		i_data_en,
+		input	wire		i_data_en, i_rx_en,
 		input	wire		i_pp_data,	// Push/pull data lines
 		input	wire	[31:0]	i_tx_data,
 		input	wire		i_afifo_reset_n,
 		// }}}
+		output	wire		o_data_busy,
 		// Synchronous Rx path
 		// {{{
 		output	wire	[1:0]	o_cmd_strb,
@@ -100,7 +100,7 @@ module	sdfrontend #(
 	);
 
 	genvar		gk;
-	reg		cmd_busy, wait_for_busy;
+	reg		dat0_busy, wait_for_busy;
 `ifndef	VERILATOR
 	wire			io_cmd_tristate, i_cmd, o_cmd;
 	wire	[NUMIO-1:0]	io_dat_tristate, i_dat, o_dat;
@@ -157,7 +157,7 @@ module	sdfrontend #(
 		// {{{
 		initial	ck_sreg = 0;
 		always @(posedge i_clk)
-		if (i_data_en)
+		if (i_reset || i_data_en)
 			ck_sreg <= 0;
 		else
 			ck_sreg <= { ck_sreg[0], next_dedge };
@@ -175,7 +175,7 @@ module	sdfrontend #(
 		// cmd_sample_ck: When do we sample the command line?
 		// {{{
 		always @(posedge i_clk)
-		if (i_cmd_en)
+		if (i_reset || i_cmd_en)
 			pck_sreg <= 0;
 		else
 			pck_sreg <= { pck_sreg[0], next_pedge };
@@ -190,39 +190,33 @@ module	sdfrontend #(
 		// }}}
 
 		always @(posedge i_clk)
-		if (i_cmd_en)
+		if (i_reset || i_cmd_en)
 			resp_started <= 1'b0;
 		else if (!i_cmd && cmd_sample_ck)
 			resp_started <= 1'b1;
 
 		always @(posedge i_clk)
-		if (i_data_en)
+		if (i_reset || i_data_en || !i_rx_en)
 			io_started <= 1'b0;
 		else if (!i_dat[0] && sample_ck)
 			io_started <= 1'b1;
 
-		// cmd_busy, wait_for_busy
+		// dat0_busy, wait_for_busy
 		// {{{
-		initial	{ cmd_busy, wait_for_busy } = 2'b01;
+		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
-		/*
-		if (i_reset)
+		if (i_reset || i_cmd_en || i_data_en)
 		begin
-			cmd_busy <= 1'b0;
+			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
-		end else */
-		if (i_cmd_en)
+		end else if (wait_for_busy && !i_dat[0])
 		begin
-			cmd_busy <= 1'b0;
-			wait_for_busy <= 1'b1;
-		end else if (wait_for_busy && !r_cmd_data)
-		begin
-			cmd_busy <= 1'b1;
+			dat0_busy <= 1'b1;
 			wait_for_busy <= 1'b0;
-		end else if (!wait_for_busy && r_cmd_data)
-			cmd_busy <= 1'b0;
+		end else if (!wait_for_busy && i_dat[0])
+			dat0_busy <= 1'b0;
 
-		assign	o_cmd_busy = cmd_busy;
+		assign	o_data_busy = dat0_busy;
 		// }}}
 
 		initial	last_ck = 1'b0;
@@ -237,7 +231,7 @@ module	sdfrontend #(
 			else
 				r_cmd_strb <= 1'b0;
 
-			if (i_data_en || !sample_ck)
+			if (i_data_en || !sample_ck || !i_rx_en)
 				r_rx_strb <= 1'b0;
 			else if (io_started || i_dat[0] == 0)
 				r_rx_strb <= 1'b1;
@@ -268,10 +262,7 @@ module	sdfrontend #(
 		always @(*)
 		begin
 			w_out = 0;
-			if (io_dat_tristate)
-				w_out[NUMIO-1:0] = i_dat;
-			else
-				w_out[NUMIO-1:0] = o_dat;
+			w_out[NUMIO-1:0] = i_dat;
 		end
 
 		assign	o_debug = {
@@ -417,7 +408,7 @@ module	sdfrontend #(
 
 		initial	sample_ck = 0;
 		always @(*)
-		if (i_data_en)
+		if (i_data_en || !i_rx_en)
 			sample_ck = 0;
 		else
 			// Verilator lint_off WIDTH
@@ -449,36 +440,30 @@ module	sdfrontend #(
 			resp_started <= 1'b1;
 
 		always @(posedge i_clk)
-		if (i_data_en)
+		if (i_data_en || !i_rx_en)
 			io_started <= 1'b0;
 		else if (sample_ck != 0
 				&& ((sample_ck & { w_dat[8], w_dat[0] }) == 0))
 			io_started <= 1'b1;
 
-		// cmd_busy, wait_for_busy
+		// dat0_busy, wait_for_busy
 		// {{{
-		initial	{ cmd_busy, wait_for_busy } = 2'b01;
+		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
-		/*
-		if (i_reset)
+		if (i_cmd_en || i_data_en)
 		begin
-			cmd_busy <= 1'b0;
-			wait_for_busy <= 1'b1;
-		end else */
-		if (i_cmd_en)
-		begin
-			cmd_busy <= 1'b0;
+			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
 		end else if (wait_for_busy && (cmd_sample_ck != 0)
 				&& (cmd_sample_ck & {w_dat[8],w_dat[0]})==2'b0)
 		begin
-			cmd_busy <= 1'b1;
+			dat0_busy <= 1'b1;
 			wait_for_busy <= 1'b0;
-		end else if (!wait_for_busy
+		end else if (!wait_for_busy && (cmd_sample_ck != 0)
 				&& (cmd_sample_ck & {w_dat[8],w_dat[0]})!=2'b0)
-			cmd_busy <= 1'b0;
+			dat0_busy <= 1'b0;
 
-		assign	o_cmd_busy = cmd_busy;
+		assign	o_data_busy = dat0_busy;
 		// }}}
 
 		initial	last_ck = 1'b0;
@@ -486,6 +471,8 @@ module	sdfrontend #(
 		begin
 			last_ck <= i_sdclk[3];
 
+			// The command response
+			// {{{
 			if (i_cmd_en || cmd_sample_ck == 0)
 			begin
 				r_cmd_strb <= 1'b0;
@@ -501,13 +488,17 @@ module	sdfrontend #(
 				r_cmd_data <= 1'b0;
 			end else
 				r_cmd_strb <= 1'b0;
+			// }}}
 
+			// The data response
+			// {{{
 			if (i_data_en || sample_ck == 0)
 				r_rx_strb <= 1'b0;
 			else if (io_started)
 				r_rx_strb <= 1'b1;
 			else
 				r_rx_strb <= 1'b0;
+			// }}}
 
 			if (sample_ck[1])
 				r_rx_data <= w_dat[15:8];
@@ -534,9 +525,8 @@ module	sdfrontend #(
 		end
 
 		assign	o_debug = {
-				i_cmd_en || i_data_en,
-				5'h0,
-				i_sdclk[7], i_sdclk[3],
+				i_cmd_en || i_data_en, 2'h0, i_rx_en,
+				sample_ck, i_sdclk[7], i_sdclk[3],
 				i_cmd_en, i_cmd_data[1:0],
 					(&w_cmd), r_cmd_strb, r_cmd_data,
 				i_data_en, r_rx_strb, r_rx_data,
@@ -735,32 +725,27 @@ module	sdfrontend #(
 				busy_data = { w_rx_data[8], w_rx_data[0] };
 		end
 
-		initial	{ cmd_busy, wait_for_busy } = 2'b01;
+		// dat0_busy, wait_for_busy
+		// {{{
+		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
-		/*
-		if (i_reset)
+		if (i_cmd_en || i_data_en)
 		begin
-			cmd_busy <= 1'b0;
-			wait_for_busy <= 1'b1;
-		end else
-		*/
-		if (i_cmd_en)
-		begin
-			cmd_busy <= 1'b0;
+			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
 		end else if (wait_for_busy)
 		begin
 			if ((busy_strb[0] && !busy_data[0])
-				||(busy_strb == 2'b10 && !busy_data[1]))
+				||(busy_strb[1] && !busy_data[1]))
 			begin
-				cmd_busy <= 1'b1;
+				dat0_busy <= busy_strb[0] && !busy_data[0];
 				wait_for_busy <= 1'b0;
 			end
 		end else if ((busy_strb[0] && busy_data[0])
-				|| (busy_strb == 2'b10 && busy_data[1]))
-			cmd_busy <= 1'b0;
+				|| (busy_strb[1] && busy_data[1]))
+			dat0_busy <= 1'b0;
 
-		assign	o_cmd_busy = cmd_busy;
+		assign	o_data_busy = dat0_busy;
 		// }}}
 
 		////////////////////////////////////////////////////////////////
@@ -993,6 +978,7 @@ module	sdfrontend #(
 		assign	MAD_VALID = (afifo_empty == 4'h0); // af_flush && !afifo_empty[0]
 		assign	MAD_DATA  = af_data;
 		// assign	MAD_LAST  = af_flush && (afifo_empty != 4'h0);
+		// }}}
 		// }}}
 		// }}}
 	end endgenerate

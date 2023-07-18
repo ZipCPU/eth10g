@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi # rdedid sisetup sdinfo contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk # rdedid sisetup contest
 all:	$(PROGRAMS)
 #
 #
@@ -51,9 +51,9 @@ HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
 LDSCRIPT:= board.ld
-LFLAGS  := -T $(LDSCRIPT) -L../zlib # -L../fatfs
+LFLAGS  := -T $(LDSCRIPT) -L../zlib -L../fatfs
 LBKRAM  := -T bkram.ld -L../zlib
-CFLAGS  := -O3 -I../zlib -I../../../rtl # -I../fatfs
+CFLAGS  := -O3 -I../zlib -I../../../rtl -I../fatfs
 LIBS    := -lc -lzeth -lgcc
 LIBFAT  := -lfatfs
 INSTALLD=$(shell bash -c "which zip-gcc | sed -e 's/.cross-tools.*$\//'")
@@ -123,6 +123,10 @@ qkhdmi: $(OBJDIR)/qkhdmi.o board.ld $(LIB)
 
 rdedid: $(OBJDIR)/rdedid.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+sdiochk: $(OBJDIR)/sdiochk.o $(OBJDIR)/txfns.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LBKRAM) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
+	# $(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
 
 sdinfo: $(OBJDIR)/sdinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -o $@

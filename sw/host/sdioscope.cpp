@@ -64,7 +64,7 @@ void	closeup(int v) {
 class	SDIOSCOPE : public SCOPE {
 public:
 	SDIOSCOPE(DEVBUS *fpga, unsigned addr, bool vecread = true)
-		: SCOPE(fpga, addr, false, vecread) {};
+		: SCOPE(fpga, addr, true, vecread) {};
 	~SDIOSCOPE(void) {}
 	virtual	void	decode(DEVBUS::BUSW val) const {
 		// int	scl, sda;
@@ -96,6 +96,8 @@ public:
 			break;
 		case 1:
 			register_trace("trigger",   1,31);
+			register_trace("i_rx_en",   1,28);
+			register_trace("sample_ck", 2,26);
 			register_trace("i_sdclk",   2,24);
 			register_trace("i_cmd_en",  1,23);
 			register_trace("i_cmd_data",2,21);

@@ -286,7 +286,6 @@ int main(int argc, char **argv) {
 	if (bitfile || altbitfile) {
 		fprintf(stderr, "WARNING: Cannot load bitfiles w/o flash");
 	}
-	flash = NULL;
 #endif
 
 	if (verbose)

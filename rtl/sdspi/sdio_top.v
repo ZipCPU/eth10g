@@ -38,7 +38,7 @@ module sdio_top #(
 		parameter [0:0]	OPT_SERDES=0,
 		parameter [0:0]	OPT_DDR=1,
 		parameter [0:0]	OPT_CARD_DETECT=1,
-		parameter	LGTIMEOUT = 6
+		parameter	LGTIMEOUT = 23
 		// }}}
 	) (
 		// {{{
@@ -71,6 +71,7 @@ module sdio_top #(
 `endif
 		// }}}
 		input	wire		i_card_detect,
+		output	wire		o_1p8v,
 		output	wire		o_int,
 		output	wire	[31:0]	o_debug
 		// }}}
@@ -85,12 +86,12 @@ module sdio_top #(
 	wire		cmd_en, pp_cmd;
 	wire	[1:0]	cmd_data;
 		//
-	wire		data_en, pp_data;
+	wire		data_en, pp_data, rx_en;
 	wire	[31:0]	tx_data;
 	wire		afifo_reset_n;
 		//
 	wire	[1:0]	rply_strb, rply_data;
-	wire		cmd_busy;
+	wire		card_busy;
 	wire	[1:0]	rx_strb;
 	wire	[15:0]	rx_data;
 		//
@@ -119,6 +120,7 @@ module sdio_top #(
 		.o_wb_data(o_wb_data),
 		// }}}
 		.i_card_detect(i_card_detect),
+		.o_1p8v(o_1p8v),
 		.o_int(o_int),
 		// Interface to PHY
 		// {{{
@@ -129,12 +131,12 @@ module sdio_top #(
 		.o_cmd_en(cmd_en), .o_pp_cmd(pp_cmd),
 		.o_cmd_data(cmd_data),
 		//
-		.o_data_en(data_en), .o_pp_data(pp_data),
+		.o_data_en(data_en), .o_rx_en(rx_en), .o_pp_data(pp_data),
 		.o_tx_data(tx_data),
 		.o_afifo_reset_n(afifo_reset_n),
 		//
 		.i_cmd_strb(rply_strb), .i_cmd_data(rply_data),
-		.i_cmd_busy(cmd_busy),
+		.i_card_busy(card_busy),
 		.i_rx_strb(rx_strb),
 		.i_rx_data(rx_data),
 		//
@@ -155,13 +157,14 @@ module sdio_top #(
 		// MSB "first" incoming data.
 		.i_sdclk(sdclk),
 		//
-		.i_cmd_en(cmd_en), .i_pp_cmd(pp_cmd), .i_cmd_data(cmd_data),				.o_cmd_busy(cmd_busy),
+		.i_cmd_en(cmd_en), .i_pp_cmd(pp_cmd), .i_cmd_data(cmd_data),				.o_data_busy(card_busy),
 		//
 		.i_data_en(data_en), .i_pp_data(pp_data), .i_tx_data(tx_data),
 			.i_afifo_reset_n(afifo_reset_n),
 		// }}}
 		// Synchronous Rx path
 		// {{{
+		.i_rx_en(rx_en),
 		.o_cmd_strb(rply_strb),
 		.o_cmd_data(rply_data),
 		//

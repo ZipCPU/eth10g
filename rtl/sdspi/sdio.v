@@ -55,7 +55,7 @@ module	sdio #(
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b0,
 		parameter [0:0]	OPT_CARD_DETECT = 1'b1,
-		parameter	LGTIMEOUT = 6
+		parameter	LGTIMEOUT = 23
 		// }}}
 	) (
 		// {{{
@@ -71,6 +71,7 @@ module	sdio #(
 		output	wire [MW-1:0]	o_wb_data,
 		// }}}
 		input	wire		i_card_detect,
+		output	wire		o_1p8v,
 		output	wire		o_int,
 		// Interface to PHY
 		// {{{
@@ -87,12 +88,12 @@ module	sdio #(
 		output	wire		o_cmd_en, o_pp_cmd,
 		output	wire	[1:0]	o_cmd_data,
 		//
-		output	wire		o_data_en, o_pp_data,
+		output	wire		o_data_en, o_pp_data, o_rx_en,
 		output	wire	[31:0]	o_tx_data,
 		output	wire		o_afifo_reset_n,
 		//
 		input	wire	[1:0]	i_cmd_strb, i_cmd_data,
-		input	wire		i_cmd_busy,
+		input	wire		i_card_busy,
 		input	wire	[1:0]	i_rx_strb,
 		input	wire	[15:0]	i_rx_data,
 		//
@@ -126,12 +127,13 @@ module	sdio #(
 	wire	[1:0]		cfg_width;
 
 	wire			clk_stb, clk_half;
-	wire	[7:0]		w_sdclk;
+	wire	[7:0]		w_sdclk, clk_ckspd;
 
 	wire			cmd_request, cmd_err, cmd_busy, cmd_done;
 	wire	[1:0]		cmd_type, cmd_ercode;
 	wire			rsp_stb;
-	wire	[5:0]		cmd_id, rsp_id;
+	wire	[6:0]		cmd_id;
+	wire	[5:0]		rsp_id;
 	wire	[31:0]		cmd_arg, rsp_arg;
 	wire			cmd_mem_valid;
 	wire	[MW/8-1:0]	cmd_mem_strb;
@@ -141,7 +143,7 @@ module	sdio #(
 	wire			tx_en, tx_mem_valid, tx_mem_ready, tx_mem_last;
 	wire	[31:0]		tx_mem_data;
 
-	wire			rx_en, crc_en;
+	wire			crc_en;
 	wire	[LGFIFO:0]	rx_length;
 	wire			rx_mem_valid;
 	wire	[LGFIFO-$clog2(MW/8)-1:0]	rx_mem_addr;
@@ -180,6 +182,7 @@ module	sdio #(
 			.o_cfg_ddr(o_cfg_ddr),
 		.o_pp_cmd(o_pp_cmd), .o_pp_data(o_pp_data),
 		.o_cfg_sample_shift(o_cfg_sample_shift),
+		.i_ckspd(clk_ckspd),
 		// }}}
 		.o_soft_reset(soft_reset),
 		// CMD control interface
@@ -204,10 +207,11 @@ module	sdio #(
 		.o_tx_mem_valid(tx_mem_valid),
 			.i_tx_mem_ready(tx_mem_ready && tx_en),
 		.o_tx_mem_data(tx_mem_data), .o_tx_mem_last(tx_mem_last),
+		.i_tx_busy(o_data_en),
 		// }}}
 		// RX interface
 		// {{{
-		.o_rx_en(rx_en), .o_crc_en(crc_en), .o_length(rx_length),
+		.o_rx_en(o_rx_en), .o_crc_en(crc_en), .o_length(rx_length),
 		//
 		.i_rx_mem_valid(rx_mem_valid), .i_rx_mem_strb(rx_mem_strb),
 			.i_rx_mem_addr(rx_mem_addr),.i_rx_mem_data(rx_mem_data),
@@ -215,6 +219,8 @@ module	sdio #(
 		.i_rx_done(rx_done), .i_rx_err(rx_err),
 		// }}}
 		.i_card_detect(i_card_detect),
+		.i_card_busy(i_card_busy),
+		.o_1p8v(o_1p8v),
 		.o_int(o_int)
 		// }}}
 	);
@@ -227,7 +233,8 @@ module	sdio #(
 		.i_cfg_clk90(cfg_clk90), .i_cfg_ckspd(cfg_ckspeed),
 		.i_cfg_shutdown(cfg_clk_shutdown),
 	
-		.o_ckstb(clk_stb), .o_hlfck(clk_half), .o_ckwide(w_sdclk)
+		.o_ckstb(clk_stb), .o_hlfck(clk_half), .o_ckwide(w_sdclk),
+		.o_ckspd(clk_ckspd)
 		// }}}
 	);
 
@@ -291,8 +298,9 @@ module	sdio #(
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || soft_reset),
 		//
+		.i_cfg_ddr(o_cfg_ddr),
 		.i_cfg_ds(cfg_ds), .i_cfg_width(cfg_width),
-		.i_rx_en(rx_en), .i_crc_en(crc_en), .i_length(rx_length),
+		.i_rx_en(o_rx_en), .i_crc_en(crc_en), .i_length(rx_length),
 		//
 		.i_rx_strb(i_rx_strb), .i_rx_data(i_rx_data),
 		.S_ASYNC_VALID(S_AD_VALID), .S_ASYNC_DATA(S_AD_DATA),
@@ -304,7 +312,7 @@ module	sdio #(
 		// }}}
 	);
 
-	assign	o_afifo_reset_n = cfg_ds && rx_en;
+	assign	o_afifo_reset_n = cfg_ds && o_rx_en;
 
 	always @(posedge i_clk)
 		o_sdclk <= w_sdclk;
@@ -315,7 +323,7 @@ module	sdio #(
 	// verilator coverage_off
 	// verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0, i_cmd_busy };
+	assign	unused = &{ 1'b0 };
 	// verilator lint_on  UNUSED
 	// verilator coverage_on
 	// }}}

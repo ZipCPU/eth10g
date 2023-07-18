@@ -1,0 +1,174 @@
+################################################################################
+##
+## Filename: 	emmc.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to connect an eMMC peripheral to a wishbone
+##		bus, as used by autofpga.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=emmc
+@INCLUDEFILE=sdio.txt
+@DEVID=EMMC
+@NAME=eMMC Card
+@$NUMIO=8
+@CARD_DETECT=1'b0
+@OPT_SERDES=1'b0
+@OPT_DDR=1'b0
+@ACCESS=EMMC_ACCESS
+@INT.SDCARD.WIRE=
+@INT.SDCARD.PIC=
+@INT.EMMC.WIRE= @$(PREFIX)_int
+@INT.EMMC.PIC= altpic
+@TOP.PORTLIST=
+		// @$(NAME)
+		// o_@$(PREFIX)_clk,
+		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat, i_@$(PREFIX)_ds
+@TOP.IODECL=
+	// @$(NAME)
+	// {{{
+	// output wire		o_@$(PREFIX)_clk;
+	inout	wire		io_@$(PREFIX)_cmd;
+	inout	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat;
+	input	wire		i_@$(PREFIX)_ds;
+	// }}}
+@TOP.DEFNS=
+	// @$(NAME) definitions
+	// {{{
+	wire	i_@$(PREFIX)_cd_n;
+	wire	o_@$(PREFIX)_clk;
+	// }}}
+@TOP.INSERT=
+	assign	i_@$(PREFIX)_cd_n = 1'b0;
+@TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// @$(NAME) IO pin handling
+	// {{{
+	//
+
+	STARTUPE2 #(
+		// {{{
+		// Leave PROG_USR false to avoid activating the program
+		// event security feature.  Notes state that such a feature
+		// requires encrypted bitstreams.
+		.PROG_USR("FALSE"),
+		// Sets the configuration clock frequency (in ns) for
+		// simulation.
+		.SIM_CCLK_FREQ(0.0)
+		// }}}
+	) STARTUPE2_inst (
+		// CFGCLK, 1'b output: Config main clock output -- no connect
+		.CFGCLK(su_nc[0]),
+		// CFGMCLK, 1'b output: Config internal oscillator clock output
+		.CFGMCLK(su_nc[1]),
+		// EOS, 1'b: Active high output indicating the End Of Startup.
+		.EOS(su_nc[2]),
+		// PREQ, 1'b output: PROGRAM request to fabric output
+		//	Only enabled if PROG_USR is set.  This lets the fabric
+		//	know that a request has been made (either JTAG or pin
+		//	pulled low) to program the device
+		.PREQ(su_nc[3]),
+		// CLK, 1'b input: User start-up clock input
+		.CLK(1'b0),
+		// GSR, 1'b input: Global Set/Reset input
+		.GSR(1'b0),
+		// GTS, 1'b input: Global 3-state input
+		.GTS(1'b0),
+		// KEYCLEARB, 1'b input: Clear AES Decrypter Key from BBRAM
+		.KEYCLEARB(1'b0),
+		// PACK, 1-bit input: PROGRAM acknowledge input
+		//	This pin is only enabled if PROG_USR is set.  This
+		//	allows the FPGA to acknowledge a request for reprogram
+		//	to allow the FPGA to get itself into a reprogrammable
+		//	state first.
+		.PACK(1'b0),
+		// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
+		// module at all.
+		.USRCCLKO(o_@$(PREFIX)_sck),
+		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
+		//	An active high here places the clock into a high
+		//	impedence state.  Since we wish to use the clock as an
+		//	active output always, we drive this pin low.
+		.USRCCLKTS(1'b0),
+		// USRDONEO, 1'b input: User DONE pin output control
+		//	Set this to "high" to make sure that the DONE LED pin
+		//	is high.
+		.USRDONEO(1'b1),
+		// USRDONETS, 1'b input: User DONE 3-state enable output
+		//	This enables the FPGA DONE pin to be active.  Setting
+		//	this active high sets the DONE pin to high impedence,
+		//	setting it low allows the output of this pin to be as
+		//	stated above.
+		.USRDONETS(1'b1)
+	);
+	// }}}
+@REGS.N=5
+@REGS.NOTE= // @$(NAME) addresses
+@REGS.0= 0 R_@$(DEVID)_CTRL  	EMMCCARD
+@REGS.1= 1 R_@$(DEVID)_DATA 	EMMCDATA
+@REGS.2= 2 R_@$(DEVID)_FIFOA	EMMCFIFOA, EMMCFIF0, EMMCFIFA
+@REGS.3= 3 R_@$(DEVID)_FIFOB	EMMCFIFOB, EMMCFIF1, EMMCFIFB
+@REGS.4= 4 R_@$(DEVID)_PHY	EMMCPHY
+@BDEF.DEFN=
+////////////////////////////////////////////////////////////////////////////////
+//
+// @$(NAME) constants
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+//
+//
+
+#define	@$(DEVID)_CMD		0x000040
+#define	@$(DEVID)_ACMD		(0x040+55) // CMD55
+#define	@$(DEVID)_FIFO_OP	0x000800	// Read only
+#define	@$(DEVID)_WRITEOP	0x000c00	// Write to the FIFO
+#define	@$(DEVID)_ALTFIFO	0x001000
+// #define	@$(DEVID)_DMA	0x002000
+#define	@$(DEVID)_BUSY		0x004000
+#define	@$(DEVID)_ERROR		0x008000
+#define	@$(DEVID)_CLEARERR	0x008000
+// #define	@$(DEVID)_CRCERR	0x020000
+// #define	@$(DEVID)_FRAMERR	0x030000
+// #define	@$(DEVID)_REMOVED	0x040000
+// #define	@$(DEVID)_PRESENTN	0x080000
+// #define	@$(DEVID)_RESET		0x100000	// Read only
+// #define	@$(DEVID)_WATCHDOG	0x200000	// Read only
+#define	@$(DEVID)_GO_IDLE	((@$(DEVID)_CLEARERR|@$(DEVID)_CMD)+0)
+#define	@$(DEVID)_READ_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_FIFO_OP)+17)
+#define	@$(DEVID)_WRITE_SECTOR	((@$(DEVID)_CMD|@$(DEVID)_CLEARERR|@$(DEVID)_WRITEOP)+24)
+
+typedef	struct @$(DEVID)_S {
+	unsigned	emmc_ctrl, emmc_data, emmc_fifo[2];
+	unsigned	emmc_phy,  emmc_unused[3];
+} @$(DEVID);
+// }}}
+@BDEF.IONAME=_@$(PREFIX)
+@RTL.MAKE.GROUP= EMMC
+@RTL.MAKE.SUBD=sdspi
+@RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v

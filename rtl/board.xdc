@@ -99,81 +99,81 @@ set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports o_si5324_rs
 ## ETH10G
 ## {{{
 ## LOS
-set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[0]]
-set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[1]]
-set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[2]]
-set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[3]]
+#set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[0]]
+#set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[1]]
+#set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[2]]
+#set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[3]]
 
 ## TX Disable
-set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[0]]
-set_property -dict {PACKAGE_PIN N18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[1]]
-set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[2]]
-set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
+#set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[0]]
+#set_property -dict {PACKAGE_PIN N18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[1]]
+#set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[2]]
+#set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
 
 ## LinkUp LEDs
-set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
-set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[1]]
-set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[2]]
-set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[3]]
+#set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
+#set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[1]]
+#set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[2]]
+#set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[3]]
 
 ## Activity LEDs
-set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[0]]
-set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[1]]
-set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[2]]
-set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
+#set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[0]]
+#set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[1]]
+#set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[2]]
+#set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
 
 ## Network transmit/outputs
-set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
-set_property -dict {PACKAGE_PIN P1} [get_ports o_gnet_n[0]]
-set_property -dict {PACKAGE_PIN M2} [get_ports o_gnet_p[1]]
-set_property -dict {PACKAGE_PIN M1} [get_ports o_gnet_n[1]]
-set_property -dict {PACKAGE_PIN K2} [get_ports o_gnet_p[2]]
-set_property -dict {PACKAGE_PIN K1} [get_ports o_gnet_n[2]]
-set_property -dict {PACKAGE_PIN H2} [get_ports o_gnet_p[3]]
-set_property -dict {PACKAGE_PIN H1} [get_ports o_gnet_n[3]]
+#set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
+#set_property -dict {PACKAGE_PIN P1} [get_ports o_gnet_n[0]]
+#set_property -dict {PACKAGE_PIN M2} [get_ports o_gnet_p[1]]
+#set_property -dict {PACKAGE_PIN M1} [get_ports o_gnet_n[1]]
+#set_property -dict {PACKAGE_PIN K2} [get_ports o_gnet_p[2]]
+#set_property -dict {PACKAGE_PIN K1} [get_ports o_gnet_n[2]]
+#set_property -dict {PACKAGE_PIN H2} [get_ports o_gnet_p[3]]
+#set_property -dict {PACKAGE_PIN H1} [get_ports o_gnet_n[3]]
 
 ## Network receive/input
-set_property -dict {PACKAGE_PIN R4} [get_ports i_gnet_p[0]]
-set_property -dict {PACKAGE_PIN R3} [get_ports i_gnet_n[0]]
-set_property -dict {PACKAGE_PIN N4} [get_ports i_gnet_p[1]]
-set_property -dict {PACKAGE_PIN N3} [get_ports i_gnet_n[1]]
-set_property -dict {PACKAGE_PIN L4} [get_ports i_gnet_p[2]]
-set_property -dict {PACKAGE_PIN L3} [get_ports i_gnet_n[2]]
-set_property -dict {PACKAGE_PIN J4} [get_ports i_gnet_p[3]]
-set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
+#set_property -dict {PACKAGE_PIN R4} [get_ports i_gnet_p[0]]
+#set_property -dict {PACKAGE_PIN R3} [get_ports i_gnet_n[0]]
+#set_property -dict {PACKAGE_PIN N4} [get_ports i_gnet_p[1]]
+#set_property -dict {PACKAGE_PIN N3} [get_ports i_gnet_n[1]]
+#set_property -dict {PACKAGE_PIN L4} [get_ports i_gnet_p[2]]
+#set_property -dict {PACKAGE_PIN L3} [get_ports i_gnet_n[2]]
+#set_property -dict {PACKAGE_PIN J4} [get_ports i_gnet_p[3]]
+#set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
 
 ## }}}
 
 ## SMI
 ## {{{
-set_property -dict {PACKAGE_PIN AC24 IOSTANDARD LVCMOS18} [get_ports i_smi_oen]
-set_property -dict {PACKAGE_PIN W23  IOSTANDARD LVCMOS18} [get_ports i_smi_wen]
+#set_property -dict {PACKAGE_PIN AC24 IOSTANDARD LVCMOS18} [get_ports i_smi_oen]
+#set_property -dict {PACKAGE_PIN W23  IOSTANDARD LVCMOS18} [get_ports i_smi_wen]
 
-set_property -dict {PACKAGE_PIN AB26 IOSTANDARD LVCMOS18} [get_ports i_smi_sa[0]]
-set_property -dict {PACKAGE_PIN V26  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[1]]
-set_property -dict {PACKAGE_PIN U24  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[2]]
-set_property -dict {PACKAGE_PIN U26  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[3]]
-set_property -dict {PACKAGE_PIN AB25 IOSTANDARD LVCMOS18} [get_ports i_smi_sa[4]]
-set_property -dict {PACKAGE_PIN V23  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[5]]
+#set_property -dict {PACKAGE_PIN AB26 IOSTANDARD LVCMOS18} [get_ports i_smi_sa[0]]
+#set_property -dict {PACKAGE_PIN V26  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[1]]
+#set_property -dict {PACKAGE_PIN U24  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[2]]
+#set_property -dict {PACKAGE_PIN U26  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[3]]
+#set_property -dict {PACKAGE_PIN AB25 IOSTANDARD LVCMOS18} [get_ports i_smi_sa[4]]
+#set_property -dict {PACKAGE_PIN V23  IOSTANDARD LVCMOS18} [get_ports i_smi_sa[5]]
 
-set_property -dict {PACKAGE_PIN W24  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[0]]
-set_property -dict {PACKAGE_PIN Y26  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[1]]
-set_property -dict {PACKAGE_PIN Y25  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[2]]
-set_property -dict {PACKAGE_PIN AA25 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[3]]
-set_property -dict {PACKAGE_PIN U22  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[4]]
-set_property -dict {PACKAGE_PIN AC26 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[5]]
-set_property -dict {PACKAGE_PIN U25  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[6]]
-set_property -dict {PACKAGE_PIN AB24 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[7]]
-set_property -dict {PACKAGE_PIN Y22  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[8]]
-set_property -dict {PACKAGE_PIN W25  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[9]]
-set_property -dict {PACKAGE_PIN Y23  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[10]]
-set_property -dict {PACKAGE_PIN AC23 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[11]]
-set_property -dict {PACKAGE_PIN Y21  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[12]]
-set_property -dict {PACKAGE_PIN W20  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[13]]
-set_property -dict {PACKAGE_PIN W26  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[14]]
-set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[15]]
-set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[16]]
-set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[17]]
+#set_property -dict {PACKAGE_PIN W24  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[0]]
+#set_property -dict {PACKAGE_PIN Y26  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[1]]
+#set_property -dict {PACKAGE_PIN Y25  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[2]]
+#set_property -dict {PACKAGE_PIN AA25 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[3]]
+#set_property -dict {PACKAGE_PIN U22  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[4]]
+#set_property -dict {PACKAGE_PIN AC26 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[5]]
+#set_property -dict {PACKAGE_PIN U25  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[6]]
+#set_property -dict {PACKAGE_PIN AB24 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[7]]
+#set_property -dict {PACKAGE_PIN Y22  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[8]]
+#set_property -dict {PACKAGE_PIN W25  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[9]]
+#set_property -dict {PACKAGE_PIN Y23  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[10]]
+#set_property -dict {PACKAGE_PIN AC23 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[11]]
+#set_property -dict {PACKAGE_PIN Y21  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[12]]
+#set_property -dict {PACKAGE_PIN W20  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[13]]
+#set_property -dict {PACKAGE_PIN W26  IOSTANDARD LVCMOS18} [get_ports io_smi_sd[14]]
+#set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[15]]
+#set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[16]]
+#set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_smi_sd[17]]
 ## }}}
 
 ## uSD
@@ -192,28 +192,29 @@ set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_d
 ## {{{
 #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
 ## The flash clock pin is CCLK_0
-set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_flash_cs_n]
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_flash_cs_n]
 
-set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[0]]
-set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[1]]
-set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[2]]
-set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[3]]
+#set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[0]]
+#set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[1]]
+#set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[2]]
+#set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[3]]
 ## }}}
 
 ## eMMC
 ## {{{
-#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
-#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
+## The eMMC clock is on CCLK, so no package pin declaration is appropriate
+## set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
+set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
 
-#set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
-#set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
-#set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
-#set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
-#set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
-#set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
-#set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
-#set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
-#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
+set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
+set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
+set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
+set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
+set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
+set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
+set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
+set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
+set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 ## }}}
 
 ## SATA
@@ -452,60 +453,53 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## Adding in any XDC_INSERT tags
 
-## No XDC.INSERT tag in i2cscope
-## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in zip_alt_moc
-## No XDC.INSERT tag in zip_alt_mic
-## No XDC.INSERT tag in wbu_arbiter
-## No XDC.INSERT tag in scope_smi
-## No XDC.INSERT tag in spio
-## No XDC.INSERT tag in gpio
-## No XDC.INSERT tag in flashcfg
-## No XDC.INSERT tag in cfg
-## No XDC.INSERT tag in wbu
-## No XDC.INSERT tag in zip_alt_uic
-## No XDC.INSERT tag in clk200
-## No XDC.INSERT tag in version
-## No XDC.INSERT tag in zip_alt_mpc
-## No XDC.INSERT tag in clk
-## No XDC.INSERT tag in XDC
-## No XDC.INSERT tag in zip
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in smi
-## No XDC.INSERT tag in buildtime
-## No XDC.INSERT tag in REGDEFS
-## No XDC.INSERT tag in zip_alt_mtc
-## No XDC.INSERT tag in fanscope
-## No XDC.INSERT tag in sdcard
-## No XDC.INSERT tag in wb32
-## No XDC.INSERT tag in wbdown
-## No XDC.INSERT tag in SIM
-## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in flash
-## No XDC.INSERT tag in i2c
-## No XDC.INSERT tag in KEYS
-## No XDC.INSERT tag in wb
-## No XDC.INSERT tag in clk150
-## No XDC.INSERT tag in zip_tmb
-## No XDC.INSERT tag in zip_tmc
-## No XDC.INSERT tag in REGISTER
-## No XDC.INSERT tag in zip_dmac
-## No XDC.INSERT tag in wbflashdn
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in cfgscope
-## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in zip_jiffies
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in zip_alt_uoc
-## No XDC.INSERT tag in zip_alt_upc
-## No XDC.INSERT tag in TMA
-## No XDC.INSERT tag in bkram
-## No XDC.INSERT tag in gnet
-## No XDC.INSERT tag in uart
-## No XDC.INSERT tag in altpic
-## No XDC.INSERT tag in flashdbg
-## No XDC.INSERT tag in sdioscope
-## No XDC.INSERT tag in mem_bkram_only
 ## No XDC.INSERT tag in mem_flash_bkram
+## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in emmcscope
+## No XDC.INSERT tag in sdioscope
+## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in zip_alt_uoc
+## No XDC.INSERT tag in syspic
+## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in i2cdma
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in TMA
+## No XDC.INSERT tag in emmc
+## No XDC.INSERT tag in zip_dmac
+## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in zip_tmb
+## No XDC.INSERT tag in wb
+## No XDC.INSERT tag in KEYS
+## No XDC.INSERT tag in REGISTER
+## No XDC.INSERT tag in i2c
+## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in altpic
+## No XDC.INSERT tag in SIM
+## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in wb32
+## No XDC.INSERT tag in sdcard
+## No XDC.INSERT tag in zip_alt_mtc
+## No XDC.INSERT tag in REGDEFS
+## No XDC.INSERT tag in clk150
+## No XDC.INSERT tag in buildtime
+## No XDC.INSERT tag in uart
+## No XDC.INSERT tag in RESET_ADDRESS
+## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in XDC
+## No XDC.INSERT tag in zip_alt_mpc
+## No XDC.INSERT tag in version
+## No XDC.INSERT tag in i2cscope
+## No XDC.INSERT tag in clk200
+## No XDC.INSERT tag in wbu
+## No XDC.INSERT tag in clk
+## No XDC.INSERT tag in cfg
+## No XDC.INSERT tag in gpio
+## No XDC.INSERT tag in spio
+## No XDC.INSERT tag in zip_alt_uic
+## No XDC.INSERT tag in wbu_arbiter
+## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in zip_alt_utc
