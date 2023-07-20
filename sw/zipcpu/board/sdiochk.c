@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
 		;
 
 SETSCOPE;
-	for(int sector=0; sector < 64; sector++) {
+	for(int sector=0; sector < 10; sector++) {
 		txstr("CMD17:   READ_BLOCK "); txdecimal(sector); txstr("\r\n");
 		// {{{
 		for(int i=0; i<512/4; i++)

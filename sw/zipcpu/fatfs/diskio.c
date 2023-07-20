@@ -79,11 +79,12 @@ DSTATUS	disk_initialize(
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
 			|| NULL == DRIVES[pdrv].fd_driver)
 		return STA_NODISK;
-	else if (NULL != DRIVES[pdrv].fd_data || NULL != (DRIVES[pdrv].fd_data
+	else if (NULL != DRIVES[pdrv].fd_data
+		|| NULL != (DRIVES[pdrv].fd_data
 				= (*DRIVES[pdrv].fd_driver->dio_init)(
-					DRIVES[pdrv].fd_addr)))
+					DRIVES[pdrv].fd_addr))) {
 		return RES_OK;
-	else
+	} else
 		return STA_NODISK;
 }
 // }}}
@@ -162,10 +163,21 @@ DRESULT	disk_read(
 	UINT	count) {
 	// {{{
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
-			|| NULL == DRIVES[pdrv].fd_driver)
+			|| NULL == DRIVES[pdrv].fd_driver) {
 		return RES_ERROR;
-	return (*DRIVES[pdrv].fd_driver->dio_read)(DRIVES[pdrv].fd_addr,
+	}
+
+#ifdef	BROKEN
+	return (*DRIVES[pdrv].fd_driver->dio_read)(DRIVES[pdrv].fd_data,
 					sector, count, buff);
+#else
+	DWORD	res;
+	res = (*DRIVES[pdrv].fd_driver->dio_read)(DRIVES[pdrv].fd_data,
+					sector, count, buff);
+	if (res != 0)
+		asm("NOOP");
+	return res;
+#endif
 }
 // }}}
 
@@ -178,6 +190,6 @@ DRESULT	disk_write(
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
 			|| NULL == DRIVES[pdrv].fd_driver)
 		return RES_ERROR;
-	return (*DRIVES[pdrv].fd_driver->dio_write)(DRIVES[pdrv].fd_addr,
+	return (*DRIVES[pdrv].fd_driver->dio_write)(DRIVES[pdrv].fd_data,
 					sector, count, buff);
 }
