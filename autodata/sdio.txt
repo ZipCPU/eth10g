@@ -32,7 +32,7 @@
 ################################################################################
 ##
 ## }}}
-@PREFIX=sdcard
+@PREFIX=sdio
 @DEVID=SDIO
 @NAME=SDIO SD Card
 @NADDR=8
@@ -49,14 +49,14 @@
 @OPT_DDR=1'b1
 @TOP.PORTLIST=
 		// @$(NAME)
-		o_@$(PREFIX)_clk, io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat, i_@$(PREFIX)_cd_n
+		o_sdcard_clk, io_sdcard_cmd, io_sdcard_dat, i_sdcard_cd_n
 @TOP.IODECL=
 	// @$(NAME)
 	// {{{
-	output	wire		o_@$(PREFIX)_clk;
-	inout	wire		io_@$(PREFIX)_cmd;
-	inout	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat;
-	input	wire		i_@$(PREFIX)_cd_n;
+	output	wire		o_sdcard_clk;
+	inout	wire		io_sdcard_cmd;
+	inout	wire	[@$(NUMIO)-1:0]	io_sdcard_dat;
+	input	wire		i_sdcard_cd_n;
 	// }}}
 @TOP.DEFNS=
 	// @$(NAME) definitions
@@ -65,9 +65,9 @@
 	// }}}
 @TOP.MAIN=
 		// @$(NAME)
-		o_@$(PREFIX)_clk, i_@$(PREFIX)_ds,
-		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
-		!i_@$(PREFIX)_cd_n
+		o_sdcard_clk, i_@$(PREFIX)_ds,
+		io_sdcard_cmd, io_sdcard_dat,
+		!i_sdcard_cd_n
 @TOP.INSERT=
 	assign	i_@$(PREFIX)_ds = 1'b0;
 @MAIN.PORTLIST=
@@ -178,7 +178,7 @@
 // These will be defined in sdiodrv.h for the SDIO controller
 struct @$(DEVID)_S;
 // }}}
-@BDEF.IONAME=_sdcard
+@BDEF.IONAME=_@$(PREFIX)
 @BDEF.IOTYPE=struct @$(DEVID)_S
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));

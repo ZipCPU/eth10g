@@ -202,7 +202,8 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 ## eMMC
 ## {{{
-#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
+## The eMMC clock is on CCLK, so no package pin declaration is appropriate
+## set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
 #set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
 
 #set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]

@@ -198,7 +198,7 @@ struct @$(DEVID)_S;
 		// SD Card simulation
 		// {{{
 #ifdef	@$(ACCESS)
-		m_core->i_@$(PREFIX)_data = m_sdcard(
+		m_core->i_@$(PREFIX)_data = m_@$(PREFIX)(
 				(m_core->o_@$(PREFIX)_data&8)?1:0,
 				m_core->o_@$(PREFIX)_clk,
 				m_core->o_@$(PREFIX)_cmd);

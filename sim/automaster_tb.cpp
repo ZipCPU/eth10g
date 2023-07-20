@@ -83,8 +83,8 @@ int	main(int argc, char **argv) {
 #endif
 			*profile_file = NULL,
 			*trace_file = NULL; // "trace.vcd";
-	bool	debug_flag = false, willexit = false, verbose_flag = false,
-			use_gui = false;
+	bool	debug_flag = false, willexit = false, verbose_flag = false;
+	bool	use_gui __attribute__((unused)) = false;
 	FILE	*profile_fp;
 	uint64_t	limit_time_ns = 0l, limit_time_ps = 0l;
 
