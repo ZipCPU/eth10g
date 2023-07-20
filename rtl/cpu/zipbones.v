@@ -32,7 +32,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 module	zipbones #(
 		// {{{
@@ -271,7 +271,7 @@ module	zipbones #(
 			assert(reset_hold == (reset_counter != 0));
 `endif
 		// }}}
-	end else begin
+	end else begin : NO_RESET_HOLD
 
 		assign reset_hold = 0;
 

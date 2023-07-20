@@ -114,11 +114,11 @@ module afifo #(
 	// wclk - Write clock generation
 	// {{{
 	generate if (WRITE_ON_POSEDGE)
-	begin
+	begin : GEN_POSEDGE_WRITES
 
 		assign	wclk = i_wclk;
 
-	end else begin
+	end else begin : GEN_NEGEDGE_WRITES
 
 		assign	wclk = !i_wclk;
 
@@ -220,7 +220,7 @@ module afifo #(
 	// o_rd_empty, o_rd_data
 	// {{{
 	generate if (OPT_REGISTER_READS)
-	begin
+	begin : GEN_REGISTERED_READ
 		// {{{
 		always @(*)
 			lcl_read = (o_rd_empty || i_rd);
@@ -235,7 +235,7 @@ module afifo #(
 		if (lcl_read)
 			o_rd_data <= lcl_rd_data;
 		// }}}
-	end else begin
+	end else begin : GEN_COMBINATORIAL_FLAGS
 		// {{{
 		always @(*)
 			lcl_read = i_rd;

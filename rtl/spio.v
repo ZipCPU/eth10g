@@ -169,7 +169,7 @@ module	spio #(
 	end endgenerate
 
 	generate if (NBTN < 8)
-	begin
+	begin : GEN_UNUSED_BUTTONS
 		assign	w_btn[7:NBTN] = 0;
 	end endgenerate
 	// }}}
@@ -183,7 +183,7 @@ module	spio #(
 
 	// 2FF synchronizer for our switches
 	generate if (NSW > 0)
-	begin
+	begin : GEN_SWITCHES
 		(* ASYNC_REG *) reg	[NFF*NSW-1:0]	sw_pipe;
 		reg	[NSW-1:0]	rr_sw;
 
@@ -199,7 +199,7 @@ module	spio #(
 
 		assign	r_sw = { {(8-NSW){1'b0}}, rr_sw };
 
-	end else begin
+	end else begin : NO_SWITCHES
 
 		assign	r_sw = 0;
 

@@ -303,7 +303,7 @@ module	wbi2cdma #(
 	// o_dma_sel
 	// {{{
 	generate if (OPT_LITTLE_ENDIAN)
-	begin
+	begin : GEN_LILSEL
 		always @(posedge i_clk)
 		if (r_reset || bus_err)
 			o_dma_sel <= { {(DW/8-1){1'b0}},1'b1 } << r_baseaddr[WBLSB-1:0];
@@ -311,7 +311,7 @@ module	wbi2cdma #(
 			o_dma_sel <= { {(DW/8-1){1'b0}},1'b1 } << r_baseaddr[WBLSB-1:0];
 		else if (skd_valid && skd_ready)
 			o_dma_sel <= { o_dma_sel[(DW-SW)/8-1:0], o_dma_sel[DW/8-1: (DW-SW)/8] };
-	end else begin
+	end else begin : GEN_BIGSEL
 		always @(posedge i_clk)
 		if (r_reset || bus_err)
 			o_dma_sel <= { 1'b1, {(DW/8-1){1'b0}} } >> r_baseaddr[WBLSB-1:0];
@@ -325,13 +325,13 @@ module	wbi2cdma #(
 	// o_dma_data
 	// {{{
 	generate if (!OPT_LOWPOWER)
-	begin
+	begin : GEN_DATABLAST
 		always @(posedge i_clk)
 		if (skd_ready)
 			o_dma_data <= {(DW/SW){skd_data }};
 
 	end else if (OPT_LITTLE_ENDIAN)
-	begin
+	begin : GEN_LILDATA
 		// {{{
 		always @(posedge i_clk)
 		if (r_reset || bus_err)
@@ -344,7 +344,7 @@ module	wbi2cdma #(
 				o_dma_data <= { {(DW-1){1'b0}},skd_data } << subaddr*SW;
 		end
 		// }}}
-	end else begin
+	end else begin : GEN_BIGDATA
 		always @(posedge i_clk)
 		if (r_reset || bus_err)
 			o_dma_data <= 0;

@@ -42,7 +42,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 module	dblfetch #(
 		// {{{
@@ -310,9 +310,9 @@ module	dblfetch #(
 		assign	r_valid = rg_valid;
 		assign	r_insn  = rg_insn;
 		if (OPT_LITTLE_ENDIAN)
-		begin
+		begin : GEN_LITTLE_ENDIAN_SHIFT
 			assign	i_wb_shifted = i_wb_data >> (r_shift * INSN_WIDTH);
-		end else begin
+		end else begin : GEN_BIGENDIAN_SHIFT
 			assign	i_wb_shifted = i_wb_data << (r_shift * INSN_WIDTH);
 		end
 

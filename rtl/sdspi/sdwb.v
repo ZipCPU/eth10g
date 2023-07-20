@@ -1358,8 +1358,8 @@ module	sdwb #(
 	// {{{
 	fwb_register #(
 		.AW(3), .DW(MW), .ADDR(ADDR_PHY),
-		.MASK(32'h0018_b1fc
-			| (OPT_SERDES ? 32'h001f_02ff : 32'h00)
+		.MASK(32'h0018_b100
+			| (OPT_SERDES ? 32'h001f_0200 : 32'h00)
 			| (OPT_DDR    ? 32'h001c_0000 : 32'h00)),
 		.FIXED_BIT_MASK(32'hf0e0_0000
 			| (OPT_SERDES ? 32'h00: 32'h0003_0200)

@@ -40,6 +40,7 @@ module zipdma #(
 		parameter	BUS_WIDTH=512,
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter [0:0]	OPT_LOWPOWER = 1'b0,
+		parameter [0:0]	OPT_REGISTER_RAM = 1'b0,
 		localparam	AW=ADDRESS_WIDTH-$clog2(BUS_WIDTH/8)
 		// }}}
 	) (
@@ -281,7 +282,7 @@ module zipdma #(
 		// {{{
 		.BW(FIFO_WIDTH),
 		.LGFLEN(LGFIFO),
-		.OPT_ASYNC_READ(1'b1),
+		.OPT_ASYNC_READ(!OPT_REGISTER_RAM),
 		.OPT_WRITE_ON_FULL(1'b0),
 		.OPT_READ_ON_EMPTY(1'b0)
 		// }}}

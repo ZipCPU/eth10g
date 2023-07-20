@@ -76,7 +76,7 @@ module	wbuoutput #(
 	//
 
 	generate if (OPT_IDLES)
-	begin
+	begin : GEN_IDLES
 		wbuidleint
 		buildcw(
 			// {{{

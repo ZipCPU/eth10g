@@ -30,7 +30,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 module	zipcore #(
 		// {{{
@@ -553,7 +553,7 @@ module	zipcore #(
 	// mem_stalled
 	// {{{
 	generate if (OPT_PIPELINED_BUS_ACCESS)
-	begin
+	begin : GEN_PIPELINE_MEM_STALL
 		// {{{
 		assign	mem_stalled = (master_stall)||((op_valid_mem)&&(
 				(i_mem_pipe_stalled)
@@ -567,7 +567,7 @@ module	zipcore #(
 					&&((wr_write_pc)||(wr_write_cc)))));
 		// }}}
 	end else if (OPT_PIPELINED)
-	begin
+	begin : GEN_MEM_STALL
 		// {{{
 		assign	mem_stalled = (master_stall)||((op_valid_mem)&&(
 				(i_bus_err)||(div_error)||(i_mem_busy)
@@ -578,7 +578,7 @@ module	zipcore #(
 				||((wr_reg_ce)
 					&&((wr_write_pc)||(wr_write_cc)))));
 		// }}}
-	end else begin
+	end else begin : NO_MEM_STALL
 		// {{{
 		assign	mem_stalled = master_stall || i_mem_busy;
 		// }}}
@@ -736,7 +736,7 @@ module	zipcore #(
 		if (OPT_LOWPOWER && !op_valid_mem)
 			assert(!r_op_pipe);
 `endif
-	end else begin
+	end else begin : NO_OP_PIPE
 
 		assign	op_pipe = 1'b0;
 
@@ -789,18 +789,20 @@ module	zipcore #(
 
 			always @(posedge i_clk)
 			if (dcd_ce || (OPT_PIPELINED && dcd_valid))
-			begin
 				pre_op_Av <= regset[dcd_ce ? dcd_preA : dcd_A];
+
+			always @(posedge i_clk)
+			if (dcd_ce || (OPT_PIPELINED && dcd_valid))
 				pre_op_Bv <= regset[dcd_ce ? dcd_preB : dcd_B];
-			end
 
 		end else begin : GEN_NO_USERREGS
 			always @(posedge i_clk)
 			if (dcd_ce || (OPT_PIPELINED && dcd_valid))
-			begin
 				pre_op_Av <= regset[dcd_ce ? dcd_preA[3:0] : dcd_A[3:0]];
+
+			always @(posedge i_clk)
+			if (dcd_ce || (OPT_PIPELINED && dcd_valid))
 				pre_op_Bv <= regset[dcd_ce ? dcd_preB[3:0] : dcd_B[3:0]];
-			end
 		end
 
 		assign	w_op_Av = (pre_rewrite_flag_A) ? pre_rewrite_value : pre_op_Av;
@@ -1207,7 +1209,7 @@ module	zipcore #(
 	// op_wR
 	// {{{
 	generate if ((OPT_PIPELINED)||(OPT_EARLY_BRANCHING))
-	begin
+	begin : GEN_OP_WR
 		reg	r_op_wR;
 
 		initial	r_op_wR = 1'b0;
@@ -1220,7 +1222,7 @@ module	zipcore #(
 		end
 
 		assign	op_wR = r_op_wR;
-	end else begin
+	end else begin : COPY_OP_WR
 
 		assign	op_wR = dcd_wR;
 
@@ -1367,12 +1369,12 @@ module	zipcore #(
 	// define this flag to something other than just plain zero, then
 	// the stalls will already be in place.
 	generate if (OPT_PIPELINED)
-	begin
+	begin : FWD_OP_AV
 
 		assign	op_Av = ((wr_reg_ce)&&(wr_reg_id == op_Aid))
 			?  wr_gpreg_vl : r_op_Av;
 
-	end else begin
+	end else begin : COPY_OP_AV
 
 		assign	op_Av = r_op_Av;
 
@@ -1388,14 +1390,14 @@ module	zipcore #(
 	//			CC register
 	//		OR ... (No other conditions)
 	generate if (OPT_PIPELINED)
-	begin
+	begin : GEN_DCDA_STALL
 
 		assign	dcd_A_stall = (dcd_rA) // &&(dcd_valid) is checked for elsewhere
 				&&((op_valid)||(i_mem_rdbusy)
 					||(div_busy)||(fpu_busy))
 				&&(((op_wF)||(cc_invalid_for_dcd))&&(dcd_Acc))
 			||((dcd_rA)&&(dcd_Acc)&&(cc_invalid_for_dcd));
-	end else begin
+	end else begin : NO_DCDA_STALL
 
 		// There are no pipeline hazards, if we aren't pipelined
 		assign	dcd_A_stall = 1'b0;
@@ -1579,7 +1581,7 @@ module	zipcore #(
 		assign	fpu_result= 32'h00;
 		assign	fpu_flags = 4'h0;
 `endif
-	end else begin
+	end else begin : GEN_NOFPU
 		assign	fpu_error = 1'b0;
 		assign	fpu_busy  = 1'b0;
 		assign	fpu_valid = 1'b0;
@@ -1594,7 +1596,7 @@ module	zipcore #(
 	initial	alu_wF   = 1'b0;
 	initial	alu_wR   = 1'b0;
 	generate if (OPT_PIPELINED)
-	begin
+	begin : GEN_COND_PIPELINED
 		always @(posedge i_clk)
 		if (i_reset)
 		begin
@@ -1612,7 +1614,7 @@ module	zipcore #(
 			alu_wR <= (r_halted)&&(OPT_DBGPORT && i_dbg_we && !o_dbg_stall);
 			alu_wF <= 1'b0;
 		end
-	end else begin
+	end else begin : GEN_COND_NOPIPE
 
 		always @(posedge i_clk)
 		begin
@@ -1641,7 +1643,7 @@ module	zipcore #(
 			r_alu_phase <= 1'b0;
 
 		assign	alu_phase = r_alu_phase;
-	end else begin
+	end else begin : NO_ALUPHASE
 
 		assign	alu_phase = 1'b0;
 	end endgenerate
@@ -1650,7 +1652,7 @@ module	zipcore #(
 	// alu_reg
 	// {{{
 	generate if (OPT_PIPELINED)
-	begin
+	begin : GEN_ALUREG_PIPE
 
 		always @(posedge i_clk)
 		if (alu_ce || div_ce || o_mem_ce || fpu_ce)
@@ -1658,7 +1660,7 @@ module	zipcore #(
 		else if (OPT_DBGPORT && i_dbg_we && !o_dbg_stall)
 			alu_reg <= i_dbg_wreg;
 
-	end else begin
+	end else begin : GEN_ALUREG_NOPIPE
 
 		always @(posedge i_clk)
 		if (OPT_DBGPORT && i_dbg_we && !o_dbg_stall)
@@ -1753,7 +1755,7 @@ module	zipcore #(
 			r_alu_pc  <= op_pc;
 		assign	alu_pc = r_alu_pc;
 
-	end else begin
+	end else begin : GEN_ALU_PC_NOPIPE
 
 		assign	alu_pc = op_pc;
 
@@ -1900,7 +1902,7 @@ module	zipcore #(
 		end
 		// }}}
 `endif
-	end else begin
+	end else begin : NO_BUSLOCK
 		// {{{
 		assign	prelock_stall = 1'b0;
 		assign	o_bus_lock    = 1'b0;
@@ -1935,7 +1937,7 @@ module	zipcore #(
 		assign	regid = { (OPT_USERMODE && gie), op_sim_immv[3:0]};
 
 		if (OPT_USERMODE)
-		begin
+		begin : GEN_ALLSIM
 			// {{{
 			assign	cpu_sim = !i_reset && !clear_pipeline
 					&& adf_ce_unconditional && set_cond
@@ -2087,7 +2089,7 @@ module	zipcore #(
 					r_alu_sim_immv <= op_sim_immv;
 			end
 			// }}}
-		end else begin
+		end else begin : GEN_NO_USERSIM
 			// {{{
 			assign	cpu_sim = !i_reset && !clear_pipeline
 					&& adf_ce_unconditional && set_cond
@@ -2302,9 +2304,9 @@ module	zipcore #(
 	//	Note that the alu_reg is the register to write on a divide or
 	//	FPU operation.
 	generate if (OPT_USERMODE)
-	begin
+	begin : GEN_USERREG
 		assign	wr_reg_id = (i_mem_valid) ? i_mem_wreg : alu_reg;
-	end else begin
+	end else begin : NO_USERREG
 		assign	wr_reg_id[3:0] = (i_mem_valid)
 					? i_mem_wreg[3:0] : alu_reg[3:0];
 
@@ -2505,7 +2507,7 @@ module	zipcore #(
 			// r_break_pending <= 1'b0;
 
 		assign	break_pending = r_break_pending;
-	end else begin
+	end else begin : GEN_BREAK_NOPIPE
 
 		assign	break_pending = op_break;
 
@@ -2895,7 +2897,7 @@ module	zipcore #(
 		assign	trap = r_trap;
 		assign	ubreak = r_ubreak;
 		// }}}
-	end else begin
+	end else begin : NO_USERTRAP
 
 		assign	trap   = 1'b0;
 		assign	ubreak = 1'b0;
@@ -3033,7 +3035,7 @@ module	zipcore #(
 			assign	udiv_err_flag = 1'b0;
 		end
 		// }}}
-	end else begin
+	end else begin : NO_DIVERR
 		// {{{
 		assign	idiv_err_flag = 1'b0;
 		assign	udiv_err_flag = 1'b0;
@@ -3072,7 +3074,7 @@ module	zipcore #(
 		assign	ifpu_err_flag = r_ifpu_err_flag;
 		assign	ufpu_err_flag = r_ufpu_err_flag;
 		// }}}
-	end else begin
+	end else begin : NO_FPUERR
 		// {{{
 		assign	ifpu_err_flag = 1'b0;
 		assign	ufpu_err_flag = 1'b0;
@@ -3153,7 +3155,7 @@ module	zipcore #(
 
 		assign	upc = r_upc;
 		// }}}
-	end else begin
+	end else begin : NO_UPC
 		// {{{
 		assign	upc = {(AW+2){1'b0}};
 		// }}}
@@ -3516,7 +3518,7 @@ module	zipcore #(
 	// r_halted
 	// {{{
 	generate if (OPT_PIPELINED)
-	begin
+	begin : GEN_HALT_PIPELINED
 		// {{{
 		initial	r_halted = OPT_START_HALTED;
 		always @(posedge i_clk)
@@ -3535,7 +3537,7 @@ module	zipcore #(
 				// Operations must either be valid, or illegal
 				&&((dcd_valid)||(dcd_illegal)));
 		// }}}
-	end else begin
+	end else begin : GEN_HALT_NOPIPE
 		// {{{
 		initial	r_halted = OPT_START_HALTED;
 		always @(posedge i_clk)
@@ -3628,14 +3630,14 @@ module	zipcore #(
 				i_mem_busy, i_mem_pipe_stalled, (new_pc), (dcd_early_branch) };
 
 		if (AW-1 < 27)
-		begin
+		begin : GEN_SHORT_DBGPC
 			assign	dbg_pc[(AW-1):0] = pf_pc[(AW+1):2];
 			assign	dbg_pc[27:AW] = 0;
 
 			assign	dbg_wb_addr[(AW-1):0] = 0;
 			assign	dbg_wb_addr[27:AW] = 0;
 		end else // if (AW-1 >= 27)
-		begin
+		begin : GEN_WIDE_DBGPC
 			assign	dbg_pc[27:0] = pf_pc[29:2];
 			assign	dbg_wb_addr = 0;
 		end
@@ -3715,7 +3717,7 @@ module	zipcore #(
 		assign	o_prof_stb   = prof_stb;
 		assign	o_prof_addr  = prof_addr;
 		assign	o_prof_ticks = prof_ticks;
-	end else begin
+	end else begin : NO_PROFILER
 		assign	o_prof_stb = 1'b0;
 		assign	o_prof_addr = 0;
 		assign	o_prof_ticks = 0;

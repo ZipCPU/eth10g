@@ -35,9 +35,11 @@
 `default_nettype	none
 // }}}
 module	sdfrontend #(
+		// {{{
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b1,
 		parameter	NUMIO = 8
+		// }}}
 	) (
 		// {{{
 		input	wire		i_clk, i_hsclk,
@@ -99,16 +101,15 @@ module	sdfrontend #(
 		// }}}
 	);
 
+	// Local declarations
+	// {{{
 	genvar		gk;
 	reg		dat0_busy, wait_for_busy;
 `ifndef	VERILATOR
 	wire			io_cmd_tristate, i_cmd, o_cmd;
 	wire	[NUMIO-1:0]	io_dat_tristate, i_dat, o_dat;
 `endif
-
-	// wire		i_reset;
-	// assign		i_reset = 1'b0;
-
+	// }}}
 	generate if (!OPT_SERDES && !OPT_DDR)
 	begin : GEN_NO_SERDES
 		// {{{
@@ -983,6 +984,10 @@ module	sdfrontend #(
 		// }}}
 	end endgenerate
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// IO buffers --- if not using Verilator
+	// {{{
 `ifndef	VERILATOR
 
 	IOBUF
@@ -999,4 +1004,5 @@ module	sdfrontend #(
 		);
 	end endgenerate
 `endif
+	// }}}
 endmodule

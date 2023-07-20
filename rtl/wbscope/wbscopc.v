@@ -220,14 +220,13 @@ module wbscopc #(
 	assign	bw_manual_trigger  = (br_config[1]);
 	assign	bw_disable_trigger = (br_config[0]);
 
-	generate
-	if (SYNCHRONOUS > 0)
-	begin
+	generate if (SYNCHRONOUS > 0)
+	begin : GEN_SYNCHRONOUS
 		assign	dw_reset = bw_reset_request;
 		assign	dw_manual_trigger = bw_manual_trigger;
 		assign	dw_disable_trigger = bw_disable_trigger;
 		assign	bw_reset_complete = bw_reset_request;
-	end else begin
+	end else begin : GEN_ASYNC_FLAGS
 		reg		r_reset_complete;
 		(* ASYNC_REG = "TRUE" *) reg	[2:0]	q_iflags;
 		reg	[2:0]	r_iflags;
@@ -416,12 +415,12 @@ module wbscopc #(
 
 	// w_data
 	// {{{
-	generate
-	if (NELM == BUSW-1)
+	generate if (NELM == BUSW-1)
+	begin : GEN_WDATA
 		assign w_data = qd_data;
-	else
+	end else begin : GEN_DATA_FILL
 		assign w_data = { {(BUSW-NELM-1){1'b0}}, qd_data };
-	endgenerate
+	end endgenerate
 	// }}}
 
 	// imm_val, imm_adr, lst_val, lst_adr
@@ -595,8 +594,9 @@ module wbscopc #(
 	// {{{
 	assign full_holdoff[(HOLDOFFBITS-1):0] = br_holdoff;
 	generate if (HOLDOFFBITS < 20)
+	begin : GEN_FULL_HOLDOFF
 		assign full_holdoff[19:(HOLDOFFBITS)] = 0;
-	endgenerate
+	end endgenerate
 	// }}}
 
 	assign		bw_lgmem = LGMEM;

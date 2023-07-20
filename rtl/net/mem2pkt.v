@@ -77,10 +77,8 @@
 //	unaligned word, and see what alignment it is given.
 //
 // Status:
-//	Doesn't yet pass formal induction.  There's no contract checking, no
-//	packet length checking, and no FIFO checking.
-//
-//	Has not (yet) been attempted in simulation or hardware.
+//	Has not (yet) been attempted in simulation or hardware.  Has also just
+//	been rewritten for a pkt data width greater than 32 bits.
 //
 //	QUESTION: What will happen if the user adjusts the write pointer so that
 //		it is inside the (current) read packet?  Will this be caught?
@@ -117,6 +115,7 @@ module	mem2pkt #(
 		parameter	AW = 31-$clog2(DW/8),
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter	LGFIFO = 7,
+		parameter	PKTDW = 128,
 		parameter	BURSTSZ = (1<<(LGFIFO-1))	// In bus words
 		// parameter [0:0]	OPT_ABORT_ON_EMPTY = 1'b1,
 		// }}}
@@ -149,12 +148,12 @@ module	mem2pkt #(
 		// }}}
 		// Outgoing packets
 		// {{{
-		output	wire		M_AXIN_VALID,
-		input	wire		M_AXIN_READY,
-		output	wire [31:0]	M_AXIN_DATA,
-		output	wire [1:0]	M_AXIN_BYTES,
-		output	wire 		M_AXIN_LAST,
-		output	wire 		M_AXIN_ABORT,
+		output	wire				M_AXIN_VALID,
+		input	wire				M_AXIN_READY,
+		output	wire [PKTDW-1:0]		M_AXIN_DATA,
+		output	wire [$clog2(PKTDW/8)-1:0]	M_AXIN_BYTES,
+		output	wire 				M_AXIN_LAST,
+		output	wire 				M_AXIN_ABORT,
 		// }}}
 		output	reg		o_int
 		// }}}
@@ -176,7 +175,7 @@ module	mem2pkt #(
 	localparam	BLSB = $clog2(DW/8),	// Bus LSB
 			LSB = $clog2(DW/32),	// Bits between BLSB & 32b words
 			WBLSB=2,
-			FULL_LOAD = DW/8;
+			FULL_LOAD = DW/PKTDW;
 
 	wire	[AW-1:0]		i_bus_addr;
 	wire	[AW+LSB-1:0]		i_word_addr;
@@ -217,11 +216,11 @@ module	mem2pkt #(
 
 	reg			pkd_valid, pkd_last;
 	wire			pkd_ready;
-	reg	[BLSB:0]	pkd_load;
+	reg	[$clog2(DW/PKTDW):0]	pkd_load;
 	reg	[AW+BLSB-1:0]	pkd_len, pkd_remaining;
-	reg	[1:0]		pkd_bytes;
+	reg	[$clog2(PKTDW/8)-1:0]	pkd_bytes;
 	reg	[DW-1:0]	pkd_wide;
-	wire	[32-1:0]	pkd_data;
+	wire	[PKTDW-1:0]	pkd_data;
 
 	reg			release_packet;
 	// }}}
@@ -406,6 +405,8 @@ module	mem2pkt #(
 
 	// i_dma_pktlen
 	// {{{
+	wire	w_pkt_extra;
+
 	generate if (DW == 32)
 	begin : SAME_WIDTH
 		always @(*)
@@ -416,9 +417,12 @@ module	mem2pkt #(
 					+ (|i_dma_pktlen[1:0]) - 1;
 		end
 
+		assign	w_pkt_extra  = 1'b0;
+
 	end else begin : FIND_PKT_LEN
 
 		reg	[AW+BLSB:0]	w_pkt_end;
+		wire	[LSB-1:0]	w_readptr_plus_one;
 
 		always @(*)
 		begin
@@ -439,6 +443,12 @@ module	mem2pkt #(
 
 			w_pkt_words = w_pkt_end[AW+BLSB-1:BLSB];
 		end
+
+		assign	w_readptr_plus_one = r_readptr[LSB-1:0] + 1;
+
+		assign	w_pkt_extra = !(&r_readptr[LSB-1:0])
+			&& (w_pkt_end[LSB-1:0] >= w_readptr_plus_one);
+
 
 		// Verilator lint_off UNUSED
 		wire	unused_pktlen;
@@ -744,6 +754,95 @@ module	mem2pkt #(
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
+	// Gearbox return
+	// {{{
+
+	reg	[DW-1:0]	gearbox_data, gearbox_next;
+	reg	[2*DW-1:0]	next_gb_data;
+	reg			gearbox_valid, gearbox_primed, gearbox_extra;
+	reg	[1:0]		gearbox_last;
+	reg	[$clog2(DW/PKTDW)-1:0]	gearbox_addr;
+
+	// gearbox_valid, gearbox_primed
+	// {{{
+	always @(posedge i_clk)
+	if (!i_reset || rd_state == S_IDLE || (o_dma_cyc && i_dma_err))
+	begin
+		gearbox_valid  <= 1'b0;
+		gearbox_primed <= (r_readptr[$clog2(DW/PKTDW)-1:0] != 0);
+	end else if (o_dma_cyc && i_dma_ack)
+	begin
+		gearbox_valid <= gearbox_primed;
+		gearbox_primed <= 1'b1;
+	end else if (gearbox_valid)
+		gearbox_valid <= gearbox_last[0];
+	// }}}
+
+	// gearbox_last
+	// {{{
+	always @(posedge i_clk)
+	if (!i_reset || rd_state == S_IDLE || (o_dma_cyc && i_dma_err))
+	begin
+		gearbox_last  <= 2'b0;
+	end else if (o_dma_cyc && i_dma_ack)
+	begin
+		gearbox_last <= { !gearbox_extra, 1'b1};
+		if (rd_state != S_RUNDOWN || wb_outstanding > 1)
+			gearbox_last  <= 2'b00;
+	end else if (gearbox_valid)
+		gearbox_last <= gearbox_last << 1;
+	// }}}
+
+	always @(posedge i_clk)
+	if (rd_state == S_IDLE)
+		gearbox_addr <= r_readptr[$clog2(DW/PKTDW)-1:0]+1;
+
+	always @(posedge i_clk)
+	if (rd_state == S_IDLE)
+		gearbox_extra <= 1'b0;
+	else if (rd_state == S_LENGTH && o_dma_cyc && i_dma_ack)
+		gearbox_extra <= w_pkt_extra;
+
+	// gearbox_data, gearbox_next
+	// {{{
+	always @(*)
+	if (OPT_LITTLE_ENDIAN)
+	begin
+		next_gb_data = { {(DW){1'b0}}, gearbox_next }
+			| ({ {(DW){1'b0}}, i_dma_data } << (gearbox_addr*32));
+	end else begin
+		next_gb_data = { gearbox_next, {(DW){1'b0}} }
+				| ({ i_dma_data,{(DW){1'b0}} }
+							>> (gearbox_addr*32));
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset || (o_dma_cyc && i_dma_err))
+	begin
+		gearbox_data <= 0;
+		gearbox_next <= 0;
+	end else if (o_dma_cyc && i_dma_ack)
+	begin
+		if (OPT_LITTLE_ENDIAN)
+		begin
+			{ gearbox_next, gearbox_data } <= next_gb_data;
+		end else begin
+			{ gearbox_data, gearbox_next } <= next_gb_data;
+		end
+	end else if (gearbox_valid && gearbox_last[0])
+	begin
+		if (OPT_LITTLE_ENDIAN)
+		begin
+			{ gearbox_next, gearbox_data } <= { {(DW){1'b0}}, gearbox_next };
+		end else begin
+			{ gearbox_data, gearbox_next } <= { gearbox_next, {(DW){1'b0}} };
+		end
+	end
+	// }}}
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
 	// Bus FIFO
 	// {{{
 	////////////////////////////////////////////////////////////////////////
@@ -758,8 +857,8 @@ module	mem2pkt #(
 	) u_pktfifo (
 		// {{{
 		.i_clk(i_clk), .i_reset(sfifo_reset),
-		.i_wr(o_dma_cyc && i_dma_ack && rd_state != S_LENGTH),
-			.i_data(i_dma_data),
+		.i_wr(gearbox_valid),
+			.i_data(gearbox_data),
 			.o_full(sfifo_full), .o_fill(sfifo_fill),
 		.i_rd(sfifo_read), .o_data( sfifo_data ),
 			.o_empty(sfifo_empty)
@@ -776,7 +875,7 @@ module	mem2pkt #(
 	//
 
 	assign	sfifo_read = !sfifo_empty && !dma_abort && release_packet
-			&& (!pkd_valid || (pkd_ready && pkd_load <= 4));
+			&& (!pkd_valid || (pkd_ready && pkd_load <= 1));
 
 	// pkd_len, pkd_last
 	// {{{
@@ -786,20 +885,20 @@ module	mem2pkt #(
 		pkd_remaining <= 0;
 		pkd_len  <= 0;
 		pkd_last <= 0;
-		pkd_bytes <= 2'b00;
+		pkd_bytes <= 0;
 	end else if (!release_packet && (r_dma_reset || dma_abort
 					|| rd_state == S_IDLE))
 	begin
 		pkd_remaining <= 0;
 		pkd_len  <= 0;
 		pkd_last <= 0;
-		pkd_bytes <= 2'b00;
+		pkd_bytes <= 0;
 	end else if (rd_state == S_LENGTH)
 	begin
 		pkd_remaining <= 0;
 		pkd_len  <= 0;
 		pkd_last <= 0;
-		pkd_bytes <= 2'b00;
+		pkd_bytes <= 0;
 		if (i_dma_ack && !w_invalid_packet)
 		begin
 			pkd_len <= i_dma_pktlen[AW+BLSB-1:0];
@@ -807,16 +906,18 @@ module	mem2pkt #(
 		end
 	end else if (pkd_valid && pkd_ready)
 	begin
-		pkd_last <= (pkd_remaining <= 4);
-		pkd_bytes <= (pkd_remaining <= 4) ? pkd_remaining[1:0] : 2'b00;
-		if (pkd_remaining >= 4)
-			pkd_remaining <= pkd_remaining - 4;
+		pkd_last  <= (pkd_remaining <= (PKTDW/8));
+		pkd_bytes <= (pkd_remaining <  (PKTDW/8))
+				? pkd_remaining[$clog2(PKTDW/8)-1:0]
+				: {($clog2(PKTDW/8)){1'b0}};
+		if (pkd_remaining >= (PKTDW/8))
+			pkd_remaining <= pkd_remaining - (PKTDW/8);
 		else
 			pkd_remaining <= 0;
 	end
 	// }}}
 
-	// pkd_valid, pkd_load (in 32-bit words)
+	// pkd_valid, pkd_load (in PKTDW-bit words)
 	// {{{
 	initial	pkd_valid = 0;
 	initial	pkd_load  = 0;
@@ -835,26 +936,11 @@ module	mem2pkt #(
 			pkd_valid <= 0;
 			pkd_load  <= 0;
 			// }}}
-		end else if (rd_state == S_LENGTH)
-		begin
-			// {{{
-			if (i_dma_ack)
-			begin
-				// Load includes the current packet length word
-				// Verilator lint_off WIDTH
-				pkd_load <= FULL_LOAD - ({ r_readptr[LSB-1:0], 2'b00 });
-				// Verilator lint_on  WIDTH
-
-				// We're valid if this is a valid entry.
-				pkd_valid <= !w_invalid_packet
-					&&(!(&r_readptr[BLSB-WBLSB-1:0]));
-			end
-			// }}}
 		end else if (sfifo_read)
 		begin
 			// {{{
 			pkd_valid <= 1;
-			pkd_load <= FULL_LOAD[BLSB:0];
+			pkd_load <= FULL_LOAD[$clog2(DW/PKTDW):0];
 `ifdef	FORMAL
 			assert(!dma_abort);
 `endif
@@ -863,22 +949,11 @@ module	mem2pkt #(
 				|| (dma_abort && (!pkd_valid || pkd_ready)))
 		begin
 			// {{{
-			// We'll never have a load that isn't divisible by four
-			if (pkd_load > 4)
-			begin // Peel a word off the end
-				pkd_valid <= (pkd_load > 4);
-				pkd_load  <= pkd_load - 4;
-			end else if (dma_abort)
-			begin
-				pkd_valid <= 1;
-				pkd_load <= FULL_LOAD[BLSB:0];
-			end else begin
-				// Just ran the buffer dry
-				pkd_valid <= 0;
-				pkd_load  <= 0;
-			end
+			if (pkd_load > 0)
+				pkd_load <= pkd_load - 1;
+			pkd_valid <= (pkd_load > 1)||dma_abort;
 
-			if (pkd_remaining <= 4)
+			if (pkd_remaining <= (PKTDW/8))
 			begin // END OF PACKET
 				pkd_valid <= 0;
 				pkd_load <= 0;
@@ -908,29 +983,16 @@ module	mem2pkt #(
 	// pkd_wide
 	// {{{
 	always @(posedge i_clk)
-	if (i_dma_ack && rd_state == S_LENGTH)
-	begin
-		// {{{
-		// Verilator lint_off WIDTH
-		// When rd_state == S_LENGTH, the data doesn't come from the
-		// FIFO, but rather from the bus
-		//
-		if (OPT_LITTLE_ENDIAN)
-			pkd_wide <= i_dma_data >> ((1+r_readptr[BLSB-WBLSB-1:0]) * 32);
-		else
-			pkd_wide <= i_dma_data << ((1+r_readptr[BLSB-WBLSB-1:0]) * 32);
-		// Verilator lint_on WIDTH
-		// }}}
-	end else if (sfifo_read)
+	if (sfifo_read)
 	begin
 		pkd_wide <= sfifo_data;
 	end else if (pkd_valid && pkd_ready)
 	begin
 		// {{{
 		if (OPT_LITTLE_ENDIAN)
-			pkd_wide <= pkd_wide >> 32;
+			pkd_wide <= pkd_wide >> PKTDW;
 		else
-			pkd_wide <= pkd_wide << 32;
+			pkd_wide <= pkd_wide << PKTDW;
 		// }}}
 	end
 	// }}}
@@ -939,16 +1001,16 @@ module	mem2pkt #(
 	// {{{
 	generate if (OPT_LITTLE_ENDIAN)
 	begin
-		assign	pkd_data = pkd_wide[31:0];
+		assign	pkd_data = pkd_wide[PKTDW-1:0];
 	end else begin
-		assign	pkd_data = pkd_wide[DW-1:DW-32];
+		assign	pkd_data = pkd_wide[DW-1:DW-PKTDW];
 	end endgenerate
 	// }}}
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Packet FIFO(s), possibly crossing clock domains
+	// Format for a final output
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//

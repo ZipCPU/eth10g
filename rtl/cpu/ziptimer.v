@@ -64,7 +64,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 module	ziptimer #(
 		// {{{
@@ -117,7 +117,7 @@ module	ziptimer #(
 	// {{{
 	generate
 	if (RELOADABLE != 0)
-	begin
+	begin : GEN_RELOAD
 		// {{{
 		reg			r_auto_reload;
 		reg	[(VW-1):0]	r_interval_count;
@@ -211,12 +211,12 @@ module	ziptimer #(
 
 	// o_wb_data
 	// {{{
-	generate
-	if (VW < BW-1)
+	generate if (VW < BW-1)
+	begin : GEN_TRIM
 		assign	o_wb_data = { auto_reload, {(BW-1-VW){1'b0}}, r_value };
-	else
+	end else begin : NO_TRIM
 		assign	o_wb_data = { auto_reload, r_value };
-	endgenerate
+	end endgenerate
 	// }}}
 
 	// Make verilator happy

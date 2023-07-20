@@ -85,11 +85,14 @@
 //
 //	All addresses must be 32b aligned.
 //
-// Status:	The formal proof below is full and complete.  It's only fault
-//		is that it doesn't track the packet word through the FIFO
-//	during induction.  With a more open FIFO model, or the commercial front
-//	end, this could be fixed.  This design has not (yet) been tested in
-//	either hardware or simulation.
+// Status:	The formal proof below (was at one time) full and complete.
+//		It's only fault was that it didn't track the packet word
+//	through the FIFO during induction.  With a more open FIFO model, or
+//	the commercial front end, this could be fixed.  This design has not
+//	(yet) been tested in either hardware or simulation.
+//
+//	Since that time, the design has been modified to handle packet widths
+//	larger than 32-bits.  No attempt has been made to redo the proof since.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -124,6 +127,7 @@ module	pkt2mem #(
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter [0:0]	OPT_LOWPOWER = 1'b0,
 		parameter	LGFIFO = 7,
+		parameter	PKTDW = 128,	// Must be PKTDW <= DW
 		parameter	BURSTSZ = (1<<(LGFIFO-1)),
 		parameter	LGPIPE = 7	// Allow 128 outstanding beats
 		// }}}
@@ -143,14 +147,12 @@ module	pkt2mem #(
 		// }}}
 		// Incoming packets
 		// {{{
-		input	wire		S_AXIN_VALID,
-		output	wire		S_AXIN_READY,
-		input	wire [31:0]	S_AXIN_DATA,
-		// Verilator lint_off UNUSED
-		input	wire [1:0]	S_AXIN_BYTES,
-		// Verilator lint_on  UNUSED
-		input	wire		S_AXIN_LAST,
-		input	wire		S_AXIN_ABORT,
+		input	wire				S_AXIN_VALID,
+		output	wire				S_AXIN_READY,
+		input	wire [PKTDW-1:0]		S_AXIN_DATA,
+		input	wire [$clog2(PKTDW/8)-1:0]	S_AXIN_BYTES,
+		input	wire				S_AXIN_LAST,
+		input	wire				S_AXIN_ABORT,
 		// }}}
 		// Outgoing bus (master) DMA interface
 		// {{{
@@ -197,11 +199,14 @@ module	pkt2mem #(
 	reg			wfifo_write;
 	reg	[3+LSB+(DW/32)+DW-1:0]	wfifo_data;
 
-	reg			pkt_valid, pkt_abort, pkt_last, pkt_midpacket;
+	reg			pkt_valid, pkt_abort, pkt_midpacket;
+	reg	[1:0]		pkt_last;
 	reg	[LSB-1:0]	pkt_start;
 	reg	[LSB:0]		pkt_addr;
 	reg	[(DW/32)-1:0]	pkt_keep;
 	reg	[DW-1:0]	pkt_data;
+	reg [(PKTDW/32)-1:0]	pkt_nxkp;
+	reg	[PKTDW-1:0]	pkt_next;
 
 
 	reg	[LGPIPE:0]	wb_outstanding;
@@ -398,7 +403,7 @@ module	pkt2mem #(
 	always @(*)
 	begin
 		pre_wfifo_write = 1'b0;
-		if (pkt_valid && pkt_last && !pkt_abort)
+		if (pkt_valid && pkt_last != 2'b00 && !pkt_abort)
 			pre_wfifo_write = 1'b1;
 		if (OPT_LITTLE_ENDIAN && pkt_keep[0])
 			pre_wfifo_write = 1'b1;
@@ -419,6 +424,38 @@ module	pkt2mem #(
 
 	// pkt_*
 	// {{{
+	reg	[$clog2(PKTDW/8)-1:0]	s_words;
+	reg	[PKTDW/32-1:0]		s_mask;
+	reg	[DW+PKTDW-1:0]		next_data_sreg;
+	reg	[(DW+PKTDW)/32-1:0]	next_keep_sreg;
+
+	always @(*)
+	begin
+		s_words = S_AXIN_BYTES + 1;
+		s_words = s_words >> 2;
+
+		s_mask = ({ {(PKTDW/32-1){1'b0}}, 1'b1 } << s_words) - 1;
+		if (S_AXIN_LAST)
+			s_mask = {(PKTDW/32){1'b1}};
+	end
+
+	always @(*)
+	if (OPT_LITTLE_ENDIAN)
+	begin
+		next_data_sreg = { {(DW){1'b0}}, pkt_next }
+				| { {(DW){1'b0}}, S_AXIN_DATA }
+							<< (pkt_addr*32);
+		next_keep_sreg = { {(DW/32){1'b0}}, pkt_nxkp }
+			| ({ {(DW/32){1'b0}}, s_mask } << pkt_addr);
+	end else begin
+		next_data_sreg = { pkt_next, {(DW){1'b0}} }
+				| { S_AXIN_DATA, {(DW){1'b0}} }
+						>> (pkt_addr*32);
+
+		next_keep_sreg = { pkt_nxkp, {(DW/32){1'b0}} }
+			| ({ s_mask, {(DW/32){1'b0}} } >> pkt_addr);
+	end
+
 	initial	pkt_valid = 0;
 	initial	pkt_keep  = 0;
 	initial	pkt_data  = 0;
@@ -432,6 +469,9 @@ module	pkt2mem #(
 		pkt_addr  <= 1;	// First data has position '1' in the word
 		pkt_keep  <= 0;
 		pkt_data  <= 0;
+		pkt_next  <= 0;
+		pkt_nxkp  <= 0;
+		pkt_last  <= 2'b00;
 		// }}}
 	end else if (r_dma_reset || (pkt_abort && pkt_midpacket))
 	begin
@@ -444,17 +484,19 @@ module	pkt2mem #(
 
 		pkt_keep  <= 0;
 		pkt_data  <= 0;
-		pkt_last  <= 1;
+		pkt_next  <= 0;
+		pkt_nxkp  <= 0;
+		pkt_last  <= 2'b00;
 		// }}}
 	end else if (S_AXIN_VALID && S_AXIN_READY)
 	begin
 		// {{{
 		pkt_valid <= 1;
-		pkt_last  <= 0;
+		pkt_last  <= 2'b00;
 
 		// Clear on any new word
 		// {{{
-		if (pkt_last
+		if (pkt_last[1]
 			|| (OPT_LITTLE_ENDIAN && pkt_keep[0])
 			|| (!OPT_LITTLE_ENDIAN && pkt_keep[(DW/32)-1]))
 		begin
@@ -468,17 +510,13 @@ module	pkt2mem #(
 
 		// Add to pkt_data and pkt_keep
 		// {{{
-		for(ik=0; ik<DW/32; ik=ik+1)
-		if (pkt_addr[LSB-1:0] == ik[LSB-1:0])
+		if (OPT_LITTLE_ENDIAN)
 		begin
-			if (OPT_LITTLE_ENDIAN)
-			begin
-				pkt_data[(ik * 32) +: 32] <= S_AXIN_DATA;
-				pkt_keep[ik] <= 1'b1;
-			end else begin
-				pkt_data[DW-32-(ik * 32) +: 32] <= S_AXIN_DATA;
-				pkt_keep[(DW/32)-1-ik] <= 1'b1;
-			end
+			{ pkt_next, pkt_data } <= next_data_sreg;
+			{ pkt_nxkp, pkt_keep } <= next_keep_sreg;
+		end else begin
+			{ pkt_data, pkt_next } <= next_data_sreg;
+			{ pkt_keep, pkt_nxkp } <= next_keep_sreg;
 		end
 		// }}}
 
@@ -489,25 +527,38 @@ module	pkt2mem #(
 			pkt_addr  <= { 1'b0, pkt_start };
 			pkt_keep  <= 0;
 			pkt_data  <= 0;
-			pkt_last  <= 1;
+			pkt_last  <= 2'b10;
 			// }}}
 		end else if (S_AXIN_LAST)
 		begin
 			// {{{
 			pkt_start <= pkt_addr[LSB-1:0]+2;
 			pkt_addr  <= pkt_addr[LSB-1:0]+2;
-			pkt_last  <= 1;
+			if (OPT_LITTLE_ENDIAN)
+			begin
+				pkt_last <= (next_keep_sreg[(PKTDW+DW)/32-1:DW/32-1] != 0) ? 2'b01 : 2'b10;
+			end else begin
+				pkt_last <= (next_keep_sreg[PKTDW/32-1:0] != 0) ? 2'b01 : 2'b10;
+			end
 			// }}}
 		end
 		// }}}
 	end else if (pre_wfifo_write)
 	begin
 		// {{{
-		pkt_valid <= 0;
+		pkt_valid <= !pkt_abort && (pkt_nxkp != 0);
 		pkt_abort <= pkt_midpacket;
-		pkt_keep  <= 0;
-		pkt_data  <= 0;
-		pkt_last  <= 0;
+		pkt_last[0]<= 1'b0;
+		pkt_last[1]<= pkt_last[0] && (pkt_nxkp != 0);
+
+		if (OPT_LITTLE_ENDIAN)
+		begin
+			{ pkt_next, pkt_data }<= { {(DW){1'b0}},   pkt_next };
+			{ pkt_nxkp, pkt_keep }<= { {(DW/32){1'b0}},pkt_nxkp };
+		end else begin
+			{ pkt_data, pkt_next }<= { pkt_next,{(DW   ){1'b0}} };
+			{ pkt_keep, pkt_nxkp }<= { pkt_nxkp,{(DW/32){1'b0}} };
+		end
 		// }}}
 	end
 	// }}}
@@ -528,7 +579,7 @@ module	pkt2mem #(
 	always @(posedge i_clk)
 	if (pre_wfifo_write || pkt_abort || r_dma_reset)
 	begin
-		wfifo_data <= { (pkt_abort || r_dma_reset), pkt_last, pkt_addr,
+		wfifo_data <= { (pkt_abort || r_dma_reset),pkt_last[1],pkt_addr,
 							pkt_keep, pkt_data };
 	end
 
@@ -744,7 +795,7 @@ module	pkt2mem #(
 
 				r_newstart <= next_start_addr[AW+LSB-1:0];
 				// Verilator lint_off WIDTH
-				pkt_length <= pkt_length + $countones(fif_keep);
+				pkt_length <= pkt_length + COUNTONES(fif_keep);
 				// Verilator lint_on  WIDTH
 
 				if (fif_last)
@@ -900,6 +951,17 @@ module	pkt2mem #(
 	// }}}
 
 	// }}}
+
+	function automatic [$clog2(DW/32):0] COUNTONES(input [(DW/32)-1:0] kp);
+		integer	ck;
+		reg	[$clog2(DW/32):0] cnt;
+	begin
+		cnt=0;
+		for(ck=0; ck<(DW/32); ck=ck+1)
+			if (kp[ck])
+				cnt=cnt+1;
+		COUNTONES = cnt;
+	end endfunction
 
 	// Keep Verilator happy
 	// {{{
@@ -1192,7 +1254,7 @@ module	pkt2mem #(
 		if (fif_last || fifo_abort)
 			ffifo_word <= 0;
 		else
-			ffifo_word <= ffifo_word + $countones(fifo_keep);
+			ffifo_word <= ffifo_word + COUNTONES(fif_keep);
 	end
 
 	always @(*)
@@ -1202,12 +1264,12 @@ module	pkt2mem #(
 	// Prior to FIFO last, keep must be true
 	always @(*)
 	if (!i_reset && fc_check && !fifo_empty && !fif_last && !fif_abort)
-		`BMC_ASSERT(&fifo_keep);
+		`BMC_ASSERT(&fif_keep);
 
 	// If fc_check, then we can't end prior to fc_pktaddr
 	always @(*)
 	if (!i_reset && !fifo_empty && fc_check
-			&& ffifo_word + $countones(fifo_keep) < fc_pktaddr)
+			&& ffifo_word + COUNTONES(fif_keep) < fc_pktaddr)
 		`BMC_ASSERT(fif_abort || !fif_last);
 
 	// Now verify the data on the output
@@ -1220,7 +1282,7 @@ module	pkt2mem #(
 		for(ik=0; ik<DW/8; ik=ik+1)
 		if(ik == fc_pktaddr[LSB-1:0])
 		begin
-			`BMC_ASSERT(fifo_keep[DW/8-1-ik]);
+			`BMC_ASSERT(fif_keep[DW/8-1-ik]);
 			`BMC_ASSERT(fifo_data[DW-8-(ik *8) +: 8]==fc_pktdata);
 		end
 	end
@@ -1346,11 +1408,11 @@ module	pkt2mem #(
 /*
 	always @(*)
 	if (!i_reset && !fifo_empty && { fif_abort, fif_last } == 2'b00)
-		assume(&fifo_keep);
+		assume(&fif_keep);
 
 	always  @(*)
 	if (!i_reset && !fif_empty && !fifo_abort)
-	case(fifo_keep)
+	case(fif_keep)
 	// 4'b0000: begin end
 	4'b1000: begin end
 	4'b1100: begin end

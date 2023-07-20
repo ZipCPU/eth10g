@@ -31,7 +31,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 module	idecode #(
 		// {{{
@@ -672,7 +672,8 @@ module	idecode #(
 		end
 		assign	o_ljmp = r_ljmp;
 
-		assign	w_add_to_pc = (!o_phase && !i_instruction[CISBIT]
+		assign	w_add_to_pc = (!o_phase
+				&& (!OPT_CIS || !i_instruction[CISBIT])
 				&& (i_instruction[30:27]==CPU_PC_REG)	// Rd=PC
 				&& (i_instruction[26:22] == 5'h02)	// ADD
 				&& (i_instruction[21:19]==3'h0)		// NONE
@@ -851,7 +852,7 @@ module	idecode #(
 		//		&&(w_I[22]==r_I[22]);
 		assign o_pipe = r_pipe;
 		// }}}
-	end else begin
+	end else begin : GEN_NO_PIPE
 		// {{{
 		assign	o_pipe = 1'b0;
 		assign	insn_is_pipeable = 1'b0;

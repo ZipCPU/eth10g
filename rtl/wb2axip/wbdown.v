@@ -30,7 +30,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype	none
+`default_nettype none
 // }}}
 module wbdown #(
 		// {{{
@@ -187,12 +187,12 @@ module wbdown #(
 		assign	o_saddr= r_addr;
 
 		if (OPT_LITTLE_ENDIAN)
-		begin
+		begin : OPT_LILEND_DATA
 			// Verilator coverage_off
 			assign	o_sdata = s_data[SMALL_DW-1:0];
 			assign	o_ssel  = s_sel[SMALL_DW/8-1:0];
 			// Verilator coverage_on
-		end else begin
+		end else begin : OPT_BIGEND_DATA
 			assign	o_sdata=s_data[WIDE_DW-1:WIDE_DW-SMALL_DW];
 			assign	o_ssel =s_sel[WIDE_DW/8-1:(WIDE_DW-SMALL_DW)/8];
 		end
@@ -698,10 +698,10 @@ module wbdown #(
 		// r_shift, s_data, s_sel
 		// {{{
 		if (OPT_LITTLE_ENDIAN)
-		begin
+		begin : DNSHIFT_NXTSEL
 			always @(*)
 				nxt_sel = s_sel >> (r_shift * SMALL_DW/8);
-		end else begin
+		end else begin : UPSHIFT_NXTSEL
 			always @(*)
 				nxt_sel = s_sel << (r_shift * SMALL_DW/8);
 		end
@@ -756,10 +756,10 @@ module wbdown #(
 		assign	o_saddr= r_addr;
 
 		if (OPT_LITTLE_ENDIAN)
-		begin
+		begin : OPT_LILODATA
 			assign	o_sdata = s_data[SMALL_DW-1:0];
 			assign	o_ssel  = s_sel[SMALL_DW/8-1:0];
-		end else begin
+		end else begin : OPT_BIGODATA
 			assign	o_sdata =s_data[WIDE_DW-1:WIDE_DW-SMALL_DW];
 			assign	o_ssel  =s_sel[WIDE_DW/8-1:(WIDE_DW-SMALL_DW)/8];
 		end

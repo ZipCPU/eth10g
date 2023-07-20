@@ -132,8 +132,10 @@ module routecore #(
 	// Local declarations
 	// {{{
 	// parameter [AW-1:0]	DEF_BASEADDR = 0,
-	parameter [AW-1:0]	DEF_SUBSIZE  = DEF_MEMSIZE / NETH;
 	parameter		NMEM = NETH-(OPT_CPUNET ? 1:0);
+	// Verilator lint_off WIDTH
+	parameter [AW-1:0]	DEF_SUBSIZE  = DEF_MEMSIZE / NMEM;
+	// Verilator lint_on  WIDTH
 	genvar				geth;
 
 	wire	[NMEM-1:0]		tomem_valid, tomem_ready;
@@ -261,7 +263,7 @@ module routecore #(
 		// All packets go to memory: tomem -> (dma_wb) -> mmout
 		// {{{
 		assign	ctrl_stb[geth] = i_ctrl_stb
-				&& i_ctrl_addr[2 +: $clog2(NETH)] == geth;
+				&& i_ctrl_addr[2 +: $clog2(NMEM)] == geth;
 
 		if (OPT_VFIFO)
 		begin : GEN_VFIFO
@@ -290,7 +292,7 @@ module routecore #(
 				// Bus control port
 				// {{{
 				.i_ctrl_cyc(i_ctrl_cyc), .i_ctrl_stb(i_ctrl_stb
-					&& i_ctrl_addr[2 +: $clog2(NETH)] == geth),
+					&& i_ctrl_addr[2 +: $clog2(NMEM)] == geth),
 				.i_ctrl_we(i_ctrl_we), .i_ctrl_addr(i_ctrl_addr[1:0]),
 				.i_ctrl_data(i_ctrl_data), .i_ctrl_sel(i_ctrl_sel),
 				.o_ctrl_stall(ctrl_stall[geth]),
@@ -378,7 +380,7 @@ module routecore #(
 				r_ctrl_ack <= 1'b0;
 			else
 				r_ctrl_ack <= i_ctrl_stb
-					&& i_ctrl_addr[2 +: $clog2(NETH)]==geth;
+					&& i_ctrl_addr[2 +: $clog2(NMEM)]==geth;
 
 			assign	ctrl_stall[geth] = 1'b0;
 			assign	ctrl_ack[geth]   = r_ctrl_ack;
@@ -824,7 +826,7 @@ module routecore #(
 	//
 	//
 	wbmarbiter #(
-		.DW(BUSDW), .AW(AW), .NIN(NETH)
+		.DW(BUSDW), .AW(AW), .NIN(NMEM)
 	) u_wbmarbiter (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),

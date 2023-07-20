@@ -811,7 +811,8 @@ module	wbxbar #(
 			end
 		end
 		// }}}
-	end else for(M=0; M<NS; M=M+1)
+	end else begin : J
+	for(M=0; M<NS; M=M+1)
 	begin : GEN_DOWNSTREAM
 		// {{{
 		always @(posedge i_clk)
@@ -834,7 +835,7 @@ module	wbxbar #(
 
 		end
 		// }}}
-	end endgenerate
+	end end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

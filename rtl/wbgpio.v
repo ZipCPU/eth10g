@@ -115,10 +115,13 @@ module wbgpio #(
 
 	generate
 	if (NIN < 16)
+	begin : GEN_HIBITS
 		assign hi_bits[ 15: NIN] = 0;
+	end
 	if (NOUT < 16)
+	begin : GEN_LOBITS
 		assign low_bits[15:NOUT] = 0;
-	endgenerate
+	end endgenerate
 
 	assign	o_wb_data = { hi_bits, low_bits };
 	// }}}

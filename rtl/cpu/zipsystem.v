@@ -82,7 +82,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 //
 // Debug address space:
@@ -318,8 +318,8 @@ module	zipsystem #(
 	//
 	wire			sys_cyc, sys_stb, sys_we;
 	wire	[7:0]		sys_addr;
-	wire	[PAW-1:0]	cpu_addr;
 	wire	[DBG_WIDTH-1:0]	sys_data;
+	wire	[PAW-1:0]	cpu_addr;
 	reg	[DBG_WIDTH-1:0]	sys_idata;
 	reg			sys_ack;
 	wire			sys_stall;
@@ -327,11 +327,12 @@ module	zipsystem #(
 	wire	sel_counter, sel_timer, sel_pic, sel_apic,
 		sel_watchdog, sel_bus_watchdog, sel_dmac, sel_mmus;
 
-	wire				dbg_cyc, dbg_stb, dbg_we, dbg_stall;
+	wire				dbg_cyc, dbg_stb, dbg_we;
 	wire	[6:0]			dbg_addr;
 	wire	[DBG_WIDTH-1:0]		dbg_idata;
-	reg	[DBG_WIDTH-1:0]		dbg_odata;
 	reg				dbg_ack;
+	wire				dbg_stall;
+	reg	[DBG_WIDTH-1:0]		dbg_odata;
 	wire	[DBG_WIDTH/8-1:0]	dbg_sel;
 	wire				no_dbg_err;
 
@@ -351,7 +352,6 @@ module	zipsystem #(
 	wire			cpu_reset, cpu_halt,
 				cpu_has_halted;
 	wire			cpu_dbg_stall;
-	wire	[DBG_WIDTH-1:0]	pic_data;
 	wire	[DBG_WIDTH-1:0]	cpu_status;
 	wire			cpu_gie;
 
@@ -359,6 +359,7 @@ module	zipsystem #(
 	wire	[DBG_WIDTH-1:0]	wdt_data;
 	reg			wdbus_ack;
 	reg	[PAW-1:0] 	r_wdbus_data;
+	wire	[DBG_WIDTH-1:0]	pic_data;
 	wire	[DBG_WIDTH-1:0]	wdbus_data;
 	wire	reset_wdbus_timer, wdbus_int;
 
@@ -386,13 +387,16 @@ module	zipsystem #(
 	wire	[DBG_WIDTH-1:0]	tmc_data;
 	wire	[DBG_WIDTH-1:0]	jif_data;
 
-	wire		pic_interrupt, pic_stall, pic_ack;
+	wire			pic_stall, pic_ack;
 
 	wire		cpu_gbl_stb, cpu_lcl_cyc, cpu_lcl_stb,
 			cpu_we;
-	wire	[BUS_WIDTH-1:0]		cpu_data, cpu_idata;
+	wire	[BUS_WIDTH-1:0]		cpu_data;
 	wire	[BUS_WIDTH/8-1:0]	cpu_sel, mmu_sel;
-	wire		cpu_stall, cpu_ack, cpu_err;
+	wire	[BUS_WIDTH-1:0]		cpu_idata;
+	wire				cpu_stall;
+	wire				pic_interrupt;
+	wire				cpu_ack, cpu_err;
 	wire	[DBG_WIDTH-1:0]	cpu_dbg_data;
 
 	wire			ext_stall, ext_ack;
@@ -433,40 +437,41 @@ module	zipsystem #(
 	assign	main_int_vector[5:0] = { ctri_int, tma_int, tmb_int, tmc_int,
 					jif_int, dmac_int };
 	generate if (EXTERNAL_INTERRUPTS < 9)
+	begin : TRIM_MAIN_INTS
 		assign	main_int_vector[14:6] = { {(9-EXTERNAL_INTERRUPTS){1'b0}},
 					i_ext_int };
-	else
+	end else begin : NO_TRIM_MAIN_INTS
 		assign	main_int_vector[14:6] = i_ext_int[8:0];
-	endgenerate
+	end endgenerate
 	// }}}
 
 	// The alternate interrupt vector
 	// {{{
 	generate if (EXTERNAL_INTERRUPTS <= 9 && OPT_ACCOUNTING)
-	begin
+	begin : ALT_ACCOUNTING_INTS
 		assign	alt_int_vector = { 7'h00,
 					mtc_int, moc_int, mpc_int, mic_int,
 					utc_int, uoc_int, upc_int, uic_int };
 	end else if (EXTERNAL_INTERRUPTS <= 9) // && !OPT_ACCOUNTING
-	begin
+	begin : ALT_NO_INTS
 		assign	alt_int_vector = { 15'h00 };
 	end else if (OPT_ACCOUNTING && EXTERNAL_INTERRUPTS >= 15)
-	begin
+	begin : ALT_ACCT_PLUS_INTS
 		assign	alt_int_vector = { i_ext_int[14:8],
 					mtc_int, moc_int, mpc_int, mic_int,
 					utc_int, uoc_int, upc_int, uic_int };
 	end else if (OPT_ACCOUNTING)
-	begin
+	begin : ALT_ACCT_SOME_INTS
 
 		assign	alt_int_vector = { {(7-(EXTERNAL_INTERRUPTS-9)){1'b0}},
 					i_ext_int[(EXTERNAL_INTERRUPTS-1):9],
 					mtc_int, moc_int, mpc_int, mic_int,
 					utc_int, uoc_int, upc_int, uic_int };
 	end else if (!OPT_ACCOUNTING && EXTERNAL_INTERRUPTS >= 24)
-	begin
+	begin : ALT_NO_ACCOUNTING_INTS
 
 		assign	alt_int_vector = { i_ext_int[(EXTERNAL_INTERRUPTS-1):9] };
-	end else begin
+	end else begin : ALT_TRIM_INTS
 		assign	alt_int_vector = { {(15-(EXTERNAL_INTERRUPTS-9)){1'b0}},
 					i_ext_int[(EXTERNAL_INTERRUPTS-1):9] };
 
@@ -607,7 +612,7 @@ module	zipsystem #(
 			assert(reset_hold == (reset_counter != 0));
 `endif
 		// }}}
-	end else begin
+	end else begin : NO_RESET_HOLD
 
 		assign reset_hold = 0;
 
@@ -815,7 +820,7 @@ module	zipsystem #(
 		else if (cmd_read_ack != 0)
 			cmd_read_ack <= 0;
 
-	end else begin
+	end else begin : GEN_FWD_CMDREAD_ACK
 		always @(*)
 			cmd_read_ack = cmd_read;
 
@@ -1079,6 +1084,7 @@ module	zipsystem #(
 		zipdma	#(
 			// {{{
 			.ADDRESS_WIDTH(ADDRESS_WIDTH), .LGMEMLEN(DMA_LGMEM),
+			.OPT_REGISTER_RAM(!OPT_DISTRIBUTED_REGS),
 			.BUS_WIDTH(DW), .OPT_LITTLE_ENDIAN(1'b0)
 			// }}}
 		) dma_controller(

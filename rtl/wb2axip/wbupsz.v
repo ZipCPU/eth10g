@@ -106,10 +106,10 @@ module wbupsz #(
 		wire	[WIDE_DW/8-1:0]	w_sel;
 
 		if (OPT_LITTLE_ENDIAN)
-		begin
+		begin : GEN_LILEND
 			assign	w_data= {{(WIDE_DW-SMALL_DW){1'b0}}, i_sdata };
 			assign	w_sel ={{((WIDE_DW-SMALL_DW)/8){1'b0}},i_ssel };
-		end else begin
+		end else begin : GEN_BIGEND
 			assign	w_data= {i_sdata, {(WIDE_DW-SMALL_DW){1'b0}} };
 			assign	w_sel ={i_ssel,{((WIDE_DW-SMALL_DW)/8){1'b0}} };
 		end
@@ -193,9 +193,9 @@ module wbupsz #(
 		end
 
 		if (OPT_LITTLE_ENDIAN)
-		begin
+		begin : GEN_LILEND
 			assign	o_sdata = rtn_data[SMALL_DW-1:0];
-		end else begin
+		end else begin : GEN_BIGEND
 			assign	o_sdata = rtn_data[WIDE_DW-1:WIDE_DW-SMALL_DW];
 		end
 		// }}}
