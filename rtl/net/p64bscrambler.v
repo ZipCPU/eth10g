@@ -41,7 +41,8 @@ module	p64bscrambler #(
 		localparam [POLYNOMIAL_BITS-1:0]	POLYNOMIAL
 				= 58'h200_0040_0000_0000,
 		localparam	DATA_WIDTH=66,
-		parameter	[0:0]	OPT_RX = 0
+		parameter	[0:0]	OPT_RX = 0,
+		parameter	[0:0]	OPT_ENABLE = 1
 		// }}}
 	) (
 		// {{{
@@ -51,80 +52,89 @@ module	p64bscrambler #(
 		output	wire				o_ready,
 		input	wire	[DATA_WIDTH-1:0]	i_data,
 		//
-		output	reg				o_valid,
+		output	wire				o_valid,
 		input	wire				i_ready,
-		output	reg	[DATA_WIDTH-1:0]	o_data
+		output	wire	[DATA_WIDTH-1:0]	o_data
 		// }}}
 	);
 
-	// Local declarations
-	// {{{
-	localparam	PB = POLYNOMIAL_BITS;
-	localparam	DW = DATA_WIDTH;
-
-	reg	[PB-1:0]	r_fill;
-	wire	[PB-1:0]	next_fill;
-	wire	[DW-1:0]	scrambled;
-	// }}}
-
-	assign	{ next_fill, scrambled } = SCRAMBLE(r_fill, i_data);
-
-	// r_fill
-	// {{{
-	always @(posedge i_clk)
-	if (!i_reset_n)
-		r_fill <= 0;
-	else if (i_ready)
-		// Self synchronizing
-		r_fill <= next_fill;
-	// }}}
-
-	// o_valid
-	// {{{
-	always @(posedge i_clk)
-	if (!i_reset_n)
-		o_valid <= 0;
-	else if (i_valid)
-		o_valid <= 1'b1;
-	else if (o_ready)
-		o_valid <= 1'b0;
-	// }}}
-
-	// o_data
-	// {{{
-	always @(posedge i_clk)
-	if (!i_reset_n)
-		o_data <= 0;
-	else if (i_ready)
-		o_data <= scrambled;
-	// }}}
-
-	assign	o_ready = !o_valid || i_ready;
-
-	function automatic [PB+DW-1:0] SCRAMBLE(
+	generate if (OPT_ENABLE)
+	begin : GEN_SCRAMBLER
+		// Local declarations
 		// {{{
-			input [PB-1:0]	s_fill,
-			input [DW-1:0]	s_data);
+		localparam	PB = POLYNOMIAL_BITS;
+		localparam	DW = DATA_WIDTH;
 
-		integer ik;
-		reg	[DW-1:0]	data_out;
-		reg	[PB-1:0]	state;
-	begin
-		data_out = 0;
-		data_out[1:0] = s_data[1:0];
-		state = s_fill;
-		for(ik=2; ik<DW; ik=ik+1)
+		reg	[PB-1:0]	r_fill;
+		wire	[PB-1:0]	next_fill;
+		wire	[DW-1:0]	scrambled;
+
+		reg		r_valid;
+		reg	[65:0]	r_data;
+		// }}}
+
+		assign	{ next_fill, scrambled } = SCRAMBLE(r_fill, i_data);
+
+		// o_valid
+		// {{{
+		always @(posedge i_clk)
+		if (!i_reset_n)
+			r_valid <= 0;
+		else if (i_valid)
+			r_valid <= 1'b1;
+		else if (o_ready)
+			r_valid <= 1'b0;
+
+		assign	o_valid = r_valid;
+		// }}}
+
+		// r_fill, o_data
+		// {{{
+		always @(posedge i_clk)
+		if (!i_reset_n)
+			{ r_fill, r_data } <= 0;
+		else if (i_valid && o_ready)
+			{ r_fill, r_data } <= { next_fill, scrambled };
+
+		assign	o_data = r_data;
+		// }}}
+
+		assign	o_ready = !o_valid || i_ready;
+
+		function automatic [PB+DW-1:0] SCRAMBLE(
+			// {{{
+				input [PB-1:0]	s_fill,
+				input [DW-1:0]	s_data);
+
+			integer ik;
+			reg	[DW-1:0]	data_out;
+			reg	[PB-1:0]	state;
 		begin
-			data_out[ik] = s_data[ik] ^ (^(POLYNOMIAL & state));
-			if (OPT_RX)
+			data_out = 0;
+			data_out[1:0] = s_data[1:0];
+			state = s_fill;
+			for(ik=2; ik<DW; ik=ik+1)
 			begin
-				state = { state[PB-2:0], s_data[ik] };
-			end else begin
-				state = { state[PB-2:0], data_out[ik] };
+				data_out[ik] = s_data[ik] ^ (^(POLYNOMIAL & state));
+				if (OPT_RX)
+				begin
+					state = { state[PB-2:0], s_data[ik] };
+				end else begin
+					state = { state[PB-2:0], data_out[ik] };
+				end
 			end
-		end
 
-		SCRAMBLE = { state, data_out };
-	end endfunction
-// }}}
+			SCRAMBLE = { state, data_out };
+		end endfunction
+		// }}}
+	end else begin : NO_SCRAMBLER
+		assign	o_valid = i_valid;
+		assign	o_ready = i_ready;
+		assign	o_data  = i_data;
+
+		// Verilator lint_off UNUSED
+		wire	unused;
+		assign	unused = &{ 1'b0, OPT_RX, i_clk, i_reset_n };
+		// Verilator lint_on UNUSED
+	end endgenerate
 endmodule

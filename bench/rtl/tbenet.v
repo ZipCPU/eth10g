@@ -84,13 +84,13 @@ module	tbenet (
 	// Verilator lint_off WIDTH
 	localparam [$clog2(OVERSAMPLE_RATIO)-1:0] OVM1 = OVERSAMPLE_RATIO-1;
 	// Verilator lint_on  WIDTH
-	localparam	BSMSB = 12;
+	localparam	BSMSB = 18;
 
 	localparam	[6:0]	IDL = 7'h07;
 	localparam [65:0]	PKTPREFIX= { 8'hab, {(6){8'haa}},
 								8'h78, 2'b10 },
 				PKTHALFPREFIX = {
-					24'haa_aa_aa, 2'b00,
+					24'haa_aa_aa, 4'b00,
 					{(4){IDL}},
 					8'h33, 2'b10 },
 				PKTFAULTSTART = { 32'haa_aa_aa_aa,
@@ -202,10 +202,10 @@ module	tbenet (
 
 		if (rxsqrd === 1'b1)
 		begin
-			if (rxsubavg[OVM1] + 1 >= (1<<BSMSB))
+			if (rxsubavg[OVM1] + 64 >= (1<<BSMSB))
 				rxsubavg[0] <= (1<<BSMSB);
 			else
-				rxsubavg[0] <= rxsubavg[OVM1] + 1;
+				rxsubavg[0] <= rxsubavg[OVM1] + 64;
 		end else if (rxsubavg[OVM1] > 1)
 			rxsubavg[0] <= rxsubavg[OVM1] - 1;
 		else
@@ -218,7 +218,7 @@ module	tbenet (
 	// bsmatchacc = The output of the crude (matched?) filter
 	// Here, for a filter, we're using an 8-sample triangle wave.
 	//	Coefficients are: 2, 1, 0, -1, -2, -1, 0, 1
-	always @(rxsubavg[0])
+	always @(*)//rxsubavg[0])
 	begin
 		// Verilator lint_off WIDTH
 		bsmatchacc = 0;
@@ -321,6 +321,21 @@ module	tbenet (
 	always @(*)
 		prerxpay = DESCRAMBLE({ rxfill[56:0], rxword[0] },
 					{ i_rx, rxword[65:1] });
+
+// {{{
+	(* keep *) reg	[7:0]	rxdbg_count;
+	(* keep *) reg	[65:0]	rxdbg_data;
+	initial	rxdbg_count = 0;
+	always @(posedge sample_clk)
+	if (rxdbg_count >= 65)
+		rxdbg_count <= 0;
+	else
+		rxdbg_count <= rxdbg_count + 1;
+
+	always @(posedge sample_clk)
+	if (rxdbg_count == 0)
+		rxdbg_data <= rxword;
+// }}}
 
 	// rxmatch
 	// {{{
@@ -499,7 +514,6 @@ module	tbenet (
 	end else if (rxw_valid)
 	begin
 		last_rx_payload <= rxpay;
-
 		pl_fault <= 1'b0;
 		pl_last  <= (pl_bytes > 0);
 		pl_bytes <= (pl_bytes[3]) ? { 1'b0, pl_bytes[2:0] }: 4'h0;

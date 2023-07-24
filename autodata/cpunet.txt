@@ -1,0 +1,181 @@
+################################################################################
+##
+## Filename:	autodata/cpunet.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Controls two virtual packet FIFOs for the CPU.  In each of
+##		these, the CPU controls one end--whether the read or write
+##	pointer.  Once set up, packets on arrival will be placed into a circular
+##	area of memory allocated for the receiver.  From there, the CPU can read##	the packet out of memory.  As the CPU updates its read pointer,
+##	memory will be freed.  Similarly, the CPU can place a packet to be
+##	sent in the transmit buffer.  Packets may be filled so much so that
+##	they wrap around the beginning.  Once placed there, the CPU can then
+##	tell the transmitter that its buffer has moved forward, and so the
+##	transmitter will transmit that packet.
+##
+##	All packets stored in memory will begin with a 32-bit length word,
+##	containing the number of bytes in the packet.  If you could this many
+##	bytes from one packet, plus the four for the length word, you should
+##	get to the beginning of the second packet.  In this way, the packet
+##	handling for the CPU is only limited by the amount of memory the CPU
+##	allocates to it.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=cpunet
+@DEVID=CPUNET
+@NADDR=8
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS=ETH_ROUTER
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=OTHER
+@SLAVE.PREFIX=@$(SLAVE.BUS.NAME)_@$(PREFIX)s
+@MASTER.TYPE=CPU
+@MASTER.BUS=wbwide
+@MASTER.PREFIX=@$(MASTER.BUS.NAME)_@$(PREFIX)m
+@MASTER.ANSPREFIX=dma_
+@SGP=@$(BUS.PREFIX)
+@WBP=@$(SLAVE.BUS.PREFIX)
+@IDW=2
+@INT.RXNET.PIC=syspic
+@INT.RXNET.WIRE=@$(PREFIX)_rx_int
+@INT.TXNET.PIC=syspic
+@INT.TXNET.WIRE=@$(PREFIX)_tx_int
+@MAIN.DEFNS=
+	// CPUNet Controller
+	// {{{
+	// Verilator lint_off UNUSED
+	wire		@$(PREFIX)_rx_valid,
+			@$(PREFIX)_rx_ready,
+			@$(PREFIX)_rx_last,
+			@$(PREFIX)_rx_abort;
+	wire	[127:0]	@$(PREFIX)_rx_data;
+	wire	[3:0]	@$(PREFIX)_rx_bytes;
+
+	wire		@$(PREFIX)_tx_valid,
+			@$(PREFIX)_tx_ready,
+			@$(PREFIX)_tx_last,
+			@$(PREFIX)_tx_abort;
+	wire	[127:0]	@$(PREFIX)_tx_data;
+	wire	[3:0]	@$(PREFIX)_tx_bytes;
+	// Verilator lint_on  UNUSED
+	// }}}
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// CPU Network
+	// {{{
+
+	cpunet #(
+		.AW(@$(MASTER.BUS.AWID)),
+		.DW(@$(MASTER.BUS.WIDTH)),
+		.PKTDW(128)
+	) u_@$(PREFIX) (
+		// {{{
+		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)), .i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
+		@$(SLAVE.ANSIPORTLIST),
+		//
+		.RX_VALID(@$(PREFIX)_rx_valid),
+		.RX_READY(@$(PREFIX)_rx_ready),
+		.RX_DATA( @$(PREFIX)_rx_data),
+		.RX_BYTES(@$(PREFIX)_rx_bytes),
+		.RX_LAST( @$(PREFIX)_rx_last),
+		.RX_ABORT(@$(PREFIX)_rx_abort),
+		//
+		.TX_VALID(@$(PREFIX)_tx_valid),
+		.TX_READY(@$(PREFIX)_tx_ready),
+		.TX_DATA( @$(PREFIX)_tx_data),
+		.TX_BYTES(@$(PREFIX)_tx_bytes),
+		.TX_LAST( @$(PREFIX)_tx_last),
+		.TX_ABORT(@$(PREFIX)_tx_abort),
+		//
+		@$(MASTER.ANSIPORTLIST),
+		//
+		.o_rx_int(@$(PREFIX)_rx_int),
+		.o_tx_int(@$(PREFIX)_tx_int)
+		// }}}
+	);
+
+	// }}}
+@MAIN.ALT=
+	assign	@$(PREFIX)_rx_valid = 0;
+	assign	@$(PREFIX)_rx_ready = 1;
+	assign	@$(PREFIX)_rx_last  = 0;
+	assign	@$(PREFIX)_rx_abort = 0;
+	assign	@$(PREFIX)_rx_data  = 0;
+	assign	@$(PREFIX)_rx_bytes = 0;
+
+	assign	@$(PREFIX)_tx_valid = 0;
+	assign	@$(PREFIX)_tx_ready = 1;
+	assign	@$(PREFIX)_tx_last  = 0;
+	assign	@$(PREFIX)_tx_abort = 0;
+	assign	@$(PREFIX)_tx_data  = 0;
+	assign	@$(PREFIX)_tx_bytes = 0;
+##
+## regdefs.h / regdefs.cpp
+##
+@REGS.N=8
+@REGS.NOTE=// CPU Net Controller registers
+@REGS.0= 0 R_@$(DEVID)RX_BASE	@$(DEVID)RXBASE
+@REGS.1= 1 R_@$(DEVID)RX_LEN	@$(DEVID)RXLEN
+@REGS.2= 2 R_@$(DEVID)RX_RPTR	@$(DEVID)RXRPTR
+@REGS.3= 3 R_@$(DEVID)RX_WPTR	@$(DEVID)RXWPTR
+@REGS.0= 0 R_@$(DEVID)TX_BASE	@$(DEVID)TXBASE
+@REGS.1= 1 R_@$(DEVID)TX_LEN	@$(DEVID)TXLEN
+@REGS.2= 2 R_@$(DEVID)TX_RPTR	@$(DEVID)TXRPTR
+@REGS.3= 3 R_@$(DEVID)TX_WPTR	@$(DEVID)TXWPTR
+##
+## board.h
+##
+@BDEF.DEFN=
+#ifndef	@$(DEVID)_H
+#define	@$(DEVID)_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// CPU Net virtual packet FIFO structures
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+typedef struct  @$(DEVID)_S        {
+	volatile unsigned
+		net_rxbase, net_rxlen, net_rxwptr, net_rxrptr,
+		net_txbase, net_txlen, net_txwptr, net_txrptr;
+} @$(DEVID);
+
+#endif	// @$(DEVID)_H
+	// }}}
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME)=((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+##
+## Makefile insert info
+##
+## @RTL.MAKE.GROUP=@$(DEVID)
+## @RTL.MAKE.SUBD=net
+## @RTL.MAKE.FILES=

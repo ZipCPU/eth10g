@@ -42,14 +42,10 @@ module	xgtxphy #(
 		// {{{
 		// TX path, from IP to PHY
 		output	wire	[NDEV-1:0]	S_CLK,
-		// input wire			S_VALID,	// Assumed == 1
-		output	wire	[NDEV-1:0]	S_READY,
-		input	wire	[66*NDEV-1:0]	S_DATA,
+		input	wire	[64*NDEV-1:0]	S_DATA,
 		// RX path, from PHY to IP
 		output	wire	[NDEV-1:0]	M_CLK,
-		output	wire	[NDEV-1:0]	M_VALID,
-		// input wire	[NDEV-1:0]	M_READY,	// Assumed == 1
-		output	wire	[66*NDEV-1:0]	M_DATA,
+		output	wire	[64*NDEV-1:0]	M_DATA,
 		// }}}
 		// Pad connections from PHY
 		// {{{
@@ -62,7 +58,7 @@ module	xgtxphy #(
 	// Local declarations
 	// {{{
 	genvar		gk;
-	wire		pll_lock, qpll_clk, gtx_refck;
+	wire		pll_lock, qpll_clk, gtx_refck, qpll_refck;
 	reg		pll_reset, pll_reset_pipe;
 	reg		gtx_reset;
 	reg	[1:0]	gtx_reset_pipe;
@@ -75,6 +71,13 @@ module	xgtxphy #(
 	initial { pll_reset, pll_reset_pipe } = -1;
 	always @(posedge i_wb_clk)
 		{ pll_reset, pll_reset_pipe } <= { pll_reset_pipe, 1'b0 };
+
+	IBUFDS_GTE2
+	u_refbuf (
+		.I(i_refck_p), .IB(i_refck_n),
+		.CEB(1'b0),
+		.O(gtx_refck)
+	);
 
 	// fPllClkIn = 156.25
 	// fPLLClkOut = fPllClkIn * (N / 2 / M)
@@ -93,7 +96,7 @@ module	xgtxphy #(
 		// .IS_DRPCLK_INVERTED(),
 		// .IS_GTGREFCLK_INVERTED(),
 		// .IS_QPLLLOCKDETCLK_INVERTED(),
-		// .QPLL_CFG(),			// 26:0
+		.QPLL_CFG(27'h0680181),			// 26:0
 		// .QPLL_CLKOUT_CFG(),		// 3:0
 		// .QPLL_COARSE_FREQ_OVRD(),	// 5:0
 		.QPLL_COARSE_FREQ_OVRD_EN(1'b0),
@@ -102,10 +105,10 @@ module	xgtxphy #(
 		// .QPLL_DMONITOR_SEL(),
 		.QPLL_FBDIV(10'h140),			// 9:0
 		.QPLL_FBDIV_MONITOR_EN(1'b0),
-		.QPLL_FBDIV_RATIO(1),
-		// .QPLL_INIT_CFG(),		// 23:0
-		// .QPLL_LOCK_CFG(),		// 15:0
-		// .QPLL_LPF(),			//  4:0
+		.QPLL_FBDIV_RATIO(0),
+		.QPLL_INIT_CFG(24'h6),		// 23:0
+		.QPLL_LOCK_CFG(16'h21e8),		// 15:0
+		.QPLL_LPF(4'hf),			//  4:0
 		.QPLL_REFCLK_DIV(1)		// integer
 		// SIM_QPLLREFCLK_SEL(),	//  2:0
 		// SIM_RESET_SPEEDUP = "TRUE";
@@ -123,7 +126,7 @@ module	xgtxphy #(
 		.QPLLOUTCLK(qpll_clk),
 		// .QPLLREFCLKLOST(),
 
-		// .QPLLOUTREFCLK(),
+		.QPLLOUTREFCLK(qpll_refck),
 		// .QPLLOUTRESET(),
 		.QPLLPD(1'b0),
 		.QPLLREFCLKSEL(3'b001),		//  2:0
@@ -140,11 +143,11 @@ module	xgtxphy #(
 		.PMARSVD(8'h0),			//  7:0
 		// }}}
 		.REFCLKOUTMONITOR(),
-		.GTGREFCLK(),
-		.GTNORTHREFCLK0(),
-		.GTNORTHREFCLK1(),
-		.GTSOUTHREFCLK0(),
-		.GTSOUTHREFCLK1(),
+		.GTGREFCLK(1'b0),
+		.GTNORTHREFCLK0(1'b0),
+		.GTNORTHREFCLK1(1'b0),
+		.GTSOUTHREFCLK0(1'b0),
+		.GTSOUTHREFCLK1(1'b0),
 		.QPLLRSVD1(),			// 15:0
 		.QPLLRSVD2(),			//  4:0
 		// DRP
@@ -165,41 +168,11 @@ module	xgtxphy #(
 	// Reset handling
 	// {{{
 
-	always @(posedge i_wb_clk or negedge pll_reset)
-	if (!pll_reset)
+	always @(posedge i_wb_clk or posedge pll_reset)
+	if (pll_reset)
 		{ gtx_reset, gtx_reset_pipe } <= -1;
 	else
 		{ gtx_reset, gtx_reset_pipe } <= { gtx_reset_pipe, !pll_lock };
-
-	// gtx_tx_reset
-	// {{{
-	reg	[6:0]	tx_reset_counter;
-	reg		gtx_tx_reset, tx_pcs_reset, tx_pma_reset;
-	wire		tx_mmcm_locked;
-
-	assign	tx_mmcm_locked = 1'b1;
-
-	initial	tx_reset_counter <= -1;
-	always @(posedge i_wb_clk)
-	if (gtx_reset || !tx_pcs_reset)
-		tx_reset_counter <= -1;
-	else
-		tx_reset_counter <= tx_reset_counter - 1;
-
-	initial	{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
-	always @(posedge i_wb_clk)
-	if (gtx_reset)
-		{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
-	else if (tx_reset_counter == 0)
-	begin
-		if (gtx_tx_reset)
-			{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b110;
-		else if (tx_pma_reset)
-			{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b100;
-		else if (tx_pcs_reset)
-			tx_pcs_reset <= !tx_mmcm_locked;
-	end
-	// }}}
 
 	// }}}
 
@@ -217,7 +190,7 @@ module	xgtxphy #(
 				ign_txphinitdone,
 				ign_qspisenn,
 				ign_qspisenp,
-				tx_mmcm_locked,	// CONNECT ME!
+				tx_mmcm_locked,
 				ign_comfinish,
 				rx_cdr_lock,
 				rx_buf_status;
@@ -226,12 +199,52 @@ module	xgtxphy #(
 				rx_mmcm_locked,
 				rx_user_clk_d2, rx_user_clk;
 		wire	[7:0]	ign_monitor;
+		wire	[63:0]	brv_data;
+		wire	[2:0]	ign_rx_header;
+		wire		ign_rx_data_valid, ign_rx_header_valid;
+
+		wire	tx_user_clk, raw_gtx_tx_clk, gtx_tx_clk, tx_user_clk_d2,
+			unbuf_tx_user_clk, unbuf_tx_user_clk_d2,
+			unbuf_tx_user_fbclk, tx_user_fbclk;
+		wire	rx_user_fbclk, unbuf_rx_user_fbclk,
+			unbuf_rx_user_clk, unbuf_rx_user_clk_d2;
+		wire	gtx_rx_clk;
 		// }}}
+
+		// gtx_tx_reset
+		// {{{
+		reg	[6:0]	tx_reset_counter;
+		reg		gtx_tx_reset, tx_pcs_reset, tx_pma_reset;
+
+		initial	tx_reset_counter <= -1;
+		always @(posedge i_wb_clk)
+		if (gtx_reset || !tx_pcs_reset)
+			tx_reset_counter <= -1;
+		else
+			tx_reset_counter <= tx_reset_counter - 1;
+
+		initial	{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
+		always @(posedge i_wb_clk)
+		if (gtx_reset)
+			{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
+		else if (tx_reset_counter == 0)
+		begin
+			if (gtx_tx_reset)
+				{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b110;
+			else if (tx_pma_reset)
+				{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b100;
+			else if (tx_pcs_reset)
+				tx_pcs_reset <= !tx_mmcm_locked;
+		end
+		// }}}
+
+		// assign	brv_data = BITREV(S_DATA);
+		assign	brv_data = S_DATA;
 
 		GTXE2_CHANNEL #(
 			// {{{
-			.TXGEARBOX_EN("TRUE"),
-			.GEARBOX_MODE(3'b011),	// 66/64B gearbox, Internal sequence ctr
+			.TXGEARBOX_EN("FALSE"),
+			.GEARBOX_MODE(3'b001),	// 66/64B gearbox, Internal sequence ctr
 			//
 			.TX_DATA_WIDTH(64),
 			.TX_INT_DATAWIDTH(1),	// Must be 32-bits
@@ -283,7 +296,7 @@ module	xgtxphy #(
 			.SATA_MIN_INIT(12),
 			.SATA_MAX_INIT(21),
 			.SATA_MIN_BURST(4),
-			.SATA_MAX_BURST(4),
+			.SATA_MAX_BURST(8),
 			.SATA_MIN_WAKE(4),
 			.SATA_MAX_WAKE(7),
 			// }}}
@@ -420,7 +433,7 @@ module	xgtxphy #(
 			// }}}
 			// RX Gearbox
 			// {{{
-			.RXGEARBOX_EN("TRUE"),
+			.RXGEARBOX_EN("FALSE"),
 			// }}}
 			.CPLL_CFG(24'hbc07dc),
 			.CPLL_FBDIV(4),
@@ -452,10 +465,10 @@ module	xgtxphy #(
 			.PD_TRANS_TIME_FROM_P2(12'h03c),
 			.PD_TRANS_TIME_NONE_P2(8'h19),
 			.PD_TRANS_TIME_TO_P2(8'h64),
-			.RXISCANRESET_TIME(),
-			.RXPCSRESET_TIME(),
+			.RXISCANRESET_TIME(5'b1),
+			.RXPCSRESET_TIME(5'b1),
 			.RXPHDLY_CFG(24'h084020),
-			.RXPMARESET_TIME(),
+			.RXPMARESET_TIME(5'h3),
 			.RX_CLK25_DIV(7),
 			.RX_CLKMUX_PD(1'b1),
 			.RX_DATA_WIDTH(64),
@@ -509,13 +522,13 @@ module	xgtxphy #(
 			.GTGREFCLK(1'b0),
 			.GTNORTHREFCLK0(1'b0),
 			.GTNORTHREFCLK1(1'b0),
-			.GTREFCLK0(1'b0),
+			.GTREFCLK0(gtx_refck),
 			.GTREFCLK1(1'b0),
 			.GTRESETSEL(1'b0),	// Sequential reset mode
 			.GTSOUTHREFCLK0(1'b0),
 			.GTSOUTHREFCLK1(1'b0),
 			.QPLLCLK(qpll_clk),
-			.QPLLREFCLK(gtx_refck),
+			.QPLLREFCLK(qpll_refck),
 			.RESETOVRD(),
 			.TSTIN(20'hf_ffff),
 			.CPLLREFCLKSEL(),
@@ -536,19 +549,19 @@ module	xgtxphy #(
 			// {{{
 			.TXPMARESET(tx_pma_reset),	// Input
 			.TXPCSRESET(tx_pcs_reset),	// Input
-			.TXPHDLYRESET(),
-			.TXDLYSRESET(),
+			.TXPHDLYRESET(1'b0),
+			.TXDLYSRESET(1'b0),
 			.TXRESETDONE(tx_reset_done),
 			//
-			.TXOUTCLK(),		// Clock to fabric
-			.TXUSRCLK2(unbuf_tx_clk[gk]),	// Returned clocks w/ data clocks
-			.TXUSRCLK(),
-			.TXHEADER({ 1'b0, S_DATA[1:0] }),
-			.TXDATA(S_DATA[65:2]),
+			.TXOUTCLK(raw_gtx_tx_clk),	// Clock to fabric
+			.TXUSRCLK2(tx_user_clk_d2),	// Returned clocks w/ data clocks
+			.TXUSRCLK(tx_user_clk),
+			.TXHEADER(3'h0),
+			.TXDATA(brv_data[63:0]),
 			.TXGEARBOXREADY(tx_gearbox_ready),
 			//
-			.TXSEQUENCE(),		// LOOK ME UP!
-			.TXSTARTSEQ(1'b1),	// First valid byte of first sequence
+			.TXSEQUENCE(7'h0),
+			.TXSTARTSEQ(1'b0),	// First valid byte of first sequence
 			//
 
 			.TXRATEDONE(),
@@ -594,12 +607,12 @@ module	xgtxphy #(
 			// }}}
 			.TXUSERRDY(tx_mmcm_locked),
 			.TXSYSCLKSEL(2'b11),
-			.TXOUTCLKSEL(),
-			.TXRATE(),
+			.TXOUTCLKSEL(3'b010),
+			.TXRATE(3'b000),
 			.TX8B10BBYPASS(),
 			// Constants
 			// {{{
-			.TX8B10BEN(1'b0),		// Disable the 8B10B encoder
+			.TX8B10BEN(1'b0),	// Disable the 8B10B encoder
 			.TXCHARDISPMODE(8'h0),
 			.TXCHARDISPVAL(8'h0),
 			.TXCHARISK(8'h0),
@@ -628,14 +641,14 @@ module	xgtxphy #(
 			// RX Control
 			// {{{
 			.RXPCSRESET(),
-			.RXBUFRESET(rxbuf_reset),		// TODO
-			.RXUSERRDY(rx_mmcm_locked),
+			.RXBUFRESET(gtx_tx_reset),
+			.RXUSERRDY(rx_mmcm_locked),	// DRIVE THIS!!
 			.RXRESETDONE(),
 			.RXPMARESET(),
 			.RXPD(2'b00),		// Normal operation
 			.RXUSRCLK2(rx_user_clk_d2),
 			.RXUSRCLK(rx_user_clk),
-			.RXSYSCLKSEL(2'b11),		// FIXME / checkme
+			.RXSYSCLKSEL(2'b11),
 			// .RXPMARESETDONE(),
 			// RX Margin analysis
 			// {{{
@@ -647,8 +660,8 @@ module	xgtxphy #(
 			// {{{
 			.RXLPMEN(1'b0),
 			.RXDFELPMRESET(gtx_reset),
-			.RXOSHOLD(2'b00),
-			.RXOSOVRDEN(2'b00),
+			.RXOSHOLD(1'b0),
+			.RXOSOVRDEN(1'b0),
 			//
 			.RXLPMLFHOLD(2'b00),
 			.RXLPMLFKLOVRDEN(2'b00),
@@ -684,17 +697,17 @@ module	xgtxphy #(
 			// {{{
 			.RXCDRFREQRESET(1'b0),
 			.RXCDRHOLD(1'b0),
-			.RXCDROVRDEN(1'b1),		// Tie to ground??
+			.RXCDROVRDEN(1'b0),		// Tie to ground??
 			.RXCDRRESET(1'b0),
 			.RXCDRRESETRSV(1'b0),
-			.RXRATE(2'b00),			// ???	FIXME
+			.RXRATE(3'b000),
 			.RXCDRLOCK(rx_cdr_lock),
 			// }}}
 			// RX fabric clock output control
 			// {{{
-			.RXOUTCLKSEL(3'b011),		// FIXME!!
+			.RXOUTCLKSEL(3'b010),
 			.RXOUTCLKFABRIC(),	// Redundant output -- ignore this
-			.RXOUTCLK(unbuf_rx_clk[gk]),	// RX clock to fabric
+			.RXOUTCLK(gtx_rx_clk),	// RX clock to fabric
 			// .RXOUTCLKPCS(),	// Redundant output -- ignore this
 			// .RXRATEDONE(ign_rx_rate_done),
 			.RXDLYBYPASS(1'b1),		// Set to 1 when buffer is used
@@ -732,13 +745,13 @@ module	xgtxphy #(
 			// }}}
 			// RX Buffer Bypass
 			// {{{
-			.RXDLYEN(),
-			.RXDLYOVRDEN(),
-			.RXDLYSRESET(),
+			.RXDLYEN(1'b0),
+			.RXDLYOVRDEN(1'b0),
+			.RXDLYSRESET(1'b0),
 			.RXPHOVRDEN(1'b0),
-			.RXPHALIGN(),
-			.RXPHALIGNEN(),
-			.RXPHDLYPD(),
+			.RXPHALIGN(1'b0),
+			.RXPHALIGNEN(1'b0),
+			.RXPHDLYPD(1'b0),
 			.RXPHMONITOR(),
 			.RXPHSLIPMONITOR(),
 			.RXDLYSRESETDONE(),
@@ -766,11 +779,11 @@ module	xgtxphy #(
 			// }}}
 			// RX Gearbox
 			// {{{
-			.RXDATAVALID(M_VALID[gk]),
-			.RXGEARBOXSLIP(rx_invalid_alignment_fsm),
-			.RXHEADER(M_DATA[gk*66 +: 2]),
-			.RXDATA(M_DATA[gk*66 + 2 +: 64]),
-			.RXHEADERVALID(),	// Is this the same as M_VALID ???
+			.RXDATAVALID(ign_rx_data_valid),
+			.RXGEARBOXSLIP(1'b0),
+			.RXHEADER(ign_rx_header),
+			.RXDATA(M_DATA[gk*64 +: 64]),
+			.RXHEADERVALID(ign_rx_header_valid),
 			// }}}
 			// Constants
 			// {{{
@@ -812,17 +825,114 @@ module	xgtxphy #(
 			// }}}
 		);
 
-		// MMCM
+		// RX MMCM + 3 BUFG
 		// {{{
+`ifdef	MMCM
+		MMCME2_BASE #(
+			// {{{
+			.CLKFBOUT_MULT_F(8),		// == M
+			.DIVCLK_DIVIDE(1),
+			.CLKIN1_PERIOD(6.2),
+			.CLKOUT1_DIVIDE(16),
+			.CLKOUT2_DIVIDE(32),
+			.CLKOUT0_DIVIDE_F(1)
+			// }}}
+		) u_rxmmcm (
+			// {{{
+			// .TXOUTCLK(raw_gtx_tx_clk),	// Clock to fabric
+			// .TXUSRCLK2(unbuf_tx_clk[gk]),	// Returned clocks w/ data clocks
+			.CLKFBOUT(unbuf_rx_user_fbclk),
+			.CLKFBIN(rx_user_fbclk),
+			.CLKIN1(gtx_rx_clk),
+			.PWRDWN(1'b0),
+			.RST(gtx_reset),
+			//
+			.CLKOUT0(unbuf_rx_user_clk),
+			.CLKOUT1(unbuf_rx_user_clk_d2),
+			//
+			.LOCKED(rx_mmcm_locked)
+			// }}}
+		);
+`else
+		PLLE2_BASE #(
+			// {{{
+			.CLKFBOUT_MULT(8),		// == M
+			.DIVCLK_DIVIDE(1),
+			.CLKIN1_PERIOD(6.2),
+			.CLKOUT0_DIVIDE(8),
+			.CLKOUT1_DIVIDE(16)
+			// }}}
+		) u_rxpll (
+			// {{{
+			// .TXOUTCLK(raw_gtx_tx_clk),	// Clock to fabric
+			// .TXUSRCLK2(unbuf_tx_clk[gk]),	// Returned clocks w/ data clocks
+			.CLKFBOUT(unbuf_rx_user_fbclk),
+			.CLKFBIN(rx_user_fbclk),
+			.CLKIN1(gtx_rx_clk),
+			.PWRDWN(1'b0),
+			.RST(gtx_reset),
+			//
+			.CLKOUT0(unbuf_rx_user_clk),
+			.CLKOUT1(unbuf_rx_user_clk_d2),
+			//
+			.LOCKED(rx_mmcm_locked)
+			// }}}
+		);
+`endif
+
+		BUFH rx_user_bufg ( .I(unbuf_rx_user_clk), .O(rx_user_clk));
+		BUFH rx_user_bufg_d2 ( .I(unbuf_rx_user_clk_d2), .O(rx_user_clk_d2));
+		// BUFR rx_fbclk ( .I(unbuf_rx_user_fbclk), .O(rx_user_fbclk));
+		assign	rx_user_fbclk = unbuf_rx_user_fbclk;
+
+		assign	M_CLK[gk] = rx_user_clk_d2;
+		// }}}
+
+		// TX MMCM + 3 BUFH
+		// {{{
+
 		//	TXOUTCLK -> BUFG -> MMCM -> TXUSRCLK2		-> BUFG
 		//					TXUSRCLK	-> BUFG
 		//	TXUSRCLK2 = TXUSRCLK / 2
-		//		Since TX_INT_DATA_WIDTH=1, required for high speed
-		//		or other 8-byte modes
+		//		Since TX_INT_DATA_WIDTH=1, required for high
+		//		speed or other 8-byte modes
+		// BUFH u_mmcm_buf ( .I(raw_gtx_tx_clk), .O(gtx_tx_clk));
+
+		MMCME2_BASE #(
+			// {{{
+			.CLKFBOUT_MULT_F(8),		// == M
+			.DIVCLK_DIVIDE(1),
+			.CLKIN1_PERIOD(6.2),
+			.CLKOUT1_DIVIDE(16),
+			.CLKOUT2_DIVIDE(32),
+			.CLKOUT0_DIVIDE_F(1)
+			// }}}
+		) u_txmmcm (
+			// {{{
+			.CLKFBOUT(unbuf_tx_user_fbclk),
+			.CLKFBIN(tx_user_fbclk),
+			// .CLKIN1(gtx_tx_clk),
+			.CLKIN1(raw_gtx_tx_clk),
+			.PWRDWN(1'b0),
+			.RST(gtx_tx_reset),
+			//
+			.CLKOUT0(unbuf_tx_user_clk),
+			.CLKOUT1(unbuf_tx_user_clk_d2),
+			//
+			.LOCKED(tx_mmcm_locked)
+			// }}}
+		);
+
+		BUFH tx_user_bufg ( .I(unbuf_tx_user_clk), .O(tx_user_clk));
+		BUFH tx_user_bufg_d2 ( .I(unbuf_tx_user_clk_d2), .O(tx_user_clk_d2));
+		// BUFR tx_fbclk ( .I(unbuf_tx_user_fbclk), .O(tx_user_fbclk));
+		assign	tx_user_fbclk = unbuf_tx_user_fbclk;
+
+		assign	S_CLK[gk] = tx_user_clk_d2;
 		// }}}
 
-		assign	S_READY[gk] = tx_reset_done && tx_gearbox_ready;
-
+		// o_phy_fault
+		// {{{
 		assign	gtx_rx_fault = gtx_reset || !rx_cdr_lock;
 
 		always @(posedge M_CLK[gk] or posedge gtx_rx_fault)
@@ -832,8 +942,13 @@ module	xgtxphy #(
 			{ r_phy_fault, rx_fault_pipe } <= { rx_fault_pipe, 1'b0 };
 
 		assign	o_phy_fault[gk] = r_phy_fault;
-
-		BUFG rxbuf(.I(unbuf_rx_clk[gk]), .O(M_CLK[gk]));
-		BUFG txbuf(.I(unbuf_tx_clk[gk]), .O(S_CLK[gk]));
+		// }}}
 	end endgenerate
+
+	function automatic [63:0] BITREV(input [63:0] in);
+		integer ik;
+	begin
+		for(ik=0; ik<64; ik=ik+1)
+			BITREV[ik] = in[63-ik];
+	end endfunction
 endmodule

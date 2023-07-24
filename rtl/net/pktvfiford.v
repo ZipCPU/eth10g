@@ -243,14 +243,14 @@ module	pktvfiford #(
 	// itself.
 
 	generate if (BUSDW == 3)
-	begin
+	begin : BASIC_WIDE_RDLEN
 		always @(*)
 			wide_next_rdlen = i_wb_data;
 	end else if (OPT_LITTLE_ENDIAN)
-	begin
+	begin : BASIC_LILRDLEN
 		always @(*)
 			wide_next_rdlen = i_wb_data >> (32*r_readptr[WBLSB-3:0]);
-	end else begin
+	end else begin : BASIC_BIGRDLEN
 		always @(*)
 			wide_next_rdlen = i_wb_data << (32*r_readptr[WBLSB-3:0]);
 	end endgenerate
@@ -342,13 +342,13 @@ module	pktvfiford #(
 	// ptrsel = (first o_wb_sel)
 	// {{{
 	generate if (BUSDW==32)
-	begin
+	begin : BASIC_PTRSEL
 		assign	ptrsel = 4'hf;
 	end else if (OPT_LITTLE_ENDIAN)
-	begin
+	begin : WIDE_LILPTRSEL
 		assign	ptrsel = { {(BUSDW/8-4){1'b0}}, 4'hf }
 					<< (4*r_readptr[WBLSB-3:0]);
-	end else begin
+	end else begin : WIDE_BIGPTRSEL
 		assign	ptrsel = { 4'hf, {(BUSDW/8-4){1'b0}} }
 					>> (4*r_readptr[WBLSB-3:0]);
 	end endgenerate

@@ -153,15 +153,15 @@ module txgetports #(
 
 	// WARNING: This requires at least 48*2 bits per beat, so a minimum
 	// of 128 bits per beat once rounded to a power of two
-	if (OPT_LITTLE_ENDIAN)
-	begin
+	generate if (OPT_LITTLE_ENDIAN)
+	begin : GEN_LILMAC
 		// The first MACW bits are the source, so we grab the second
 		// set of MACW bits
 		assign	TBL_MAC = skd_data[2*MACW-1:MACW];
-	end else begin
+	end else begin : GEN_BIGMAC
 		// Same thing, but the "first" bits are in the MSBs
 		assign	TBL_MAC = skd_data[DW-MACW-1:DW-2*MACW];
-	end
+	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

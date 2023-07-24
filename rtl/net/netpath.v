@@ -11,6 +11,7 @@
 //
 //  From RX GTX to FPGA:
 //	{{{
+//	p66brxgears	-- 64/66b Gearbox: 64bits in, aligned 66bits out
 //	p64bscrambler	-- Descrambles the incoming 66-bit words
 //	p642pkt		-- Decodes the 66 bit words into 64 bit words, with
 //			   active byte counts and a LAST word in packet
@@ -54,6 +55,7 @@
 //		protocol.  This includes 66/64b encoding.
 //	p64bscrambler	-- As a second half of the encoding step, we scramble
 //			   the incoming packet.
+//	p66btxgears	-- 66/64b Gearbox: 66bits in, 64bits out to the PHY
 //	}}}
 //
 // Creator:	Dan Gisselquist, Ph.D.
@@ -83,7 +85,8 @@
 `default_nettype none
 // }}}
 module	netpath #(
-		parameter	LGPKTGATE=6
+		parameter	LGPKTGATE=6,
+		parameter [0:0]	OPT_SCRAMBLER=1
 	) (
 		// {{{
 		input	wire		i_rx_clk, i_tx_clk, i_reset_n,
@@ -92,11 +95,8 @@ module	netpath #(
 		// PHY interface
 		// {{{
 		input	wire		i_phy_fault,
-		input	wire		i_raw_valid,
-		input	wire	[65:0]	i_raw_data,
-		//
-		input	wire		i_raw_ready,
-		output	wire	[65:0]	o_raw_data,
+		input	wire	[63:0]	i_raw_data,
+		output	wire	[63:0]	o_raw_data,
 		// }}}
 		// Incoming packets to send
 		// {{{
@@ -133,7 +133,12 @@ module	netpath #(
 	// Verilator lint_on  SYNCASYNCNET
 	reg	[1:0]	rx_reset_pipe, tx_reset_pipe;
 
-	wire		ign_rx_raw_ready;
+	wire		rx66b_valid, ign_rx66b_ready;
+	wire	[65:0]	rx66b_data;
+
+	wire		tx66b_ready, ign_tx66b_valid;
+	wire	[65:0]	tx66b_data;
+
 	wire		rx_valid, rx_ready;
 	wire	[65:0]	rx_data;
 	wire		remote_fault, local_fault;
@@ -147,7 +152,7 @@ module	netpath #(
 	wire	[63:0]	PKT_DATA;
 	wire	[2:0]	PKT_BYTES;
 
-	wire		ign_tx_raw_valid, tx_ready, ign_tx_high, ign_rx_high;
+	wire		tx_ready, ign_tx_high, ign_rx_high;
 	wire	[65:0]	tx_data;
 
 	reg	[ACTMSB:0]	tx_activity, rx_activity;
@@ -198,14 +203,22 @@ module	netpath #(
 	// Incoming packet -> M_* processing
 	// {{{
 
+	p66brxgears
+	u_p66brxgears (
+		.i_clk(i_rx_clk), .i_reset(!rx_reset_n),
+		.i_data(i_raw_data),
+		.M_VALID(rx66b_valid),
+		.M_DATA( rx66b_data)
+	);
+
 	p64bscrambler #(
-		.OPT_RX(1'b1)
+		.OPT_RX(1'b1), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_descrambler (
 		// {{{
 		.i_clk(i_rx_clk), .i_reset_n(rx_reset_n),
-		.i_valid(i_raw_valid),
-		.o_ready(ign_rx_raw_ready),
-		.i_data(i_raw_data),
+		.i_valid(rx66b_valid),
+		.o_ready(ign_rx66b_ready),
+		.i_data(rx66b_data),
 		//
 		.o_valid(rx_valid),
 		.i_ready(rx_ready),
@@ -433,7 +446,7 @@ module	netpath #(
 	);
 
 	p64bscrambler #(
-		.OPT_RX(1'b0)
+		.OPT_RX(1'b0), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_scrambler (
 		// {{{
 		.i_clk(i_tx_clk), .i_reset_n(tx_reset_n),
@@ -442,10 +455,19 @@ module	netpath #(
 		.o_ready(tx_ready),
 		.i_data( tx_data),
 		//
-		.o_valid(ign_tx_raw_valid),
-		.i_ready(i_raw_ready),
-		.o_data( o_raw_data)
+		.o_valid(ign_tx66b_valid),
+		.i_ready(tx66b_ready),
+		.o_data( tx66b_data)
 		// }}}
+	);
+
+	p66btxgears
+	u_p66btxgears (
+		.i_clk(i_tx_clk), .i_reset(!tx_reset_n),
+		// .S_VALID(tx66b_valid),
+		.S_READY(tx66b_ready),
+		.S_DATA( tx66b_data),
+		.o_data(o_raw_data)
 	);
 
 	assign	tx_link_up = tx_reset_n;
@@ -468,8 +490,9 @@ module	netpath #(
 	// Verilator lint_on  UNUSED
 	// Verilator coverage_off
 	wire	unused;
-	assign	unused =  &{ 1'b0, ign_high, ign_rx_raw_ready,
-				ign_tx_raw_valid, ign_tx_high, ign_rx_high };
+	assign	unused =  &{ 1'b0, ign_high,
+				ign_tx_high, ign_rx_high,
+				ign_rx66b_ready, ign_tx66b_valid };
 	// Verilator coverage_on
 	// Verialtor lint_off UNUSED
 	// }}}

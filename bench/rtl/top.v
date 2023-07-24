@@ -4,7 +4,7 @@
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	
+// Purpose:
 //
 // Creator:	Sukru Uzun.
 //		Gisselquist Technology, LLC
@@ -54,7 +54,7 @@ module top;
 	wire	[1:0]	SCRIPT_M_BYTES;
 	wire	[31:0]	SCRIPT_M_DATA;
 	wire		SCRIPT_TO_MODEL_FAULT;
-    
+
 	// eth_model to scoreboard
 	wire		MODEL_TO_SCORE_VALID;
 	wire		MODEL_TO_SCORE_READY;
@@ -78,13 +78,13 @@ module top;
 	wire		CDC_TO_SCORE_ABORT;
 	wire	[2:0]	CDC_TO_SCORE_BYTES;
 	wire	[63:0]	CDC_TO_SCORE_DATA;
-    
+
 	// scoreboard
 	wire	[5:0]	CRC_PKT_CNT;
 	wire	[5:0]	MODEL_PKT_CNT;
 
 	// others
-	wire		tx_to_rx;
+	wire		net_to_fpga, fpga_to_net;
 	wire		is_passed;
 	wire		generator_complete;
 
@@ -111,7 +111,7 @@ module top;
 	//
 	// Packet generator
 	// {{{
-        packet_generator
+	packet_generator
 	u_script (
 		.S_AXI_ACLK(SRC_CLK),
 		.S_AXI_ARESETN(SRC_RESETN),
@@ -134,7 +134,7 @@ module top;
 	// CRC
 	// {{{
 
-        crc_calculator
+	crc_calculator
 	u_crc_calculator (
 		.S_AXI_ACLK(SRC_CLK),
 		.S_AXI_ARESETN(SRC_RESETN),
@@ -164,7 +164,7 @@ module top;
 		.LGFIFO(4)	// Async FIFO size (log_2)
 	) u_cdc (
 		// {{{
-		.S_CLK(SRC_CLK), 
+		.S_CLK(SRC_CLK),
 		.S_ARESETN(SRC_RESETN),
 		.S_VALID(CRC_TO_CDC_VALID),
 		.S_READY(CRC_TO_CDC_READY),
@@ -173,7 +173,7 @@ module top;
 		.S_ABORT(CRC_TO_CDC_ABORT),
 		.S_LAST(CRC_TO_CDC_LAST),
 		//
-		.M_CLK(SNK_CLK), 
+		.M_CLK(SNK_CLK),
 		.M_ARESETN(SNK_RESETN),
 		.M_VALID(CDC_TO_SCORE_VALID),
 		.M_READY(CDC_TO_SCORE_READY),
@@ -191,7 +191,7 @@ module top;
 
 	// Take and transmit our packets, and receive the results
 
-        tbenet
+	tbenet
 	eth_model (
 		.i_cfg_bypass_scrambler(1'b0),
 		//
@@ -204,8 +204,8 @@ module top;
 		.S_FAULT(SCRIPT_TO_MODEL_FAULT),	// Src fault indicator
 		.S_LAST(SCRIPT_M_LAST),
 		//
-		.o_tx(tx_to_rx),
-		.i_rx(tx_to_rx),
+		.o_tx(net_to_fpga),
+		.i_rx(fpga_to_net),
 		//
 		.M_CLK(SNK_CLK),
 		.M_RESETn(SNK_RESETN),
@@ -216,6 +216,12 @@ module top;
 		.M_ABORT(MODEL_TO_SCORE_ABORT),
 		.M_LAST(MODEL_TO_SCORE_LAST)
 	);
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Logic under test
+	// {{{
+	assign	fpga_to_net = net_to_fpga;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

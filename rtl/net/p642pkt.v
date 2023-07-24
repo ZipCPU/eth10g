@@ -68,7 +68,7 @@ module	p642pkt (
 			R_HALF_PREAMBLE = { 24'haaaa_aa,4'h0,28'h0000_00, 8'h33,
 							SYNC_CONTROL },
 			R_HALF_MASK = { 24'hff_ffff, 4'h0, 28'h000_0000, 8'hff,
-							SYNC_CONTROL };
+							2'b11 };
 			// R_IDLE = { 32'h00000000, 32'h0000001e,
 			//				SYNC_CONTROL },
 			// R_LPIDLE = { 32'h06060606, 32'h0606061e,
@@ -147,10 +147,10 @@ module	p642pkt (
 	case(pstate)
 	PRE_IDLE: begin
 		// {{{
-		if (RX_DATA == R_PREAMBLE)
-			{ phalf, poffset } <= 2'b00;
-		else if ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE)
+		if ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE)
 			{ phalf, poffset } <= 2'b11;
+		else
+			{ phalf, poffset } <= 2'b00;
 		end
 		// }}}
 	PRE_DATA: phalf <= 1'b0;
@@ -216,7 +216,7 @@ module	p642pkt (
 
 		if (pstate != PRE_DATA || phalf)
 			dly_valid <= 1'b0;
-	end else
+	end else if (RX_VALID || dly_last)
 		dly_valid <= 1'b0;
 	// }}}
 
@@ -356,7 +356,7 @@ module	p642pkt (
 		dly_last <= 1'b0;
 		if (pstate != PRE_DATA)
 			dly_last <= poffset;
-		else if (RX_DATA[1:0] == SYNC_CONTROL && !poffset)
+		else if (RX_DATA[1:0] == SYNC_CONTROL)
 			dly_last <= 1'b1;
 	end else
 		dly_last <= 1'b0;
@@ -508,7 +508,7 @@ module	p642pkt (
 	begin
 		M_DATA <= dly_data;
 		M_BYTES<= dly_bytes[2:0];
-		M_LAST <= dly_last || (RX_DATA[9:0] == { 8'h87, SYNC_CONTROL });
+		M_LAST <= dly_last || (!poffset && RX_DATA[9:0] == { 8'h87, SYNC_CONTROL });
 	end
 
 	always @(posedge RX_CLK)

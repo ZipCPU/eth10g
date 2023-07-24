@@ -46,6 +46,7 @@
 			o_gnet_linkup, o_gnet_activity,
 			o_gnet_p, o_gnet_n,
 			i_gnet_p, i_gnet_n,
+			i_clk_156mhz_p, i_clk_156mhz_n,
 @TOP.IODECL=
 	// 10Gb Ethernet
 	input	wire	[@$(NDEV)-1:0]	i_gnet_los;
@@ -54,11 +55,10 @@
 	output	wire	[@$(NDEV)-1:0]	o_gnet_activity;
 	output	wire	[@$(NDEV)-1:0]	o_gnet_p, o_gnet_n;
 	input	wire	[@$(NDEV)-1:0]	i_gnet_p, i_gnet_n;
+	input	wire			i_clk_156mhz_p, i_clk_156mhz_n;
 @TOP.DEFNS=
 	// 10Gb Ethernet
-	wire				i_clk_156mhz_p, i_clk_156mhz_n;
 	wire	[@$(NDEV)-1:0]		gnet_rx_clk, gnet_tx_clk;
-	wire	[@$(NDEV)-1:0]		gnet_rx_valid, gnet_tx_ready;
 	wire	[66*@$(NDEV)-1:0]	gnet_rx_data;
 	wire	[66*@$(NDEV)-1:0]	gnet_tx_data;
 	wire	[@$(NDEV)-1:0]		gnet_phy_fault;
@@ -73,11 +73,9 @@
 		.o_phy_fault(gnet_phy_fault),
 		//
 		.S_CLK(  gnet_tx_clk),
-		.S_READY(gnet_tx_ready),
 		.S_DATA( gnet_tx_data),
 		//
 		.M_CLK(  gnet_rx_clk),
-		.M_VALID(gnet_rx_valid),
 		.M_DATA( gnet_rx_data),
 		//
 		.i_refck_p(i_clk_156mhz_p), .i_refck_n(i_clk_156mhz_n),
@@ -86,22 +84,20 @@
 		// }}}
 	);
 @TOP.MAIN=
-		gnet_rx_clk, gnet_rx_valid, gnet_rx_data,
-		gnet_tx_clk, gnet_tx_ready, gnet_tx_data,
+		gnet_rx_clk, gnet_rx_data,
+		gnet_tx_clk, gnet_tx_data,
 		gnet_phy_fault, o_gnet_linkup, o_gnet_activity
 @MAIN.PORTLIST=
-		i_@$(PREFIX)_rx_clk, i_@$(PREFIX)_rx_valid,i_@$(PREFIX)_rx_data,
-		i_@$(PREFIX)_tx_clk, i_@$(PREFIX)_tx_ready,o_@$(PREFIX)_tx_data,
+		i_@$(PREFIX)_rx_clk, i_@$(PREFIX)_rx_data,
+		i_@$(PREFIX)_tx_clk, o_@$(PREFIX)_tx_data,
 		i_@$(PREFIX)_phy_fault,o_@$(PREFIX)_linkup,o_@$(PREFIX)_activity
 @MAIN.IODECL=
 	// 10Gb Ethernet
 	// {{{
-	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_rx_clk,
-					i_@$(PREFIX)_rx_valid;
-	input	wire [66*@$(NDEV)-1:0]	i_@$(PREFIX)_rx_data;
-	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_tx_clk,
-					i_@$(PREFIX)_tx_ready;
-	output	wire [66*@$(NDEV)-1:0]	o_@$(PREFIX)_tx_data;
+	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_rx_clk;
+	input	wire [64*@$(NDEV)-1:0]	i_@$(PREFIX)_rx_data;
+	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_tx_clk;
+	output	wire [64*@$(NDEV)-1:0]	o_@$(PREFIX)_tx_data;
 	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_phy_fault;
 	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_linkup;
 	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_activity;
@@ -141,11 +137,9 @@
 			// PHY interface
 			// {{{
 			.i_phy_fault(i_@$(PREFIX)_phy_fault[g_@$(PREFIX)]),
-			.i_raw_valid(i_@$(PREFIX)_rx_valid[g_@$(PREFIX)]),
-			.i_raw_data(i_@$(PREFIX)_rx_data[66*g_@$(PREFIX)+:66]),
+			.i_raw_data(i_@$(PREFIX)_rx_data[64*g_@$(PREFIX)+:64]),
 			//
-			.i_raw_ready(i_@$(PREFIX)_tx_ready[g_@$(PREFIX)]),
-			.o_raw_data(o_@$(PREFIX)_tx_data[66*g_@$(PREFIX)+:66]),
+			.o_raw_data(o_@$(PREFIX)_tx_data[64*g_@$(PREFIX)+:64]),
 			// }}}
 			// Incoming (received) packet AXIN source
 			// {{{
@@ -175,22 +169,43 @@
 	// {{{
 
 	routecore #(
+`ifdef	CPUNET_ACCESS
+		.NETH(@$(NDEV)+1),
+		.OPT_CPUNET(1'b1),
+`else
 		.NETH(@$(NDEV)),
+		.OPT_CPUNET(1'b0),
+`endif
+		.DEF_BASEADDR(0),
+		.DEF_MEMSIZE(0),
 		.BUSDW(@$(MASTER.BUS.WIDTH)),
 		.AW(@$(MASTER.BUS.AWID)),
 		.OPT_VFIFO(1'b0)
 	) u_router (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
+`ifdef	CPUNET_ACCESS
+		.ETH_RESET({(@$(NDEV)+1){i_reset}}),
+`else
 		.ETH_RESET({(@$(NDEV)){i_reset}}),
+`endif
 		// Incoming (RX) packet interface
 		// {{{
+`ifdef	CPUNET_ACCESS
+		.RX_VALID({ cpunet_tx_valid, @$(PREFIX)_rx_valid }),
+		.RX_READY({ cpunet_tx_ready, @$(PREFIX)_rx_ready }),
+		.RX_DATA({  cpunet_tx_data,  @$(PREFIX)_rx_data  }),
+		.RX_BYTES({ cpunet_tx_bytes, @$(PREFIX)_rx_bytes }),
+		.RX_LAST({  cpunet_tx_last,  @$(PREFIX)_rx_last  }),
+		.RX_ABORT({ cpunet_tx_abort, @$(PREFIX)_rx_abort }),
+`else
 		.RX_VALID(@$(PREFIX)_rx_valid),
 		.RX_READY(@$(PREFIX)_rx_ready),
 		.RX_DATA( @$(PREFIX)_rx_data),
 		.RX_BYTES(@$(PREFIX)_rx_bytes),
 		.RX_LAST( @$(PREFIX)_rx_last),
 		.RX_ABORT(@$(PREFIX)_rx_abort),
+`endif
 		// }}}
 		// VFIFO control interface
 		@$(SLAVE.ANSIPORTLIST),
@@ -198,15 +213,26 @@
 		@$(MASTER.ANSIPORTLIST),
 		// Outgoing (TX) packet interface
 		// {{{
+`ifdef	CPUNET_ACCESS
+		.TX_VALID({ cpunet_rx_valid, @$(PREFIX)_tx_valid }),
+		.TX_READY({ cpunet_rx_ready, @$(PREFIX)_tx_ready }),
+		.TX_DATA({  cpunet_rx_data,  @$(PREFIX)_tx_data  }),
+		.TX_BYTES({ cpunet_rx_bytes, @$(PREFIX)_tx_bytes }),
+		.TX_LAST({  cpunet_rx_last,  @$(PREFIX)_tx_last  }),
+		.TX_ABORT({ cpunet_rx_abort, @$(PREFIX)_tx_abort })
+`else
 		.TX_VALID(@$(PREFIX)_tx_valid),
 		.TX_READY(@$(PREFIX)_tx_ready),
 		.TX_DATA( @$(PREFIX)_tx_data),
 		.TX_BYTES(@$(PREFIX)_tx_bytes),
 		.TX_LAST( @$(PREFIX)_tx_last),
 		.TX_ABORT(@$(PREFIX)_tx_abort)
+`endif
 		// }}}
 		// }}}
 	);
+
+	// }}}
 @RTL.MAKE.GROUP=NET
 @RTL.MAKE.SUBD=net
 @RTL.MAKE.FILES= axinbroadcast.v axincdc.v axinwidth.v crc_axin.v dropshort.v

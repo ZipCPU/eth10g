@@ -270,9 +270,9 @@ module	pktvfifowr #(
 	// next_dblwide_data, next_dblwide_sel
 	// {{{
 	generate if (WBLSB < 3)
-	begin
+	begin : BASIC_DSHIFT
 		assign	dshift = 0;
-	end else begin
+	end else begin : GEN_WIDE_DSHIFT
 		assign	dshift = r_writeptr[WBLSB-3:0] + 1;
 	end endgenerate
 

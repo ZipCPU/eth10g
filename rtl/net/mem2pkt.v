@@ -1000,9 +1000,9 @@ module	mem2pkt #(
 	// pkd_data -- picked off the ending bits of pkd_wide
 	// {{{
 	generate if (OPT_LITTLE_ENDIAN)
-	begin
+	begin : GEN_LILPKD
 		assign	pkd_data = pkd_wide[PKTDW-1:0];
-	end else begin
+	end else begin : GEN_BIGPKD
 		assign	pkd_data = pkd_wide[DW-1:DW-PKTDW];
 	end endgenerate
 	// }}}

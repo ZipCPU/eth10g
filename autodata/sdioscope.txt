@@ -35,7 +35,8 @@
 ## }}}
 @PREFIX=sdioscope
 @DEVID=SDIOSCOPE
-@TARGET=sdcard
+@DEPENDS=SDIO_ACCESS
+@TARGET=sdio
 @TRIGGER=@$(TARGET)_debug[31]
 @$LOG_CAPTURE_SIZE=12
 @INCLUDEFILE=wbscopc.txt

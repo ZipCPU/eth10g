@@ -144,9 +144,9 @@ module routetbl #(
 				&& tbl_mac[gk] == rxarb_srcmac;
 
 		if (gk == 0)
-		begin
+		begin : GEN_MY_INVALID
 			assign	first_invalid = !tbl_valid[gk];
-		end else begin
+		end else begin : ACC_INVALID
 			assign	first_invalid = !tbl_valid[gk]
 					&& (&tbl_valid[gk]-1);
 		end
@@ -155,9 +155,9 @@ module routetbl #(
 		for(galt=0; galt<NTBL; galt=galt + 1)
 		begin
 			if (galt == gk)
-			begin
+			begin : NOT_MY_ENTRY
 				assign	is_older[galt] = 1'b0;
-			end else begin
+			end else begin : GEN_ISOLDER
 				reg	r_is_older;
 
 				always @(posedge i_clk)

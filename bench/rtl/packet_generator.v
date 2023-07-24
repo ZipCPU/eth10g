@@ -106,6 +106,9 @@ module packet_generator(
 		while (!S_AXI_ARESETN)
 			@(posedge S_AXI_ACLK);
 
+		// Wait for the GTX transceiver to lock--about 10us
+		#20000;
+
 		// File reading operation
 		$display("INFO: File operation is begun");
 		file_handle = $fopen("ethernet_packet.bin", "rb");
