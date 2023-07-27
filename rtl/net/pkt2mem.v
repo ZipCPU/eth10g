@@ -125,6 +125,7 @@ module	pkt2mem #(
 		parameter	DW = 512,
 		parameter	AW = 31-$clog2(DW/8),// Max address width is 2GB
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
+		// parameter [0:0]	OPT_LITTLE_ENDIAN_PKT = 1'b0,
 		parameter [0:0]	OPT_LOWPOWER = 1'b0,
 		parameter	LGFIFO = 7,
 		parameter	PKTDW = 128,	// Must be PKTDW <= DW
@@ -243,6 +244,11 @@ module	pkt2mem #(
 	reg				r_wfifo_midpacket;
 	wire				wfifo_midpacket;
 
+	reg	[$clog2(PKTDW/8):0]	s_words, s_bytes;
+	reg	[PKTDW/32-1:0]		s_mask;
+	reg	[DW+PKTDW-1:0]		next_data_sreg;
+	reg	[(DW+PKTDW)/32-1:0]	next_keep_sreg;
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -280,7 +286,7 @@ module	pkt2mem #(
 			r_dma_reset <= 1'b1;
 		if ({ 1'b0,  r_readptr[AW+LSB-1:LSB] } >= r_lastaddr)
 			r_dma_reset <= 1'b1;
-		if (r_lastaddr >= (1<<AW))
+		if (r_lastaddr > (1<<AW))
 			r_dma_reset <= 1'b1;
 		// }}}
 
@@ -298,6 +304,7 @@ module	pkt2mem #(
 				if (i_wb_sel == 4'hf)
 				begin
 					r_baseaddr <= i_bus_addr;
+					r_readptr  <= i_word_addr;
 					r_lastaddr <= i_bus_addr
 						+ r_memsize;
 				end else if (i_wb_sel != 0)
@@ -405,9 +412,9 @@ module	pkt2mem #(
 		pre_wfifo_write = 1'b0;
 		if (pkt_valid && pkt_last != 2'b00 && !pkt_abort)
 			pre_wfifo_write = 1'b1;
-		if (OPT_LITTLE_ENDIAN && pkt_keep[0])
+		if (OPT_LITTLE_ENDIAN && pkt_keep[(DW/32)-1])
 			pre_wfifo_write = 1'b1;
-		if (!OPT_LITTLE_ENDIAN && pkt_keep[(DW/32)-1])
+		if (!OPT_LITTLE_ENDIAN && pkt_keep[0])
 			pre_wfifo_write = 1'b1;
 	end
 
@@ -424,36 +431,50 @@ module	pkt2mem #(
 
 	// pkt_*
 	// {{{
-	reg	[$clog2(PKTDW/8)-1:0]	s_words;
-	reg	[PKTDW/32-1:0]		s_mask;
-	reg	[DW+PKTDW-1:0]		next_data_sreg;
-	reg	[(DW+PKTDW)/32-1:0]	next_keep_sreg;
-
 	always @(*)
 	begin
-		s_words = S_AXIN_BYTES + 1;
-		s_words = s_words >> 2;
+		// Verilator lint_off WIDTH
+		s_bytes = S_AXIN_BYTES + ((S_AXIN_BYTES == 0) ? (PKTDW/8):0);
+		s_words = (s_bytes + 3)>> 2;
 
-		s_mask = ({ {(PKTDW/32-1){1'b0}}, 1'b1 } << s_words) - 1;
-		if (S_AXIN_LAST)
-			s_mask = {(PKTDW/32){1'b1}};
+		if (OPT_LITTLE_ENDIAN)
+			s_mask = {(PKTDW/32){1'b1}} >> ((PKTDW/32) - s_words);
+		else
+			s_mask = {(PKTDW/32){1'b1}} << ((PKTDW/32) - s_words);
+		// Verilator lint_on  WIDTH
 	end
 
 	always @(*)
 	if (OPT_LITTLE_ENDIAN)
 	begin
-		next_data_sreg = { {(DW){1'b0}}, pkt_next }
-				| { {(DW){1'b0}}, S_AXIN_DATA }
-							<< (pkt_addr*32);
-		next_keep_sreg = { {(DW/32){1'b0}}, pkt_nxkp }
-			| ({ {(DW/32){1'b0}}, s_mask } << pkt_addr);
-	end else begin
-		next_data_sreg = { pkt_next, {(DW){1'b0}} }
-				| { S_AXIN_DATA, {(DW){1'b0}} }
-						>> (pkt_addr*32);
+		next_data_sreg = { {(DW){1'b0}}, S_AXIN_DATA }
+							<< (pkt_addr[LSB-1:0]*32);
+		next_keep_sreg = ({ {(DW/32){1'b0}}, s_mask } << pkt_addr[LSB-1:0]);
 
-		next_keep_sreg = { pkt_nxkp, {(DW/32){1'b0}} }
-			| ({ s_mask, {(DW/32){1'b0}} } >> pkt_addr);
+		if (pkt_last[1])
+		begin
+		end else if (pkt_keep[(DW/32)-1])
+		begin
+			next_keep_sreg = next_keep_sreg | { {(DW/32){1'b0}}, pkt_nxkp };
+			next_data_sreg = next_data_sreg | { {(DW){1'b0}}, pkt_next };
+		end else begin
+			next_keep_sreg = next_keep_sreg | { {(PKTDW/32){1'b0}}, pkt_keep };
+			next_data_sreg = next_data_sreg | { {(PKTDW){1'b0}}, pkt_data };
+		end
+	end else begin
+		next_data_sreg = { S_AXIN_DATA, {(DW){1'b0}} } >> (pkt_addr[LSB-1:0]*32);
+		next_keep_sreg = ({ s_mask, {(DW/32){1'b0}} } >> pkt_addr[LSB-1:0]);
+
+		if (pkt_last[1])
+		begin
+		end else if (pkt_keep[0])
+		begin
+			next_keep_sreg = next_keep_sreg | { pkt_nxkp, {(DW/32){1'b0}} };
+			next_data_sreg = next_data_sreg | { pkt_next, {(DW){1'b0}} };
+		end else begin
+			next_data_sreg = next_data_sreg | { pkt_data, { (PKTDW){1'b0}} };
+			next_keep_sreg = next_keep_sreg | { pkt_keep, { (PKTDW/32){1'b0}} };
+		end
 	end
 
 	initial	pkt_valid = 0;
@@ -494,19 +515,7 @@ module	pkt2mem #(
 		pkt_valid <= 1;
 		pkt_last  <= 2'b00;
 
-		// Clear on any new word
-		// {{{
-		if (pkt_last[1]
-			|| (OPT_LITTLE_ENDIAN && pkt_keep[0])
-			|| (!OPT_LITTLE_ENDIAN && pkt_keep[(DW/32)-1]))
-		begin
-			pkt_addr <= 0;
-			pkt_keep <= 0;
-			pkt_data <= 0;
-		end
-		// }}}
-
-		pkt_addr <= pkt_addr[LSB-1:0] + 1;
+		pkt_addr <= pkt_addr[LSB-1:0] + s_words;
 
 		// Add to pkt_data and pkt_keep
 		// {{{
@@ -532,8 +541,10 @@ module	pkt2mem #(
 		end else if (S_AXIN_LAST)
 		begin
 			// {{{
-			pkt_start <= pkt_addr[LSB-1:0]+2;
-			pkt_addr  <= pkt_addr[LSB-1:0]+2;
+			// Verilator lint_off WIDTH
+			pkt_start <= pkt_addr[LSB-1:0]+s_words + 1;
+			// Verilator lint_on  WIDTH
+			pkt_addr  <= pkt_addr[LSB-1:0]+s_words + 1;
 			if (OPT_LITTLE_ENDIAN)
 			begin
 				pkt_last <= (next_keep_sreg[(PKTDW+DW)/32-1:DW/32-1] != 0) ? 2'b01 : 2'b10;
@@ -795,7 +806,7 @@ module	pkt2mem #(
 
 				r_newstart <= next_start_addr[AW+LSB-1:0];
 				// Verilator lint_off WIDTH
-				pkt_length <= pkt_length + COUNTONES(fif_keep);
+				pkt_length <= pkt_length + COUNTONES(fif_sel);
 				// Verilator lint_on  WIDTH
 
 				if (fif_last)
@@ -952,16 +963,30 @@ module	pkt2mem #(
 
 	// }}}
 
-	function automatic [$clog2(DW/32):0] COUNTONES(input [(DW/32)-1:0] kp);
+	function automatic [$clog2(DW/8):0] COUNTONES(input [(DW/8)-1:0] kp);
+		// {{{
 		integer	ck;
-		reg	[$clog2(DW/32):0] cnt;
+		reg	[$clog2(DW/8):0] cnt;
 	begin
 		cnt=0;
-		for(ck=0; ck<(DW/32); ck=ck+1)
+		for(ck=0; ck<(DW/8); ck=ck+1)
 			if (kp[ck])
 				cnt=cnt+1;
 		COUNTONES = cnt;
 	end endfunction
+	// }}}
+
+	function automatic [PKTDW-1:0] SWAP_ENDIAN_PKT(input [PKTDW-1:0] pdata);
+		// {{{
+		integer	ib;
+		reg	[PKTDW-1:0] r;
+	begin
+		r=0;
+		for(ib=0; ib<PKTDW; ib=ib+8)
+			r[ib +: 8] = pdata[PKTDW-8-ib +: 8];
+		SWAP_ENDIAN_PKT = r;
+	end endfunction
+	// }}}
 
 	// Keep Verilator happy
 	// {{{

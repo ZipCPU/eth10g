@@ -132,9 +132,9 @@ module routecore #(
 	// Local declarations
 	// {{{
 	// parameter [AW-1:0]	DEF_BASEADDR = 0,
-	parameter		NMEM = NETH-(OPT_CPUNET ? 1:0);
+	localparam		NMEM = NETH-(OPT_CPUNET ? 1:0);
 	// Verilator lint_off WIDTH
-	parameter [AW-1:0]	DEF_SUBSIZE  = DEF_MEMSIZE / NMEM;
+	localparam [AW-1:0]	DEF_SUBSIZE  = DEF_MEMSIZE / NMEM;
 	// Verilator lint_on  WIDTH
 	genvar				geth;
 
@@ -807,7 +807,7 @@ module routecore #(
 	always @(*)
 	begin
 		pre_ctrl_data = 0;
-		for(wbport=0; wbport < NETH; wbport = wbport+1)
+		for(wbport=0; wbport < NMEM; wbport = wbport+1)
 		if (ctrl_ack[wbport])
 			pre_ctrl_data = pre_ctrl_data | ctrl_data[wbport*32 +: 32];
 	end

@@ -34,6 +34,7 @@
 // }}}
 module	p66btxgears // #()
 	(
+		// {{{
 		input	wire	i_clk,
 		input	wire	i_reset,
 		//
@@ -41,43 +42,82 @@ module	p66btxgears // #()
 		output	reg		S_READY,
 		input	wire	[65:0]	S_DATA,
 		//
-		output	wire	[63:0]	o_data
+		output	wire	[31:0]	o_data
+		// }}}
 	);
 
-	reg	[4:0]	r_count;
-	reg	[129:0]	gearbox;
+	reg	[6:0]	r_count;
+	reg	[95:0]	gearbox;
+	reg	[127:0]	full_gears;
 
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
 		r_count <= 0;
-		S_READY <= 0;
+		S_READY <= 1;
 	end else if (S_READY)
 	begin
-		r_count <= r_count + 1; // i.e., plus (66 - 64) /2;
-		S_READY <= r_count < 31;
+		r_count <= r_count + 66 - 32;
+		S_READY <= (r_count + 34) < 64;
 	end else begin
-		r_count <= 0;
-		S_READY <= 1;
+		if (r_count > 32)
+			r_count <= r_count - 32;
+		else
+			r_count <= 0;
+		S_READY <= (r_count < 96);
+	end
+
+	always @(*)
+	begin
+		full_gears = 0;
+		full_gears[95:0] = gearbox;
+		if (S_READY)
+			full_gears = full_gears
+					| ({ 62'h0, S_DATA} << r_count);
+		full_gears = full_gears >> 32;
 	end
 
 	always @(posedge i_clk)
 	if (i_reset)
-		gearbox <= 130'h0;
-	else if (S_READY)
-		gearbox <= { 64'h0, gearbox[129:64]}
-				| ({ 64'h0, S_DATA } << { r_count, 1'b0 });
+		gearbox <= 96'h0;
 	else
-		gearbox <= { 64'h0, gearbox[129:64]};
+		gearbox <= full_gears[95:0];
 
-	assign	o_data = gearbox[63:0];
+	assign	o_data = gearbox[31:0];
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+// Note: this is (currently) only a partial proof
+	reg	f_past_valid;
 
-	/*
-	function automatic [65:0] BITREV(input [65:0] in);
-		integer ik;
+	initial	f_past_valid = 0;
+	always @(posedge i_clk)
+		f_past_valid <= 1;
+
+	always @(*)
+	if (!f_past_valid)
+		assume(i_reset);
+
+	always @(*)
+	if (!i_reset)
 	begin
-		for(ik=0; ik<66; ik=ik+1)
-			BITREV[ik] = in[65-ik];
-	end endfunction	
-	*/
+		assert(r_count[0] == 1'b0);
+		assert(r_count <= 64+32);
+		assert(S_READY == (r_count < 64));
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && !$past(i_reset) && $past(r_count >= 32))
+	begin
+		assert(r_count >= 32);
+	end
+`endif
+// }}}
 endmodule

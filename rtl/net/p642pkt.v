@@ -507,7 +507,7 @@ module	p642pkt (
 	if (!M_VALID || M_READY)
 	begin
 		M_DATA <= dly_data;
-		M_BYTES<= dly_bytes[2:0];
+		M_BYTES<= (dly_bytes[3] && !dly_last) ? 3'h0 : dly_bytes[2:0];
 		M_LAST <= dly_last || (!poffset && RX_DATA[9:0] == { 8'h87, SYNC_CONTROL });
 	end
 

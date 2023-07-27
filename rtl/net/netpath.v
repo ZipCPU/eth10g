@@ -85,36 +85,43 @@
 `default_nettype none
 // }}}
 module	netpath #(
-		parameter	LGPKTGATE=6,
-		parameter [0:0]	OPT_SCRAMBLER=1
+		// {{{
+		parameter	LGPKTGATE=4,
+		parameter	LGCDCRAM = 5,
+		parameter [0:0]	OPT_SCRAMBLER=1,
+		parameter [0:0]	OPT_LITTLE_ENDIAN=0,
+		localparam	RAWDW =  32,
+		localparam	LCLDW =  64,
+		localparam	PKTDW = 128
+		// }}}
 	) (
 		// {{{
 		input	wire		i_rx_clk, i_tx_clk, i_reset_n,
-		input	wire		i_sys_clk,
+		input	wire		i_sys_clk, i_fast_clk,
 		output	wire		o_link_up, o_activity,
 		// PHY interface
 		// {{{
 		input	wire		i_phy_fault,
-		input	wire	[63:0]	i_raw_data,
-		output	wire	[63:0]	o_raw_data,
+		input	wire	[RAWDW-1:0]	i_raw_data,
+		output	wire	[RAWDW-1:0]	o_raw_data,
 		// }}}
 		// Incoming packets to send
 		// {{{
-		input	wire		S_VALID,
-		output	wire		S_READY,
-		input	wire	[127:0]	S_DATA,
-		input	wire	[3:0]	S_BYTES,
-		input	wire		S_LAST,
-		input	wire		S_ABORT,
+		input	wire				S_VALID,
+		output	wire				S_READY,
+		input	wire	[PKTDW-1:0]		S_DATA,
+		input	wire	[$clog2(PKTDW/8)-1:0]	S_BYTES,
+		input	wire				S_LAST,
+		input	wire				S_ABORT,
 		// }}}
 		// Outgoing received packets
 		// {{{
-		output	wire		M_VALID,
-		input	wire		M_READY,
-		output	wire	[127:0]	M_DATA,
-		output	wire	[3:0]	M_BYTES,
-		output	wire		M_LAST,
-		output	wire		M_ABORT
+		output	wire				M_VALID,
+		input	wire				M_READY,
+		output	wire	[PKTDW-1:0]		M_DATA,
+		output	wire	[$clog2(PKTDW/8)-1:0]	M_BYTES,
+		output	wire				M_LAST,
+		output	wire				M_ABORT
 		// }}}
 		// }}}
 	);
@@ -129,11 +136,11 @@ module	netpath #(
 	//	
 	localparam	ACTMSB = 24;
 	// Verilator lint_off SYNCASYNCNET
-	reg		rx_reset_n, tx_reset_n;
+	reg		rx_reset_n, tx_reset_n, fast_reset_n;
 	// Verilator lint_on  SYNCASYNCNET
-	reg	[1:0]	rx_reset_pipe, tx_reset_pipe;
+	reg	[1:0]	rx_reset_pipe, tx_reset_pipe, fast_reset_pipe;
 
-	wire		rx66b_valid, ign_rx66b_ready;
+	wire		rx66b_valid;
 	wire	[65:0]	rx66b_data;
 
 	wire		tx66b_ready, ign_tx66b_valid;
@@ -145,12 +152,12 @@ module	netpath #(
 	wire		rx_link_up, tx_link_up;
 
 	wire		SRC_VALID, SRC_READY, SRC_LAST, SRC_ABORT;
-	wire	[63:0]	SRC_DATA;
-	wire	[2:0]	SRC_BYTES;
+	wire	[LCLDW-1:0]	SRC_DATA;
+	wire	[$clog2(LCLDW/8)-1:0]	SRC_BYTES;
 
 	wire		PKT_VALID, PKT_READY, PKT_LAST, PKT_ABORT, ign_high;
-	wire	[63:0]	PKT_DATA;
-	wire	[2:0]	PKT_BYTES;
+	wire	[LCLDW-1:0]	PKT_DATA;
+	wire	[$clog2(LCLDW/8)-1:0]	PKT_BYTES;
 
 	wire		tx_ready, ign_tx_high, ign_rx_high;
 	wire	[65:0]	tx_data;
@@ -158,40 +165,54 @@ module	netpath #(
 	reg	[ACTMSB:0]	tx_activity, rx_activity;
 
 	wire		TXCK_VALID, TXCK_READY, TXCK_LAST, TXCK_ABORT;
-	wire	[127:0]	TXCK_DATA;
-	wire	[3:0]	TXCK_BYTES;
+	wire	[PKTDW-1:0]	TXCK_DATA;
+	wire	[$clog2(PKTDW/8)-1:0]	TXCK_BYTES;
 
 	wire		TXWD_VALID, TXWD_READY, TXWD_LAST, TXWD_ABORT;
-	wire	[63:0]	TXWD_DATA;
-	wire	[2:0]	TXWD_BYTES;
+	wire	[LCLDW-1:0]	TXWD_DATA;
+	wire	[$clog2(LCLDW/8)-1:0]	TXWD_BYTES;
 
 	wire		FULL_VALID, FULL_READY, FULL_LAST, FULL_ABORT;
-	wire	[63:0]	FULL_DATA;
-	wire	[2:0]	FULL_BYTES;
+	wire	[LCLDW-1:0]	FULL_DATA;
+	wire	[$clog2(LCLDW/8)-1:0]	FULL_BYTES;
 
 	wire		CRC_VALID, CRC_READY, CRC_LAST, CRC_ABORT;
-	wire	[63:0]	CRC_DATA;
-	wire	[2:0]	CRC_BYTES;
+	wire	[LCLDW-1:0]	CRC_DATA;
+	wire	[$clog2(LCLDW/8)-1:0]	CRC_BYTES;
 
 	wire		RXWD_VALID, RXWD_READY, RXWD_LAST, RXWD_ABORT;
-	wire	[127:0]	RXWD_DATA;
-	wire	[3:0]	RXWD_BYTES;
+	wire	[PKTDW-1:0]	RXWD_DATA;
+	wire	[$clog2(PKTDW/8)-1:0]	RXWD_BYTES;
 
 	// wire		RXCK_VALID, RXCK_READY, RXCK_LAST, RXCK_ABORT;
-	// wire	[127:0]	RXCK_DATA;
-	// wire	[3:0]	RXCK_BYTES;
+	// wire	[PKTDW-1:0]	RXCK_DATA;
+	// wire	[$clog2(PKTDW/8)-1:0]	RXCK_BYTES;
+	wire	[PKTDW-1:0]	unswapped_m_data;
+
+	wire		rx_fast_ready, rx_fast_valid, rx_fast_empty,
+			ign_rx66b_full;
+	wire	[65:0]	rx_fast_data;
+
+	wire		tx_fast_ready, tx66b_full, ign_tx_fast_empty;
+	wire	[65:0]	tx_fast_data;
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Synchronize resets
 	// {{{
+	always @(posedge i_fast_clk or negedge i_reset_n)
+	if (!i_reset_n)
+		{ fast_reset_n, fast_reset_pipe } <= 0;
+	else
+		{ fast_reset_n, fast_reset_pipe } <= { fast_reset_pipe, i_reset_n };
+
 	always @(posedge i_rx_clk or negedge i_reset_n)
 	if (!i_reset_n)
 		{ rx_reset_n, rx_reset_pipe } <= 0;
 	else
 		{ rx_reset_n, rx_reset_pipe } <= { rx_reset_pipe, i_reset_n };
-	
+
 	always @(posedge i_tx_clk or negedge i_reset_n)
 	if (!i_reset_n)
 		{ tx_reset_n, tx_reset_pipe } <= 0;
@@ -211,14 +232,30 @@ module	netpath #(
 		.M_DATA( rx66b_data)
 	);
 
+	afifo #(
+		.LGFIFO(LGCDCRAM),
+		.WIDTH(66)
+	) rx_afifo (
+		.i_wclk(i_rx_clk), .i_wr_reset_n(rx_reset_n),
+		.i_wr(rx66b_valid),
+		.i_wr_data(rx66b_data),
+		.o_wr_full(ign_rx66b_full),
+
+		.i_rclk(i_fast_clk), .i_rd_reset_n(fast_reset_n),
+		.i_rd(rx_fast_ready),
+		.o_rd_data(rx_fast_data),
+		.o_rd_empty(rx_fast_empty)
+	);
+	assign	rx_fast_valid = !rx_fast_empty;
+
 	p64bscrambler #(
 		.OPT_RX(1'b1), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_descrambler (
 		// {{{
-		.i_clk(i_rx_clk), .i_reset_n(rx_reset_n),
-		.i_valid(rx66b_valid),
-		.o_ready(ign_rx66b_ready),
-		.i_data(rx66b_data),
+		.i_clk(i_fast_clk), .i_reset_n(rx_reset_n),
+		.i_valid(rx_fast_valid),
+		.o_ready(rx_fast_ready),
+		.i_data(rx_fast_data),
 		//
 		.o_valid(rx_valid),
 		.i_ready(rx_ready),
@@ -229,7 +266,7 @@ module	netpath #(
 	p642pkt
 	u_p642pkt (
 		// {{{
-		.RX_CLK(i_rx_clk), .S_ARESETN(rx_reset_n),
+		.RX_CLK(i_fast_clk), .S_ARESETN(rx_reset_n),
 		//
 		.i_phy_fault(i_phy_fault),
 		.o_remote_fault(remote_fault),
@@ -254,7 +291,7 @@ module	netpath #(
 		.DW(64)
 	) u_dropshort (
 		// {{{
-		.S_CLK(i_rx_clk), .S_ARESETN(rx_reset_n),
+		.S_CLK(i_fast_clk), .S_ARESETN(rx_reset_n),
 		//
 		.S_VALID(SRC_VALID),
 		.S_READY(SRC_READY),
@@ -276,7 +313,7 @@ module	netpath #(
 		.DATA_WIDTH(64), .OPT_SKIDBUFFER(1'b1), .OPT_LOWPOWER(1'b0)
 	) u_check_crc (
 		// {{{
-		.ACLK(i_rx_clk), .ARESETN(rx_reset_n),
+		.ACLK(i_fast_clk), .ARESETN(rx_reset_n),
 		.i_cfg_en(1'b1),
 		//
 		.S_AXIN_VALID(PKT_VALID),
@@ -296,10 +333,10 @@ module	netpath #(
 	);
 
 	axinwidth #(
-		.IW(64), .OW(128)
+		.IW(64), .OW(PKTDW)
 	) u_rxwidth (
 		// {{{
-		.ACLK(i_rx_clk), .ARESETN(rx_reset_n),
+		.ACLK(i_fast_clk), .ARESETN(rx_reset_n),
 		//
 		.S_AXIN_VALID(CRC_VALID),
 		.S_AXIN_READY(CRC_READY),
@@ -318,11 +355,11 @@ module	netpath #(
 	);
 
 	axincdc #(
-		.DW(128),
-		.LGFIFO(5)	// Sweet spot for Xilinx distributed RAM
+		.DW(PKTDW),
+		.LGFIFO(LGCDCRAM)
 	) u_rxcdc (
 		// {{{
-		.S_CLK(i_rx_clk), .S_ARESETN(rx_reset_n),
+		.S_CLK(i_fast_clk), .S_ARESETN(rx_reset_n),
 		//
 		.S_VALID(RXWD_VALID),
 		.S_READY(RXWD_READY),
@@ -335,14 +372,17 @@ module	netpath #(
 		//
 		.M_VALID(M_VALID),
 		.M_READY(M_READY),
-		.M_DATA( M_DATA),
+		.M_DATA( unswapped_m_data),
 		.M_BYTES(M_BYTES),
 		.M_LAST( M_LAST),
 		.M_ABORT(M_ABORT)
 		// }}}
 	);
 
-	always @(posedge i_rx_clk or negedge rx_reset_n)
+	assign	M_DATA =(!OPT_LITTLE_ENDIAN) ? SWAP_ENDIAN_PKT(unswapped_m_data)
+				: unswapped_m_data;
+
+	always @(posedge i_fast_clk or negedge rx_reset_n)
 	if (!rx_reset_n)
 		rx_activity <= 0;
 	else if (M_VALID && M_LAST && !M_ABORT)
@@ -357,20 +397,20 @@ module	netpath #(
 	// {{{
 
 	axincdc #(
-		.DW(128),
-		.LGFIFO(5)	// Sweet spot for Xilinx distributed RAM
+		.DW(PKTDW),
+		.LGFIFO(LGCDCRAM)
 	) u_txcdc (
 		// {{{
 		.S_CLK(i_sys_clk), .S_ARESETN(i_reset_n),
 		//
 		.S_VALID(S_VALID),
 		.S_READY(S_READY),
-		.S_DATA( S_DATA),
+		.S_DATA((OPT_LITTLE_ENDIAN) ? S_DATA : SWAP_ENDIAN_PKT(S_DATA)),
 		.S_BYTES(S_BYTES),
 		.S_LAST( S_LAST),
 		.S_ABORT(S_ABORT),
 		//
-		.M_CLK(i_tx_clk), .M_ARESETN(tx_reset_n),
+		.M_CLK(i_fast_clk), .M_ARESETN(tx_reset_n),
 		//
 		.M_VALID(TXCK_VALID),
 		.M_READY(TXCK_READY),
@@ -382,7 +422,7 @@ module	netpath #(
 	);
 
 	axinwidth #(
-		.IW(128), .OW(64)
+		.IW(PKTDW), .OW(64)
 	) u_txwidth (
 		// {{{
 		.ACLK(i_sys_clk), .ARESETN(tx_reset_n),
@@ -407,7 +447,7 @@ module	netpath #(
 		.DW(64), .LGFLEN(LGPKTGATE)
 	) u_pktgate (
 		// {{{
-		.S_AXI_ACLK(i_tx_clk), .S_AXI_ARESETN(tx_reset_n),
+		.S_AXI_ACLK(i_fast_clk), .S_AXI_ARESETN(tx_reset_n),
 		//
 		.S_AXIN_VALID(TXWD_VALID),
 		.S_AXIN_READY(TXWD_READY),
@@ -428,7 +468,7 @@ module	netpath #(
 	pkt2p64b
 	u_pkt2p64b (
 		// {{{
-		.TX_CLK(i_tx_clk), .S_ARESETN(tx_reset_n),
+		.TX_CLK(i_fast_clk), .S_ARESETN(tx_reset_n),
 		//
 		.i_remote_fault(remote_fault),
 				.i_local_fault(local_fault || rx_reset_n),
@@ -449,7 +489,7 @@ module	netpath #(
 		.OPT_RX(1'b0), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_scrambler (
 		// {{{
-		.i_clk(i_tx_clk), .i_reset_n(tx_reset_n),
+		.i_clk(i_fast_clk), .i_reset_n(tx_reset_n),
 		//
 		.i_valid(1'b1),
 		.o_ready(tx_ready),
@@ -461,19 +501,34 @@ module	netpath #(
 		// }}}
 	);
 
+	afifo #(
+		.LGFIFO(LGCDCRAM),
+		.WIDTH(66)
+	) tx_afifo (
+		.i_wclk(i_fast_clk), .i_wr_reset_n(fast_reset_n),
+		.i_wr(1'b1),
+		.i_wr_data(tx66b_data),
+		.o_wr_full(tx66b_full),
+
+		.i_rclk(i_tx_clk), .i_rd_reset_n(tx_reset_n),
+		.i_rd(tx_fast_ready),
+		.o_rd_data(tx_fast_data),
+		.o_rd_empty(ign_tx_fast_empty)
+	);
+	assign	tx66b_ready = !tx66b_full;
+
 	p66btxgears
 	u_p66btxgears (
 		.i_clk(i_tx_clk), .i_reset(!tx_reset_n),
-		// .S_VALID(tx66b_valid),
-		.S_READY(tx66b_ready),
-		.S_DATA( tx66b_data),
+		.S_READY(tx_fast_ready),
+		.S_DATA( tx_fast_data),
 		.o_data(o_raw_data)
 	);
 
 	assign	tx_link_up = tx_reset_n;
 
-	always @(posedge i_tx_clk or negedge tx_reset_n)
-	if (!tx_reset_n)
+	always @(posedge i_sys_clk or negedge i_reset_n)
+	if (!i_reset_n)
 		tx_activity <= 0;
 	else if (S_VALID)
 		tx_activity <= -1;
@@ -485,6 +540,18 @@ module	netpath #(
 	assign	o_link_up = rx_link_up && tx_link_up;
 	assign	o_activity = rx_activity[ACTMSB] || tx_activity[ACTMSB];
 
+	function automatic [PKTDW-1:0] SWAP_ENDIAN_PKT(input [PKTDW-1:0] in);
+		// {{{
+		integer	ib;
+		reg	[PKTDW-1:0]	r;
+	begin
+		r = 0;
+		for(ib=0; ib<PKTDW; ib=ib+8)
+			r[ib +: 8] = in[PKTDW-8-ib +: 8];
+		SWAP_ENDIAN_PKT = r;
+	end endfunction
+	// }}}
+
 	// Keep Verilator happy
 	// {{{
 	// Verilator lint_on  UNUSED
@@ -492,7 +559,8 @@ module	netpath #(
 	wire	unused;
 	assign	unused =  &{ 1'b0, ign_high,
 				ign_tx_high, ign_rx_high,
-				ign_rx66b_ready, ign_tx66b_valid };
+				ign_tx66b_valid,
+				ign_rx66b_full, ign_tx_fast_empty };
 	// Verilator coverage_on
 	// Verialtor lint_off UNUSED
 	// }}}

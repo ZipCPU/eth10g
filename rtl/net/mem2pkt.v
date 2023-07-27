@@ -113,6 +113,7 @@ module	mem2pkt #(
 		// {{{
 		parameter	DW = 512,
 		parameter	AW = 31-$clog2(DW/8),
+		parameter [0:0]	OPT_LITTLE_ENDIAN_PKT = 1'b0,
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter	LGFIFO = 7,
 		parameter	PKTDW = 128,
@@ -223,6 +224,14 @@ module	mem2pkt #(
 	wire	[PKTDW-1:0]	pkd_data;
 
 	reg			release_packet;
+
+	reg	[DW-1:0]	gearbox_data, gearbox_next;
+	reg	[2*DW-1:0]	next_gb_data;
+	reg			gearbox_valid, gearbox_primed, gearbox_extra;
+	reg	[1:0]		gearbox_last;
+	reg	[$clog2(DW/PKTDW)-1:0]	gearbox_addr;
+
+	wire			w_pkt_extra;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -272,6 +281,7 @@ module	mem2pkt #(
 				if (i_wb_sel == 4'hf)
 				begin
 					r_baseaddr <= i_bus_addr;
+					r_writeptr <=  i_word_addr;
 					r_lastaddr <= i_bus_addr
 						+ r_memsize;
 				end else if (i_wb_sel != 0)
@@ -405,8 +415,6 @@ module	mem2pkt #(
 
 	// i_dma_pktlen
 	// {{{
-	wire	w_pkt_extra;
-
 	generate if (DW == 32)
 	begin : SAME_WIDTH
 		always @(*)
@@ -633,7 +641,7 @@ module	mem2pkt #(
 		endcase
 	end
 
-	assign	o_dma_we = 1'b1;
+	assign	o_dma_we = 1'b0;
 	assign	o_dma_data = 0;
 	assign	o_dma_sel  = -1;
 
@@ -756,12 +764,6 @@ module	mem2pkt #(
 	//
 	// Gearbox return
 	// {{{
-
-	reg	[DW-1:0]	gearbox_data, gearbox_next;
-	reg	[2*DW-1:0]	next_gb_data;
-	reg			gearbox_valid, gearbox_primed, gearbox_extra;
-	reg	[1:0]		gearbox_last;
-	reg	[$clog2(DW/PKTDW)-1:0]	gearbox_addr;
 
 	// gearbox_valid, gearbox_primed
 	// {{{
@@ -1060,10 +1062,24 @@ module	mem2pkt #(
 
 	assign	M_AXIN_VALID = pkd_valid && release_packet;
 	assign	pkd_ready    = M_AXIN_READY && release_packet;
-	assign	M_AXIN_DATA  = pkd_data;
+	assign	M_AXIN_DATA  = (OPT_LITTLE_ENDIAN ^ OPT_LITTLE_ENDIAN_PKT)
+					? SWAP_ENDIAN_PKT(pkd_data) : pkd_data;
 	assign	M_AXIN_BYTES = pkd_bytes;
 	assign	M_AXIN_LAST  = pkd_last;
 	assign	M_AXIN_ABORT = 1'b0;
+	// }}}
+
+	function [PKTDW-1:0]	SWAP_ENDIAN_PKT(input [PKTDW-1:0] pdata);
+		// {{{
+		integer	ib;
+		reg	[PKTDW-1:0]	r;
+	begin
+		r = 0;
+		for(ib=0; ib<PKTDW; ib=ib+8)
+			r[ib +: 8] = pdata[PKTDW-8-ib +: 8];
+
+		SWAP_ENDIAN_PKT = r;
+	end endfunction
 	// }}}
 
 	// Keep Verilator happy

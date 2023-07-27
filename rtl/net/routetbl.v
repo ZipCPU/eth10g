@@ -46,10 +46,10 @@ module routetbl #(
 		parameter  [NETH-1:0]	BROADCAST_PORT = {(NETH){1'b1}},
 		parameter  [NETH-1:0]	DEFAULT_PORT = BROADCAST_PORT,
 		parameter	LGTBL = 6,	// Log_2(NTBL entries)
-		localparam	NTBL = (1<<LGTBL), // Number of table entries
+		parameter	MACW = 48,	// Bits in a MAC address
 		parameter	LGTIMEOUT = 64-MACW-1,
 		parameter [0:0]	OPT_LOWPOWER = 1'b0,
-		parameter	MACW = 48	// Bits in a MAC address
+		localparam	NTBL = (1<<LGTBL) // Number of table entries
 		// }}}
 	) (
 		// {{{

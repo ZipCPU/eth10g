@@ -35,7 +35,7 @@
 module p66brxgears (
 		input	wire	i_clk, i_reset,
 
-		input	wire	[63:0]	i_data,
+		input	wire	[31:0]	i_data,
 		output	wire		M_VALID,
 		output	wire	[65:0]	M_DATA
 	);
@@ -44,19 +44,21 @@ module p66brxgears (
 	// {{{
 	reg		rx_valid;
 	reg	[6:0]	rx_count;
-	reg	[129:0]	rx_gears;
+	reg	[95:0]	rx_gears;
 
 	reg	[65:0]	al_last, al_data, ign_al_msb;
 	reg	[6:0]	al_shift;
 	reg		al_slip;
 	reg	[3:0]	lock_count;
+
+	reg	[128-1:0]	full_set;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Step one: the gearbox
 	// {{{
 
-	// { rx_count, 1'b0 } = # of bits in our shift register
+	// { rx_count } = # of bits in our shift register
 	// rx_valid = (66 or more bits in the shift register)
 	always @(posedge i_clk)
 	if (i_reset)
@@ -65,24 +67,17 @@ module p66brxgears (
 		rx_valid <= 0;
 	end else if (rx_valid)
 	begin
-		rx_count <= rx_count - 1; // i.e. + (64 - 66)/2;
-		rx_valid <= (rx_count > 33);
+		rx_count <= rx_count + 32 - 66;
+		rx_valid <= 1'b0;	// i.e. if (rx_count  + 32 - 66 >= 66)
 	end else begin
-		rx_count <= rx_count + 32;
-		rx_valid <= (rx_count > 0);
+		rx_count <= rx_count + 32;	// Always add 32
+		rx_valid <= (rx_count >= 34);
 	end
-// Verilator lint_off UNUSED
-(* keep *) reg	[129:0] pre_gear, pre_idata;
-always @(*)
-	pre_gear  = rx_valid ? { 66'h0, rx_gears[66 +: 64] } : rx_gears;
-always @(*)
-	pre_idata = ({66'h0, i_data } << {rx_count, 1'b0 });
-// Verilator lint_on  UNUSED
 
-	reg	[64+66+64-1:0]	full_set;
 	always @(*)
 	begin
-		full_set = rx_gears | ({ 66'h0, i_data } << { rx_count, 1'b0 });
+		full_set = { 32'h0, rx_gears }
+				| ({ 96'h0, i_data } << rx_count);
 		if (rx_valid)
 			full_set = full_set >> 66;
 	end
@@ -91,7 +86,7 @@ always @(*)
 	if (i_reset)
 		rx_gears <= 0;
 	else
-		rx_gears <= full_set;
+		rx_gears <= full_set[95:0];
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -177,17 +172,21 @@ always @(*)
 
 	always @(*)
 	if (!i_reset)
-		assert(rx_count <= 130);
+	begin
+		assert(rx_count <= 96);
+		assert(rx_count[0] == 1'b0);
+		assert(rx_valid == (rx_count >= 66));
+	end
 
 	always @(*)
 	if (!i_reset)
-		assert(rx_valid == (rx_count >= 33));
+		assert(full_set[127:96] == 0);
 
 	always @(*)
 	if (!i_reset)
 	begin
-		for(ik=0; ik<130; ik=ik+1)
-		if ({ rx_count, 1'b0 } <= ik)
+		for(ik=0; ik<96; ik=ik+1)
+		if (rx_count <= ik)
 			assert(rx_gears[ik] == 1'b0);
 	end
 `endif

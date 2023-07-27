@@ -108,8 +108,8 @@ module	pktvfifowr #(
 		input	wire			i_cfg_reset_fifo, i_cfg_mem_err,
 		input	wire	[AW-1:0]	i_cfg_baseaddr,
 		input	wire	[AW-1:0]	i_cfg_memsize,
-		input	wire	[AW+WBLSB-3:0]	i_readptr,
-		output	wire	[AW+WBLSB-3:0]	o_writeptr,
+		input	wire	[AW+$clog2(BUSDW/8)-3:0]	i_readptr,
+		output	wire	[AW+$clog2(BUSDW/8)-3:0]	o_writeptr,
 		// output	wire			o_pktwr_stb,
 		// }}}
 		// Incoming packet
