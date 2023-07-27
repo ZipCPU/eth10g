@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk # rdedid sisetup contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk rdramcfg # rdedid sisetup contest
 all:	$(PROGRAMS)
 #
 #
@@ -46,7 +46,7 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdedid.c sisetup.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdedid.c sisetup.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
@@ -119,6 +119,9 @@ ssddemo: $(OBJDIR)/ssddemo.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 qkhdmi: $(OBJDIR)/qkhdmi.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+rdramcfg: $(OBJDIR)/rdramcfg.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 rdedid: $(OBJDIR)/rdedid.o board.ld $(LIB)
