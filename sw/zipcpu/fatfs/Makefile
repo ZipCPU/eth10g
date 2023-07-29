@@ -40,7 +40,7 @@ OBJDUMP := zip-objdump
 OBJDIR  := obj-zip
 INCS    := -I. -I../../../rtl -I../zlib -I../board
 CFLAGS  := -O3 $(INCS)
-LIBSRCS := diskio.c ff.c ffsystem.c ffunicode.c sdspidrv.c sdiodrv.c
+LIBSRCS := diskio.c ff.c ffsystem.c ffunicode.c sdspidrv.c sdiodrv.c emmcdrv.c
 LIBOBJS := $(addprefix $(OBJDIR)/,$(subst .c,.o,$(LIBSRCS)))
 FATLIB  := libfatfs.a
 all: $(FATLIB)

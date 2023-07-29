@@ -163,29 +163,7 @@ typedef struct  FAN_S        {
 //
 //
 
-#define	EMMC_CMD		0x000040
-#define	EMMC_ACMD		(0x040+55) // CMD55
-#define	EMMC_FIFO_OP	0x000800	// Read only
-#define	EMMC_WRITEOP	0x000c00	// Write to the FIFO
-#define	EMMC_ALTFIFO	0x001000
-// #define	EMMC_DMA	0x002000
-#define	EMMC_BUSY		0x004000
-#define	EMMC_ERROR		0x008000
-#define	EMMC_CLEARERR	0x008000
-// #define	EMMC_CRCERR	0x020000
-// #define	EMMC_FRAMERR	0x030000
-// #define	EMMC_REMOVED	0x040000
-// #define	EMMC_PRESENTN	0x080000
-// #define	EMMC_RESET		0x100000	// Read only
-// #define	EMMC_WATCHDOG	0x200000	// Read only
-#define	EMMC_GO_IDLE	((EMMC_CLEARERR|EMMC_CMD)+0)
-#define	EMMC_READ_SECTOR	((EMMC_CMD|EMMC_CLEARERR|EMMC_FIFO_OP)+17)
-#define	EMMC_WRITE_SECTOR	((EMMC_CMD|EMMC_CLEARERR|EMMC_WRITEOP)+24)
-
-typedef	struct EMMC_S {
-	unsigned	emmc_ctrl, emmc_data, emmc_fifo[2];
-	unsigned	emmc_phy,  emmc_unused[3];
-} EMMC;
+struct EMMC_S;
 // }}}
 
 

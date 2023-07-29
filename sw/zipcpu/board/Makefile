@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk rdramcfg rdsfp # rdedid sisetup contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp # rdedid sisetup contest
 all:	$(PROGRAMS)
 #
 #
@@ -135,7 +135,10 @@ sdiochk: $(OBJDIR)/sdiochk.o $(OBJDIR)/txfns.o board.ld $(LIB)
 	# $(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
 
 sdinfo: $(OBJDIR)/sdinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -Wl,-Map=$(OBJDIR)/sdinfo.map -o $@
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -o $@
+
+emmcinfo: $(OBJDIR)/emmcinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -o $@
 
 sisetup: $(OBJDIR)/sisetup.o board.ld $(LIB) $(FAT)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
