@@ -99,12 +99,12 @@ module	toplevel(
 `ifdef	FLASH_ACCESS
 	localparam	RESET_ADDRESS = @$RESET_ADDRESS;
 `else
-	localparam	RESET_ADDRESS = 1048576;
+	localparam	RESET_ADDRESS = 524288;
 `endif	// FLASH_ACCESS
 `endif	// BKROM_ACCESS
 	//
 	// The number of valid bits on the bus
-	localparam	ZIP_ADDRESS_WIDTH = 15; // Zip-CPU address width
+	localparam	ZIP_ADDRESS_WIDTH = 14; // Zip-CPU address width
 	//
 	// Number of ZipCPU interrupts
 	localparam	ZIP_INTS = 16;
@@ -238,7 +238,7 @@ module	toplevel(
 	wire	[31:0]	ign_cpu_idata;
 `ifdef	VERILATOR
 	wire		ign_cpu_prof_stb;
-	wire	[15+$clog2(512/8)-1:0] ign_cpu_prof_addr;
+	wire	[14+$clog2(512/8)-1:0] ign_cpu_prof_addr;
 	wire [31:0]	ign_cpu_prof_ticks;
 `endif
 	// Verilator lint_on  UNUSED

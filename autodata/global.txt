@@ -92,6 +92,15 @@ const	char *addrname(const unsigned v) {
 #include "design.h"
 #include "regdefs.h"
 #include "testb.h"
+##
+@PREFIX=prebus
+@CLOCK.NAME=clk
+@CLOCK.RESET=i_reset
+@BUS.NAME=wbu
+@BUS.CLOCK=clk
+@BUS.WIDTH=32
+@BUS.TYPE=wb
+##
 @PREFIX=wb
 @BUS.NAME=wbwide
 @BUS.TYPE=wb

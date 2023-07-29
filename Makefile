@@ -193,6 +193,15 @@ sw-host: check-gpp
 	+@$(SUBMAKE) sw/host
 ## }}}
 
+.PHONY: sw-i2c
+## {{{
+##
+## Build the data for the I2C files
+##
+sw-i2c: sw-host
+	+@$(SUBMAKE) sw/i2c
+## }}}
+
 .PHONY: sw-zlib zlib
 ## {{{
 zlib: sw-zlib
@@ -213,11 +222,12 @@ sw-fatfs: check-zip-gcc
 	+@$(SUBMAKE) sw/zipcpu/fatfs
 ## }}}
 
-.PHONY: sw-board
+.PHONY: sw-board sw-zipcpu
 ## {{{
 ## Build the board software.  This may (or may not) use the software library
 ##
-sw-board: sw-zlib check-zip-gcc # sw-fatfs
+sw-zipcpu: sw-board
+sw-board: sw-i2c sw-zlib check-zip-gcc # sw-fatfs
 	+@$(SUBMAKE) sw/zipcpu/board
 ## }}}
 

@@ -46,18 +46,24 @@ module p66brxgears (
 	reg	[6:0]	rx_count;
 	reg	[95:0]	rx_gears;
 
-	reg	[65:0]	al_last, al_data, ign_al_msb;
+	reg	[65:0]	al_last, al_data;
+	reg	[63:0]	ign_al_msb;
 	reg	[6:0]	al_shift;
 	reg		al_slip;
 	reg	[3:0]	lock_count;
 
 	reg	[128-1:0]	full_set;
+	reg	[31:0]	r_data;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Step one: the gearbox
 	// {{{
 
+	// pre-state: register the data -- for timing's sake
+	always @(posedge i_clk)
+		r_data <= i_data;
+	
 	// { rx_count } = # of bits in our shift register
 	// rx_valid = (66 or more bits in the shift register)
 	always @(posedge i_clk)
@@ -77,7 +83,7 @@ module p66brxgears (
 	always @(*)
 	begin
 		full_set = { 32'h0, rx_gears }
-				| ({ 96'h0, i_data } << rx_count);
+				| ({ 96'h0, r_data } << rx_count);
 		if (rx_valid)
 			full_set = full_set >> 66;
 	end
@@ -99,11 +105,8 @@ module p66brxgears (
 		al_last <= rx_gears[65:0];
 
 	always @(posedge i_clk)
-	// if (i_reset)
-	//	{ ign_al_msb, al_data } <= 0;
-	// else
 	if (rx_valid)
-		{ign_al_msb, al_data } <= { rx_gears[65:0],al_last } >>al_shift;
+		{ign_al_msb, al_data } <= { rx_gears[63:0],al_last } >>al_shift;
 
 	
 	always @(posedge i_clk)

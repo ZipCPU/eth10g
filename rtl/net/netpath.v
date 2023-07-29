@@ -103,7 +103,7 @@ module	netpath #(
 		// {{{
 		input	wire		i_phy_fault,
 		input	wire	[RAWDW-1:0]	i_raw_data,
-		output	wire	[RAWDW-1:0]	o_raw_data,
+		output	reg	[RAWDW-1:0]	o_raw_data,
 		// }}}
 		// Incoming packets to send
 		// {{{
@@ -163,6 +163,7 @@ module	netpath #(
 	wire	[65:0]	tx_data;
 
 	reg	[ACTMSB:0]	tx_activity, rx_activity;
+	reg	tx_phase;
 
 	wire		TXCK_VALID, TXCK_READY, TXCK_LAST, TXCK_ABORT;
 	wire	[PKTDW-1:0]	TXCK_DATA;
@@ -193,8 +194,9 @@ module	netpath #(
 			ign_rx66b_full;
 	wire	[65:0]	rx_fast_data;
 
-	wire		tx_fast_ready, tx66b_full, ign_tx_fast_empty;
-	wire	[65:0]	tx_fast_data;
+	wire		ign_tx_fast_empty, tx64b_full;
+	wire	[63:0]	tx_fast_data;
+	wire	[63:0]	tx64b_data;
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -252,7 +254,7 @@ module	netpath #(
 		.OPT_RX(1'b1), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_descrambler (
 		// {{{
-		.i_clk(i_fast_clk), .i_reset_n(rx_reset_n),
+		.i_clk(i_fast_clk), .i_reset_n(fast_reset_n),
 		.i_valid(rx_fast_valid),
 		.o_ready(rx_fast_ready),
 		.i_data(rx_fast_data),
@@ -266,7 +268,7 @@ module	netpath #(
 	p642pkt
 	u_p642pkt (
 		// {{{
-		.RX_CLK(i_fast_clk), .S_ARESETN(rx_reset_n),
+		.RX_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
 		//
 		.i_phy_fault(i_phy_fault),
 		.o_remote_fault(remote_fault),
@@ -291,7 +293,7 @@ module	netpath #(
 		.DW(64)
 	) u_dropshort (
 		// {{{
-		.S_CLK(i_fast_clk), .S_ARESETN(rx_reset_n),
+		.S_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
 		//
 		.S_VALID(SRC_VALID),
 		.S_READY(SRC_READY),
@@ -309,34 +311,48 @@ module	netpath #(
 		// }}}
 	);
 
-	crc_axin #(
-		.DATA_WIDTH(64), .OPT_SKIDBUFFER(1'b1), .OPT_LOWPOWER(1'b0)
-	) u_check_crc (
-		// {{{
-		.ACLK(i_fast_clk), .ARESETN(rx_reset_n),
-		.i_cfg_en(1'b1),
-		//
-		.S_AXIN_VALID(PKT_VALID),
-		.S_AXIN_READY(PKT_READY),
-		.S_AXIN_DATA( PKT_DATA),
-		.S_AXIN_BYTES({ (PKT_BYTES==0), PKT_BYTES }),
-		.S_AXIN_LAST( PKT_LAST),
-		.S_AXIN_ABORT(PKT_ABORT),
-		//
-		.M_AXIN_VALID(CRC_VALID),
-		.M_AXIN_READY(CRC_READY),
-		.M_AXIN_DATA( CRC_DATA),
-		.M_AXIN_BYTES({ ign_high, CRC_BYTES }),
-		.M_AXIN_LAST( CRC_LAST),
-		.M_AXIN_ABORT(CRC_ABORT)
-		// }}}
-	);
+	localparam [0:0]	OPT_CRC = 1'b0;
+	generate if (OPT_CRC)
+	begin : GEN_CRC_CHECK
+
+		crc_axin #(
+			.DATA_WIDTH(64), .OPT_SKIDBUFFER(1'b1),
+			.OPT_LOWPOWER(1'b0)
+		) u_check_crc (
+			// {{{
+			.ACLK(i_fast_clk), .ARESETN(fast_reset_n),
+			.i_cfg_en(1'b1),
+			//
+			.S_AXIN_VALID(PKT_VALID),
+			.S_AXIN_READY(PKT_READY),
+			.S_AXIN_DATA( PKT_DATA),
+			.S_AXIN_BYTES({ (PKT_BYTES==0), PKT_BYTES }),
+			.S_AXIN_LAST( PKT_LAST),
+			.S_AXIN_ABORT(PKT_ABORT),
+			//
+			.M_AXIN_VALID(CRC_VALID),
+			.M_AXIN_READY(CRC_READY),
+			.M_AXIN_DATA( CRC_DATA),
+			.M_AXIN_BYTES({ ign_high, CRC_BYTES }),
+			.M_AXIN_LAST( CRC_LAST),
+			.M_AXIN_ABORT(CRC_ABORT)
+			// }}}
+		);
+
+	end else begin : NO_CRC_CHECK
+		assign	CRC_VALID = PKT_VALID;
+		assign	PKT_READY = CRC_READY;
+		assign	CRC_DATA  = PKT_DATA;
+		assign	CRC_BYTES = PKT_BYTES;
+		assign	CRC_LAST  = PKT_LAST;
+		assign	CRC_ABORT = PKT_ABORT;
+	end endgenerate
 
 	axinwidth #(
 		.IW(64), .OW(PKTDW)
 	) u_rxwidth (
 		// {{{
-		.ACLK(i_fast_clk), .ARESETN(rx_reset_n),
+		.ACLK(i_fast_clk), .ARESETN(fast_reset_n),
 		//
 		.S_AXIN_VALID(CRC_VALID),
 		.S_AXIN_READY(CRC_READY),
@@ -359,7 +375,7 @@ module	netpath #(
 		.LGFIFO(LGCDCRAM)
 	) u_rxcdc (
 		// {{{
-		.S_CLK(i_fast_clk), .S_ARESETN(rx_reset_n),
+		.S_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
 		//
 		.S_VALID(RXWD_VALID),
 		.S_READY(RXWD_READY),
@@ -382,8 +398,8 @@ module	netpath #(
 	assign	M_DATA =(!OPT_LITTLE_ENDIAN) ? SWAP_ENDIAN_PKT(unswapped_m_data)
 				: unswapped_m_data;
 
-	always @(posedge i_fast_clk or negedge rx_reset_n)
-	if (!rx_reset_n)
+	always @(posedge i_fast_clk or negedge fast_reset_n)
+	if (!fast_reset_n)
 		rx_activity <= 0;
 	else if (M_VALID && M_LAST && !M_ABORT)
 		rx_activity <= -1;
@@ -410,7 +426,7 @@ module	netpath #(
 		.S_LAST( S_LAST),
 		.S_ABORT(S_ABORT),
 		//
-		.M_CLK(i_fast_clk), .M_ARESETN(tx_reset_n),
+		.M_CLK(i_fast_clk), .M_ARESETN(fast_reset_n),
 		//
 		.M_VALID(TXCK_VALID),
 		.M_READY(TXCK_READY),
@@ -425,7 +441,7 @@ module	netpath #(
 		.IW(PKTDW), .OW(64)
 	) u_txwidth (
 		// {{{
-		.ACLK(i_sys_clk), .ARESETN(tx_reset_n),
+		.ACLK(i_fast_clk), .ARESETN(fast_reset_n),
 		//
 		.S_AXIN_VALID(TXCK_VALID),
 		.S_AXIN_READY(TXCK_READY),
@@ -447,7 +463,7 @@ module	netpath #(
 		.DW(64), .LGFLEN(LGPKTGATE)
 	) u_pktgate (
 		// {{{
-		.S_AXI_ACLK(i_fast_clk), .S_AXI_ARESETN(tx_reset_n),
+		.S_AXI_ACLK(i_fast_clk), .S_AXI_ARESETN(fast_reset_n),
 		//
 		.S_AXIN_VALID(TXWD_VALID),
 		.S_AXIN_READY(TXWD_READY),
@@ -468,7 +484,7 @@ module	netpath #(
 	pkt2p64b
 	u_pkt2p64b (
 		// {{{
-		.TX_CLK(i_fast_clk), .S_ARESETN(tx_reset_n),
+		.TX_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
 		//
 		.i_remote_fault(remote_fault),
 				.i_local_fault(local_fault || rx_reset_n),
@@ -489,7 +505,7 @@ module	netpath #(
 		.OPT_RX(1'b0), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_scrambler (
 		// {{{
-		.i_clk(i_fast_clk), .i_reset_n(tx_reset_n),
+		.i_clk(i_fast_clk), .i_reset_n(fast_reset_n),
 		//
 		.i_valid(1'b1),
 		.o_ready(tx_ready),
@@ -501,29 +517,39 @@ module	netpath #(
 		// }}}
 	);
 
+	p66btxgears
+	u_p66btxgears (
+		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
+		.S_READY(tx66b_ready),
+		.S_DATA( tx66b_data),
+		.i_ready(!tx64b_full),
+		.o_data(tx64b_data)
+	);
+
+
 	afifo #(
 		.LGFIFO(LGCDCRAM),
-		.WIDTH(66)
+		.WIDTH(64)
 	) tx_afifo (
 		.i_wclk(i_fast_clk), .i_wr_reset_n(fast_reset_n),
 		.i_wr(1'b1),
-		.i_wr_data(tx66b_data),
-		.o_wr_full(tx66b_full),
+		.i_wr_data(tx64b_data),
+		.o_wr_full(tx64b_full),
 
 		.i_rclk(i_tx_clk), .i_rd_reset_n(tx_reset_n),
-		.i_rd(tx_fast_ready),
+		.i_rd(tx_phase),
 		.o_rd_data(tx_fast_data),
 		.o_rd_empty(ign_tx_fast_empty)
 	);
-	assign	tx66b_ready = !tx66b_full;
 
-	p66btxgears
-	u_p66btxgears (
-		.i_clk(i_tx_clk), .i_reset(!tx_reset_n),
-		.S_READY(tx_fast_ready),
-		.S_DATA( tx_fast_data),
-		.o_data(o_raw_data)
-	);
+	always @(posedge i_tx_clk or negedge tx_reset_n)
+	if (!tx_reset_n)
+		tx_phase <= 0;
+	else
+		tx_phase <= !tx_phase;
+
+	always @(posedge i_tx_clk)
+		o_raw_data<=(tx_phase)? tx_fast_data[63:32]:tx_fast_data[31:0];
 
 	assign	tx_link_up = tx_reset_n;
 
@@ -534,7 +560,6 @@ module	netpath #(
 		tx_activity <= -1;
 	else if (tx_activity != 0)
 		tx_activity <= tx_activity - 1;
-
 	// }}}
 
 	assign	o_link_up = rx_link_up && tx_link_up;

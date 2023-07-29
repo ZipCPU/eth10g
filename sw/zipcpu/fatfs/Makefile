@@ -35,6 +35,8 @@
 ## }}}
 CC := zip-gcc
 AR := zip-ar
+RDELF   := zip-readelf
+OBJDUMP := zip-objdump
 OBJDIR  := obj-zip
 INCS    := -I. -I../../../rtl -I../zlib -I../board
 CFLAGS  := -O3 $(INCS)
@@ -50,6 +52,10 @@ $(OBJDIR)/%.o: %.c
 $(OBJDIR)/%.s: %.c
 	$(mk-objdir)
 	$(CC) $(CFLAGS) -fdump-rtl-all -S $< -o $@
+
+$(OBJDIR)/%.txt: $(OBJDIR)/%.o
+	bash -c "$(RDELF) -a $^ ; $(OBJDUMP) -S -D $^ " | tee -a $@
+
 
 $(FATLIB): $(LIBOBJS)
 	$(AR) -cru $@ $(LIBOBJS)

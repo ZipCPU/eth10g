@@ -62,11 +62,38 @@
 	// @$(NAME) definitions
 	// {{{
 	wire	i_@$(PREFIX)_ds;
+`ifdef	VERILATOR
+	genvar		g_@$(PREFIX);
+	wire		w_@$(PREFIX)_cmd_tristate;
+	wire		i_@$(PREFIX)_cmd, o_@$(PREFIX)_cmd;
+	wire	[@$(NUMIO)-1:0]	w_@$(PREFIX)_dat_tristate;
+	wire	[@$(NUMIO)-1:0]	i_@$(PREFIX)_dat, o_@$(PREFIX)_dat;
+`endif
 	// }}}
+@TOP.INSERT=
+`ifdef	VERILATOR
+	assign	io_sdcard_cmd = (w_@$(PREFIX)_cmd_tristate) ? 1'bz
+				: o_@$(PREFIX)_cmd;
+	assign	i_@$(PREFIX)_cmd = io_sdcard_cmd;
+
+	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NUMIO); g_@$(PREFIX)=g_@$(PREFIX)+1)
+	begin : GEN_@$(PREFIX)_IO
+		assign	io_sdcard_dat[g_@$(PREFIX)] = (w_@$(PREFIX)_dat_tristate[g_@$(PREFIX)]) ? 1'bz : o_@$(PREFIX)_dat[g_@$(PREFIX)];
+	end endgenerate
+
+	assign	i_@$(PREFIX)_dat = io_sdcard_dat;
+`endif
 @TOP.MAIN=
 		// @$(NAME)
 		o_sdcard_clk, i_@$(PREFIX)_ds,
+`ifdef	VERILATOR
+		w_@$(PREFIX)_cmd_tristate,
+		o_@$(PREFIX)_cmd, i_@$(PREFIX)_cmd,
+		w_@$(PREFIX)_dat_tristate,
+		o_@$(PREFIX)_dat, i_@$(PREFIX)_dat,
+`else
 		io_sdcard_cmd, io_sdcard_dat,
+`endif
 		!i_sdcard_cd_n
 @TOP.INSERT=
 	assign	i_@$(PREFIX)_ds = 1'b0;

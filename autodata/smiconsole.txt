@@ -40,11 +40,11 @@
 @ACCESS=SMI_CONSOLE
 @TOP.PORTLIST=
 		// SMI
-		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa, io_@$(PREFIX)_sd
+		// i_@$(PREFIX)_sa has been removed.  The pins aren't working
+		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, io_@$(PREFIX)_sd
 @TOP.IODECL=
 	// SMI
 	input	wire		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen;
-	input	wire	[5:0]	i_@$(PREFIX)_sa;
 	inout	wire	[17:0]	io_@$(PREFIX)_sd;
 @TOP.DEFNS=
 	// SMI
@@ -69,17 +69,16 @@
 	// }}}
 @TOP.MAIN=
 		// SMI bus control
-		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa,
+		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen,
 		i_@$(PREFIX)_sd, o_@$(PREFIX)_sd, w_@$(PREFIX)_oen
 @MAIN.PORTLIST=
 		// SMI
-		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen, i_@$(PREFIX)_sa,
+		i_@$(PREFIX)_oen, i_@$(PREFIX)_wen,
 		i_@$(PREFIX)_sd, o_@$(PREFIX)_sd, o_@$(PREFIX)_oen
 @MAIN.IODECL=
 	// SMI I/Os
 	// {{{
 	input	wire	i_@$(PREFIX)_oen, i_@$(PREFIX)_wen;
-	input	wire	[5:0]	i_@$(PREFIX)_sa;
 	input wire	[17:0]	i_@$(PREFIX)_sd;
 	output wire	[17:0]	o_@$(PREFIX)_sd;
 	output wire		o_@$(PREFIX)_oen;
@@ -109,7 +108,6 @@
 		// SMI interface
 		.i_smi_oen(	i_@$(PREFIX)_oen),
 		.i_smi_wen(	i_@$(PREFIX)_wen),
-		.i_smi_sa(	i_@$(PREFIX)_sa),
 		.i_smi_data(	i_@$(PREFIX)_sd),
 		.o_smi_data(	o_@$(PREFIX)_sd),
 		.o_smi_oen(	o_@$(PREFIX)_oen),

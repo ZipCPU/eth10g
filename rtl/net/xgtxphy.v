@@ -42,10 +42,10 @@ module	xgtxphy #(
 		// {{{
 		// TX path, from IP to PHY
 		output	wire	[NDEV-1:0]	S_CLK,
-		input	wire	[64*NDEV-1:0]	S_DATA,
+		input	wire	[32*NDEV-1:0]	S_DATA,
 		// RX path, from PHY to IP
 		output	wire	[NDEV-1:0]	M_CLK,
-		output	wire	[64*NDEV-1:0]	M_DATA,
+		output	wire	[32*NDEV-1:0]	M_DATA,
 		// }}}
 		// Pad connections from PHY
 		// {{{
@@ -182,8 +182,8 @@ module	xgtxphy #(
 		// Per port declarations
 		// {{{
 		wire		gtx_rx_fault;
-		reg	[1:0]	rx_fault_pipe;
-		reg		r_phy_fault; 
+		(* ASYNC_REG = "TRUE" *) reg	[1:0]	rx_fault_pipe;
+		(* ASYNC_REG = "TRUE" *) reg		r_phy_fault; 
 		wire		rx_invalid_alignment_fsm,
 				tx_reset_done,
 				tx_gearbox_ready,
@@ -779,7 +779,7 @@ module	xgtxphy #(
 			.RXDATAVALID(ign_rx_data_valid),
 			.RXGEARBOXSLIP(1'b0),
 			.RXHEADER(ign_rx_header),
-			.RXDATA(M_DATA[gk*64 +: 64]),
+			.RXDATA(M_DATA[gk*32 +: 32]),
 			.RXHEADERVALID(ign_rx_header_valid),
 			// }}}
 			// Constants

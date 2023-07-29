@@ -1,0 +1,21 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+
+[engines]
+smtbmc
+
+[script]
+read -formal p66btxgears.v
+--pycode-begin--
+cmd = "hierarchy -top p66btxgears"
+output(cmd)
+--pycode-end--
+prep -top p66btxgears
+
+[files]
+../../rtl/net/p66btxgears.v

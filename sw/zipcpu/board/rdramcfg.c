@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "zipcpu.h"
 #include "zipsys.h"
 #include "board.h"
 
@@ -116,6 +117,7 @@ int main(int argc, char **argv) {
 	if (c & 0x080000) {
 		// We successfully read everything.  Examine the results
 		// {{{
+		CLEAR_DCACHE;
 		printf("DDR3 Info:\n"
 			"-------------------\n");
 

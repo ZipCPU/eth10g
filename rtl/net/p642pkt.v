@@ -104,10 +104,20 @@ module	p642pkt (
 	// 5. Pack data words
 	// 6. Generate LAST and flush the packing circuit
 
+	// Cross clock domains
+	(* ASYNC_REG = "TRUE" *)	reg		r_fault;
+	(* ASYNC_REG = "TRUE" *)	reg	[1:0]	r_fault_pipe;
+	initial	{ r_fault, r_fault_pipe } = -1;
+	always @(posedge RX_CLK)
+	if (!S_ARESETN)
+		{ r_fault, r_fault_pipe } <= -1;
+	else
+		{ r_fault, r_fault_pipe } <= { r_fault_pipe, i_phy_fault };
+
 	// pstate
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || i_phy_fault)
+	if (!S_ARESETN || r_fault)
 		pstate <= PRE_IDLE;
 	else if (RX_VALID)
 	case(pstate)
@@ -141,7 +151,7 @@ module	p642pkt (
 	//	four bytes to output, and four bytes to reserve for the next
 	//	cycle.
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || i_phy_fault)
+	if (!S_ARESETN || r_fault)
 		{ phalf, poffset } <= 2'b00;
 	else if (RX_VALID)
 	case(pstate)
@@ -516,7 +526,7 @@ module	p642pkt (
 		M_ABORT <= 1'b0;
 	else if (RX_VALID && dly_valid && M_VALID && !M_READY)
 		M_ABORT <= 1'b1;
-	else if (i_phy_fault && ((dly_valid && !dly_last)
+	else if (r_fault && ((dly_valid && !dly_last)
 					|| (M_VALID && !M_READY && !M_LAST)))
 		M_ABORT <= 1'b1;
 	else if (dly_valid && !M_ABORT)

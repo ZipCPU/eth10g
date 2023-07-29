@@ -167,6 +167,7 @@ DRESULT	disk_read(
 		return RES_ERROR;
 	}
 
+#define	BROKEN
 #ifdef	BROKEN
 	return (*DRIVES[pdrv].fd_driver->dio_read)(DRIVES[pdrv].fd_data,
 					sector, count, buff);

@@ -70,7 +70,7 @@ typedef	struct	FATDRIVE_S {
 #define	MAX_DRIVES	4
 FATDRIVE	DRIVES[MAX_DRIVES] = {
 #ifdef	_BOARD_HAS_SDIO
-		{ (void *)_sdcard, &SDIODRVR, NULL },
+		{ (void *)_sdio, &SDIODRVR, NULL },
 #else
 		{ NULL, NULL, NULL },
 #endif

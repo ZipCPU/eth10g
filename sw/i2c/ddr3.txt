@@ -8,12 +8,10 @@
 	SEND	I2CMX|WR
 	SEND	0x02
 	STOP
-	START
 	//
 	START
 	SEND	DDR3|WR	
 	SEND	0x00		// Starting address
-	STOP
 	START
 	SEND	DDR3|RD
 	RXK

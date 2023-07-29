@@ -100,7 +100,7 @@ module tb_netpath;
 	//   so this is supposed to be about 12.121ps
 	localparam realtime	CLOCK_PERIOD = 1.0 / BAUD_RATE;
 
-	reg	wb_clk, phy_refclk, wb_reset;
+	reg	wb_clk, phy_refclk, wb_reset, s_clk200;
 	wire	phy_fault, fpga_tx_clk, fpga_rx_clk;
 	wire	[63:0]	fpga_rx_data, fpga_tx_data;
 
@@ -112,6 +112,7 @@ module tb_netpath;
 	// initial begin ACLK = 1'b0; forever #(CLOCK_PERIOD/2) ACLK = !ACLK; end
 	parameter	realtime	WB_CLK_PERIOD = 10;
 	parameter	realtime	PHY_REFCLK_PERIOD = 6.4;
+	parameter	realtime	FAST_CLK_PERIOD = 5.0;
 
 	initial	wb_clk = 1'b0;
 	always
@@ -120,6 +121,10 @@ module tb_netpath;
 	initial	phy_refclk = 1'b0;
 	always
 		#(PHY_REFCLK_PERIOD/2) phy_refclk = !phy_refclk;
+
+	initial	s_clk200 = 1'b0;
+	always
+		#(FAST_CLK_PERIOD/2) s_clk200 = !s_clk200;
 
 	initial begin
 		wb_reset <= 1;
@@ -287,6 +292,12 @@ module tb_netpath;
 	wire			m2p_stall, m2p_ack;
 	wire	[31:0]		m2p_data;
 
+	wire			m2pd_cyc, m2pd_stb, m2pd_we,
+				m2pd_stall, m2pd_ack;
+	wire	[AW-1:0]	m2pd_addr;
+	wire	[DW-1:0]	m2pd_data, m2pd_idata;
+	wire	[DW/8-1:0]	m2pd_sel;
+
 	wire			mem_cyc, mem_stb, mem_we,
 				mem_stall, mem_ack, mem_err;
 	wire	[AW-1:0]	mem_addr;
@@ -370,7 +381,7 @@ module tb_netpath;
 	u_netpath (
 		.i_rx_clk(fpga_rx_clk), .i_tx_clk(fpga_tx_clk),
 		.i_reset_n(!wb_reset),
-		.i_sys_clk(wb_clk),
+		.i_sys_clk(wb_clk), .i_fast_clk(s_clk200),
 		.o_link_up(led_link_up), .o_activity(led_activity),
 		//
 		.i_phy_fault(phy_fault),
@@ -631,7 +642,7 @@ module tb_netpath;
 
 		last_pointer = 32'h0;
 		forever begin
-			bfm_read(3'h3, read_data);
+			bfm_read(3'h2, read_data);
 			if (read_data != last_pointer)
 			begin
 				// A new packet has arrived.  Tell the

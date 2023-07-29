@@ -39,7 +39,7 @@
 //
 module iscachable(
 		// {{{
-		input	wire	[21-1:0]	i_addr,
+		input	wire	[20-1:0]	i_addr,
 		output	reg			o_cachable
 		// }}}
 	);
@@ -51,7 +51,7 @@ module iscachable(
 		// Bus master: wb32
 		// Bus master: wb32_sio
 		// bkram
-		if ((i_addr[20:0] & 21'h100000) == 21'h100000)
+		if ((i_addr[19:0] & 20'h80000) == 20'h80000)
 			o_cachable = 1'b1;
 	end
 

@@ -185,12 +185,12 @@ module	main(i_clk, i_reset,
 `ifdef	FLASH_ACCESS
 	localparam	RESET_ADDRESS = @$RESET_ADDRESS;
 `else
-	localparam	RESET_ADDRESS = 1048576;
+	localparam	RESET_ADDRESS = 524288;
 `endif	// FLASH_ACCESS
 `endif	// BKROM_ACCESS
 	//
 	// The number of valid bits on the bus
-	localparam	ZIP_ADDRESS_WIDTH = 15; // Zip-CPU address width
+	localparam	ZIP_ADDRESS_WIDTH = 14; // Zip-CPU address width
 	//
 	// Number of ZipCPU interrupts
 	localparam	ZIP_INTS = 16;
@@ -287,7 +287,7 @@ module	main(i_clk, i_reset,
 	//
 `ifdef	VERILATOR
 	output	wire		cpu_prof_stb;
-	output	wire	[15+$clog2(512/8)-1:0]	cpu_prof_addr;
+	output	wire	[14+$clog2(512/8)-1:0]	cpu_prof_addr;
 	output	wire [31:0]	cpu_prof_ticks;
 `endif
 	input	wire		i_cpu_reset;
@@ -437,7 +437,7 @@ module	main(i_clk, i_reset,
 	// {{{
 `ifndef	VERILATOR
 	wire		cpu_prof_stb;
-	wire	[15+$clog2(512/8)-1:0]	cpu_prof_addr;
+	wire	[14+$clog2(512/8)-1:0]	cpu_prof_addr;
 	wire [31:0]	cpu_prof_ticks;
 `endif
 	// All we define here is a set of scope wires
@@ -500,7 +500,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component cpunet
 	// Verilator lint_off UNUSED
 	wire		wbwide_cpunetm_cyc, wbwide_cpunetm_stb, wbwide_cpunetm_we;
-	wire	[14:0]	wbwide_cpunetm_addr;
+	wire	[13:0]	wbwide_cpunetm_addr;
 	wire	[511:0]	wbwide_cpunetm_data;
 	wire	[63:0]	wbwide_cpunetm_sel;
 	wire		wbwide_cpunetm_stall, wbwide_cpunetm_ack, wbwide_cpunetm_err;
@@ -509,7 +509,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component gnet
 	// Verilator lint_off UNUSED
 	wire		wbwide_gnet_cyc, wbwide_gnet_stb, wbwide_gnet_we;
-	wire	[14:0]	wbwide_gnet_addr;
+	wire	[13:0]	wbwide_gnet_addr;
 	wire	[511:0]	wbwide_gnet_data;
 	wire	[63:0]	wbwide_gnet_sel;
 	wire		wbwide_gnet_stall, wbwide_gnet_ack, wbwide_gnet_err;
@@ -518,7 +518,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component i2cdma
 	// Verilator lint_off UNUSED
 	wire		wbwide_i2cdma_cyc, wbwide_i2cdma_stb, wbwide_i2cdma_we;
-	wire	[14:0]	wbwide_i2cdma_addr;
+	wire	[13:0]	wbwide_i2cdma_addr;
 	wire	[511:0]	wbwide_i2cdma_data;
 	wire	[63:0]	wbwide_i2cdma_sel;
 	wire		wbwide_i2cdma_stall, wbwide_i2cdma_ack, wbwide_i2cdma_err;
@@ -527,7 +527,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component i2c
 	// Verilator lint_off UNUSED
 	wire		wbwide_i2cm_cyc, wbwide_i2cm_stb, wbwide_i2cm_we;
-	wire	[14:0]	wbwide_i2cm_addr;
+	wire	[13:0]	wbwide_i2cm_addr;
 	wire	[511:0]	wbwide_i2cm_data;
 	wire	[63:0]	wbwide_i2cm_sel;
 	wire		wbwide_i2cm_stall, wbwide_i2cm_ack, wbwide_i2cm_err;
@@ -536,7 +536,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component zip
 	// Verilator lint_off UNUSED
 	wire		wbwide_zip_cyc, wbwide_zip_stb, wbwide_zip_we;
-	wire	[14:0]	wbwide_zip_addr;
+	wire	[13:0]	wbwide_zip_addr;
 	wire	[511:0]	wbwide_zip_data;
 	wire	[63:0]	wbwide_zip_sel;
 	wire		wbwide_zip_stall, wbwide_zip_ack, wbwide_zip_err;
@@ -545,7 +545,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component wbu_arbiter
 	// Verilator lint_off UNUSED
 	wire		wbwide_wbu_arbiter_cyc, wbwide_wbu_arbiter_stb, wbwide_wbu_arbiter_we;
-	wire	[14:0]	wbwide_wbu_arbiter_addr;
+	wire	[13:0]	wbwide_wbu_arbiter_addr;
 	wire	[511:0]	wbwide_wbu_arbiter_data;
 	wire	[63:0]	wbwide_wbu_arbiter_sel;
 	wire		wbwide_wbu_arbiter_stall, wbwide_wbu_arbiter_ack, wbwide_wbu_arbiter_err;
@@ -554,7 +554,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component wbdown
 	// Verilator lint_off UNUSED
 	wire		wbwide_wbdown_cyc, wbwide_wbdown_stb, wbwide_wbdown_we;
-	wire	[14:0]	wbwide_wbdown_addr;
+	wire	[13:0]	wbwide_wbdown_addr;
 	wire	[511:0]	wbwide_wbdown_data;
 	wire	[63:0]	wbwide_wbdown_sel;
 	wire		wbwide_wbdown_stall, wbwide_wbdown_ack, wbwide_wbdown_err;
@@ -563,7 +563,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbwide, component bkram
 	// Verilator lint_off UNUSED
 	wire		wbwide_bkram_cyc, wbwide_bkram_stb, wbwide_bkram_we;
-	wire	[14:0]	wbwide_bkram_addr;
+	wire	[13:0]	wbwide_bkram_addr;
 	wire	[511:0]	wbwide_bkram_data;
 	wire	[63:0]	wbwide_bkram_sel;
 	wire		wbwide_bkram_stall, wbwide_bkram_ack, wbwide_bkram_err;
@@ -731,7 +731,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbu, component wbu
 	// Verilator lint_off UNUSED
 	wire		wbu_cyc, wbu_stb, wbu_we;
-	wire	[19:0]	wbu_addr;
+	wire	[18:0]	wbu_addr;
 	wire	[31:0]	wbu_data;
 	wire	[3:0]	wbu_sel;
 	wire		wbu_stall, wbu_ack, wbu_err;
@@ -740,7 +740,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbu, component wbu_arbiter
 	// Verilator lint_off UNUSED
 	wire		wbu_wbu_arbiter_cyc, wbu_wbu_arbiter_stb, wbu_wbu_arbiter_we;
-	wire	[19:0]	wbu_wbu_arbiter_addr;
+	wire	[18:0]	wbu_wbu_arbiter_addr;
 	wire	[31:0]	wbu_wbu_arbiter_data;
 	wire	[3:0]	wbu_wbu_arbiter_sel;
 	wire		wbu_wbu_arbiter_stall, wbu_wbu_arbiter_ack, wbu_wbu_arbiter_err;
@@ -749,7 +749,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wbu, component zip
 	// Verilator lint_off UNUSED
 	wire		wbu_zip_cyc, wbu_zip_stb, wbu_zip_we;
-	wire	[19:0]	wbu_zip_addr;
+	wire	[18:0]	wbu_zip_addr;
 	wire	[31:0]	wbu_zip_data;
 	wire	[3:0]	wbu_zip_sel;
 	wire		wbu_zip_stall, wbu_zip_ack, wbu_zip_err;
@@ -779,18 +779,18 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(6), .NS(2), .AW(15), .DW(512),
+		.NM(6), .NS(2), .AW(14), .DW(512),
 		.SLAVE_ADDR({
-			// Address width    = 15
+			// Address width    = 14
 			// Address LSBs     = 6
-			{ 15'h4000 }, //  bkram: 0x100000
-			{ 15'h2000 }  // wbdown: 0x080000
+			{ 14'h2000 }, //  bkram: 0x80000
+			{ 14'h1000 }  // wbdown: 0x40000
 		}),
 		.SLAVE_MASK({
-			// Address width    = 15
+			// Address width    = 14
 			// Address LSBs     = 6
-			{ 15'h4000 }, //  bkram
-			{ 15'h6000 }  // wbdown
+			{ 14'h2000 }, //  bkram
+			{ 14'h3000 }  // wbdown
 		}),
 		.OPT_DBLBUFFER(1'b1))
 	wbwide_xbar(
@@ -1218,18 +1218,18 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(1), .NS(2), .AW(20), .DW(32),
+		.NM(1), .NS(2), .AW(19), .DW(32),
 		.SLAVE_ADDR({
-			// Address width    = 20
+			// Address width    = 19
 			// Address LSBs     = 2
-			{ 20'h80000 }, //         zip: 0x200000
-			{ 20'h00000 }  // wbu_arbiter: 0x000000
+			{ 19'h40000 }, //         zip: 0x100000
+			{ 19'h00000 }  // wbu_arbiter: 0x000000
 		}),
 		.SLAVE_MASK({
-			// Address width    = 20
+			// Address width    = 19
 			// Address LSBs     = 2
-			{ 20'h80000 }, //         zip
-			{ 20'h80000 }  // wbu_arbiter
+			{ 19'h40000 }, //         zip
+			{ 19'h40000 }  // wbu_arbiter
 		}),
 		.OPT_DBLBUFFER(1'b1))
 	wbu_xbar(
@@ -1389,7 +1389,7 @@ module	main(i_clk, i_reset,
 	// {{{
 
 	cpunet #(
-		.AW(15),
+		.AW(14),
 		.DW(512),
 		.PKTDW(128)
 	) u_cpunet (
@@ -1416,7 +1416,7 @@ module	main(i_clk, i_reset,
 		.TX_ABORT(cpunet_tx_abort),
 		//
 		.o_dma_cyc(wbwide_cpunetm_cyc), .o_dma_stb(wbwide_cpunetm_stb), .o_dma_we(wbwide_cpunetm_we),
-			.o_dma_addr(wbwide_cpunetm_addr[15-1:0]),
+			.o_dma_addr(wbwide_cpunetm_addr[14-1:0]),
 			.o_dma_data(wbwide_cpunetm_data), // 512 bits wide
 			.o_dma_sel(wbwide_cpunetm_sel),  // 512/8 bits wide
 		.i_dma_stall(wbwide_cpunetm_stall), .i_dma_ack(wbwide_cpunetm_ack), .i_dma_data(wbwide_cpunetm_idata), .i_dma_err(wbwide_cpunetm_err),
@@ -1525,7 +1525,7 @@ module	main(i_clk, i_reset,
 		.DEF_BASEADDR(0),
 		.DEF_MEMSIZE(0),
 		.BUSDW(512),
-		.AW(15),
+		.AW(14),
 		.OPT_VFIFO(1'b0)
 	) u_router (
 		// {{{
@@ -1561,7 +1561,7 @@ module	main(i_clk, i_reset,
 		.o_ctrl_stall(wb32_gnet_stall),.o_ctrl_ack(wb32_gnet_ack), .o_ctrl_data(wb32_gnet_idata),
 		// VFIFO memory interface
 		.o_vfifo_cyc(wbwide_gnet_cyc), .o_vfifo_stb(wbwide_gnet_stb), .o_vfifo_we(wbwide_gnet_we),
-			.o_vfifo_addr(wbwide_gnet_addr[15-1:0]),
+			.o_vfifo_addr(wbwide_gnet_addr[14-1:0]),
 			.o_vfifo_data(wbwide_gnet_data), // 512 bits wide
 			.o_vfifo_sel(wbwide_gnet_sel),  // 512/8 bits wide
 		.i_vfifo_stall(wbwide_gnet_stall), .i_vfifo_ack(wbwide_gnet_ack), .i_vfifo_data(wbwide_gnet_idata), .i_vfifo_err(wbwide_gnet_err),
@@ -1611,14 +1611,14 @@ module	main(i_clk, i_reset,
 `ifdef	BKRAM_ACCESS
 	// {{{
 	memdev #(
-		.LGMEMSZ(20),
+		.LGMEMSZ(19),
 		.DW(512),
 		.EXTRACLOCK(1)
 	) bkrami(
 		.i_clk(i_clk),
 		.i_reset(i_reset),
 		.i_wb_cyc(wbwide_bkram_cyc), .i_wb_stb(wbwide_bkram_stb), .i_wb_we(wbwide_bkram_we),
-			.i_wb_addr(wbwide_bkram_addr[14-1:0]),
+			.i_wb_addr(wbwide_bkram_addr[13-1:0]),
 			.i_wb_data(wbwide_bkram_data), // 512 bits wide
 			.i_wb_sel(wbwide_bkram_sel),  // 512/8 bits wide
 		.o_wb_stall(wbwide_bkram_stall),.o_wb_ack(wbwide_bkram_ack), .o_wb_data(wbwide_bkram_idata)
@@ -1697,7 +1697,7 @@ module	main(i_clk, i_reset,
 `ifdef	I2CDMA_ACCESS
 	// {{{
 	wbi2cdma #(
-		.AW(15), .DW(512), .SW(8),
+		.AW(14), .DW(512), .SW(8),
 		.OPT_LITTLE_ENDIAN(1'b0)
 	) u_i2cdma (
 		.i_clk(i_clk),
@@ -1711,7 +1711,7 @@ module	main(i_clk, i_reset,
 		.S_VALID(i2c_valid && i2c_id == 2), .S_READY(i2cdma_ready),
 			.S_DATA(i2c_data), .S_LAST(i2c_last),
 		.o_dma_cyc(wbwide_i2cdma_cyc), .o_dma_stb(wbwide_i2cdma_stb), .o_dma_we(wbwide_i2cdma_we),
-			.o_dma_addr(wbwide_i2cdma_addr[15-1:0]),
+			.o_dma_addr(wbwide_i2cdma_addr[14-1:0]),
 			.o_dma_data(wbwide_i2cdma_data), // 512 bits wide
 			.o_dma_sel(wbwide_i2cdma_sel),  // 512/8 bits wide
 		.i_dma_stall(wbwide_i2cdma_stall), .i_dma_ack(wbwide_i2cdma_ack), .i_dma_data(wbwide_i2cdma_idata), .i_dma_err(wbwide_i2cdma_err)
@@ -1873,7 +1873,7 @@ module	main(i_clk, i_reset,
 	// {{{
 
 	wbi2ccpu #(
-		.ADDRESS_WIDTH(15),
+		.ADDRESS_WIDTH(14),
 		.DATA_WIDTH(512),
 		.AXIS_ID_WIDTH(2)
 	) i2ci (
@@ -1885,7 +1885,7 @@ module	main(i_clk, i_reset,
 			.i_wb_sel(wb32_i2cs_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_i2cs_stall),.o_wb_ack(wb32_i2cs_ack), .o_wb_data(wb32_i2cs_idata),
 		.o_pf_cyc(wbwide_i2cm_cyc), .o_pf_stb(wbwide_i2cm_stb), .o_pf_we(wbwide_i2cm_we),
-			.o_pf_addr(wbwide_i2cm_addr[15-1:0]),
+			.o_pf_addr(wbwide_i2cm_addr[14-1:0]),
 			.o_pf_data(wbwide_i2cm_data), // 512 bits wide
 			.o_pf_sel(wbwide_i2cm_sel),  // 512/8 bits wide
 		.i_pf_stall(wbwide_i2cm_stall), .i_pf_ack(wbwide_i2cm_ack), .i_pf_data(wbwide_i2cm_idata), .i_pf_err(wbwide_i2cm_err),
@@ -2080,7 +2080,7 @@ module	main(i_clk, i_reset,
 		.i_clk(i_clk), .i_reset(i_reset || i_cpu_reset),
 			// Zipsys wishbone interface
 			.o_wb_cyc(wbwide_zip_cyc), .o_wb_stb(wbwide_zip_stb), .o_wb_we(wbwide_zip_we),
-			.o_wb_addr(wbwide_zip_addr[15-1:0]),
+			.o_wb_addr(wbwide_zip_addr[14-1:0]),
 			.o_wb_data(wbwide_zip_data), // 512 bits wide
 			.o_wb_sel(wbwide_zip_sel),  // 512/8 bits wide
 		.i_wb_stall(wbwide_zip_stall), .i_wb_ack(wbwide_zip_ack), .i_wb_data(wbwide_zip_idata), .i_wb_err(wbwide_zip_err),
@@ -2283,7 +2283,7 @@ module	main(i_clk, i_reset,
 `endif
 
 	assign	wbu_sel = 4'hf;
-	assign	wbu_addr = wbu_tmp_addr[(20-1):0];
+	assign	wbu_addr = wbu_tmp_addr[(19-1):0];
 	// }}}
 	// }}}
 `else	// WBUBUS_MASTER
@@ -2315,7 +2315,7 @@ module	main(i_clk, i_reset,
 `else
 	wbicapetwo #(
 		.LGDIV(ICAPE_LGDIV)
-	) u_cfgport(
+	) u_cfg(
 		.i_clk(i_clk),
 		.i_wb_cyc(wb32_cfg_cyc), .i_wb_stb(wb32_cfg_stb), .i_wb_we(wb32_cfg_we),
 			.i_wb_addr(wb32_cfg_addr[5-1:0]),
@@ -2422,7 +2422,7 @@ module	main(i_clk, i_reset,
 	// {{{
 	wbupsz #(
 		// {{{
-		.ADDRESS_WIDTH(15+$clog2(512/8)),
+		.ADDRESS_WIDTH(14+$clog2(512/8)),
 		.SMALL_DW(32),
 		.WIDE_DW(512),
 		.OPT_LITTLE_ENDIAN(1'b0)
@@ -2432,12 +2432,12 @@ module	main(i_clk, i_reset,
 		.i_clk(i_clk),
 		.i_reset(i_reset),
 		.i_scyc(wbu_wbu_arbiter_cyc), .i_sstb(wbu_wbu_arbiter_stb), .i_swe(wbu_wbu_arbiter_we),
-			.i_saddr(wbu_wbu_arbiter_addr[19-1:0]),
+			.i_saddr(wbu_wbu_arbiter_addr[18-1:0]),
 			.i_sdata(wbu_wbu_arbiter_data), // 32 bits wide
 			.i_ssel(wbu_wbu_arbiter_sel),  // 32/8 bits wide
 		.o_sstall(wbu_wbu_arbiter_stall),.o_sack(wbu_wbu_arbiter_ack), .o_sdata(wbu_wbu_arbiter_idata), .o_serr(wbu_wbu_arbiter_err),
 		.o_wcyc(wbwide_wbu_arbiter_cyc), .o_wstb(wbwide_wbu_arbiter_stb), .o_wwe(wbwide_wbu_arbiter_we),
-			.o_waddr(wbwide_wbu_arbiter_addr[15-1:0]),
+			.o_waddr(wbwide_wbu_arbiter_addr[14-1:0]),
 			.o_wdata(wbwide_wbu_arbiter_data), // 512 bits wide
 			.o_wsel(wbwide_wbu_arbiter_sel),  // 512/8 bits wide
 		.i_wstall(wbwide_wbu_arbiter_stall), .i_wack(wbwide_wbu_arbiter_ack), .i_wdata(wbwide_wbu_arbiter_idata), .i_werr(wbwide_wbu_arbiter_err)

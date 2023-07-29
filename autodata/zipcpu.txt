@@ -51,8 +51,8 @@
 # @INT.ZIP.WIRE=zip_cpu_int
 # @INT.ZIP.BUS=buspic
 @CACHABLE.FILE=iscachable.v
-@LGICACHE=12
-@LGDCACHE=12
+@LGICACHE=10
+@LGDCACHE=10
 @TOP.PORTLIST=
 #		// A reset wire for the ZipCPU
 #		i_cpu_resetn
@@ -63,11 +63,21 @@
 	// Verilator lint_off UNUSED
 	wire		ign_cpu_stall, ign_cpu_ack;
 	wire	[31:0]	ign_cpu_idata;
+`ifdef	VERILATOR
+	wire		ign_cpu_prof_stb;
+	wire	[@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)-1:0] ign_cpu_prof_addr;
+	wire [31:0]	ign_cpu_prof_ticks;
+`endif
 	// Verilator lint_on  UNUSED
 @TOP.MAIN=
-		// Reset wire for the ZipCPU
+		// (Unused) ZipCPU Simulation port
 		1'b0, 1'b0, 1'b0, 7'h0, 32'h0,
-		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata, s_reset
+		ign_cpu_stall, ign_cpu_ack, ign_cpu_idata,
+`ifdef	VERILATOR
+		ign_cpu_prof_stb, ign_cpu_prof_addr, ign_cpu_prof_ticks,
+`endif
+		// ZipCPU reset port
+		s_reset
 @MAIN.INCLUDE=
 `define INCLUDE_DMA_CONTROLLER
 `define INCLUDE_ACCOUNTING_COUNTERS

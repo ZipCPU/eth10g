@@ -46,7 +46,7 @@
 			o_gnet_linkup, o_gnet_activity,
 			o_gnet_p, o_gnet_n,
 			i_gnet_p, i_gnet_n,
-			i_clk_156mhz_p, i_clk_156mhz_n,
+			i_clk_156mhz_p, i_clk_156mhz_n
 @TOP.IODECL=
 	// 10Gb Ethernet
 	input	wire	[@$(NDEV)-1:0]	i_gnet_los;
@@ -59,8 +59,8 @@
 @TOP.DEFNS=
 	// 10Gb Ethernet
 	wire	[@$(NDEV)-1:0]		gnet_rx_clk, gnet_tx_clk;
-	wire	[66*@$(NDEV)-1:0]	gnet_rx_data;
-	wire	[66*@$(NDEV)-1:0]	gnet_tx_data;
+	wire	[32*@$(NDEV)-1:0]	gnet_rx_data;
+	wire	[32*@$(NDEV)-1:0]	gnet_tx_data;
 	wire	[@$(NDEV)-1:0]		gnet_phy_fault;
 @TOP.INSERT=
 	assign	o_gnettx_disable = 0;
@@ -95,9 +95,9 @@
 	// 10Gb Ethernet
 	// {{{
 	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_rx_clk;
-	input	wire [64*@$(NDEV)-1:0]	i_@$(PREFIX)_rx_data;
+	input	wire [32*@$(NDEV)-1:0]	i_@$(PREFIX)_rx_data;
 	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_tx_clk;
-	output	wire [64*@$(NDEV)-1:0]	o_@$(PREFIX)_tx_data;
+	output	wire [32*@$(NDEV)-1:0]	o_@$(PREFIX)_tx_data;
 	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_phy_fault;
 	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_linkup;
 	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_activity;
@@ -122,6 +122,7 @@
 	wire	[4*@$(NDEV)-1:0]	@$(PREFIX)_tx_bytes;
 	// }}}
 	genvar	g_@$(PREFIX);
+@GENDCD=GEN_ETHERNET_DECODE
 @MAIN.INSERT=
 	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+1)
 	begin : GEN_ETHERNET_DECODE
@@ -129,6 +130,7 @@
 		u_netpath (
 			// {{{
 			.i_sys_clk(i_clk),
+			.i_fast_clk(i_clk200),
 			.i_reset_n(!i_reset),
 			.i_rx_clk(i_@$(PREFIX)_rx_clk[g_@$(PREFIX)]),
 			.i_tx_clk(i_@$(PREFIX)_tx_clk[g_@$(PREFIX)]),
@@ -137,9 +139,9 @@
 			// PHY interface
 			// {{{
 			.i_phy_fault(i_@$(PREFIX)_phy_fault[g_@$(PREFIX)]),
-			.i_raw_data(i_@$(PREFIX)_rx_data[64*g_@$(PREFIX)+:64]),
+			.i_raw_data(i_@$(PREFIX)_rx_data[32*g_@$(PREFIX)+:32]),
 			//
-			.o_raw_data(o_@$(PREFIX)_tx_data[64*g_@$(PREFIX)+:64]),
+			.o_raw_data(o_@$(PREFIX)_tx_data[32*g_@$(PREFIX)+:32]),
 			// }}}
 			// Incoming (received) packet AXIN source
 			// {{{
@@ -233,6 +235,39 @@
 	);
 
 	// }}}
+@XDC.INSERT=
+create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
+create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
+create_clock -period 3.2 -name RXNETCK1 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[1]]
+create_clock -period 3.2 -name RXNETCK2 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[2]]
+create_clock -period 3.2 -name RXNETCK3 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[3]]
+##
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*.u_netpath/rx_reset*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*.u_netpath/tx_reset*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.rx_fault_pipe*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_p642pkt/r_fault_pipe*}] 3.2
+##
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wr_addr*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_activity*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_p642pkt/link_up_counter*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_pkt2p64b/r_remote_fault_pipe*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_pkt2p64b/r_local_fault_pipe*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_p642pkt/dly_data*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_afifo/rgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/rx_afifo/wgray_cross*}] 3.0
+##
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/wgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_pktgate/wr_addr*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rd_addr*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_r*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
+
 @RTL.MAKE.GROUP=NET
 @RTL.MAKE.SUBD=net
 @RTL.MAKE.FILES= axinbroadcast.v axincdc.v axinwidth.v crc_axin.v dropshort.v

@@ -37,8 +37,10 @@
 @ACCESS=CFG_ACCESS
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=wb32
+@$LGDIV=3
+@$LGDIVM1=@$(LGDIV)-1
 @MAIN.PARAM=
-	localparam	ICAPE_LGDIV=3;
+	localparam	ICAPE_LGDIV=@$(LGDIV);
 @MAIN.DEFNS=
 	// Verilator lint_off	UNUSED
 	wire	[31:0]	@$(PREFIX)_debug;
@@ -63,7 +65,7 @@
 `else
 	wbicapetwo #(
 		.LGDIV(ICAPE_LGDIV)
-	) u_cfgport(
+	) u_@$(PREFIX)(
 		.i_clk(i_clk),
 		@$(SLAVE.ANSIPORTLIST),
 		.o_dbg(@$(PREFIX)_debug)
@@ -119,3 +121,5 @@
 @BDEF.OSVAL=static volatile @$THIS.BDEF.IOTYPE *const _icape = ((unsigned *)@$[0x%08x](THIS.BASE));
 @RTL.MAKE.GROUP=ICAP
 @RTL.MAKE.FILES=wbicapetwo.v
+@XDC.INSERT=
+## create_clock -period 80 -name CFGCK -waveform { 0 40.0 } -add [get_nets -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/CLOCKGEN.slow_clk_counter*[@$[%1d](LGDIVM1)]}]

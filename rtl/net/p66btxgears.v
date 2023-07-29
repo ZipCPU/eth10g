@@ -39,51 +39,53 @@ module	p66btxgears // #()
 		input	wire	i_reset,
 		//
 		// input wire		S_VALID,
-		output	reg		S_READY,
+		output	wire		S_READY,
 		input	wire	[65:0]	S_DATA,
 		//
-		output	wire	[31:0]	o_data
+		input	wire		i_ready,
+		output	wire	[63:0]	o_data
 		// }}}
 	);
 
-	reg	[6:0]	r_count;
-	reg	[95:0]	gearbox;
-	reg	[127:0]	full_gears;
+	// Local declarations
+	// {{{
+	reg	[7:0]		r_count;
+	reg	[127:0]		gearbox;
+	reg	[128+64-1:0]	full_gears;
+	wire	[5:0]		shift;
+	// }}}
 
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
-		r_count <= 0;
-		S_READY <= 1;
-	end else if (S_READY)
+		r_count <= 0;	// = 64
+	end else if (i_ready)
 	begin
-		r_count <= r_count + 66 - 32;
-		S_READY <= (r_count + 34) < 64;
-	end else begin
-		if (r_count > 32)
-			r_count <= r_count - 32;
+		if (!r_count[5])
+			r_count <= r_count + 1;
 		else
-			r_count <= 0;
-		S_READY <= (r_count < 96);
+			r_count <= r_count - 32;
 	end
+	assign	shift = { r_count[4:0], 1'b0 };
+	assign	S_READY = (!r_count[5] && i_ready);
 
 	always @(*)
 	begin
 		full_gears = 0;
-		full_gears[95:0] = gearbox;
-		if (S_READY)
+		full_gears[127:0] = gearbox;
+		if (!r_count[5])
 			full_gears = full_gears
-					| ({ 62'h0, S_DATA} << r_count);
-		full_gears = full_gears >> 32;
+				| ({ 62'h0, S_DATA, 64'h0 } << shift);
+		full_gears = full_gears >> 64;
 	end
 
 	always @(posedge i_clk)
 	if (i_reset)
-		gearbox <= 96'h0;
-	else
-		gearbox <= full_gears[95:0];
+		gearbox <= 128'h0;
+	else if (i_ready)
+		gearbox <= full_gears[127:0];
 
-	assign	o_data = gearbox[31:0];
+	assign	o_data = gearbox[63:0];
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +98,7 @@ module	p66btxgears // #()
 `ifdef	FORMAL
 // Note: this is (currently) only a partial proof
 	reg	f_past_valid;
+	// assign	f_count = { r_count, 1'b0 } + 64;
 
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
@@ -109,14 +112,26 @@ module	p66btxgears // #()
 	if (!i_reset)
 	begin
 		assert(r_count[0] == 1'b0);
-		assert(r_count <= 64+32);
-		assert(S_READY == (r_count < 64));
+		assert(r_count <= 64+64);
+		assert(pre_ready == (r_count < 128));
 	end
 
 	always @(posedge i_clk)
-	if (!i_reset && !$past(i_reset) && $past(r_count >= 32))
+	if (!i_reset && !$past(i_reset) && !$past(S_READY))
+		assume($stable(S_DATA));
+
+	always @(posedge i_clk)
+	if (!i_reset && !$past(i_reset) && !$past(i_ready))
 	begin
-		assert(r_count >= 32);
+		assert($stable(r_count));
+		assert($stable(pre_ready));
+		assert($stable(o_data));
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && !$past(i_reset) && $past(r_count >= 64))
+	begin
+		assert(r_count >= 64);
 	end
 `endif
 // }}}

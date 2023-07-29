@@ -60,11 +60,17 @@
 @TOP.DEFNS=
 	// @$(NAME) definitions
 	// {{{
-	wire	i_@$(PREFIX)_cd_n;
-	wire	o_@$(PREFIX)_clk;
+	wire		i_@$(PREFIX)_cd_n;
+	wire		o_@$(PREFIX)_clk;
+	wire	[3:0]	su_nc;	// Unused / noconnect wires
+`ifdef	VERILATOR
+	genvar		g_@$(PREFIX);
+	wire		w_@$(PREFIX)_cmd_tristate;
+	wire		i_@$(PREFIX)_cmd, o_@$(PREFIX)_cmd;
+	wire	[@$(NUMIO)-1:0]	w_@$(PREFIX)_dat_tristate;
+	wire	[@$(NUMIO)-1:0]	i_@$(PREFIX)_dat, o_@$(PREFIX)_dat;
+`endif
 	// }}}
-@TOP.INSERT=
-	assign	i_@$(PREFIX)_cd_n = 1'b0;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -110,7 +116,7 @@
 		.PACK(1'b0),
 		// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
 		// module at all.
-		.USRCCLKO(o_@$(PREFIX)_sck),
+		.USRCCLKO(o_@$(PREFIX)_clk),
 		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
 		//	An active high here places the clock into a high
 		//	impedence state.  Since we wish to use the clock as an
@@ -127,7 +133,32 @@
 		//	stated above.
 		.USRDONETS(1'b1)
 	);
+
+`ifdef	VERILATOR
+	assign	io_emmc_cmd = (w_@$(PREFIX)_cmd_tristate) ? 1'bz
+				: o_@$(PREFIX)_cmd;
+	assign	i_@$(PREFIX)_cmd = io_emmc_cmd;
+
+	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NUMIO); g_@$(PREFIX)=g_@$(PREFIX)+1)
+	begin : GEN_@$(PREFIX)_IO
+		assign	io_emmc_dat[g_@$(PREFIX)] = (w_@$(PREFIX)_dat_tristate[g_@$(PREFIX)]) ? 1'bz : o_@$(PREFIX)_dat[g_@$(PREFIX)];
+	end endgenerate
+
+	assign	i_@$(PREFIX)_dat = io_emmc_dat;
+`endif
 	// }}}
+@TOP.MAIN=
+		// @$(NAME)
+		o_emmc_clk, i_@$(PREFIX)_ds,
+`ifdef	VERILATOR
+		w_@$(PREFIX)_cmd_tristate,
+		o_@$(PREFIX)_cmd, i_@$(PREFIX)_cmd,
+		w_@$(PREFIX)_dat_tristate,
+		o_@$(PREFIX)_dat, i_@$(PREFIX)_dat,
+`else
+		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
+`endif
+		1'b1
 @REGS.N=5
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	EMMCCARD

@@ -37,7 +37,7 @@ module	smitest (
 		output	wire		o_wbu_uart_tx,
 		output	wire		o_wbu_uart_cts_n,
 		input	wire		i_smi_wen, i_smi_oen,
-		input	wire	[5:0]	i_smi_sa,
+		// input wire	[5:0]	i_smi_sa,
 		inout	wire	[17:0]	io_smi_sd
 	);
 
@@ -93,7 +93,7 @@ module	smitest (
 	) u_smi (
 		.i_clk(s_clk), .i_reset(s_reset),
 		.i_smi_oen(i_smi_oen), .i_smi_wen(i_smi_wen),
-		.i_smi_sa(i_smi_sa),
+		// .i_smi_sa(i_smi_sa),
 		.i_smi_data(io_smi_sd), .o_smi_data(o_smi_data),
 		.o_smi_oen(o_smi_oen),
 		.S_TX_VALID(rx_valid), .S_TX_READY(rx_ready),

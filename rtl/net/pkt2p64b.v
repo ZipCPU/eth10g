@@ -89,7 +89,25 @@ module	pkt2p64b (
 
 	reg		r_ready, flushing;
 	reg	[1:0]	state;
+
+	(* ASYNC_REG = "TRUE" *) reg		r_local_fault, r_remote_fault;
+	(* ASYNC_REG = "TRUE" *) reg	[1:0]	r_local_fault_pipe,
+						r_remote_fault_pipe;
 	// }}}
+
+	always @(posedge TX_CLK)
+	if (!S_ARESETN)
+		{ r_local_fault, r_local_fault_pipe } <= 0;
+	else
+		{ r_local_fault, r_local_fault_pipe }
+				<= { r_local_fault_pipe, i_local_fault };
+
+	always @(posedge TX_CLK)
+	if (!S_ARESETN)
+		{ r_remote_fault, r_remote_fault_pipe } <= 0;
+	else
+		{ r_remote_fault, r_remote_fault_pipe }
+				<= { r_remote_fault_pipe, i_remote_fault };
 
 	initial	r_ready = 1'b0;
 	initial	TXDATA  = P_IDLE;
@@ -102,12 +120,12 @@ module	pkt2p64b (
 		TXDATA  <= P_IDLE;
 		flushing <= 1'b0;
 		// }}}
-	end else if (i_remote_fault || i_local_fault || flushing)
+	end else if (r_local_fault || flushing)
 	begin
 		// {{{
 		if (TXREADY)
 		begin
-			if (i_remote_fault || !i_local_fault)
+			if (r_remote_fault || !r_local_fault)
 				TXDATA <= P_IDLE;
 			else // if !i_remote_fault && i_local_fault
 				TXDATA <= P_FAULT;

@@ -43,7 +43,7 @@ module smi #(
 		// (Asynchronous) SMI interface
 		// {{{
 		input	wire		i_smi_oen, i_smi_wen,
-		input	wire	[5:0]	i_smi_sa,
+		// input wire	[5:0]	i_smi_sa,
 		input	wire	[17:0]	i_smi_data,
 		output	wire	[17:0]	o_smi_data,
 		output	wire		o_smi_oen,
@@ -86,7 +86,7 @@ module smi #(
 		) u_from_pi (
 			// {{{
 			.i_wclk(i_smi_wen), .i_wr_reset_n(!i_reset),
-			.i_wr(i_smi_sa == 6'h0), .i_wr_data(i_smi_data[7:0]),
+			.i_wr(1'b1), .i_wr_data(i_smi_data[7:0]),
 				.o_wr_full(ifif_full),
 			.i_rclk(i_clk), .i_rd_reset_n(!i_reset),
 				.i_rd(M_RX_VALID && M_RX_READY),
@@ -107,7 +107,7 @@ module smi #(
 				.i_wr_data(S_TX_DATA),
 				.o_wr_full(ofif_full),
 			.i_rclk(i_smi_oen), .i_rd_reset_n(!i_reset),
-				.i_rd(i_smi_sa == 6'h0),
+				.i_rd(1'b1),
 				.o_rd_data(ofif_data),
 				.o_rd_empty(ofif_empty)
 			// }}}
@@ -140,12 +140,9 @@ module smi #(
 		// {{{
 		// Local declarations
 		// {{{
-		reg		last_oen, last_wen, r_active;
+		reg		last_oen, last_wen;
 		reg		ck_oen, ck_wen;
 		reg	[1:0]	pipe_oen, pipe_wen;
-
-		reg	[11:0]	pipe_addr;
-		reg	[5:0]	r_smi_sa;
 
 		reg	[15:0]	pipe_data;
 		reg	[7:0]	r_smi_data, r_data;
@@ -171,18 +168,11 @@ module smi #(
 					<= { ck_wen, pipe_wen, i_smi_wen };
 		end
 
-		always @(posedge i_clk)
-			{ r_smi_sa, pipe_addr } <= { pipe_addr, i_smi_sa };
+		// always @(posedge i_clk)
+		//	{ r_smi_sa, pipe_addr } <= { pipe_addr, i_smi_sa };
 
 		always @(posedge i_clk)
 			{ r_smi_data, pipe_data } <= { pipe_data, i_smi_data[7:0] };
-		// }}}
-
-		// r_active: Latch the address when it's not changing
-		// {{{
-		always @(posedge i_clk)
-		if ((!ck_oen && !last_oen)||(!ck_wen && !last_wen))
-			r_active <= (r_smi_sa == 6'h0);
 		// }}}
 
 		// r_data: Latch the data when it's not changing
@@ -197,7 +187,7 @@ module smi #(
 		) u_from_pi (
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
-			.i_wr(ck_wen && !last_wen && r_active),
+			.i_wr(ck_wen && !last_wen),
 				.i_data(r_data),
 				.o_full(ifif_full), .o_fill(ign_ifif_fill),
 			.i_rd(M_RX_VALID && M_RX_READY),
@@ -217,7 +207,7 @@ module smi #(
 			.i_wr(S_TX_VALID && S_TX_READY),
 				.i_data(S_TX_DATA),
 				.o_full(ofif_full), .o_fill(ign_ofif_fill),
-			.i_rd(ck_oen && !last_oen && r_active),
+			.i_rd(ck_oen && !last_oen),
 				.o_data(ofif_data), .o_empty(ofif_empty)
 			// }}}
 		);
@@ -227,9 +217,9 @@ module smi #(
 		always @(posedge i_clk)
 		if (i_reset)
 			fif_err <= 1'b0;
-		else if (ck_wen && !last_wen && r_active && ifif_full)
+		else if (ck_wen && !last_wen && ifif_full)
 			fif_err <= 1'b1;
-		else if (ck_oen && !last_oen && r_active)
+		else if (ck_oen && !last_oen)
 			fif_err <= 1'b0;
 		
 		assign	o_smi_data = { {(18-11){1'b0}},
@@ -240,7 +230,7 @@ module smi #(
 		assign	o_debug = {
 				((last_oen && !ck_oen)||(last_wen && !ck_wen)),
 				o_smi_oen, last_wen && last_oen, ck_oen, ck_wen,
-				fif_err, ifif_full, ofif_empty, i_smi_sa,
+				fif_err, ifif_full, ofif_empty, 6'h0,//i_smi_sa,
 				(o_smi_oen) ? i_smi_data : o_smi_data
 			};
 

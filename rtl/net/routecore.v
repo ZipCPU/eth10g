@@ -66,8 +66,8 @@ module routecore #(
 		// localparam	NTBL = (1<<LGTBL), // Number of table entries
 		// parameter	LGTIMEOUT = 64-MACW-1,
 		parameter	MACW = 48,	// Bits in a MAC address
-		parameter	LGROUTETBL = 5,
-		parameter	LGROUTE_TIMEOUT = 24,
+		parameter	LGROUTETBL = 4,
+		parameter	LGROUTE_TIMEOUT = 20,
 		parameter	AW = 30-$clog2(BUSDW/8),
 		parameter [0:0]	OPT_VFIFO = 1,
 		parameter [0:0]	OPT_CPUNET = 0,
