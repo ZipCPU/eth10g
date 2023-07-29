@@ -455,6 +455,8 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## No XDC.INSERT tag in mem_flash_bkram
 ## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in emmcscope
+## No XDC.INSERT tag in sdioscope
 ## No XDC.INSERT tag in cpunet
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]

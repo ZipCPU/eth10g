@@ -1,11 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	rdramcfg.c
+// Filename: 	rdsfp.c
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	Reads the DDR3 configuration data from the I2C pins on the DDR3
-//		board.
+// Purpose:	Reads the SFP+ I2C data from all four of the I2C devices in the
+//		system.  (Based on the instructions given in sfp.c ...)
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -38,7 +38,7 @@
 #include "zipsys.h"
 #include "board.h"
 
-#include "ddr3.c"
+#include "sfp.c"
 
 int main(int argc, char **argv) {
 #ifndef	_BOARD_HAS_I2CCPU
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 	unsigned	c = 0, ln = 0;
 	printf("\n\n"
 		"+-----------------------------------------+\n"
-		"|  DDR3 I2C Configuration Reader / tester |\n"
+		"|  SFP+ I2C Configuration Reader / tester |\n"
 		"+-----------------------------------------+\n");
 
 #ifdef	_BOARD_HAS_I2CSCOPE
@@ -81,9 +81,9 @@ int main(int argc, char **argv) {
 
 	// We'll put the configuration memory we read into an area of memory
 	// pointed to by cfgmem
-	cfgmem = (char *)malloc(512);
+	cfgmem = (char *)malloc(1024);
 	_i2cdma->id_base   = (unsigned)cfgmem;
-	_i2cdma->id_memlen = 512;
+	_i2cdma->id_memlen = 1024;
 
 	// The DMA starts automatically when given a valid memory region.
 	//   Now, whenever the I2C controller reads a byte of data, it will
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 
 	// Request the data from the I2C controller
 	// {{{
-	printf("Commanding read DDR3 configuration sequence ...\n");
+	printf("Commanding read SFP+ data areas ...\n");
 
 	_i2c->ic_address = (unsigned)i2casm;
 #ifdef	_BOARD_HAS_I2CSCOPE
@@ -118,15 +118,18 @@ int main(int argc, char **argv) {
 		// We successfully read everything.  Examine the results
 		// {{{
 		CLEAR_DCACHE;
-		printf("DDR3 Info:\n"
+		printf("SFP+ Info:\n"
 			"-------------------\n");
 
 		ln = _i2cdma->id_current - _i2cdma->id_base;
-		for(int k=0; k<ln; k++) {
-			char	ch = cfgmem[k];
+		for(int k=0; k+95<ln; k+=96) {
+			printf("Device #%d\n", k/96);
+			for(int j=k; j<k+95; j++) {
+				char	ch = cfgmem[j];
 
-			printf("%02x%s", ch & 0x0ff,((k&15)==15) ? "\n" :", ");
-		} printf("%02x\n", cfgmem[255] & 0x0ff);
+				printf("%02x%s", ch & 0x0ff,((j&15)==15) ? "\n" :", ");
+			} printf("%02x\n", cfgmem[k+95] & 0x0ff);
+		}
 		// }}}
 	}
 	else
@@ -134,3 +137,43 @@ int main(int argc, char **argv) {
 #endif	// _BOARD_HAS_I2CDMA
 #endif	// _BOARD_HAS_I2CCPU
 }
+
+/*
++-----------------------------------------+
+|  SFP+ I2C Configuration Reader / tester |
++-----------------------------------------+
+I2C Scope   = 16a00000
+I2C Control = 0008f0a3
+Configuring the I2C DMA
+Commanding read SFP+ data areas ...
+SFP+ Info:
+-------------------
+Device #0
+50, 00, f6, 00, 4b, 00, fb, 00, 90, 88, 71, 48, 88, b8, 79, 18
+1f, 40, 03, e8, 1d, 4c, 05, dc, 27, 10, 03, 1a, 22, d0, 03, 7b
+31, 2d, 00, 3f, 27, 10, 00, 46, 00, 00, 00, 00, 00, 00, 00, 00
+00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00
+00, 00, 00, 00, 3f, 80, 00, 00, 00, 00, 00, 00, 01, 00, 00, 00
+01, 00, 00, 00, 01, 00, 00, 00, 01, 00, 00, 00, 00, 00, 00, 63
+Device #1
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+Device #2
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff, ff
+Device #3
+50, 00, f6, 00, 4b, 00, fb, 00, 90, 88, 71, 48, 88, b8, 79, 18
+1f, 40, 03, e8, 1d, 4c, 05, dc, 27, 10, 03, 1a, 22, d0, 03, 7b
+31, 2d, 00, 3f, 27, 10, 00, 46, 00, 00, 00, 00, 00, 00, 00, 00
+00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00
+00, 00, 00, 00, 3f, 80, 00, 00, 00, 00, 00, 00, 01, 00, 00, 00
+01, 00, 00, 00, 01, 00, 00, 00, 01, 00, 00, 00, 00, 00, 00, 63
+*/

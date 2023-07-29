@@ -89,7 +89,7 @@
 #define	WBSCOPE_DISABLE		0x04000000u
 
 typedef	struct	WBSCOPE_S {
-	unsigned s_ctrl, s_data;
+	volatile unsigned s_ctrl, s_data;
 } WBSCOPE;
 #endif
 @BDEF.IONAME=_@$(PREFIX)

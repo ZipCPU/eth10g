@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk rdramcfg # rdedid sisetup contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk rdramcfg rdsfp # rdedid sisetup contest
 all:	$(PROGRAMS)
 #
 #
@@ -46,7 +46,7 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdedid.c sisetup.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
@@ -124,6 +124,9 @@ qkhdmi: $(OBJDIR)/qkhdmi.o board.ld $(LIB)
 rdramcfg: $(OBJDIR)/rdramcfg.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
+rdsfp: $(OBJDIR)/rdsfp.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
 rdedid: $(OBJDIR)/rdedid.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
@@ -132,7 +135,7 @@ sdiochk: $(OBJDIR)/sdiochk.o $(OBJDIR)/txfns.o board.ld $(LIB)
 	# $(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
 
 sdinfo: $(OBJDIR)/sdinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -Wl,-Map=$(OBJDIR)/sdinfo.map -o $@
 
 sisetup: $(OBJDIR)/sisetup.o board.ld $(LIB) $(FAT)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@

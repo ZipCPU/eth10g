@@ -51,7 +51,8 @@ void	txstr(const char *str);
  * to send the next character.
  *
  */
-#define	UARTTX_READY	(_uart->u_fifo & 0x010000)
+// #define	UARTTX_READY	(_uart->u_fifo & 0x010000)
+#define	UARTTX_READY	((_uart->u_tx & 0x0100) == 0)
 // #define	UARTTX_READY	1
 void	txchr(char val) {
 	unsigned v = (unsigned char)val;

@@ -54,8 +54,6 @@ int main(int argc, char **argv) {
 #ifdef	GPIO_SD_RESET_CLR
 	*_gpio = GPIO_SD_RESET_CLR;
 #endif
-	txstr("Main starting up\r\n");
-
 	r = f_mount(&vol, "/", 1);
 	if (r != FR_OK)
 		printf("Could not mount SD-Card: err %d\n", r);
@@ -76,7 +74,7 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "F_READDIR failed: %d\n");
 			goto failed;
 		} if (fis.fname[0] == 0) {
-			printf("End of list\n");
+			// printf("End of list\n");
 			break;
 		}
 

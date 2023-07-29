@@ -297,9 +297,9 @@
 
 @BDEF.DEFN =
 typedef struct  CONSOLE_S {
-	unsigned	u_setup;
-	unsigned	u_fifo;
-	unsigned	u_rx, u_tx;
+	volatile unsigned	u_setup;
+	volatile unsigned	u_fifo;
+	volatile unsigned	u_rx, u_tx;
 } CONSOLE;
 
 #define	_@$(PREFIX)_txbusy	((_uart->u_fifo & 0x10000)==0)

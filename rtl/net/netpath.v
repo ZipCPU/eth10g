@@ -155,7 +155,7 @@ module	netpath #(
 	wire	[LCLDW-1:0]	SRC_DATA;
 	wire	[$clog2(LCLDW/8)-1:0]	SRC_BYTES;
 
-	wire		PKT_VALID, PKT_READY, PKT_LAST, PKT_ABORT, ign_high;
+	wire		PKT_VALID, PKT_READY, PKT_LAST, PKT_ABORT;
 	wire	[LCLDW-1:0]	PKT_DATA;
 	wire	[$clog2(LCLDW/8)-1:0]	PKT_BYTES;
 
@@ -314,6 +314,9 @@ module	netpath #(
 	localparam [0:0]	OPT_CRC = 1'b0;
 	generate if (OPT_CRC)
 	begin : GEN_CRC_CHECK
+		// Verilator lint_off UNUSED
+		wire	ign_high;
+		// Verilator lint_on  UNUSED
 
 		crc_axin #(
 			.DATA_WIDTH(64), .OPT_SKIDBUFFER(1'b1),
@@ -582,7 +585,7 @@ module	netpath #(
 	// Verilator lint_on  UNUSED
 	// Verilator coverage_off
 	wire	unused;
-	assign	unused =  &{ 1'b0, ign_high,
+	assign	unused =  &{ 1'b0,
 				ign_tx_high, ign_rx_high,
 				ign_tx66b_valid,
 				ign_rx66b_full, ign_tx_fast_empty };

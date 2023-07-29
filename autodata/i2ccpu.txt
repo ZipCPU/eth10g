@@ -192,7 +192,7 @@
 	//
 	//
 typedef struct  @$(DEVID)_S        {
-	unsigned	ic_control, ic_override, ic_address, ic_clkcount;
+	volatile unsigned	ic_control, ic_override, ic_address, ic_clkcount;
 } @$(DEVID);
 
 #endif	// @$(DEVID)_H

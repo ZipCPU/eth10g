@@ -275,6 +275,4 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 	xgtxphy.v
 @SIM.CLOCK=clk
 @SIM.TICK=
-		m_core->i_@$(PREFIX)_rx_valid = 0;
 		m_core->i_@$(PREFIX)_phy_fault= 0;
-		m_core->i_@$(PREFIX)_tx_ready = (1<<@$(NDEV))-1;
