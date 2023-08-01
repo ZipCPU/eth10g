@@ -866,6 +866,7 @@ module	wbi2ccpu #(
 		// }}}
 	);
 `endif
+	// }}}
 
 	// mid_axis_pkt, r_channel
 	// {{{

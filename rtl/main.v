@@ -180,6 +180,7 @@ module	main(i_clk, i_reset,
 // As they aren't connected to the toplevel at all, it would
 // be best to use localparam over parameter, but here we don't
 // check
+	parameter [0:0]	EMMC_OPT_EMMC = 1'b1;
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Variables/definitions/parameters used by the ZipCPU bus master
@@ -229,6 +230,7 @@ module	main(i_clk, i_reset,
 				? DBGBUSWATCHDOG_RAW : 19;
 	// }}}
 	localparam	ICAPE_LGDIV=3;
+	parameter [0:0]	SDIO_OPT_EMMC = 1'b0;
 // }}}
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -1939,6 +1941,7 @@ module	main(i_clk, i_reset,
 		.OPT_SERDES(1'b0),
 		.OPT_DDR(1'b0),
 		.OPT_CARD_DETECT(1'b0),
+		.OPT_EMMC(EMMC_OPT_EMMC),
 		.MW(32)
 	) u_emmc(
 		// {{{
@@ -2597,6 +2600,7 @@ module	main(i_clk, i_reset,
 		.OPT_SERDES(1'b0),
 		.OPT_DDR(1'b1),
 		.OPT_CARD_DETECT(1'b1),
+		.OPT_EMMC(SDIO_OPT_EMMC),
 		.MW(32)
 	) u_sdio(
 		// {{{

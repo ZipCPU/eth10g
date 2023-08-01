@@ -159,6 +159,8 @@
 		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
 `endif
 		1'b1
+@MAIN.PARAM=
+	parameter [0:0]	@$(DEVID)_OPT_EMMC = 1'b1;
 @REGS.N=5
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	EMMCCARD
@@ -181,3 +183,10 @@ struct @$(DEVID)_S;
 @RTL.MAKE.GROUP= EMMC
 @RTL.MAKE.SUBD=sdspi
 @RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
+@SIM.CLOCK=clk
+@SIM.TICK=
+		// Quick and dirty model of a non-existent device
+		m_core->i_@$(PREFIX)_cmd = m_core->io_@$(PREFIX)_cmd_tristate || m_core->o_@$(PREFIX)_cmd;
+		m_core->i_@$(PREFIX)_dat = m_core->io_@$(PREFIX)_dat_tristate | m_core->o_@$(PREFIX)_dat;
+		m_core->i_@$(PREFIX)_ds = 0;
+		m_core->i_@$(PREFIX)_detect = 1;

@@ -127,6 +127,8 @@ typedef struct  CPUNET_S        {
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
+
 typedef struct  I2CDMA_S        {
 	unsigned	id_control, id_current, id_base, id_memlen;
 } I2CDMA;
@@ -163,34 +165,10 @@ typedef struct  FAN_S        {
 //
 //
 
-#define	EMMC_CMD		0x000040
-#define	EMMC_ACMD		(0x040+55) // CMD55
-#define	EMMC_FIFO_OP	0x000800	// Read only
-#define	EMMC_WRITEOP	0x000c00	// Write to the FIFO
-#define	EMMC_ALTFIFO	0x001000
-// #define	EMMC_DMA	0x002000
-#define	EMMC_BUSY		0x004000
-#define	EMMC_ERROR		0x008000
-#define	EMMC_CLEARERR	0x008000
-// #define	EMMC_CRCERR	0x020000
-// #define	EMMC_FRAMERR	0x030000
-// #define	EMMC_REMOVED	0x040000
-// #define	EMMC_PRESENTN	0x080000
-// #define	EMMC_RESET		0x100000	// Read only
-// #define	EMMC_WATCHDOG	0x200000	// Read only
-#define	EMMC_GO_IDLE	((EMMC_CLEARERR|EMMC_CMD)+0)
-#define	EMMC_READ_SECTOR	((EMMC_CMD|EMMC_CLEARERR|EMMC_FIFO_OP)+17)
-#define	EMMC_WRITE_SECTOR	((EMMC_CMD|EMMC_CLEARERR|EMMC_WRITEOP)+24)
-
-typedef	struct EMMC_S {
-	unsigned	emmc_ctrl, emmc_data, emmc_fifo[2];
-	unsigned	emmc_phy,  emmc_unused[3];
-} EMMC;
+struct EMMC_S;
 // }}}
 
 
-#ifndef	I2CCPU_H
-#define	I2CCPU_H
 	////////////////////////////////////////////////////////////////////////
 	//
 	// I2C CPU data structures
@@ -198,8 +176,32 @@ typedef	struct EMMC_S {
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-typedef struct  I2CCPU_S        {
-	volatile unsigned	ic_control, ic_override, ic_address, ic_clkcount;
+#ifndef	I2CCPU_H
+#define	I2CCPU_H
+
+#define	I2CC_WAITING	0x00800000	// True if waiting for synch signal
+#define	I2CC_HALT	0x00400000	// Halt request
+#define	I2CC_ABORT	0x00200000	// Abort
+#define	I2CC_ERROR	0x00100000
+#define	I2CC_HARDHALT	0x00080000
+#define	I2CC_SCL	0x00000200
+#define	I2CC_SDA	0x00000100
+#define I2CC_STOPPED	I2CC_HARDHALT
+#define I2CC_CLEAR	I2CC_FAULT
+#define I2CC_CLEAR	(I2CC_ERROR | I2CC_ABORT | I2CC_HALT)
+
+// For the manual port
+#define	I2CC_MANSCL	0x00008000
+#define	I2CC_MANSDA	0x00004000
+#define	I2CC_MANUAL	0x00000800
+#define	I2CC_TVALID	0x00000200
+#define	I2CC_TLAST	0x00000100
+
+typedef	struct	I2CCPU_S {
+	volatile unsigned	ic_control,
+				ic_override,
+				ic_address,
+				ic_clkcount;
 } I2CCPU;
 
 #endif	// I2CCPU_H

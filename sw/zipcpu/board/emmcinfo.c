@@ -51,6 +51,9 @@ int main(int argc, char **argv) {
 	FATFS	vol;
 	FRESULT	r;
 
+#ifdef	GPIO_TRACE_SET
+	*_gpio = GPIO_TRACE_SET;
+#endif
 #ifdef	GPIO_SD_RESET_CLR
 	*_gpio = GPIO_SD_RESET_CLR;
 #endif

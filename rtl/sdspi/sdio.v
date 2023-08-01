@@ -55,6 +55,7 @@ module	sdio #(
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b0,
 		parameter [0:0]	OPT_CARD_DETECT = 1'b1,
+		parameter [0:0]	OPT_EMMC = 1'b1,
 		parameter	LGTIMEOUT = 23
 		// }}}
 	) (
@@ -130,6 +131,7 @@ module	sdio #(
 	wire	[7:0]		w_sdclk, clk_ckspd;
 
 	wire			cmd_request, cmd_err, cmd_busy, cmd_done;
+	wire			cmd_selfreply;
 	wire	[1:0]		cmd_type, cmd_ercode;
 	wire			rsp_stb;
 	wire	[6:0]		cmd_id;
@@ -149,7 +151,7 @@ module	sdio #(
 	wire	[LGFIFO-$clog2(MW/8)-1:0]	rx_mem_addr;
 	wire	[MW/8-1:0]	rx_mem_strb;
 	wire	[MW-1:0]	rx_mem_data;
-	wire			rx_done, rx_err;
+	wire			rx_done, rx_err, rx_ercode;
 	// }}}
 
 	sdwb #(
@@ -160,6 +162,7 @@ module	sdio #(
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
 		// .OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN)
 		// .OPT_DMA(OPT_DMA)
+		.OPT_EMMC(OPT_EMMC),
 		.MW(MW)
 		// }}}
 	) u_control (
@@ -188,6 +191,7 @@ module	sdio #(
 		// CMD control interface
 		// {{{
 		.o_cmd_request(cmd_request), .o_cmd_type(cmd_type),
+		.o_cmd_selfreply(cmd_selfreply),
 		.o_cmd_id(cmd_id), .o_arg(cmd_arg),
 		//
 		.i_cmd_busy(cmd_busy), .i_cmd_done(cmd_done),
@@ -216,7 +220,7 @@ module	sdio #(
 		.i_rx_mem_valid(rx_mem_valid), .i_rx_mem_strb(rx_mem_strb),
 			.i_rx_mem_addr(rx_mem_addr),.i_rx_mem_data(rx_mem_data),
 		//
-		.i_rx_done(rx_done), .i_rx_err(rx_err),
+		.i_rx_done(rx_done), .i_rx_err(rx_err), .i_rx_ercode(rx_ercode),
 		// }}}
 		.i_card_detect(i_card_detect),
 		.i_card_busy(i_card_busy),
@@ -232,7 +236,7 @@ module	sdio #(
 		//
 		.i_cfg_clk90(cfg_clk90), .i_cfg_ckspd(cfg_ckspeed),
 		.i_cfg_shutdown(cfg_clk_shutdown),
-	
+
 		.o_ckstb(clk_stb), .o_hlfck(clk_half), .o_ckwide(w_sdclk),
 		.o_ckspd(clk_ckspd)
 		// }}}
@@ -240,6 +244,7 @@ module	sdio #(
 
 	sdcmd #(
 		.OPT_DS(OPT_SERDES),
+		.OPT_EMMC(OPT_EMMC),
 		.MW(MW),
 		.LGLEN(LGFIFO-$clog2(MW/8))
 	) u_sdcmd (
@@ -250,6 +255,7 @@ module	sdio #(
 		.i_ckstb(clk_stb),
 		//
 		.i_cmd_request(cmd_request), .i_cmd_type(cmd_type),
+		.i_cmd_selfreply(cmd_selfreply),
 		.i_cmd(cmd_id), .i_arg(cmd_arg),
 		//
 		.o_busy(cmd_busy), .o_done(cmd_done), .o_err(cmd_err),
@@ -308,7 +314,7 @@ module	sdio #(
 		.o_mem_valid(rx_mem_valid), .o_mem_strb(rx_mem_strb),
 			.o_mem_addr(rx_mem_addr), .o_mem_data(rx_mem_data),
 		//
-		.o_done(rx_done), .o_err(rx_err)
+		.o_done(rx_done), .o_err(rx_err), .o_ercode(rx_ercode)
 		// }}}
 	);
 

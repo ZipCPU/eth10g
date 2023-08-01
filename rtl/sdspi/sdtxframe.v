@@ -213,7 +213,7 @@ module	sdtxframe #(
 		pre_count <= 0;
 	else if (pstate == P_DATA || pstate == P_IDLE)
 	begin
-		// pre_count = 
+		// pre_count =
 		//	(SDR)	16bits / wire / 32
 		//	(DDR)	32bits / wire / 32
 		case(cfg_width)
@@ -274,7 +274,7 @@ module	sdtxframe #(
 		// {{{
 		for(ik=0; ik<2; ik=ik+1)
 		begin
-			new_crc_2w[ik*NCRC +: NCRC] = 
+			new_crc_2w[ik*NCRC +: NCRC] =
 				APPLYCRC16(di_crc_2w[ik*NCRC +: NCRC],
 			  		{ S_DATA[30+ik],S_DATA[28+ik],
 						S_DATA[26+ik],S_DATA[24+ik],
@@ -288,7 +288,7 @@ module	sdtxframe #(
 
 		for(ik=0; ik<4; ik=ik+1)
 		begin
-			new_crc_4w[ik*NCRC +: NCRC] = 
+			new_crc_4w[ik*NCRC +: NCRC] =
 				APPLYCRC8(di_crc_4w[ik*NCRC +: NCRC],
 			  		{ S_DATA[28+ik],S_DATA[24+ik],
 						S_DATA[20+ik],S_DATA[16+ik],
@@ -298,7 +298,7 @@ module	sdtxframe #(
 
 		for(ik=0; ik<8; ik=ik+1)
 		begin
-			new_crc_8w[ik*NCRC +: NCRC] = 
+			new_crc_8w[ik*NCRC +: NCRC] =
 				APPLYCRC4(di_crc_8w[ik*NCRC +: NCRC],
 			  		{ S_DATA[24+ik], S_DATA[16+ik],
 						S_DATA[8+ik], S_DATA[ik] });
@@ -306,7 +306,7 @@ module	sdtxframe #(
 
 		for(ik=0; ik<16; ik=ik+1)
 		begin
-			new_crc_8d[ik*NCRC +: NCRC] = 
+			new_crc_8d[ik*NCRC +: NCRC] =
 				APPLYCRC2(di_crc_8d[ik*NCRC +: NCRC],
 			  		{ S_DATA[16+ik], S_DATA[ik] });
 		end
@@ -712,6 +712,7 @@ module	sdtxframe #(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
+	// Verilator lint_off UNUSED
 	reg	f_ckstb, f_hlfck;
 	(* keep *)	reg	[9+5:0]	fb_count, fd_offset, fd_count,
 					f_loaded_count;
@@ -719,12 +720,14 @@ module	sdtxframe #(
 			reg	[10:0]	fcrc_count;
 	(* keep *)	reg		fs_last;
 	wire		f_step, fload_xtra;
+	// Verilator lint_on  UNUSED
 
 	assign	f_step = f_ckstb || (cfg_ddr && f_hlfck);
 	assign	fload_xtra = tx_valid && f_step; // || fb_count == fd_offset);
 
 	always @(*)
 	begin
+		// Verilator lint_off WIDTH
 		if (fb_count < fd_offset)
 			f_loaded_count = 0;
 		else if (!tx_valid)
@@ -735,6 +738,7 @@ module	sdtxframe #(
 			WIDTH_1W: f_loaded_count = fd_count + ck_counts + (fload_xtra ? 1:0);
 			WIDTH_4W: f_loaded_count = fd_count + (ck_counts*4) + (fload_xtra ? 4:0);
 			WIDTH_8W: f_loaded_count = fd_count + (ck_counts*8) + (fload_xtra ? 8:0);
+			default: begin end
 			endcase
 			// }}}
 		P_2D: case(cfg_width)
@@ -742,6 +746,7 @@ module	sdtxframe #(
 			WIDTH_1W: f_loaded_count = fd_count + ck_counts*2 + (fload_xtra ? 2:0);
 			WIDTH_4W: f_loaded_count = fd_count + ck_counts*8 + (fload_xtra ? 8:0);
 			WIDTH_8W: f_loaded_count = fd_count + ck_counts*16 + (fload_xtra ? 16:0);
+			default: begin end
 			endcase
 			// }}}
 		P_4D: case(cfg_width)
@@ -749,9 +754,12 @@ module	sdtxframe #(
 			WIDTH_1W: f_loaded_count = fd_count + ck_counts*4 + (fload_xtra ? 4:0);
 			WIDTH_4W: f_loaded_count = fd_count + ck_counts*16 + (fload_xtra ? 16:0);
 			WIDTH_8W: f_loaded_count = fd_count + ck_counts*32 + (fload_xtra ? 32:0);
+			default: begin end
 			endcase
 			// }}}
+		default: begin end
 		endcase
+		// Verilator lint_on  WIDTH
 	end
 
 	always @(posedge i_clk)

@@ -164,6 +164,12 @@ public:
 		//
 		// SIM.TICK from gnet
 		m_core->i_gnet_phy_fault= 0;
+		// SIM.TICK from emmc
+		// Quick and dirty model of a non-existent device
+		m_core->i_emmc_cmd = m_core->io_emmc_cmd_tristate || m_core->o_emmc_cmd;
+		m_core->i_emmc_dat = m_core->io_emmc_dat_tristate | m_core->o_emmc_dat;
+		m_core->i_emmc_ds = 0;
+		m_core->i_emmc_detect = 1;
 		// SIM.TICK from i2c
 		m_core->i_i2c_scl = m_core->o_i2c_scl;
 		m_core->i_i2c_sda = m_core->o_i2c_sda;

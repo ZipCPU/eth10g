@@ -86,6 +86,7 @@ module	toplevel(
 	// the @MAIN.PARAM key should be sufficient, so the @TOP.PARAM
 	// key may be left undefined.
 	//
+	parameter [0:0]	EMMC_OPT_EMMC = 1'b1;
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Variables/definitions/parameters used by the ZipCPU bus master
@@ -135,6 +136,7 @@ module	toplevel(
 				? DBGBUSWATCHDOG_RAW : 19;
 	// }}}
 	localparam	ICAPE_LGDIV=3;
+	parameter [0:0]	SDIO_OPT_EMMC = 1'b0;
 	//
 	// Declaring our input and output ports.  We listed these above,
 	// now we are declaring them here.

@@ -109,6 +109,8 @@
 		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
 `endif
 		i_@$(PREFIX)_detect
+@MAIN.PARAM=
+	parameter [0:0]	@$(DEVID)_OPT_EMMC = 1'b0;
 @MAIN.IODECL=
 	// @$(NAME) declarations
 	// {{{
@@ -147,6 +149,7 @@
 		.OPT_SERDES(@$(OPT_SERDES)),
 		.OPT_DDR(@$(OPT_DDR)),
 		.OPT_CARD_DETECT(@$(CARD_DETECT)),
+		.OPT_EMMC(@$(DEVID)_OPT_EMMC),
 		.MW(@$(SLAVE.BUS.WIDTH))
 	) u_@$(PREFIX)(
 		// {{{

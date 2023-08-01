@@ -127,6 +127,8 @@ typedef struct  CPUNET_S        {
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
+
 typedef struct  I2CDMA_S        {
 	unsigned	id_control, id_current, id_base, id_memlen;
 } I2CDMA;
@@ -167,8 +169,6 @@ struct EMMC_S;
 // }}}
 
 
-#ifndef	I2CCPU_H
-#define	I2CCPU_H
 	////////////////////////////////////////////////////////////////////////
 	//
 	// I2C CPU data structures
@@ -176,8 +176,32 @@ struct EMMC_S;
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-typedef struct  I2CCPU_S        {
-	volatile unsigned	ic_control, ic_override, ic_address, ic_clkcount;
+#ifndef	I2CCPU_H
+#define	I2CCPU_H
+
+#define	I2CC_WAITING	0x00800000	// True if waiting for synch signal
+#define	I2CC_HALT	0x00400000	// Halt request
+#define	I2CC_ABORT	0x00200000	// Abort
+#define	I2CC_ERROR	0x00100000
+#define	I2CC_HARDHALT	0x00080000
+#define	I2CC_SCL	0x00000200
+#define	I2CC_SDA	0x00000100
+#define I2CC_STOPPED	I2CC_HARDHALT
+#define I2CC_CLEAR	I2CC_FAULT
+#define I2CC_CLEAR	(I2CC_ERROR | I2CC_ABORT | I2CC_HALT)
+
+// For the manual port
+#define	I2CC_MANSCL	0x00008000
+#define	I2CC_MANSDA	0x00004000
+#define	I2CC_MANUAL	0x00000800
+#define	I2CC_TVALID	0x00000200
+#define	I2CC_TLAST	0x00000100
+
+typedef	struct	I2CCPU_S {
+	volatile unsigned	ic_control,
+				ic_override,
+				ic_address,
+				ic_clkcount;
 } I2CCPU;
 
 #endif	// I2CCPU_H

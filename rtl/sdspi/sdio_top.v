@@ -38,6 +38,7 @@ module sdio_top #(
 		parameter [0:0]	OPT_SERDES=0,
 		parameter [0:0]	OPT_DDR=1,
 		parameter [0:0]	OPT_CARD_DETECT=1,
+		parameter [0:0]	OPT_EMMC=1,
 		parameter	LGTIMEOUT = 23
 		// }}}
 	) (
@@ -106,6 +107,7 @@ module sdio_top #(
 		.LGFIFO(LGFIFO), .NUMIO(NUMIO), .MW(MW),
 		.OPT_DDR(OPT_DDR), .OPT_SERDES(OPT_SERDES),
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
+		.OPT_EMMC(OPT_EMMC),
 		.LGTIMEOUT(LGTIMEOUT)
 		// }}}
 	) u_sdio (

@@ -53,7 +53,7 @@ typedef	uint32_t DWORD, LBA_t, UINT;
 // extern	void	txdecimal(int);
 #endif
 
-static	const int	EMMCINFO = 1, EMMCDEBUG=1, EXTDMA;
+static	const int	EMMCINFO = 1, EMMCDEBUG=1, EXTDMA = 0;
 // }}}
 
 typedef	struct	EMMCDRV_S {
@@ -323,7 +323,6 @@ uint32_t emmc_send_op_cond(EMMCDRV *dev, uint32_t opcond) { // CMD1
 TRIGGER;
 	c = dev->d_dev->sd_cmd;
 	r = dev->d_dev->sd_data;
-printf("C=%08x, R=%08x\n", c, r);
 
 	dev->d_OCR = r;
 	if (EMMCDEBUG && EMMCINFO) {
@@ -792,7 +791,7 @@ int	emmc_write_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 24
 		phy |= (9 << 24);
 	}
 
-#ifndef	INCLUDE_DMA_CONTROLLER
+#ifndef	INCLUDE_DMA_CONTROLLER_NOT
 	if (EXTDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 		_zip->z_dma.d_len = 512;
 		_zip->z_dma.d_rd  = (char *)buf;
@@ -854,7 +853,7 @@ int	emmc_read_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 17
 
 	emmc_wait_while_busy(dev);
 
-#ifndef	INCLUDE_DMA_CONTROLLER
+#ifndef	INCLUDE_DMA_CONTROLLER_NOT
 	if (SDUSEDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 		_zip->z_dma.d_len = 512;
 		_zip->z_dma.d_rd  = (char *)&sdcard->sd_fifo[0];
