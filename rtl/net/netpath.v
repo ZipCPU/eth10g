@@ -11,7 +11,11 @@
 //
 //  From RX GTX to FPGA:
 //	{{{
-//	p66brxgears	-- 64/66b Gearbox: 64bits in, aligned 66bits out
+//	p66brxgears	-- 64/66b Gearbox: 32bits in, aligned 66bits out.
+//				This operates at 312.5MHz.
+//	afifo		-- Used to slow us down to 200MHz, now that we are at
+//				66b/clock.  (We could slow down by 2x, but we
+//				still need some slack, so must be > 156MHz.)
 //	p64bscrambler	-- Descrambles the incoming 66-bit words
 //	p642pkt		-- Decodes the 66 bit words into 64 bit words, with
 //			   active byte counts and a LAST word in packet
@@ -23,9 +27,10 @@
 //			   to it.
 //	crc_axin	-- ABORTs any packet with a failing CRC.
 //	axinwidth	-- Converts from a 64b width to a 128b width.  This is
-//			   a necessary first step before crossing clock domains.
-//	axincdc		-- Crosses from the clock domain of the GTX receive
-//			   transceiver to the system clock domain.  The prior
+//			   a necessary first step before crossing clock domains
+//			   to the system clock (100MHz).
+//	axincdc		-- Crosses from the intermediate clock domain (200MHz)
+//			   to the system clock domain (100MHz).  The prior
 //		jump in width allows us to do this with no more than a
 //		guarantee that the system clock has to be faster than half the
 //		RX clock.  The AXIN stream resulting from this CDC crossing
@@ -36,10 +41,11 @@
 //	}}}
 //  From FPGA to TX GTX:
 //	{{{
-//	axincdc		-- Cross clock domains from system to tx clock.  There's
-//			   no speed requirement here, although the system clock
-//		should generall be fast enough to keep a long packet going if
-//		it cannot fit in the following buffers.
+//	axincdc		-- Cross clock domains from system to intermediate/fast
+//			   clock (200MHz).  There's no speed requirement here
+//			   since backpressure is fully supported.  That said,
+//		the system clock should generall be fast enough to keep a long
+//		packet going if it cannot fit in the following buffers.
 //	axinwidth	-- Once we move to the tx clock domain, we can downsize
 //			   to the width required by the comms port: 64 bits.
 //	pktgate		-- Once we get past this point, outgoing packets cannot
@@ -55,7 +61,28 @@
 //		protocol.  This includes 66/64b encoding.
 //	p64bscrambler	-- As a second half of the encoding step, we scramble
 //			   the incoming packet.
-//	p66btxgears	-- 66/64b Gearbox: 66bits in, 64bits out to the PHY
+//	p66btxgears	-- 66/64b Gearbox: 66bits in, 64bits out to the AFIFO
+//	afifo		-- Cross clock domains from the intermediate/fast clock
+//			   (200MHz) to the 312.5 MHz required by the PHY.  64b
+//			   are moved at a time.
+//	(tx_phase)	-- A quick bit of glue logic is used here to convert
+//			   from 64b to the 32b PHY interface.  (64b PHY would've
+//			   required too many MMCMs, 66b would require too much
+//			   nasty synchronization, etc.)
+//	}}}
+//  Statistic capture:
+//	{{{
+//		Success statistics are drawn from four locations and moved
+//		to the sytem clock domain.  These statistics include the
+//		length of a packet upon its conclusion, and whether or not it
+//		aborted vs completing naturally.  Also, when packets are
+//		complete, a copy of the descrambled 66b RX word is shared.
+//		These "stats" are then used to fill a (compressed) wishbone
+//		scope with some (hopefully) useful information.
+//
+//		1. If there's no packets, we should be able to observe IDLE
+//			(This will be lucky to ever observe a FAULT)
+//		2. If packets are present, we'll observe those packets.
 //	}}}
 //
 // Creator:	Dan Gisselquist, Ph.D.
@@ -121,8 +148,9 @@ module	netpath #(
 		output	wire	[PKTDW-1:0]		M_DATA,
 		output	wire	[$clog2(PKTDW/8)-1:0]	M_BYTES,
 		output	wire				M_LAST,
-		output	wire				M_ABORT
+		output	wire				M_ABORT,
 		// }}}
+		output	reg	[31:0]	o_debug
 		// }}}
 	);
 
@@ -135,6 +163,7 @@ module	netpath #(
 	//	so ...
 	//	
 	localparam	ACTMSB = 24;
+	localparam	LGPKTLN = 16;
 	// Verilator lint_off SYNCASYNCNET
 	reg		rx_reset_n, tx_reset_n, fast_reset_n;
 	// Verilator lint_on  SYNCASYNCNET
@@ -197,6 +226,19 @@ module	netpath #(
 	wire		ign_tx_fast_empty, tx64b_full;
 	wire	[63:0]	tx_fast_data;
 	wire	[63:0]	tx64b_data;
+
+	wire	[3:0]		stat_valid_vec, stat_grant;
+	reg			stat_sample, stat_valid;
+	reg	[4:0]		stat_sample_cnt;
+	wire	stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid;
+	wire	stat_gate_ready, stat_tx_ready, stat_crc_ready, stat_src_ready;
+	wire	[LGPKTLN+1:0]	stat_gate_data, stat_tx_data,
+				stat_crc_data, stat_src_data;
+	wire			stat_fifo_empty, stat_fifo_full;
+	wire	[29:0]		stat_fifo_data;
+	reg	[29:0]		stat_data;
+	reg	[LGPKTLN+4-1:0]	stat_pre_data;
+
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -289,6 +331,21 @@ module	netpath #(
 
 	assign	rx_ready = 1'b1;
 
+	pktcount #(
+		.LGPKTLN(LGPKTLN)
+	) u_src_stats (
+		// {{{
+		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
+		//
+		.S_VALID(SRC_VALID && SRC_READY),
+		.S_BYTES(SRC_BYTES), .S_LAST(SRC_LAST), .S_ABORT(SRC_ABORT),
+		//
+		.M_VALID(stat_src_valid),
+		.M_READY(stat_src_ready),
+		.M_DATA(stat_src_data)
+		// }}}
+	);
+
 	dropshort #(
 		.DW(64)
 	) u_dropshort (
@@ -350,6 +407,21 @@ module	netpath #(
 		assign	CRC_LAST  = PKT_LAST;
 		assign	CRC_ABORT = PKT_ABORT;
 	end endgenerate
+
+	pktcount #(
+		.LGPKTLN(LGPKTLN)
+	) u_crc_stats (
+		// {{{
+		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
+		//
+		.S_VALID(CRC_VALID && CRC_READY),
+		.S_BYTES(CRC_BYTES), .S_LAST(CRC_LAST), .S_ABORT(CRC_ABORT),
+		//
+		.M_VALID(stat_crc_valid),
+		.M_READY(stat_crc_ready),
+		.M_DATA(stat_crc_data)
+		// }}}
+	);
 
 	axinwidth #(
 		.IW(64), .OW(PKTDW)
@@ -462,6 +534,22 @@ module	netpath #(
 		// }}}
 	);
 
+	pktcount #(
+		.LGPKTLN(LGPKTLN)
+	) u_in_stats (
+		// {{{
+		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
+		//
+		.S_VALID(TXWD_VALID && TXWD_READY),
+		.S_BYTES(TXWD_BYTES), .S_LAST(TXWD_LAST), .S_ABORT(TXWD_ABORT),
+		//
+		.M_VALID(stat_tx_valid),
+		.M_READY(stat_tx_ready),
+		.M_DATA(stat_tx_data)
+		// }}}
+	);
+
+
 	pktgate #(
 		.DW(64), .LGFLEN(LGPKTGATE)
 	) u_pktgate (
@@ -481,6 +569,21 @@ module	netpath #(
 		.M_AXIN_BYTES(FULL_BYTES),
 		.M_AXIN_LAST( FULL_LAST),
 		.M_AXIN_ABORT(FULL_ABORT)
+		// }}}
+	);
+
+	pktcount #(
+		.LGPKTLN(LGPKTLN)
+	) u_tx_stats (
+		// {{{
+		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
+		//
+		.S_VALID(FULL_VALID && FULL_READY),
+		.S_BYTES(FULL_BYTES), .S_LAST(FULL_LAST), .S_ABORT(FULL_ABORT),
+		//
+		.M_VALID(stat_gate_valid),
+		.M_READY(stat_gate_ready),
+		.M_DATA(stat_gate_data)
 		// }}}
 	);
 
@@ -563,6 +666,92 @@ module	netpath #(
 		tx_activity <= -1;
 	else if (tx_activity != 0)
 		tx_activity <= tx_activity - 1;
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Statistics
+	// {{{
+
+	assign	stat_valid_vec = { stat_gate_valid, stat_tx_valid,
+				stat_crc_valid, stat_src_valid };
+	assign	{ stat_gate_ready, stat_tx_ready,
+				stat_crc_ready, stat_src_ready } = stat_grant;
+
+	initial	{ stat_sample, stat_sample_cnt } = 0;
+	always @(posedge i_fast_clk)
+	if (stat_grant != 0)
+	begin
+		stat_sample <= 1'b1;
+		stat_sample_cnt <= 0;
+	end else
+		{ stat_sample, stat_sample_cnt } <= stat_sample_cnt + 1;
+
+	pktarbiter #(
+		.W(4)
+	) u_stat_arbiter (
+		.i_clk(i_fast_clk), .i_reset_n(fast_reset_n),
+		.i_req({ stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid }),
+		.i_stall(stat_fifo_full && stat_valid),
+		.o_grant(stat_grant)
+	);
+
+	always @(posedge i_fast_clk)
+	if (!fast_reset_n)
+		stat_valid <= 0;
+	else if (!stat_fifo_full)
+	begin
+		stat_valid <= |(stat_grant & stat_valid_vec);
+		if ((stat_grant == 0) && (stat_sample))
+			stat_valid <= 1;
+	end
+
+	always @(*)
+	begin
+		stat_pre_data = 0;
+		if (stat_grant[3])
+		begin
+			stat_pre_data = stat_pre_data | { 2'b11, stat_gate_data };
+		end
+		
+		if (stat_grant[2])
+		begin
+			stat_pre_data = stat_pre_data | { 2'b10, stat_tx_data };
+		end
+		
+		if (stat_grant[1])
+		begin
+			stat_pre_data = stat_pre_data | { 2'b01, stat_crc_data };
+		end
+		
+		if (stat_grant[0])
+		begin
+			stat_pre_data = stat_pre_data | { 2'b00, stat_src_data };
+		end
+	end
+
+	always @(posedge i_fast_clk)
+	if (!stat_valid || !stat_fifo_full)
+	begin
+		stat_data <= 0;
+		stat_data[LGPKTLN+3:0] <= stat_pre_data;
+		if ((stat_grant == 0) && (stat_sample))
+			stat_data[27:0] <= { 1'b1, rx_data[26:0] };
+		stat_data[29:28] <= { remote_fault, local_fault };
+	end
+
+	afifo #(
+		.LGFIFO(5), .WIDTH(30), .OPT_REGISTER_READS(1'b0)
+	) u_stat_afifo (
+		.i_wclk(i_fast_clk), .i_wr_reset_n(fast_reset_n),
+		.i_wr(stat_valid), .i_wr_data(stat_data),
+			.o_wr_full(stat_fifo_full),
+		.i_rclk(i_sys_clk), .i_rd_reset_n(i_reset_n),
+		.i_rd(1'b1), .o_rd_data(stat_fifo_data),
+			.o_rd_empty(stat_fifo_empty)
+	);
+
+	assign	o_debug = { !stat_fifo_empty && !stat_fifo_data[27],
+			!stat_fifo_empty, stat_fifo_data[29:0] };
 	// }}}
 
 	assign	o_link_up = rx_link_up && tx_link_up;
