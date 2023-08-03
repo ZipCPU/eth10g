@@ -70,8 +70,8 @@ module	pkt2p64b (
 				TX_DATA     = 2'h1,
 				TX_LAST     = 2'h2,
 				TX_PAUSE    = 2'h3;
-	localparam [1:0]	SYNC_CONTROL = 2'b10,
-				SYNC_DATA    = 2'b01;
+	localparam [1:0]	SYNC_CONTROL = 2'b01,
+				SYNC_DATA    = 2'b10;
 
 	// FIXME!  "The 10GBASE-R PCS encodes the start and terminate control
 	// characters implicitly by the block type field. ... The 10GBASE-R PCS
@@ -79,7 +79,7 @@ module	pkt2p64b (
 	//
 	localparam	[65:0]	P_IDLE  = { {(8){7'h07}}, 8'h1e, SYNC_CONTROL },
 			// Indicate a remote fault
-			P_FAULT = { 24'h02, 8'h0, 24'h02, 8'h55, SYNC_CONTROL },
+			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0, 8'h55, SYNC_CONTROL },
 			// Start a packet--always on a 64b boundary
 			P_START = { 8'hab, {(6){8'haa}}, 8'h78, SYNC_CONTROL },
 			P_LAST  = { {(8){7'h07}}, 8'h87, SYNC_CONTROL };

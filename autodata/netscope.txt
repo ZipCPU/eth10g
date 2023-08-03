@@ -1,0 +1,112 @@
+################################################################################
+##
+## Filename: 	netscope.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to connect the debugging ports from all of the
+##		various network connections to a single (compressed) wishbone
+##	scope, then to be connected to the bus by autofpga.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=netscope
+@DEVID=NETSCOPE
+@DEPENDS=ETH_ROUTER
+@TARGET=net
+@TRIGGER=@$(TARGET)_debug[31]
+@$LOG_CAPTURE_SIZE=10
+@INCLUDEFILE=wbscopc.txt
+@INT.NETSCOPE.PIC=altpic
+@INT.NETSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+##
+##
+@PREFIX=netlock
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=SINGLE
+@NADDR=1
+@MAIN.DEFNS=
+	reg	[3:0]	r_@$(PREFIX)_los;
+	reg	[4:0]	r_@$(PREFIX)_phy_locked;
+@MAIN.INSERT=
+	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
+	assign	@$(SLAVE.PREFIX)_ack = @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_idata = { {(16){1'b0}},
+			{(8-NETDEVS){1'b0}}, r_@$(PREFIX)_los,
+			{(8-NETDEVS-1){1'b0}}, r_@$(PREFIX)_phy_locked };
+
+	always @(posedge i_clk)
+	begin
+		r_@$(PREFIX)_los        <= i_gnet_los;
+		r_@$(PREFIX)_phy_locked <= i_gnet_phy_locked;
+	end
+@REGS.N=1
+@REGS.0=0 R_NETLOCK NETLOCK
+##
+##
+@PREFIX=netdbg
+@DEPENDS=ETH_ROUTER
+@SLAVE.BUS=wb32
+@NADDR=1
+@SLAVE.TYPE=SINGLE
+@MAIN.DEFNS=
+	reg	[$clog2(NETDEVS)-1:0]	@$(PREFIX)_netdbg;
+	reg	[31:0]	net_debug;
+	reg	[2*NETDEVS-1:0]		@$(PREFIX)_netleds;
+	// Verilator lint_off UNUSED
+	wire	[32*NETDEVS-1:0]	@$(PREFIX)_wide;
+	// Verilator lint_on  UNUSED
+@MAIN.INSERT=
+	assign	@$(SLAVE.PREFIX)_stall = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		@$(PREFIX)_netdbg <= 0;
+	else if (@$(SLAVE.PREFIX)_stb && @$(SLAVE.PREFIX)_we
+			&& (&@$(SLAVE.PREFIX)_sel[($clog2(NETDEVS)+7)/8-1:0]))
+		@$(PREFIX)_netdbg <= @$(SLAVE.PREFIX)_data[$clog2(NETDEVS)-1:0];
+
+	assign	@$(PREFIX)_wide = gnet_net_debug >> (32* @$(PREFIX)_netdbg);
+	always @(posedge i_clk)
+		net_debug <= @$(PREFIX)_wide[31:0];
+	always @(posedge i_clk)
+		@$(PREFIX)_netleds <= { o_gnet_activity, o_gnet_linkup };
+
+	assign	@$(SLAVE.PREFIX)_ack = @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_idata = { 8'h00,
+		{(8-NETDEVS){1'b0}}, @$(PREFIX)_netleds[NETDEVS +: NETDEVS],
+		{(8-NETDEVS){1'b0}}, @$(PREFIX)_netleds[0 +: NETDEVS],
+		{(8-$clog2(NETDEVS)){1'b0}}, @$(PREFIX)_netdbg };
+
+@REGS.N=1
+@REGS.0=0 R_NETDBG NETDBG
+@XDC.INSERT=
+## These first two timing exceptions are not necessary, since the signals
+## are coming from a coherent clock domain.
+## set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/*o_gnet_activity*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)_netleds*}] 8.0
+## set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/*o_gnet_linkup*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)_netleds*}] 8.0
+## The next one, however, is necesary.
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)_netleds*}] 8.0

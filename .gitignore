@@ -34,3 +34,5 @@ vivado*.jou
 vivado_pid*
 *.autosave
 pi/
+reports/
+tcl/

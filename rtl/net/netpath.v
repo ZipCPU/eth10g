@@ -229,7 +229,7 @@ module	netpath #(
 
 	wire	[3:0]		stat_valid_vec, stat_grant;
 	reg			stat_sample, stat_valid;
-	reg	[4:0]		stat_sample_cnt;
+	reg	[1:0]		stat_sample_cnt;
 	wire	stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid;
 	wire	stat_gate_ready, stat_tx_ready, stat_crc_ready, stat_src_ready;
 	wire	[LGPKTLN+1:0]	stat_gate_data, stat_tx_data,
@@ -238,8 +238,6 @@ module	netpath #(
 	wire	[29:0]		stat_fifo_data;
 	reg	[29:0]		stat_data;
 	reg	[LGPKTLN+4-1:0]	stat_pre_data;
-
-
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -735,8 +733,13 @@ module	netpath #(
 		stat_data <= 0;
 		stat_data[LGPKTLN+3:0] <= stat_pre_data;
 		if ((stat_grant == 0) && (stat_sample))
-			stat_data[27:0] <= { 1'b1, rx_data[26:0] };
-		stat_data[29:28] <= { remote_fault, local_fault };
+		begin
+			stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
+			// if (rx_fast_valid && !rx_valid)
+			//	stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
+		end
+		stat_data[29:26] <= { remote_fault, local_fault, 2'b00 };
+		// stat_data[29:28] <= { remote_fault, local_fault };
 	end
 
 	afifo #(
@@ -750,8 +753,10 @@ module	netpath #(
 			.o_rd_empty(stat_fifo_empty)
 	);
 
-	assign	o_debug = { !stat_fifo_empty && !stat_fifo_data[27],
-			!stat_fifo_empty, stat_fifo_data[29:0] };
+	always @(posedge i_sys_clk)
+	if (!stat_fifo_empty)
+		o_debug = { !stat_fifo_empty && !stat_fifo_data[27],
+			1'b0, stat_fifo_data[29:0] };
 	// }}}
 
 	assign	o_link_up = rx_link_up && tx_link_up;

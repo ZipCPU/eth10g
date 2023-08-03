@@ -56,10 +56,10 @@ int main(int argc, char **argv) {
 		"+-----------------------------------------+\n");
 
 #ifdef	_BOARD_HAS_I2CSCOPE
-	_i2cscope->s_ctrl = 0x04000000u;
+	_i2cscope->s_ctrl = WBSCOPE_DISABLE;
 
 	// Now wait for the scope to prime
-	while(0 == (_i2cscope->s_ctrl & 0x10000000u))
+	while(0 == (_i2cscope->s_ctrl & WBSCOPE_PRIMED))
 		;
 	printf("I2C Scope   = %08x\n", _i2cscope->s_ctrl);
 #endif
@@ -67,10 +67,10 @@ int main(int argc, char **argv) {
 	// Make sure the I2C controller is halted from whatever else
 	// it might've been doing.
 	// {{{
-	_i2c->ic_control = 0x0780000;
+	_i2c->ic_control = I2CC_CLEAR | I2CC_HARDHALT;
 	do {
 		c = _i2c->ic_control;
-	} while(0 == (c & 0x0080000));
+	} while(0 == (c & I2CC_STOPPED));
 
 	printf("I2C Control = %08x\n", c);
 	// }}}
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 #ifdef	_BOARD_HAS_I2CSCOPE
 	_zip->z_tma = 0x00100000;
 	while(_zip->z_tma != 0);
-	_i2cscope->s_ctrl = 0x8c000000u;
+	_i2cscope->s_ctrl = WBSCOPE_TRIGGER;
 #endif
 	// }}}
 
@@ -106,15 +106,15 @@ int main(int argc, char **argv) {
 	// {{{
 	do {
 		c = _i2c->ic_control;
-	} while(0 == (c & 0x0780000)); // While not halted and not aborted
+	} while(0 == (c & (I2CC_FAULT|I2CC_STOPPED))); // While not halted and not aborted
 
-	if (0 == (c & 0x080000)) {
+	if (0 == (c & I2CC_FAULT)) {
 		// We aborted.  Now halt.  Hard halt.
-		_i2c->ic_control = 0x0080000;
+		_i2c->ic_control = I2CC_HARDHALT;
 	}
 	// }}}
 
-	if (c & 0x080000) {
+	if ((0 == (c & I2CC_FAULT)) && (c & I2CC_STOPPED)) {
 		// We successfully read everything.  Examine the results
 		// {{{
 		CLEAR_DCACHE;

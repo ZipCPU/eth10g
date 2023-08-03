@@ -40,44 +40,30 @@
 @CARD_DETECT=1'b0
 @OPT_SERDES=1'b0
 @OPT_DDR=1'b0
+@OPT_EMMC=1'b1
+@TOP.IOPREFIX=emmc
 @ACCESS=EMMC_ACCESS
 @INT.SDCARD.WIRE=
 @INT.SDCARD.PIC=
 @INT.EMMC.WIRE= @$(PREFIX)_int
 @INT.EMMC.PIC= altpic
-@TOP.PORTLIST=
-		// @$(NAME)
-		// o_@$(PREFIX)_clk,
-		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat, i_@$(PREFIX)_ds
-@TOP.IODECL=
-	// @$(NAME)
-	// {{{
-	// output wire		o_@$(PREFIX)_clk;
-	inout	wire		io_@$(PREFIX)_cmd;
-	inout	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat;
+@SDIO.CLKDECL=
+@SDIO.IOCLK=
+@SDIO.CDETDECL=
+@SDIO.IOCDET=
+@SDIO.DSDECL=
+		i_@$(PREFIX)_ds,
+@SDIO.DSASSIGN=
+	assign	w_@$(PREFIX)_ds = i_@$(PREFIX)_ds;
+@SDIO.IODS=
 	input	wire		i_@$(PREFIX)_ds;
-	// }}}
 @TOP.DEFNS=
-	// @$(NAME) definitions
-	// {{{
-	wire		i_@$(PREFIX)_cd_n;
-	wire		o_@$(PREFIX)_clk;
-	wire	[3:0]	su_nc;	// Unused / noconnect wires
-`ifdef	VERILATOR
-	genvar		g_@$(PREFIX);
-	wire		w_@$(PREFIX)_cmd_tristate;
-	wire		i_@$(PREFIX)_cmd, o_@$(PREFIX)_cmd;
-	wire	[@$(NUMIO)-1:0]	w_@$(PREFIX)_dat_tristate;
-	wire	[@$(NUMIO)-1:0]	i_@$(PREFIX)_dat, o_@$(PREFIX)_dat;
-`endif
-	// }}}
-@TOP.INSERT=
-	////////////////////////////////////////////////////////////////////////
-	//
-	// @$(NAME) IO pin handling
-	// {{{
-	//
+@$(SDIO.TOP.DEFNS)
+	wire	[3:0]	su_@$(PREFIX)_nc;	// Unused / noconnect wires
+	wire	i_@$(TOP.IOPREFIX)_cd_n;
 
+	assign	i_@$(TOP.IOPREFIX)_cd_n = 1'b0;
+@SDIO.CLKASSIGN=
 	STARTUPE2 #(
 		// {{{
 		// Leave PROG_USR false to avoid activating the program
@@ -90,16 +76,16 @@
 		// }}}
 	) STARTUPE2_inst (
 		// CFGCLK, 1'b output: Config main clock output -- no connect
-		.CFGCLK(su_nc[0]),
+		.CFGCLK(su_@$(PREFIX)_nc[0]),
 		// CFGMCLK, 1'b output: Config internal oscillator clock output
-		.CFGMCLK(su_nc[1]),
+		.CFGMCLK(su_@$(PREFIX)_nc[1]),
 		// EOS, 1'b: Active high output indicating the End Of Startup.
-		.EOS(su_nc[2]),
+		.EOS(su_@$(PREFIX)_nc[2]),
 		// PREQ, 1'b output: PROGRAM request to fabric output
 		//	Only enabled if PROG_USR is set.  This lets the fabric
 		//	know that a request has been made (either JTAG or pin
 		//	pulled low) to program the device
-		.PREQ(su_nc[3]),
+		.PREQ(su_@$(PREFIX)_nc[3]),
 		// CLK, 1'b input: User start-up clock input
 		.CLK(1'b0),
 		// GSR, 1'b input: Global Set/Reset input
@@ -114,9 +100,10 @@
 		//	to allow the FPGA to get itself into a reprogrammable
 		//	state first.
 		.PACK(1'b0),
-		// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
-		// module at all.
-		.USRCCLKO(o_@$(PREFIX)_clk),
+		// USRCLKO, 1-bit input: User CCLK input -- This is why I
+		// am using this module at all--I need to drive the CCLK pin
+		// as part of the (current) eMMC design
+		.USRCCLKO(w_@$(PREFIX)_ck),
 		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
 		//	An active high here places the clock into a high
 		//	impedence state.  Since we wish to use the clock as an
@@ -128,39 +115,13 @@
 		.USRDONEO(1'b1),
 		// USRDONETS, 1'b input: User DONE 3-state enable output
 		//	This enables the FPGA DONE pin to be active.  Setting
-		//	this active high sets the DONE pin to high impedence,
-		//	setting it low allows the output of this pin to be as
-		//	stated above.
+		//	this high sets the DONE pin to high impedence (normal
+		//	DONE pin operation).  Setting it low allows the output
+		//	of this pin to be driven by USRDONE0 above.
 		.USRDONETS(1'b1)
 	);
 
-`ifdef	VERILATOR
-	assign	io_emmc_cmd = (w_@$(PREFIX)_cmd_tristate) ? 1'bz
-				: o_@$(PREFIX)_cmd;
-	assign	i_@$(PREFIX)_cmd = io_emmc_cmd;
-
-	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NUMIO); g_@$(PREFIX)=g_@$(PREFIX)+1)
-	begin : GEN_@$(PREFIX)_IO
-		assign	io_emmc_dat[g_@$(PREFIX)] = (w_@$(PREFIX)_dat_tristate[g_@$(PREFIX)]) ? 1'bz : o_@$(PREFIX)_dat[g_@$(PREFIX)];
-	end endgenerate
-
-	assign	i_@$(PREFIX)_dat = io_emmc_dat;
-`endif
 	// }}}
-@TOP.MAIN=
-		// @$(NAME)
-		o_emmc_clk, i_@$(PREFIX)_ds,
-`ifdef	VERILATOR
-		w_@$(PREFIX)_cmd_tristate,
-		o_@$(PREFIX)_cmd, i_@$(PREFIX)_cmd,
-		w_@$(PREFIX)_dat_tristate,
-		o_@$(PREFIX)_dat, i_@$(PREFIX)_dat,
-`else
-		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
-`endif
-		1'b1
-@MAIN.PARAM=
-	parameter [0:0]	@$(DEVID)_OPT_EMMC = 1'b1;
 @REGS.N=5
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	EMMCCARD
@@ -184,9 +145,4 @@ struct @$(DEVID)_S;
 @RTL.MAKE.SUBD=sdspi
 @RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
 @SIM.CLOCK=clk
-@SIM.TICK=
-		// Quick and dirty model of a non-existent device
-		m_core->i_@$(PREFIX)_cmd = m_core->io_@$(PREFIX)_cmd_tristate || m_core->o_@$(PREFIX)_cmd;
-		m_core->i_@$(PREFIX)_dat = m_core->io_@$(PREFIX)_dat_tristate | m_core->o_@$(PREFIX)_dat;
-		m_core->i_@$(PREFIX)_ds = 0;
-		m_core->i_@$(PREFIX)_detect = 1;
+@SIM.FILE="emmc.img"

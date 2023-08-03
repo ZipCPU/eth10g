@@ -58,7 +58,7 @@ CFLAGS	:= -O3 -std=gnu++14 -faligned-new -Wall $(INCS) $(GFXFLAGS)
 #
 ##
 ## PROJECT sources for this project
-SIMSOURCES:= flashsim.cpp sdspisim.cpp dbluartsim.cpp zipelf.cpp byteswap.cpp memsim.cpp hdmisim.cpp
+SIMSOURCES:= flashsim.cpp sdspisim.cpp dbluartsim.cpp zipelf.cpp byteswap.cpp memsim.cpp hdmisim.cpp sdiosim.cpp
 SIMOBJECTS:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SIMSOURCES)))
 # SIMHEADERS:= $(foreach header,$(subst .cpp,.h,$(SIMSOURCES)),$(wildcard $(header)))
 VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o $(OBJDIR)/verilated_threads.o
@@ -70,7 +70,7 @@ HEADERS := $(foreach header,$(subst .cpp,.h,$(SOURCES)),$(wildcard $(header)))
 #
 PROGRAMS := main_tb
 # Now the return to the "all" target, and fill in some details
-all:	$(PROGRAMS)
+all:	$(PROGRAMS)	sdcard.img emmc.img
 
 $(OBJDIR)/%.o: %.cpp
 	$(mk-objdir)
@@ -89,6 +89,15 @@ main_tb: $(MAINOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vmain__ALL.a
 ## {{{
 # Build a 64M SD-card image file that we can use for testing
 sdcard.img:
+	dd if=/dev/zero of=$@ bs=512 count=131072
+	mkfs.fat $@
+## }}}
+
+#
+# emmc.img
+## {{{
+# Build a 64M eMMC image file that we can use for testing
+emmc.img:
 	dd if=/dev/zero of=$@ bs=512 count=131072
 	mkfs.fat $@
 ## }}}

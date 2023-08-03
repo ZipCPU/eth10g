@@ -86,6 +86,7 @@ public:
 			register_trace("i_sdclk",   1,25);
 			register_trace("i_cmd_en",  1,23);
 			register_trace("i_cmd_data",1,22);
+			register_trace("i_cmd",     1,21);
 			register_trace("w_cmd",     1,20);
 			register_trace("r_cmd_strb",1,19);
 			register_trace("r_cmd",     1,18);

@@ -58,8 +58,8 @@ module	p642pkt (
 
 	// Local declarations
 	// {{{
-	localparam 	[1:0]	SYNC_CONTROL = 2'b10,
-				SYNC_DATA = 2'b01;
+	localparam 	[1:0]	SYNC_CONTROL	= 2'b01,
+				SYNC_DATA	= 2'b10;
 	localparam		PRE_IDLE = 1'b0,
 				PRE_DATA = 1'b1;
 
@@ -73,7 +73,7 @@ module	p642pkt (
 			//				SYNC_CONTROL },
 			// R_LPIDLE = { 32'h06060606, 32'h0606061e,
 			//				SYNC_CONTROL };
-	localparam	[23:0]	REMOTE_FAULT = 24'h02;
+	localparam	[23:0]	REMOTE_FAULT = { 8'h02, 8'h00, 8'h00 };
 	localparam		LNKMSB = 26;
 
 	reg		pstate, phalf, poffset;

@@ -65,8 +65,8 @@ typedef	struct	EMMCDRV_S {
 } EMMCDRV;
 
 #ifdef	_BOARD_HAS_EMMCSCOPE
-#define	SETSCOPE	_emmcscope->s_ctrl = 0x0400ffff
-#define	TRIGGER		_emmcscope->s_ctrl = 0xff00ffff
+#define	SETSCOPE	_emmcscope->s_ctrl = 0x040000ff
+#define	TRIGGER		_emmcscope->s_ctrl = 0xff0000ff
 #else
 
 #error "No scope"
@@ -791,7 +791,7 @@ int	emmc_write_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 24
 		phy |= (9 << 24);
 	}
 
-#ifndef	INCLUDE_DMA_CONTROLLER_NOT
+#ifdef	INCLUDE_DMA_CONTROLLER_NOT
 	if (EXTDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 		_zip->z_dma.d_len = 512;
 		_zip->z_dma.d_rd  = (char *)buf;
@@ -853,7 +853,7 @@ int	emmc_read_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 17
 
 	emmc_wait_while_busy(dev);
 
-#ifndef	INCLUDE_DMA_CONTROLLER_NOT
+#ifdef	INCLUDE_DMA_CONTROLLER_NOT
 	if (SDUSEDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 		_zip->z_dma.d_len = 512;
 		_zip->z_dma.d_rd  = (char *)&sdcard->sd_fifo[0];

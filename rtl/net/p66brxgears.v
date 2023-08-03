@@ -42,6 +42,7 @@ module p66brxgears (
 
 	// Local declarations
 	// {{{
+	localparam	LOCKMSB = 5;
 	reg		rx_valid;
 	reg	[6:0]	rx_count;
 	reg	[95:0]	rx_gears;
@@ -50,7 +51,7 @@ module p66brxgears (
 	reg	[63:0]	ign_al_msb;
 	reg	[6:0]	al_shift;
 	reg		al_slip;
-	reg	[3:0]	lock_count;
+	reg	[LOCKMSB:0]	lock_count;
 
 	reg	[128-1:0]	full_set;
 	reg	[31:0]	r_data;
@@ -119,9 +120,9 @@ module p66brxgears (
 	begin
 		if (al_slip)
 			al_slip <= 0;
-		else if (al_data[0] !== al_data[1])
+		else if (al_data[0] != al_data[1])
 		begin
-			if (lock_count + 1 < 16)
+			if (!lock_count[LOCKMSB])
 				lock_count <= lock_count + 1;
 		end else if (lock_count > 3)
 			lock_count <= lock_count - 3;
@@ -139,7 +140,7 @@ module p66brxgears (
 	//
 	// Step three: output
 	// {{{
-	assign	M_VALID = rx_valid && lock_count[3];
+	assign	M_VALID = rx_valid && lock_count[LOCKMSB];
 	assign	M_DATA  = al_data;
 	// }}}
 

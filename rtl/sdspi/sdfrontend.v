@@ -270,12 +270,12 @@ module	sdfrontend #(
 				i_cmd_en || i_data_en,
 				5'h0,
 				i_sdclk[7], 1'b0,
-				i_cmd_en, i_cmd_data[1], 1'b0,
-					(io_cmd_tristate) ? i_cmd : o_cmd,
-					r_cmd_strb, r_cmd_data,
-				i_data_en, r_rx_strb, r_rx_data,
+				i_cmd_en, i_cmd_data[1], i_cmd,
+					(io_cmd_tristate) ? i_cmd: o_cmd,//w_cmd
+					r_cmd_strb, r_cmd_data,		// 2b
+				i_data_en, r_rx_strb, r_rx_data,	// 10b
 				//
-				((i_data_en) ? i_tx_data[31:24] : w_out)
+				((i_data_en) ? i_tx_data[31:24] : w_out) // 8b
 				};
 
 		// Keep Verilator happy

@@ -5,6 +5,7 @@ flashid
 flashscope
 i2casm
 i2cscope
+netscope
 netuart
 sdioscope
 smiscope

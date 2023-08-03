@@ -38,6 +38,7 @@ module	xgtxphy #(
 		input	wire			i_wb_clk,
 		//
 		output	wire	[NDEV-1:0]	o_phy_fault,
+		output	wire	[NDEV:0]	o_lock_status,
 		// p64b: Internal connections
 		// {{{
 		// TX path, from IP to PHY
@@ -844,7 +845,11 @@ module	xgtxphy #(
 
 		assign	o_phy_fault[gk] = r_phy_fault;
 		// }}}
+
+		assign	o_lock_status[gk] = rx_cdr_lock;
 	end endgenerate
+
+	assign	o_lock_status[NDEV] = pll_lock;
 
 	function automatic [63:0] BITREV(input [63:0] in);
 		// {{{

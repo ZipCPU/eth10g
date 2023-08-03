@@ -33,6 +33,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
+`timescale	1ns/1ps
 `default_nettype	none
 // }}}
 module	sdcmd #(
@@ -41,11 +42,14 @@ module	sdcmd #(
 		parameter [0:0]	OPT_DS = 1'b0,
 		// parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter [0:0]	OPT_EMMC = 1'b1,
+/*
 `ifdef	VERILATOR
 		parameter	LGTIMEOUT = 18,	// About 1.3ms--sim only
 `else
 		parameter	LGTIMEOUT = 26,	// 500ms expected
 `endif
+*/
+		parameter	LGTIMEOUT = 18,
 		parameter	LGLEN = 9,
 		parameter	MW = 32
 		// }}}

@@ -47,93 +47,209 @@
 @CARD_DETECT=1'b1
 @OPT_SERDES=1'b0
 @OPT_DDR=1'b1
+@OPT_EMMC=1'b0
+@TOP.IOPREFIX=sdcard
+@SDIO.CLKASSIGN=
+	assign	o_@$(TOP.IOPREFIX)_clk = w_@$(PREFIX)_ck;
+@SDIO.DSASSIGN=
+	assign	w_@$(PREFIX)_ds = 1'b0;
+@SDIO.DSDECL=
+@SDIO.CDETDECL= i_@$(TOP.IOPREFIX)_cd_n,
+@SDIO.CLKDECL= o_@$(TOP.IOPREFIX)_clk,
+@SDIO.IODS=
+@SDIO.IOCDET=
+	input	wire		i_@$(TOP.IOPREFIX)_cd_n;
+@SDIO.IOCLK=
+	output	wire		o_@$(TOP.IOPREFIX)_clk;
 @TOP.PORTLIST=
 		// @$(NAME)
-		o_sdcard_clk, io_sdcard_cmd, io_sdcard_dat, i_sdcard_cd_n
+@$(SDIO.CLKDECL)
+@$(SDIO.CDETDECL)
+@$(SDIO.DSDECL)
+		io_@$(TOP.IOPREFIX)_cmd, io_@$(TOP.IOPREFIX)_dat
 @TOP.IODECL=
 	// @$(NAME)
 	// {{{
-	output	wire		o_sdcard_clk;
-	inout	wire		io_sdcard_cmd;
-	inout	wire	[@$(NUMIO)-1:0]	io_sdcard_dat;
-	input	wire		i_sdcard_cd_n;
+@$(SDIO.IOCLK)
+@$(SDIO.IODS)
+@$(SDIO.IOCDET)
+	inout	wire		io_@$(TOP.IOPREFIX)_cmd;
+	inout	wire	[@$(NUMIO)-1:0]	io_@$(TOP.IOPREFIX)_dat;
 	// }}}
-@TOP.DEFNS=
+@SDIO.TOP.DEFNS=
 	// @$(NAME) definitions
 	// {{{
-	wire	i_@$(PREFIX)_ds;
-`ifdef	VERILATOR
-	genvar		g_@$(PREFIX);
-	wire		w_@$(PREFIX)_cmd_tristate;
-	wire		i_@$(PREFIX)_cmd, o_@$(PREFIX)_cmd;
-	wire	[@$(NUMIO)-1:0]	w_@$(PREFIX)_dat_tristate;
-	wire	[@$(NUMIO)-1:0]	i_@$(PREFIX)_dat, o_@$(PREFIX)_dat;
-`endif
+	wire		w_@$(PREFIX)_cfg_ddr;
+	wire	[4:0]	w_@$(PREFIX)_cfg_sample_shift;
+	wire		w_@$(PREFIX)_pp_cmd;
+	wire		w_@$(PREFIX)_pp_data;
+		//
+	wire	[7:0]	w_@$(PREFIX)_sdclk;
+	wire		w_@$(PREFIX)_cmd_en;
+	wire	[1:0]	w_@$(PREFIX)_cmd_data;
+	wire		w_@$(PREFIX)_data_en;
+	wire		w_@$(PREFIX)_rx_en;
+	wire	[31:0]	w_@$(PREFIX)_tx_data;
+	wire		w_@$(PREFIX)_afifo_reset_n;
+		//
+	wire	[1:0]	w_@$(PREFIX)_cmd_strb;
+	wire	[1:0]	w_@$(PREFIX)_cmd_idata;
+	wire		w_@$(PREFIX)_card_busy;
+	wire	[1:0]	w_@$(PREFIX)_rx_strb;
+	wire	[15:0]	w_@$(PREFIX)_rx_data;
+		//
+	wire		w_@$(PREFIX)_ac_valid;
+	wire	[1:0]	w_@$(PREFIX)_ac_data;
+	wire		w_@$(PREFIX)_ad_valid;
+	wire	[31:0]	w_@$(PREFIX)_ad_data;
+
+	wire		w_@$(PREFIX)_ck;
+	wire		w_@$(PREFIX)_ds;
+	wire	[31:0]	w_@$(PREFIX)_debug;
 	// }}}
+@TOP.DEFNS=
+@$(SDIO.TOP.DEFNS)
+@SDIO.FRONTEND=
+	sdfrontend #(
+		.OPT_SERDES(@$(OPT_SERDES)),
+		.OPT_DDR(@$(OPT_DDR)),
+		.NUMIO(@$(NUMIO))
+	) u_@$(PREFIX)_frontend (
+		// {{{
+		.i_clk(s_clk), .i_hsclk(s_clk4x), .i_reset(s_reset),
+		// Configuration
+		.i_cfg_ddr(w_@$(PREFIX)_cfg_ddr),
+		.i_sample_shift(w_@$(PREFIX)_cfg_sample_shift),
+		.i_pp_cmd(w_@$(PREFIX)_pp_cmd),
+		.i_pp_data(w_@$(PREFIX)_pp_data),
+		// Run-time inputs
+		.i_sdclk(w_@$(PREFIX)_sdclk),
+		.i_cmd_en(w_@$(PREFIX)_cmd_en),
+		.i_cmd_data(w_@$(PREFIX)_cmd_data),
+		.i_data_en(w_@$(PREFIX)_data_en),
+		.i_rx_en(w_@$(PREFIX)_rx_en),
+		.i_tx_data(w_@$(PREFIX)_tx_data),
+		.i_afifo_reset_n(w_@$(PREFIX)_afifo_reset_n),
+		// Return values
+		.o_cmd_strb(w_@$(PREFIX)_cmd_strb),
+		.o_cmd_data(w_@$(PREFIX)_cmd_idata),
+		.o_data_busy(w_@$(PREFIX)_card_busy),
+		.o_rx_strb( w_@$(PREFIX)_rx_strb),
+		.o_rx_data( w_@$(PREFIX)_rx_data),
+		//
+		.MAC_VALID(w_@$(PREFIX)_ac_valid),
+		.MAC_DATA( w_@$(PREFIX)_ac_data),
+		.MAD_VALID(w_@$(PREFIX)_ad_valid),
+		.MAD_DATA( w_@$(PREFIX)_ad_data),
+		// IO ports
+		.o_ck(w_@$(PREFIX)_ck),
+		.i_ds(w_@$(PREFIX)_ds),
+		.io_cmd(io_@$(TOP.IOPREFIX)_cmd),
+		.io_dat(io_@$(TOP.IOPREFIX)_dat),
+		.o_debug(w_@$(PREFIX)_debug)
+		// }}}
+	);
 @TOP.INSERT=
-`ifdef	VERILATOR
-	assign	io_sdcard_cmd = (w_@$(PREFIX)_cmd_tristate) ? 1'bz
-				: o_@$(PREFIX)_cmd;
-	assign	i_@$(PREFIX)_cmd = io_sdcard_cmd;
+@$(SDIO.FRONTEND)
 
-	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NUMIO); g_@$(PREFIX)=g_@$(PREFIX)+1)
-	begin : GEN_@$(PREFIX)_IO
-		assign	io_sdcard_dat[g_@$(PREFIX)] = (w_@$(PREFIX)_dat_tristate[g_@$(PREFIX)]) ? 1'bz : o_@$(PREFIX)_dat[g_@$(PREFIX)];
-	end endgenerate
-
-	assign	i_@$(PREFIX)_dat = io_sdcard_dat;
-`endif
+@$(SDIO.CLKASSIGN)
+@$(SDIO.DSASSIGN)
 @TOP.MAIN=
 		// @$(NAME)
-		o_sdcard_clk, i_@$(PREFIX)_ds,
-`ifdef	VERILATOR
-		w_@$(PREFIX)_cmd_tristate,
-		o_@$(PREFIX)_cmd, i_@$(PREFIX)_cmd,
-		w_@$(PREFIX)_dat_tristate,
-		o_@$(PREFIX)_dat, i_@$(PREFIX)_dat,
-`else
-		io_sdcard_cmd, io_sdcard_dat,
-`endif
-		!i_sdcard_cd_n
+		!i_@$(TOP.IOPREFIX)_cd_n,
+		//
+		w_@$(PREFIX)_cfg_ddr,
+		w_@$(PREFIX)_cfg_sample_shift,
+		w_@$(PREFIX)_pp_cmd,
+		w_@$(PREFIX)_pp_data,
+		//
+		w_@$(PREFIX)_sdclk,
+		w_@$(PREFIX)_cmd_en,
+		w_@$(PREFIX)_cmd_data,
+		w_@$(PREFIX)_data_en,
+		w_@$(PREFIX)_rx_en,
+		w_@$(PREFIX)_tx_data,
+		w_@$(PREFIX)_afifo_reset_n,
+		//
+		w_@$(PREFIX)_cmd_strb,
+		w_@$(PREFIX)_cmd_idata,
+		w_@$(PREFIX)_card_busy,
+		w_@$(PREFIX)_rx_strb,
+		w_@$(PREFIX)_rx_data,
+		//
+		w_@$(PREFIX)_ac_valid,
+		w_@$(PREFIX)_ac_data,
+		w_@$(PREFIX)_ad_valid,
+		w_@$(PREFIX)_ad_data,
+		w_@$(PREFIX)_debug
 @TOP.INSERT=
 	assign	i_@$(PREFIX)_ds = 1'b0;
 @MAIN.PORTLIST=
 		// @$(NAME)
-		o_@$(PREFIX)_clk, i_@$(PREFIX)_ds,
-`ifdef	VERILATOR
-		io_@$(PREFIX)_cmd_tristate,
-		o_@$(PREFIX)_cmd, i_@$(PREFIX)_cmd,
-		io_@$(PREFIX)_dat_tristate,
-		o_@$(PREFIX)_dat, i_@$(PREFIX)_dat,
-`else
-		io_@$(PREFIX)_cmd, io_@$(PREFIX)_dat,
-`endif
-		i_@$(PREFIX)_detect
-@MAIN.PARAM=
-	parameter [0:0]	@$(DEVID)_OPT_EMMC = 1'b0;
+		i_@$(PREFIX)_detect,
+		//
+		o_@$(PREFIX)_cfg_ddr,
+		o_@$(PREFIX)_cfg_sample_shift,
+		o_@$(PREFIX)_pp_cmd,
+		o_@$(PREFIX)_pp_data,
+		//
+		o_@$(PREFIX)_sdclk,
+		o_@$(PREFIX)_cmd_en,
+		o_@$(PREFIX)_cmd_data,
+		o_@$(PREFIX)_data_en,
+		o_@$(PREFIX)_rx_en,
+		o_@$(PREFIX)_tx_data,
+		o_@$(PREFIX)_afifo_reset_n,
+		//
+		i_@$(PREFIX)_cmd_strb,
+		i_@$(PREFIX)_cmd_data,
+		i_@$(PREFIX)_card_busy,
+		i_@$(PREFIX)_rx_strb,
+		i_@$(PREFIX)_rx_data,
+		//
+		i_@$(PREFIX)_ac_valid,
+		i_@$(PREFIX)_ac_data,
+		i_@$(PREFIX)_ad_valid,
+		i_@$(PREFIX)_ad_data,
+		i_@$(PREFIX)_debug
 @MAIN.IODECL=
 	// @$(NAME) declarations
 	// {{{
-	output	wire		o_@$(PREFIX)_clk;
-	input	wire		i_@$(PREFIX)_ds;
-`ifdef	VERILATOR
-	output	wire		io_@$(PREFIX)_cmd_tristate;
-	output	wire		o_@$(PREFIX)_cmd;
-	input	wire		i_@$(PREFIX)_cmd;
-	output	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat_tristate;
-	output	wire	[@$(NUMIO)-1:0]	o_@$(PREFIX)_dat;
-	input	wire	[@$(NUMIO)-1:0]	i_@$(PREFIX)_dat;
-`else
-	inout	wire		io_@$(PREFIX)_cmd;
-	inout	wire	[@$(NUMIO)-1:0]	io_@$(PREFIX)_dat;
-`endif
 	input	wire		i_@$(PREFIX)_detect;
+		//
+	output	wire		o_@$(PREFIX)_cfg_ddr;
+	output	wire	[4:0]	o_@$(PREFIX)_cfg_sample_shift;
+	output	wire		o_@$(PREFIX)_pp_cmd;
+	output	wire		o_@$(PREFIX)_pp_data;
+		//
+	output	wire	[7:0]	o_@$(PREFIX)_sdclk;
+	output	wire		o_@$(PREFIX)_cmd_en;
+	output	wire	[1:0]	o_@$(PREFIX)_cmd_data;
+	output	wire		o_@$(PREFIX)_data_en;
+	output	wire		o_@$(PREFIX)_rx_en;
+	output	wire	[31:0]	o_@$(PREFIX)_tx_data;
+	output	wire		o_@$(PREFIX)_afifo_reset_n;
+		//
+	input	wire	[1:0]	i_@$(PREFIX)_cmd_strb;
+	input	wire	[1:0]	i_@$(PREFIX)_cmd_data;
+	input	wire		i_@$(PREFIX)_card_busy;
+	input	wire	[1:0]	i_@$(PREFIX)_rx_strb;
+	input	wire	[15:0]	i_@$(PREFIX)_rx_data;
+		//
+	input	wire		i_@$(PREFIX)_ac_valid;
+	input	wire	[1:0]	i_@$(PREFIX)_ac_data;
+	input	wire		i_@$(PREFIX)_ad_valid;
+	input	wire	[31:0]	i_@$(PREFIX)_ad_data;
+	// Verilator lint_off UNUSED
+	input	wire	[31:0]	i_@$(PREFIX)_debug;
+	// Verilator lint_on  UNUSED
 	// }}}
 @MAIN.DEFNS=
 	// @$(NAME) definitions
 	// Verilator lint_off UNUSED
 	wire		w_@$(PREFIX)_1p8v;
 	wire	[31:0]	@$(PREFIX)_debug;
+	assign		@$(PREFIX)_debug = i_@$(PREFIX)_debug;
 	// Verilator lint_on  UNUSED
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
@@ -144,51 +260,52 @@
 	//
 	//
 
-	sdio_top #(
-		.NUMIO(@$(NUMIO)),
+	sdio #(
+		// {{{
+		.LGFIFO(10), .NUMIO(@$(NUMIO)),
+		.MW(@$(SLAVE.BUS.WIDTH)),
 		.OPT_SERDES(@$(OPT_SERDES)),
 		.OPT_DDR(@$(OPT_DDR)),
 		.OPT_CARD_DETECT(@$(CARD_DETECT)),
-		.OPT_EMMC(@$(DEVID)_OPT_EMMC),
-		.MW(@$(SLAVE.BUS.WIDTH))
+		.OPT_EMMC(@$(OPT_EMMC))
+		// }}}
 	) u_@$(PREFIX)(
 		// {{{
 		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
 		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),
-		.i_hsclk(1'b0),
 		@$(SLAVE.ANSIPORTLIST),
-		.o_ck(o_@$(PREFIX)_clk),
-		.i_ds(i_@$(PREFIX)_ds),
-`ifdef	VERILATOR
-		.io_cmd_tristate(io_@$(PREFIX)_cmd_tristate),
-		.o_cmd(o_@$(PREFIX)_cmd),
-		.i_cmd(i_@$(PREFIX)_cmd),
-		.io_dat_tristate(io_@$(PREFIX)_dat_tristate),
-		.o_dat(o_@$(PREFIX)_dat),
-		.i_dat(i_@$(PREFIX)_dat),
-`else
-		.io_cmd(io_@$(PREFIX)_cmd),
-		.io_dat(io_@$(PREFIX)_dat),
-`endif
 		.i_card_detect(i_@$(PREFIX)_detect),
 		.o_1p8v(w_@$(PREFIX)_1p8v),
 		.o_int(@$(PREFIX)_int),
-		.o_debug(@$(PREFIX)_debug)
+		//
+		.o_cfg_ddr(o_@$(PREFIX)_cfg_ddr),
+		.o_cfg_sample_shift(o_@$(PREFIX)_cfg_sample_shift),
+		.o_pp_cmd(o_@$(PREFIX)_pp_cmd),
+		.o_pp_data(o_@$(PREFIX)_pp_data),
+		//
+		.o_sdclk(   o_@$(PREFIX)_sdclk),
+		.o_cmd_en(  o_@$(PREFIX)_cmd_en),
+		.o_cmd_data(o_@$(PREFIX)_cmd_data),
+		.o_data_en( o_@$(PREFIX)_data_en),
+		.o_rx_en(   o_@$(PREFIX)_rx_en),
+		.o_tx_data( o_@$(PREFIX)_tx_data),
+		.o_afifo_reset_n(o_@$(PREFIX)_afifo_reset_n),
+		//
+		.i_cmd_strb( i_@$(PREFIX)_cmd_strb),
+		.i_cmd_data( i_@$(PREFIX)_cmd_data),
+		.i_card_busy(i_@$(PREFIX)_card_busy),
+		.i_rx_strb(  i_@$(PREFIX)_rx_strb),
+		.i_rx_data(  i_@$(PREFIX)_rx_data),
+		//
+		.S_AC_VALID(i_@$(PREFIX)_ac_valid),
+		.S_AC_DATA( i_@$(PREFIX)_ac_data),
+		.S_AD_VALID(i_@$(PREFIX)_ad_valid),
+		.S_AD_DATA( i_@$(PREFIX)_ad_data)
 		// }}}
 	);
 
 	// }}}
 @MAIN.ALT=
-	assign	o_@$(PREFIX)_clk = 1'b1;
-`ifdef	VERILATOR
-	assign	io_@$(PREFIX)_cmd_tristate = 1'b1;
-	assign	o_@$(PREFIX)_cmd = 1'b1;
-	assign	io_@$(PREFIX)_data_tristate  = -1;
-	assign	o_@$(PREFIX)_data = -1;
-`else	// VERILATOR
-	assign	io_@$(PREFIX)_cmd  = 1'b1;
-	assign	io_@$(PREFIX)_dat  = -1;
-`endif	// VERILATOR
 @REGS.N=5
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	SDCARD
@@ -214,7 +331,40 @@ struct @$(DEVID)_S;
 @BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
 @SIM.CLOCK=clk
 @SIM.INCLUDE=
-// #include "sdiosim.h"
+#include "sdiosim.h"
+@SIM.DEFNS=
+	SDIOSIM		*m_@$(PREFIX);
+@SIM.FILE="sdcard.img"
+@SIM.INIT=
+#ifdef	@$(ACCESS)
+		m_@$(PREFIX) = new SDIOSIM(@$(SIM.FILE));
+#endif
+@SIM.TICK=
+#ifdef	@$(ACCESS)
+		{ unsigned	tmp, tmp_async;
+		m_@$(PREFIX)->apply(
+			(unsigned)m_core->o_@$(PREFIX)_sdclk,
+			(unsigned)m_core->o_@$(PREFIX)_cfg_ddr,
+			(unsigned)m_core->o_@$(PREFIX)_cmd_en,
+			(unsigned)m_core->o_@$(PREFIX)_cmd_data,
+			(unsigned)m_core->o_@$(PREFIX)_data_en,
+			(unsigned)m_core->o_@$(PREFIX)_rx_en,
+			(unsigned)m_core->o_@$(PREFIX)_tx_data,
+			tmp, tmp_async,
+			m_core->i_@$(PREFIX)_ad_data);
+		m_core->i_@$(PREFIX)_cmd_strb = (tmp >> 30) & 3;
+		m_core->i_@$(PREFIX)_cmd_data = (tmp >> 28) & 3;
+		m_core->i_@$(PREFIX)_rx_strb  = (tmp >> 24) & 3;
+		m_core->i_@$(PREFIX)_rx_data  =  tmp & 0x0ffff;
+		m_core->i_@$(PREFIX)_ac_valid = (tmp_async & 2) ? 1:0;
+		m_core->i_@$(PREFIX)_ad_valid =  tmp_async & 1;
+		if (!m_core->o_@$(PREFIX)_afifo_reset_n) {
+			m_core->i_@$(PREFIX)_ad_valid = 0;
+			m_core->i_@$(PREFIX)_ad_data = 0;
+		} }
+#endif
 @RTL.MAKE.GROUP= SDIO
 @RTL.MAKE.SUBD=sdspi
 @RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
+@XDC.INSERT=
+set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]

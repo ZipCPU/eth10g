@@ -1,5 +1,5 @@
 	I2CMX=0xe8		// b1110_100x -> x74
-	SFP=0xa2		// b1010_001x -> x50
+	SFP=0xa0		// b1010_001x -> x50
 
 	TARGET
 	CHANNEL	2

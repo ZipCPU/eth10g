@@ -61,7 +61,7 @@ void	wait_while_busy(void) {
 	unsigned	v;
 
 	do {
-		v = _sdcard->sd_cmd;
+		v = _sdio->sd_cmd;
 	} while(v & 0x104800);
 }
 
@@ -76,12 +76,12 @@ int main(int argc, char **argv) {
 	txstr("STARTUP\r\n");
 
 	// Set up the PHY
-	_sdcard->sd_phy = 0x090000fc;	//  100kHz
-	// _sdcard->sd_phy = 0x0900007f;	//  200kHz
-	// _sdcard->sd_phy = 0x09000041;	//  400kHz
-	// _sdcard->sd_phy = 0x0900001b;	// 1MHz
+	_sdio->sd_phy = 0x090000fc;	//  100kHz
+	// _sdio->sd_phy = 0x0900007f;	//  200kHz
+	// _sdio->sd_phy = 0x09000041;	//  400kHz
+	// _sdio->sd_phy = 0x0900001b;	// 1MHz
 
-	while(0x0fc != (_sdcard->sd_phy & 0x0ff))
+	while(0x0fc != (_sdio->sd_phy & 0x0ff))
 		;
 
 	for(int i=0; i<1000000; i++) asm("NOOP");
@@ -89,68 +89,68 @@ int main(int argc, char **argv) {
 
 	txstr("CMD0:    GO_IDLE\r\n");
 	// {{{
-	_sdcard->sd_data = 0;
-	_sdcard->sd_cmd = 0x00048040;
+	_sdio->sd_data = 0;
+	_sdio->sd_cmd = 0x00048040;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x80ff) != 0x040) {
+	if ((_sdio->sd_cmd & 0x80ff) != 0x040) {
 		TRIGGER;
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	// }}}
 
 	txstr("CMD8:    SEND_IF_COND\r\n");
 	// {{{
-	_sdcard->sd_data = 0x01a5;
-	_sdcard->sd_cmd  = 0x0148;
+	_sdio->sd_data = 0x01a5;
+	_sdio->sd_cmd  = 0x0148;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x80ff) != 0x008) {
+	if ((_sdio->sd_cmd & 0x80ff) != 0x008) {
 		TRIGGER;
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	// }}}
 
 	// SEND_OP_COND
 	// {{{
 	do {
 		txstr("CMD55:   SEND_APP_CMD\r\n");
-		_sdcard->sd_data = 0;
-		_sdcard->sd_cmd  = 0x8140 + 55;
+		_sdio->sd_data = 0;
+		_sdio->sd_cmd  = 0x8140 + 55;
 		wait_while_busy();
-		if ((_sdcard->sd_cmd & 0x80ff) != 55) {
+		if ((_sdio->sd_cmd & 0x80ff) != 55) {
 			TRIGGER;
-			txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+			txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 				txstr("\r\n");
 			goto failed;
 		}
 
-		txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-		txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+		txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+		txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 
 		txstr("ACMD41:  SEND_OP_COND\r\n");
-		_sdcard->sd_data = 0x40ff8000;
-		_sdcard->sd_cmd  = 0x0140 + 41;
+		_sdio->sd_data = 0x40ff8000;
+		_sdio->sd_cmd  = 0x0140 + 41;
 		wait_while_busy();
-		if ((_sdcard->sd_cmd & 0x00ff) != 0x03f) {
+		if ((_sdio->sd_cmd & 0x00ff) != 0x03f) {
 			TRIGGER;
-			txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+			txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 				txstr("\r\n");
 			goto failed;
 		}
 
-		txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-		txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
-		_sdcard->sd_cmd  = 0x8100;
-		txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	} while(0 == (_sdcard->sd_data & 0x80000000));
+		txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+		txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
+		_sdio->sd_cmd  = 0x8100;
+		txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	} while(0 == (_sdio->sd_data & 0x80000000));
 
-	if ((_sdcard->sd_data & 0xbfffffff) != 0x80ff8000) {
-		txstr("ERROR: SD-DATA = "); txhex(_sdcard->sd_data);
+	if ((_sdio->sd_data & 0xbfffffff) != 0x80ff8000) {
+		txstr("ERROR: SD-DATA = "); txhex(_sdio->sd_data);
 			txstr("\r\n");
 		TRIGGER;
 		goto failed;
@@ -159,22 +159,22 @@ int main(int argc, char **argv) {
 
 	txstr("CMD2:    ALL_SEND_CID\r\n");
 	// {{{
-	_sdcard->sd_data = 0x0;
-	_sdcard->sd_cmd  = 0x8242;
+	_sdio->sd_data = 0x0;
+	_sdio->sd_cmd  = 0x8242;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x0ff) != 0x3f) {
+	if ((_sdio->sd_cmd & 0x0ff) != 0x3f) {
 		TRIGGER;
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
-	txstr("  FIFA[0]: "); txhex(cid[0] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[1]: "); txhex(cid[1] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[2]: "); txhex(cid[2] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[3]: "); txhex(cid[3] = _sdcard->sd_fifa); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
+	txstr("  FIFA[0]: "); txhex(cid[0] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[1]: "); txhex(cid[1] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[2]: "); txhex(cid[2] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[3]: "); txhex(cid[3] = _sdio->sd_fifa); txstr("\r\n");
 
 	if (cid[0] == 0 && cid[1] == 0) {
 		TRIGGER;
@@ -185,25 +185,25 @@ int main(int argc, char **argv) {
 
 	txstr("CMD3:    SEND_RCA\r\n");
 	// {{{
-	_sdcard->sd_data = 0x0;
-	_sdcard->sd_cmd  = 0x8143;
+	_sdio->sd_data = 0x0;
+	_sdio->sd_cmd  = 0x8143;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x81ff) != 0x0103) {
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+	if ((_sdio->sd_cmd & 0x81ff) != 0x0103) {
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		TRIGGER;
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	rca = _sdcard->sd_data >> 16;
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	rca = _sdio->sd_data >> 16;
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	txstr("  RCA:     "); txhex(rca); txstr("\r\n");
 	// }}}
 
-	_sdcard->sd_phy = 0x09003003;	// 25MHz, push-pull
-	// _sdcard->sd_phy = 0x09003004;	// 12MHz, push-pull
-	while(0x03 != (_sdcard->sd_phy & 0x0ff))
+	_sdio->sd_phy = 0x09003003;	// 25MHz, push-pull
+	// _sdio->sd_phy = 0x09003004;	// 12MHz, push-pull
+	while(0x03 != (_sdio->sd_phy & 0x0ff))
 		;
 
 	// From this state, I should now be able to issue
@@ -215,22 +215,22 @@ int main(int argc, char **argv) {
 
 	txstr("CMD10:   SEND_CID\r\n");
 	// {{{
-	_sdcard->sd_data = rca << 16;
-	_sdcard->sd_cmd  = 0x824a;
+	_sdio->sd_data = rca << 16;
+	_sdio->sd_cmd  = 0x824a;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x0ff) != 0x3f) {
+	if ((_sdio->sd_cmd & 0x0ff) != 0x3f) {
 		TRIGGER;
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
-	txstr("  FIFA[0]: "); txhex(cid[0] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[1]: "); txhex(cid[1] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[2]: "); txhex(cid[2] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[3]: "); txhex(cid[3] = _sdcard->sd_fifa); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
+	txstr("  FIFA[0]: "); txhex(cid[0] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[1]: "); txhex(cid[1] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[2]: "); txhex(cid[2] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[3]: "); txhex(cid[3] = _sdio->sd_fifa); txstr("\r\n");
 
 	if (cid[0] == 0 && cid[1] == 0) {
 		TRIGGER;
@@ -241,22 +241,22 @@ int main(int argc, char **argv) {
 
 	txstr("CMD9:    SEND_CSD\r\n");
 	// {{{
-	_sdcard->sd_data = rca << 16;
-	_sdcard->sd_cmd  = 0x8249;
+	_sdio->sd_data = rca << 16;
+	_sdio->sd_cmd  = 0x8249;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x0ff) != 0x3f) {
+	if ((_sdio->sd_cmd & 0x0ff) != 0x3f) {
 		TRIGGER;
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
-	txstr("  FIFA[0]: "); txhex(csd[0] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[1]: "); txhex(csd[1] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[2]: "); txhex(csd[2] = _sdcard->sd_fifa); txstr("\r\n");
-	txstr("  FIFA[3]: "); txhex(csd[3] = _sdcard->sd_fifa); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
+	txstr("  FIFA[0]: "); txhex(csd[0] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[1]: "); txhex(csd[1] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[2]: "); txhex(csd[2] = _sdio->sd_fifa); txstr("\r\n");
+	txstr("  FIFA[3]: "); txhex(csd[3] = _sdio->sd_fifa); txstr("\r\n");
 
 	if (csd[0] == 0 && csd[1] == 0) {
 		TRIGGER;
@@ -267,56 +267,56 @@ int main(int argc, char **argv) {
 
 	txstr("CMD7:    SELECT_CARD\r\n");
 	// {{{
-	_sdcard->sd_data = rca << 16;
-	txstr("  Predata: "); txhex(_sdcard->sd_data); txstr("\r\n");
-	_sdcard->sd_cmd  = 0x8147;
+	_sdio->sd_data = rca << 16;
+	txstr("  Predata: "); txhex(_sdio->sd_data); txstr("\r\n");
+	_sdio->sd_cmd  = 0x8147;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x81ff) != 0x0107) {
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+	if ((_sdio->sd_cmd & 0x81ff) != 0x0107) {
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		TRIGGER;
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	// }}}
 
 	txstr("CMD55:   SEND_APP_CMD\r\n");
 	// {{{
-	_sdcard->sd_data = rca << 16;
-	_sdcard->sd_cmd  = 0x8140 + 55;
+	_sdio->sd_data = rca << 16;
+	_sdio->sd_cmd  = 0x8140 + 55;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x80ff) != 55) {
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+	if ((_sdio->sd_cmd & 0x80ff) != 55) {
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		TRIGGER;
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	// }}}
 
 	txstr("ACMD6:   SET_BUS_WIDTH\r\n");
 	// {{{
-	_sdcard->sd_data = 2;
-	_sdcard->sd_cmd  = 0x8140+6;
+	_sdio->sd_data = 2;
+	_sdio->sd_cmd  = 0x8140+6;
 	wait_while_busy();
-	if ((_sdcard->sd_cmd & 0x81ff) != 0x0106) {
-		txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+	if ((_sdio->sd_cmd & 0x81ff) != 0x0106) {
+		txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 			txstr("\r\n");
 		TRIGGER;
 		goto failed;
 	}
 
-	txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-	txstr("  Data:    "); txhex(_sdcard->sd_data); txstr("\r\n");
+	txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	// }}}
 
-	_sdcard->sd_phy = 0x09003c03;	// 25MHz, push-pull, 4b data width
-	// _sdcard->sd_phy = 0x0900bc03;	// .. and shut the unused clock down
-	while(0x03 != (_sdcard->sd_phy & 0x0ff))
+	_sdio->sd_phy = 0x09003c03;	// 25MHz, push-pull, 4b data width
+	// _sdio->sd_phy = 0x0900bc03;	// .. and shut the unused clock down
+	while(0x03 != (_sdio->sd_phy & 0x0ff))
 		;
 
 SETSCOPE;
@@ -324,25 +324,25 @@ SETSCOPE;
 		txstr("CMD17:   READ_BLOCK "); txdecimal(sector); txstr("\r\n");
 		// {{{
 		for(int i=0; i<512/4; i++)
-			_sdcard->sd_fifa = 0x01020 + (sector * 4) + (i&3);
-		_sdcard->sd_data = (sector == 0) ? 0 : (sector + 0x02000-1);
-		_sdcard->sd_cmd  = 0x8940+17;
+			_sdio->sd_fifa = 0x01020 + (sector * 4) + (i&3);
+		_sdio->sd_data = (sector == 0) ? 0 : (sector + 0x02000-1);
+		_sdio->sd_cmd  = 0x8940+17;
 		TRIGGER;
 		wait_while_busy();
-		if ((_sdcard->sd_cmd & 0x0c9ff) != 0x0111) {
+		if ((_sdio->sd_cmd & 0x0c9ff) != 0x0111) {
 			TRIGGER;
-			txstr("ERROR: SD-CMD = "); txhex(_sdcard->sd_cmd);
+			txstr("ERROR: SD-CMD = "); txhex(_sdio->sd_cmd);
 				txstr("\r\n");
 			// goto failed;
 		}
 
-		txstr("  Cmd:     "); txhex(_sdcard->sd_cmd); txstr("\r\n");
-		txstr("  Data:    "); txhex(_sdcard->sd_data); txstr(", sector:\r\n  ");
+		txstr("  Cmd:     "); txhex(_sdio->sd_cmd); txstr("\r\n");
+		txstr("  Data:    "); txhex(_sdio->sd_data); txstr(", sector:\r\n  ");
 
 		for(int i=0; i<512/4; i++) {
 			unsigned v;
 
-			v = _sdcard->sd_fifa;
+			v = _sdio->sd_fifa;
 			txstr("0x"); txhex(v);
 
 			if (3 == (i & 3))

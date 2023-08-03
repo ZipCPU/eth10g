@@ -35,41 +35,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-//
-// #include "sdiosim.h"
-
-class	SDIOSIM {
-	FILE		*m_fp;
-	uint32_t	m_buf[512/sizeof(uint32_t)];
-	bool		m_readonly, m_reply_active, m_open_drain, m_ddr,
-			m_data_started, m_cmd_started;
-	uint32_t	m_last_dat, m_last_cmd, m_lastck, m_app_cmd,
-			m_selected, m_RCA, m_width, m_drive;
-	char		m_cmd_buf[8], m_cid[15], m_reply_buf[20],
-			m_dbuf[512+1+32];
-	uint32_t	m_cmd_pos, m_reply_posn, m_reply_count, m_R1,
-			m_reply_delay, m_sector, m_data_delay, m_data_posn;
-protected:
-	void		init(void);
-	unsigned	cmdbit(unsigned);
-	unsigned	datp(unsigned);
-	unsigned	datn(unsigned);
-	void		accept_command(void);
-	void		load_reply(int cmd, unsigned arg);
-	uint8_t		cmdcrc(int ln, char *buf);
-	uint16_t	blockcrc(uint16_t fill, int bit);
-	void		CID(void);
-public:
-	// SDIOSIM(const unsigned lglen);
-	SDIOSIM(const char *fname);
-	void	load(const unsigned addr, const char *fname);
-	void	load(const char *fname) { load(0, fname); }
-	void	apply(unsigned sdclk, unsigned ddr,
-			unsigned cmd_en, unsigned cmd_data,
-			unsigned data_en, unsigned rx_en, unsigned tx_data,
-			unsigned &o_sync, unsigned &async_sync,
-			unsigned &async_data);
-};
+#include "sdiosim.h"
 
 
 SDIOSIM::SDIOSIM(const char *fname) {
@@ -113,9 +79,57 @@ void	SDIOSIM::init(void) {
 // }}}
 
 void	SDIOSIM::CID(void) {
-	for(unsigned k=0; k<15; k++)
-		m_cid[k] = rand();
+	// {{{
+	// for(unsigned k=0; k<15; k++)
+	//	m_cid[k] = rand();
+
+	// Copied from a card I'm using
+	m_cid[ 0] = 0x02;
+	m_cid[ 1] = 0x54;
+	m_cid[ 2] = 0x4d;
+	m_cid[ 3] = 0x53;
+
+	m_cid[ 4] = 0x21;
+	m_cid[ 5] = 0x31;
+	m_cid[ 6] = 0x60;
+	m_cid[ 7] = 0x59;
+
+	m_cid[ 8] = 0x41;
+	m_cid[ 9] = 0x30;
+	m_cid[10] = 0x34;
+	m_cid[11] = 0x47;
+
+	m_cid[12] = 0x12;
+	m_cid[13] = 0x01;
+	m_cid[14] = 0x3c;
+	m_cid[15] = 0x4d;
 }
+// }}}
+
+void	SDIOSIM::CSD(void) {
+	// {{{
+	// Copied from a card I'm using
+	m_cid[ 0] = 0x40;
+	m_cid[ 1] = 0x0e;
+	m_cid[ 2] = 0x00;
+	m_cid[ 3] = 0x32;
+
+	m_cid[ 4] = 0x5b;
+	m_cid[ 5] = 0x59;
+	m_cid[ 6] = 0x00;
+	m_cid[ 7] = 0x00;
+
+	m_cid[ 8] = 0x1d;
+	m_cid[ 9] = 0x17;
+	m_cid[10] = 0x7f;
+	m_cid[11] = 0x80;
+
+	m_cid[12] = 0x0a;
+	m_cid[13] = 0x40;
+	m_cid[14] = 0x00;
+	m_cid[15] = 0x8d;
+}
+// }}}
 
 uint8_t	SDIOSIM::cmdcrc(int ln, char *buf) {
 	// {{{
@@ -133,6 +147,19 @@ uint8_t	SDIOSIM::cmdcrc(int ln, char *buf) {
 
 	fill &= 0x0fe; fill |= 1;
 	return fill;
+}
+// }}}
+
+unsigned	SDIOSIM::blockcrc(unsigned fill, unsigned bit) {
+	// {{{
+	unsigned int	taps = 0x1021;
+
+	if (fill&0x8000)
+		fill = (fill<<1)^taps;
+	else
+		fill <<= 1;
+
+	return fill & 0x0ffff;
 }
 // }}}
 
@@ -259,6 +286,7 @@ void	SDIOSIM::accept_command(void) {
 		// {{{
 		m_app_cmd = 0;
 		if (m_selected) {
+			__attribute__((unused)) size_t	sz;
 			m_drive = 1;
 			load_reply(19,m_R1);
 
@@ -268,7 +296,7 @@ void	SDIOSIM::accept_command(void) {
 			// m_data_count = 512;
 
 			(void)fseek(m_fp, (long)(m_sector * 512l), SEEK_SET);
-			(void)fread(m_dbuf, sizeof(char), 512, m_fp);
+			sz = fread(m_dbuf, sizeof(char), 512, m_fp);
 		} break;
 		// }}}
 	case 24: // WRITE_BLOCK
@@ -655,7 +683,7 @@ void	SDIOSIM::apply(unsigned sdclk, unsigned ddr,
 		m_last_cmd = cmd & 1;
 	if (!m_cmd_started && (cstb != 0) && (cstb != (cmd & cstb))) {
 		if (cmd_en)
-			cstb <= 0;
+			cstb = 0;
 		else {
 			if (cmd & 2)
 				cstb &= ~2;
@@ -671,7 +699,7 @@ void	SDIOSIM::apply(unsigned sdclk, unsigned ddr,
 	// {{{
 	if (data_en || !rx_en) {
 		rstb = 0;
-		m_data_started == 0;
+		m_data_started = 0;
 	} else if ((!m_data_started) && (rstb != (rstb & rlsb))) {
 		unsigned	msk = (rstb & ~rlsb) & 0x0f;
 

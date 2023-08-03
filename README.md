@@ -58,19 +58,32 @@ As of 15 May, 2023:
 
 - The project RTL is partially assembled.  Components assembled, attached, and
   (potentially under test) include:
-  - The bus itself has been assembled, to include the [Wishbone crossbar](rtl/wb2axip/rtl/wbxbar.v)s, as well as [up](rtl/wb2axip/wbupsz.v) and [down](rtl/wb2axip/wbdown.v) sizing components
-  - The [debug bus](https://github.com/ZipCPU/dbgbus), [the ZipCPU](https://github.com/ZipCPU/zipcpu), the [ZipCPU's (new) DMA](rtl/cpu/zipdma.v)
-  - The [QSPI flash](rtl/qflexpress.v)
-  - The [I2C Controller](rtl/wbi2c/wbi2ccpu.v).  This controller is also used to sense temperature, as part of the [fan controller](rtl/wbfan.v)
-  - [General](rtl/gpio.v) and [Special Purpose IO](rtl/spio.v) controllers
-  - [SPI based SD card controller](https://github.com/ZipCPU/sdspi)
-  - [Fan control and temperature measurement](rtl/wbfan.v)
-  - [Si5324 reference clock controller](https://zipcpu.com/blog/2019/06/28/genclk.html)
-  - [SMI Slave Controller](rtl/smi/smi.v)
+  - **Working:** The bus RTL has been assembled, to include the [Wishbone crossbar](rtl/wb2axip/rtl/wbxbar.v)s, as well as [up](rtl/wb2axip/wbupsz.v) and [down](rtl/wb2axip/wbdown.v) sizing components
+  - **Working:** The [debug bus](https://github.com/ZipCPU/dbgbus), [the ZipCPU](https://github.com/ZipCPU/zipcpu), the [ZipCPU's (new) DMA](rtl/cpu/zipdma.v)
+  - **Working:** The ZipCPU is running and working and (now) an integral part of testing.
+  - **Working:** Several Wishbone Scopes have been used to debug things so far.
+  - **Was working:** The [QSPI flash](rtl/qflexpress.v).  (The control wires
+    have since been disconnected on the board, due to a conflict with the SDIO.
+    This will be fixed in the next PCB revision.)
+  - **Working:** The [I2C Controller](rtl/wbi2c/wbi2ccpu.v).
+    - **Working:** [Fan control and temperature measurement](rtl/wbfan.v).  The I2C controller is used to sense temperature, as part of the [fan controller](rtl/wbfan.v)
+    - **Working:** EDID information may be read from the downstream HDMI
+    - **Working:** DDR3 configuration information may be read successfully from the DDR3 daughter board
+    - (Working?)  SFP+ configuration information may also be read.
+    - **Working:** [Si5324 reference clock controller](https://zipcpu.com/blog/2019/06/28/genclk.html).  That is, this clock can be configured.  I have yet to measure any clock output from this clock generator.
+    - **Working:** [OLED display](https://www.amazon.com/Teyleten-Robot-Display-SSD1306-Raspberry/dp/B08ZY4YBHL/) via I2C
+
+  - **Working:** [General](rtl/gpio.v) and [Special Purpose IO](rtl/spio.v) controllers
+  - SD/eMMC:
+    - **Working:** [SPI based SD card controller](https://github.com/ZipCPU/sdspi)
+    - **Working:** [SDIO SD card controller](https://github.com/ZipCPU/sdspi).  Curiously, I marked the [SDSPI](https://github.com/ZipCPU/sdspi) controller as working too soon.  The SD data and command wires had no pullups.  This worked fine for the SDSPI controller, not for the [SDIO controller](https://github.com/ZipCPU/sdspi).  However, the [SDIO controller](https://github.com/ZipCPU/sdspi) is now working on the board after replacing one of the level shifting chips on the board.
+    - The eMMC device, which also uses the [SDIO controller](https://github.com/ZipCPU/sdspi), is not yet working.
+  - **(Sort of) Working:** [SMI Slave Controller](rtl/smi/smi.v).  The SMI pins appear to work--all except the SMI address pins.  I'm not sure why that is.
+  - **Working:** [All buttons, switches, and LEDs](rtl/spio.v) are working.
+  - **Working:** [HDMI transmitter](rtl/hdmi/vidpipe.v).  This is not part of the current integration, since the simulation for it didn't mix well with the CI/CD options under test.
+  - The 10Gb Ethernet component is currently connected and undergoing test.
 
 - Components not yet integrated include:
-  - The 10G Ethernet, to include the virtual packet FIFOs
-  - The DDR3 SDRAM memory controller
-  - [The SATA Controller](https://github.com/ZipCPU/wbsata)
-  - HDMI
-
+  - The [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller) has been ported to the board, but isn't yet working.
+  - [The SATA Controller](https://github.com/ZipCPU/wbsata).
+  - The HDMI receiver has been wired up for testing in the lab.  Success has not (yet) been demonstrated when using it.

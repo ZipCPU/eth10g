@@ -62,6 +62,7 @@
 	wire	[32*@$(NDEV)-1:0]	gnet_rx_data;
 	wire	[32*@$(NDEV)-1:0]	gnet_tx_data;
 	wire	[@$(NDEV)-1:0]		gnet_phy_fault;
+	wire	[@$(NDEV):0]		gnet_locked;
 @TOP.INSERT=
 	assign	o_gnettx_disable = 0;
 
@@ -71,6 +72,7 @@
 		// {{{
 		.i_wb_clk(s_clk),
 		.o_phy_fault(gnet_phy_fault),
+		.o_lock_status(gnet_locked),
 		//
 		.S_CLK(  gnet_tx_clk),
 		.S_DATA( gnet_tx_data),
@@ -86,11 +88,15 @@
 @TOP.MAIN=
 		gnet_rx_clk, gnet_rx_data,
 		gnet_tx_clk, gnet_tx_data,
-		gnet_phy_fault, o_gnet_linkup, o_gnet_activity
+		gnet_phy_fault, o_gnet_linkup, o_gnet_activity,
+		i_gnet_los, gnet_locked
+@MAIN.PARAM=
+	localparam	NETDEVS = @$(NDEV);
 @MAIN.PORTLIST=
 		i_@$(PREFIX)_rx_clk, i_@$(PREFIX)_rx_data,
 		i_@$(PREFIX)_tx_clk, o_@$(PREFIX)_tx_data,
-		i_@$(PREFIX)_phy_fault,o_@$(PREFIX)_linkup,o_@$(PREFIX)_activity
+		i_@$(PREFIX)_phy_fault,o_@$(PREFIX)_linkup,o_@$(PREFIX)_activity,
+		i_@$(PREFIX)_los, i_@$(PREFIX)_phy_locked
 @MAIN.IODECL=
 	// 10Gb Ethernet
 	// {{{
@@ -101,6 +107,10 @@
 	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_phy_fault;
 	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_linkup;
 	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_activity;
+	// Verilator lint_off UNUSED
+	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_los;
+	input	wire	[@$(NDEV):0]	i_@$(PREFIX)_phy_locked;
+	// Verilator lint_on  UNUSED
 	// }}}
 @MAIN.DEFNS=
 	// Incoming 10Gb packet signaling
@@ -122,10 +132,13 @@
 	wire	[4*@$(NDEV)-1:0]	@$(PREFIX)_tx_bytes;
 	// }}}
 	genvar	g_@$(PREFIX);
+	// Verilator lint_off UNUSED
+	wire	[32*@$(NDEV)-1:0]	@$(PREFIX)_net_debug;
+	// Verilator lint_on  UNUSED
 @GENDCD=GEN_ETHERNET_DECODE
 @MAIN.INSERT=
 	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+1)
-	begin : GEN_ETHERNET_DECODE
+	begin : @$(GENDCD)
 		netpath
 		u_netpath (
 			// {{{
@@ -139,7 +152,9 @@
 			// PHY interface
 			// {{{
 			.i_phy_fault(i_@$(PREFIX)_phy_fault[g_@$(PREFIX)]),
-			.i_raw_data(i_@$(PREFIX)_rx_data[32*g_@$(PREFIX)+:32]),
+			.i_raw_data(i_@$(PREFIX)_rx_data[32*g_@$(PREFIX)+:32]
+				^ ((g_@$(PREFIX) == 1 || g_@$(PREFIX)==2)
+					? 32'hffff_ffff : 32'h0)),
 			//
 			.o_raw_data(o_@$(PREFIX)_tx_data[32*g_@$(PREFIX)+:32]),
 			// }}}
@@ -159,8 +174,9 @@
 			.S_DATA( @$(PREFIX)_tx_data[128*g_@$(PREFIX)+: 128]),
 			.S_BYTES(@$(PREFIX)_tx_bytes[4*g_@$(PREFIX)+: 4]),
 			.S_LAST( @$(PREFIX)_tx_last[g_@$(PREFIX)]),
-			.S_ABORT(@$(PREFIX)_tx_abort[g_@$(PREFIX)])
+			.S_ABORT(@$(PREFIX)_tx_abort[g_@$(PREFIX)]),
 			// }}}
+			.o_debug(@$(PREFIX)_net_debug[32*g_@$(PREFIX) +: 32])
 			// }}}
 		);
 	end endgenerate
