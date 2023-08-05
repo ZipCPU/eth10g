@@ -153,8 +153,7 @@
 			// {{{
 			.i_phy_fault(i_@$(PREFIX)_phy_fault[g_@$(PREFIX)]),
 			.i_raw_data(i_@$(PREFIX)_rx_data[32*g_@$(PREFIX)+:32]
-				^ ((g_@$(PREFIX) == 1 || g_@$(PREFIX)==2)
-					? 32'hffff_ffff : 32'h0)),
+							^ 32'hffff_ffff),
 			//
 			.o_raw_data(o_@$(PREFIX)_tx_data[32*g_@$(PREFIX)+:32]),
 			// }}}

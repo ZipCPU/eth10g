@@ -73,16 +73,14 @@ module	pkt2p64b (
 	localparam [1:0]	SYNC_CONTROL = 2'b01,
 				SYNC_DATA    = 2'b10;
 
-	// FIXME!  "The 10GBASE-R PCS encodes the start and terminate control
-	// characters implicitly by the block type field. ... The 10GBASE-R PCS
-	// encodes each of the other control characters into a 7-bit C code.
-	//
-	localparam	[65:0]	P_IDLE  = { {(8){7'h07}}, 8'h1e, SYNC_CONTROL },
+	localparam	[65:0]	P_IDLE  = { {(8){7'h00}}, 8'h1e, SYNC_CONTROL },
 			// Indicate a remote fault
-			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0, 8'h55, SYNC_CONTROL },
+			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0, 8'h55,
+								SYNC_CONTROL },
 			// Start a packet--always on a 64b boundary
 			P_START = { 8'hab, {(6){8'haa}}, 8'h78, SYNC_CONTROL },
-			P_LAST  = { {(8){7'h07}}, 8'h87, SYNC_CONTROL };
+			P_LAST  = { {(8){7'h00}}, 8'h87, SYNC_CONTROL };
+	//
 	// "They [idles] shall not be added while data is being received.  When
 	// deleting /I/s, the first four characters after a /T/ shall not be
 	// deleted.
@@ -90,7 +88,10 @@ module	pkt2p64b (
 	reg		r_ready, flushing;
 	reg	[1:0]	state;
 
-	(* ASYNC_REG = "TRUE" *) reg		r_local_fault, r_remote_fault;
+	reg		stretch_fault;
+	reg	[7:0]	stretch_counter;
+
+	reg		r_local_fault, r_remote_fault;
 	(* ASYNC_REG = "TRUE" *) reg	[1:0]	r_local_fault_pipe,
 						r_remote_fault_pipe;
 	// }}}
@@ -100,15 +101,32 @@ module	pkt2p64b (
 		{ r_local_fault, r_local_fault_pipe } <= 0;
 	else
 		{ r_local_fault, r_local_fault_pipe }
-				<= { r_local_fault_pipe, i_local_fault };
+				<= { r_local_fault_pipe[0], i_local_fault };
 
 	always @(posedge TX_CLK)
 	if (!S_ARESETN)
 		{ r_remote_fault, r_remote_fault_pipe } <= 0;
 	else
 		{ r_remote_fault, r_remote_fault_pipe }
-				<= { r_remote_fault_pipe, i_remote_fault };
+				<= { r_remote_fault_pipe[0], i_remote_fault };
 
+	initial	stretch_fault   = 0;
+	initial	stretch_counter = 0;
+	always @(posedge TX_CLK)
+	if (!S_ARESETN)
+	begin
+		stretch_fault <= 0;
+		stretch_counter <= 0;
+	end else if (r_remote_fault)
+	begin
+		stretch_fault   <= 1;
+		stretch_counter <= -1;
+	end else begin
+		if (stretch_counter > 0)
+			stretch_counter <= stretch_counter - 1;
+		stretch_fault <= (stretch_counter > 1);
+	end
+	
 	initial	r_ready = 1'b0;
 	initial	TXDATA  = P_IDLE;
 	always @(posedge TX_CLK)
@@ -120,15 +138,16 @@ module	pkt2p64b (
 		TXDATA  <= P_IDLE;
 		flushing <= 1'b0;
 		// }}}
-	end else if (r_local_fault || flushing)
+	end else if (r_local_fault || flushing || stretch_fault
+					|| r_remote_fault)
 	begin
 		// {{{
 		if (TXREADY)
 		begin
-			if (r_remote_fault || !r_local_fault)
-				TXDATA <= P_IDLE;
-			else // if !i_remote_fault && i_local_fault
+			if (r_local_fault)
 				TXDATA <= P_FAULT;
+			else
+				TXDATA <= P_IDLE;
 		end
 
 		if (state == TX_DATA)

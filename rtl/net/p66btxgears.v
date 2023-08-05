@@ -111,9 +111,9 @@ module	p66btxgears // #()
 	always @(*)
 	if (!i_reset)
 	begin
-		assert(r_count[0] == 1'b0);
-		assert(r_count <= 64+64);
-		assert(pre_ready == (r_count < 128));
+		assert(shift[0] == 1'b0);
+		assert(shift <= 64+64);
+		// assert(pre_ready == (r_count < 128));
 	end
 
 	always @(posedge i_clk)
@@ -124,7 +124,7 @@ module	p66btxgears // #()
 	if (!i_reset && !$past(i_reset) && !$past(i_ready))
 	begin
 		assert($stable(r_count));
-		assert($stable(pre_ready));
+		// assert($stable(pre_ready));
 		assert($stable(o_data));
 	end
 

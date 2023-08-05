@@ -591,7 +591,7 @@ module	netpath #(
 		.TX_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
 		//
 		.i_remote_fault(remote_fault),
-				.i_local_fault(local_fault || rx_reset_n),
+				.i_local_fault(local_fault || !rx_reset_n),
 		//
 		.S_VALID(FULL_VALID),
 		.S_READY(FULL_READY),
@@ -604,6 +604,12 @@ module	netpath #(
 		.TXDATA(tx_data)
 		// }}}
 	);
+
+reg tx_idle, tx_fault;
+always @(posedge i_fast_clk)
+tx_idle <= tx_data == { {(8){7'h0}}, 8'h1e, 2'b01 };
+always @(posedge i_fast_clk)
+tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 
 	p64bscrambler #(
 		.OPT_RX(1'b0), .OPT_ENABLE(OPT_SCRAMBLER)
@@ -734,11 +740,13 @@ module	netpath #(
 		stat_data[LGPKTLN+3:0] <= stat_pre_data;
 		if ((stat_grant == 0) && (stat_sample))
 		begin
-			stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
-			// if (rx_fast_valid && !rx_valid)
+			// stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
+			stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
+			// if (!rx_fast_valid && !rx_valid)
 			//	stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
 		end
-		stat_data[29:26] <= { remote_fault, local_fault, 2'b00 };
+		// stat_data[29:26] <= { remote_fault, local_fault, tx_idle, tx_fault };
+		stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
 		// stat_data[29:28] <= { remote_fault, local_fault };
 	end
 

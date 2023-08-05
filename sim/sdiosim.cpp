@@ -89,15 +89,15 @@ void	SDIOSIM::CID(void) {
 	m_cid[ 2] = 0x4d;
 	m_cid[ 3] = 0x53;
 
-	m_cid[ 4] = 0x21;
-	m_cid[ 5] = 0x31;
-	m_cid[ 6] = 0x60;
-	m_cid[ 7] = 0x59;
+	m_cid[ 4] = 0x41;
+	m_cid[ 5] = 0x30;
+	m_cid[ 6] = 0x34;
+	m_cid[ 7] = 0x47;
 
-	m_cid[ 8] = 0x41;
-	m_cid[ 9] = 0x30;
-	m_cid[10] = 0x34;
-	m_cid[11] = 0x47;
+	m_cid[ 8] = 0x21;
+	m_cid[ 9] = 0x31;
+	m_cid[10] = 0x60;
+	m_cid[11] = 0x59;
 
 	m_cid[12] = 0x12;
 	m_cid[13] = 0x01;
@@ -109,25 +109,25 @@ void	SDIOSIM::CID(void) {
 void	SDIOSIM::CSD(void) {
 	// {{{
 	// Copied from a card I'm using
-	m_cid[ 0] = 0x40;
-	m_cid[ 1] = 0x0e;
-	m_cid[ 2] = 0x00;
-	m_cid[ 3] = 0x32;
+	m_csd[ 0] = 0x40;
+	m_csd[ 1] = 0x0e;
+	m_csd[ 2] = 0x00;
+	m_csd[ 3] = 0x32;
 
-	m_cid[ 4] = 0x5b;
-	m_cid[ 5] = 0x59;
-	m_cid[ 6] = 0x00;
-	m_cid[ 7] = 0x00;
+	m_csd[ 4] = 0x5b;
+	m_csd[ 5] = 0x59;
+	m_csd[ 6] = 0x00;
+	m_csd[ 7] = 0x00;
 
-	m_cid[ 8] = 0x1d;
-	m_cid[ 9] = 0x17;
-	m_cid[10] = 0x7f;
-	m_cid[11] = 0x80;
+	m_csd[ 8] = 0x1d;
+	m_csd[ 9] = 0x17;
+	m_csd[10] = 0x7f;
+	m_csd[11] = 0x80;
 
-	m_cid[12] = 0x0a;
-	m_cid[13] = 0x40;
-	m_cid[14] = 0x00;
-	m_cid[15] = 0x8d;
+	m_csd[12] = 0x0a;
+	m_csd[13] = 0x40;
+	m_csd[14] = 0x00;
+	m_csd[15] = 0x8d;
 }
 // }}}
 
