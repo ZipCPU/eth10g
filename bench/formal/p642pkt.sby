@@ -1,0 +1,26 @@
+[tasks]
+prf
+# cvr
+
+[options]
+prf: mode prove
+# cvr: mode cover
+prf: depth 20
+prf: depth 200
+
+[engines]
+smtbmc
+
+[script]
+read -formal p642pkt.v
+read -formal faxin_master.v
+--pycode-begin--
+cmd = "hierarchy -top p642pkt"
+output(cmd)
+--pycode-end--
+proc -norom
+prep -top p642pkt
+
+[files]
+../../rtl/net/p642pkt.v
+faxin_master.v

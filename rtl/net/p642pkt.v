@@ -34,6 +34,7 @@
 // under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
+`default_nettype none
 // }}}
 module	p642pkt (
 		// {{{
@@ -65,7 +66,9 @@ module	p642pkt (
 
 	localparam	[65:0]	R_PREAMBLE = { 32'habaa_aaaa, 32'haaaa_aa1e,
 							SYNC_CONTROL },
-			R_HALF_PREAMBLE = { 24'haaaa_aa,4'h0,28'h0000_00, 8'h33,
+			R_HALF_PREAMBLE1= { 24'haaaa_aa,4'h0,28'h0000_00, 8'h33,
+							SYNC_CONTROL },
+			R_HALF_PREAMBLE2= { 24'haaaa_aa,4'h0,28'h0000_00, 8'h66,
 							SYNC_CONTROL },
 			R_HALF_MASK = { 24'hff_ffff, 4'h0, 28'h000_0000, 8'hff,
 							2'b11 };
@@ -93,6 +96,8 @@ module	p642pkt (
 	reg	[18:0]		max_packet_counter;
 
 	reg			powering_up;
+	reg	[3:0]		stretch_local;
+	reg			stretch_fault;
 	// }}}
 
 	// Processing steps:
@@ -125,9 +130,10 @@ module	p642pkt (
 		// {{{
 		pstate <= PRE_IDLE;
 		if (RX_DATA == R_PREAMBLE
-				|| ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE))
+			|| ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE1)
+			|| ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE2))
 			pstate <= PRE_DATA;
-		if (M_VALID && !M_READY)
+		if ((dly_last || poffset) || (M_VALID && !M_READY))
 			// Output is still hung with the previous packet.
 			// Drop this one and wait for the next preamble.
 			pstate <= PRE_IDLE;
@@ -157,7 +163,9 @@ module	p642pkt (
 	case(pstate)
 	PRE_IDLE: begin
 		// {{{
-		if ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE)
+		if ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE1)
+			{ phalf, poffset } <= 2'b11;
+		else if ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE2)
 			{ phalf, poffset } <= 2'b11;
 		else
 			{ phalf, poffset } <= 2'b00;
@@ -209,7 +217,7 @@ module	p642pkt (
 	// dly_valid
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN)
+	if (!S_ARESETN || r_fault || r_local_fault)
 		dly_valid <= 0;
 	else if (RX_VALID)
 	begin
@@ -220,13 +228,13 @@ module	p642pkt (
 		else if (RX_DATA[9:2] == 8'h87)
 			// Unless this is a completely control frame, we're
 			// valid
-			dly_valid <= 1'b1;
+			dly_valid <= 1'b0;
 		else
-			dly_valid <= poffset;
+			dly_valid <= pstate;
 
 		if (pstate != PRE_DATA || phalf)
 			dly_valid <= 1'b0;
-	end else if (RX_VALID || dly_last)
+	end else if (dly_last && (!M_VALID || M_READY))
 		dly_valid <= 1'b0;
 	// }}}
 
@@ -236,7 +244,7 @@ module	p642pkt (
 	// we need a bit of a gearbox to realign the packet back onto a 64bit
 	// boundary.  dly_half is where we stuff that extra data.
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || !poffset)
+	if (!S_ARESETN || !poffset || r_fault || r_local_fault)
 		dly_half <= 0;
 	else if (RX_VALID)
 	begin
@@ -263,7 +271,7 @@ module	p642pkt (
 	// dly_data
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN)
+	if (!S_ARESETN || r_fault || r_local_fault)
 		dly_data <= 0;
 	else if (RX_VALID)
 	begin
@@ -313,10 +321,14 @@ module	p642pkt (
 	// {{{
 	// Number of valid bytes in the delay cell.
 	always @(posedge RX_CLK)
-	if (!S_ARESETN)
+	if (!S_ARESETN || r_fault || r_local_fault)
 		dly_bytes <= 0;
-	else if (RX_VALID)
+	else if (RX_VALID && !dly_last)
 	begin
+		if (!pstate && RX_DATA[9:0] == { 8'h78, SYNC_CONTROL })
+			dly_bytes <= 0;
+		else if (!pstate && RX_DATA[9:0] == { 8'h78, SYNC_CONTROL })
+			dly_bytes <= 0;
 		if (phalf)
 			dly_bytes <= 4;	// These bytes are in dly_half
 		else if (poffset)
@@ -353,23 +365,23 @@ module	p642pkt (
 			endcase
 		end
 	end else if (dly_valid && dly_last)
-		dly_bytes <= 0;
+		dly_bytes <= (dly_bytes > 8) ? (dly_bytes - 8) : 0;
 	// }}}
 
 	// dly_last
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN)
+	if (!S_ARESETN || r_fault || r_local_fault)
 		dly_last <= 0;
-	else if (RX_VALID)
+	else if (RX_VALID && !dly_last)
 	begin
 		dly_last <= 1'b0;
 		if (pstate != PRE_DATA)
 			dly_last <= poffset;
 		else if (RX_DATA[1:0] == SYNC_CONTROL)
-			dly_last <= 1'b1;
-	end else
-		dly_last <= 1'b0;
+			dly_last <= (RX_DATA[9:2] != 8'h87);
+	end else if (!M_VALID || M_READY)
+		dly_last <= (dly_bytes > 8);
 	// }}}
 
 	// }}}
@@ -424,7 +436,9 @@ module	p642pkt (
 		default: r_local_fault <= 1'b1;
 		endcase
 
-		if (RX_DATA[1:0] != SYNC_CONTROL)
+		if (1'b0 == (^RX_DATA[1:0]))
+			r_local_fault <= 1'b1;
+		else if (RX_DATA[1:0] != SYNC_CONTROL)
 			r_local_fault <= 1'b0;
 	end
 	// }}}
@@ -479,25 +493,38 @@ module	p642pkt (
 	always @(posedge RX_CLK or negedge S_ARESETN)
 	if (!S_ARESETN)
 		link_up_counter <= 0;
-	else if (watchdog_timeout || o_remote_fault || o_local_fault
+	else if (watchdog_timeout || o_local_fault
 			|| max_packet_fault || powering_up)
 		link_up_counter <= 0;
-	else if (!link_up_counter[LNKMSB])
+	else if (!link_up_counter[LNKMSB] || o_remote_fault)
+		// Blink on remote fault, hold steady if everything is good
 		link_up_counter <= link_up_counter+1;
-	// else
-	//	link is solidly good
 	// }}}
 
 	always @(posedge RX_CLK or negedge S_ARESETN)
 	if (!S_ARESETN)
 		powering_up <= 1'b1;
-	else if (RX_VALID)
+	else if (RX_VALID && !r_fault)
 		powering_up <= 1'b0;
 
 	assign	o_link_up = link_up_counter[LNKMSB];
 
-	assign o_local_fault = (powering_up || r_local_fault
-						|| watchdog_timeout);
+	always @(posedge RX_CLK)
+	if (!S_ARESETN)
+	begin
+		stretch_local <= -1;
+		stretch_fault <=  1;
+	end else if (powering_up || r_local_fault || watchdog_timeout)
+	begin
+		stretch_local <= -1;
+		stretch_fault <=  1;
+	end else begin
+		if (stretch_local > 0)
+			stretch_local <= stretch_local - 1;
+		stretch_fault <= (stretch_local > 1);
+	end
+
+	assign o_local_fault = stretch_fault || powering_up;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -507,6 +534,7 @@ module	p642pkt (
 	//
 	//
 
+	initial	M_VALID = 1'b0;
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
 		M_VALID <= 0;
@@ -526,6 +554,8 @@ module	p642pkt (
 		M_ABORT <= 1'b0;
 	else if (RX_VALID && dly_valid && M_VALID && !M_READY)
 		M_ABORT <= 1'b1;
+	else if (r_local_fault && (M_VALID || dly_valid))
+		M_ABORT <= 1'b1;
 	else if (r_fault && ((dly_valid && !dly_last)
 					|| (M_VALID && !M_READY && !M_LAST)))
 		M_ABORT <= 1'b1;
@@ -533,7 +563,7 @@ module	p642pkt (
 	begin
 		if (dly_last)
 			M_ABORT <= 1'b0;
-		else if (RX_DATA[1:0] == SYNC_CONTROL)
+		else if (RX_VALID && RX_DATA[1:0] == SYNC_CONTROL)
 		begin
 			case(RX_DATA[9:2])
 			8'h87: begin end
@@ -550,4 +580,399 @@ module	p642pkt (
 	end else if (!M_VALID || M_READY)
 		M_ABORT <= 1'b0;
 	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+	// Local declarations
+	// {{{
+	reg	f_past_valid;
+	// Verilator lint_off UNDRIVEN
+	(* anyseq *)	reg	fc_check_pkt;
+	(* anyconst *)	reg	[17:0]	fc_posn,	// Byte position
+					fc_len;		// Packet length
+	(* anyconst *)	reg	[7:0]	fc_data;	// Data value @ posn
+	// Verilator lint_on  UNDRIVEN
+	reg	[17:0]	frx_count, frx_posn, fm_count;
+	reg		frx_now, fm_now;
+	reg	[65:0]	frx_byte;
+	reg	[63:0]	frx_word;
+	reg	[63:0]	fm_byte;
+	reg		f_midpkt;
+	reg	[2:0]	frx_shift;
+	reg		f_preamble, f_half_preamble, f_sync_data, f_eop;
+	reg	[7:0]	f_ctrl_byte;
+	reg	[12:0]	fm_word;
+	reg	[11:0]	fm_pkts;
+
+
+
+	initial	f_past_valid = 0;
+	always @(posedge RX_CLK)
+		f_past_valid <= 1;
+
+	always @(posedge RX_CLK)
+	if (!f_past_valid)
+		assume(!S_ARESETN);
+
+	always @(posedge RX_CLK)
+	if (!RX_VALID || RX_DATA[1:0] == SYNC_DATA
+			|| f_preamble || f_half_preamble
+			|| pstate || r_local_fault
+			|| dly_valid || $past(dly_valid)
+			|| M_VALID || M_ABORT)
+		assume($stable(fc_check_pkt));
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Assume a valid incoming state
+	// {{{
+
+	always @(posedge RX_CLK)
+	if (f_preamble || f_half_preamble)
+		f_midpkt <= 1'b1;
+	else if (f_eop)
+		f_midpkt <= 1'b0;
+
+	always @(*)
+	if (f_midpkt)
+		assume(!f_preamble && !f_half_preamble);
+
+	always @(*)
+	if (!f_midpkt)
+		assume(!f_eop);
+
+	always @(*)
+	if (RX_VALID)
+	begin
+		if (!f_midpkt)
+		begin
+			assume(RX_DATA[1:0] == SYNC_CONTROL);
+		end
+
+		case(f_ctrl_byte)
+		8'h1e: assume(!f_midpkt);
+		8'h2d: assume(!f_midpkt && RX_DATA[57:42] == 16'h0);
+		8'h33: assume(!f_midpkt && RX_DATA[65:42] == 24'habaaaa);
+		8'h66: assume(!f_midpkt && RX_DATA[65:42] == 24'habaaaa);
+		8'h55: assume(!f_midpkt && RX_DATA[57:42] == 16'h0 && RX_DATA[25:10] == 16'h0);
+		8'h78: assume(!f_midpkt);
+		8'h4b: assume(!f_midpkt && RX_DATA[25:10] == 16'h0);
+		//
+		8'h87: assume( f_midpkt);
+		8'h99: assume( f_midpkt);
+		8'haa: assume( f_midpkt);
+		8'hb4: assume( f_midpkt);
+		8'hcc: assume( f_midpkt);
+		8'hd2: assume( f_midpkt);
+		8'he1: assume( f_midpkt);
+		8'hff: assume( f_midpkt);
+		default: assume(1'b0);
+		endcase
+	end
+
+	always @(posedge RX_CLK)
+	if (S_ARESETN && pstate && !r_local_fault)
+		assert(f_midpkt);
+
+	always @(*)
+		f_preamble = RX_VALID && RX_DATA == R_PREAMBLE;
+	always @(*)
+		f_half_preamble = RX_VALID && (
+			((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE1)
+			|| ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE2));
+	always @(*)
+		f_sync_data = RX_VALID && (RX_DATA[1:0] == SYNC_DATA);
+	always @(*)
+		f_ctrl_byte = RX_DATA[9:2];
+	always @(*)
+	if (!S_ARESETN || !RX_VALID || RX_DATA[1:0] != SYNC_CONTROL)
+		f_eop = 1'b0;
+	else case(RX_DATA[9:2])
+	8'h87: f_eop = 1'b1;
+	8'h99: f_eop = 1'b1;
+	8'haa: f_eop = 1'b1;
+	8'hb4: f_eop = 1'b1;
+	8'hcc: f_eop = 1'b1;
+	8'hd2: f_eop = 1'b1;
+	8'he1: f_eop = 1'b1;
+	8'hff: f_eop = 1'b1;
+	default: f_eop = 1'b0;
+	endcase
+
+	always @(posedge RX_CLK)
+	if (fc_check_pkt && f_midpkt)
+		assume(RX_VALID || $past(RX_VALID));
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Count incoming data
+	// {{{
+
+	always @(*)
+		assume(fc_len > 9);
+
+	always @(posedge RX_CLK)
+	if (!S_ARESETN)
+		frx_count <= 0;
+	else if (RX_VALID && RX_DATA == R_PREAMBLE)
+		frx_count <= 8;
+	else if (RX_VALID && ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE1))
+		frx_count <= 4;
+	else if (RX_VALID && ((RX_DATA & R_HALF_MASK) == R_HALF_PREAMBLE2))
+		frx_count <= 4;
+	else if (RX_VALID)
+	begin
+		if (RX_DATA[1:0] == SYNC_DATA)
+			frx_count <= frx_count + 8;
+		else if (frx_count > 0)
+		case(RX_DATA[9:2])
+		8'h87: frx_count <= frx_count;
+		8'h99: frx_count <= frx_count + 1;
+		8'haa: frx_count <= frx_count + 2;
+		8'hb4: frx_count <= frx_count + 3;
+		8'hcc: frx_count <= frx_count + 4;
+		8'hd2: frx_count <= frx_count + 5;
+		8'he1: frx_count <= frx_count + 6;
+		8'hff: frx_count <= frx_count + 7;
+		default: if (fc_check_pkt) assume(0);
+		endcase
+	end
+
+	always @(*)
+	if (S_ARESETN && f_midpkt && fc_check_pkt && pstate)
+	begin
+		assert(frx_count[1:0] == 2'b00);
+		assert(frx_count[2] == poffset);
+	end
+
+	always @(*)
+	if (S_ARESETN && RX_VALID && f_midpkt && fc_check_pkt)
+	begin
+		if (frx_count + 8 <= fc_len)
+		begin
+			assume(RX_DATA[1:0] == SYNC_DATA);
+		end else case(f_ctrl_byte)
+		8'h87: assume(frx_count == fc_len);
+		8'h99: assume(frx_count + 1 == fc_len);
+		8'haa: assume(frx_count + 2 == fc_len);
+		8'hb4: assume(frx_count + 3 == fc_len);
+		8'hcc: assume(frx_count + 4 == fc_len);
+		8'hd2: assume(frx_count + 5 == fc_len);
+		8'he1: assume(frx_count + 6 == fc_len);
+		8'hff: assume(frx_count + 7 == fc_len);
+		default: begin end
+		endcase
+	end
+
+	always @(*)
+	if (frx_count == 4 && RX_VALID && fc_check_pkt)
+		assume(RX_DATA[33:0] == {32'hABAA_AAAA, SYNC_DATA });
+
+	always @(*)
+	if (fc_check_pkt)
+		assume(frx_count <= fc_len);
+
+	always @(*)
+	if (fc_check_pkt && frx_count == fc_len)
+		assume(!f_midpkt);
+
+	always @(*)
+	if (fc_check_pkt && frx_count + 8 < fc_len && frx_count < fc_len)
+		assume(!RX_VALID || RX_DATA[1:0] == SYNC_DATA);
+
+	always @(*)
+	if (S_ARESETN)
+	begin
+		if (dly_last)
+			assert(M_VALID);
+
+		if (!f_midpkt && dly_valid)
+			assert(dly_last);
+		if (dly_last && !M_ABORT)
+			assert(dly_valid);
+	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Outgoing interface properties
+	// {{{
+
+	faxin_master #(
+		.DATA_WIDTH(64), .MIN_LENGTH(1), .MAX_LENGTH(8191)
+	) faxin (
+		.S_AXI_ACLK(RX_CLK), .S_AXI_ARESETN(S_ARESETN),
+		.S_AXIN_VALID(M_VALID), .S_AXIN_READY(M_READY),
+		.S_AXIN_DATA(M_DATA), .S_AXIN_BYTES(M_BYTES),
+		.S_AXIN_LAST(M_LAST), .S_AXIN_ABORT(M_ABORT),
+		.f_stream_word(fm_word), .f_packets_rcvd(fm_pkts)
+	);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Count outgoing data
+	// {{{
+	always @(posedge RX_CLK)
+	if (!S_ARESETN)
+		fm_count <= 0;
+	else if (M_ABORT && (!M_VALID || M_READY))
+		fm_count <= 0;
+	else if (M_VALID && M_READY)
+	begin
+		if (M_LAST)
+			fm_count <= 0;
+		else if (M_BYTES == 0)
+			fm_count <= fm_count + 8;
+		else
+			// Verilator lint_off WIDTH
+			fm_count <= fm_count + M_BYTES;
+			// Verilator lint_on  WIDTH
+	end
+
+	always @(posedge RX_CLK)
+	if (S_ARESETN && !M_ABORT)
+		assert(fm_count == { fm_word, 3'h0 });
+
+	// Assert that any check packet matches the correct length
+	always @(posedge RX_CLK)
+	if (S_ARESETN && fc_check_pkt && M_VALID)
+	begin
+		if (!M_LAST)
+		begin
+			assert(fm_count + 8 < fc_len);
+		end else if (M_BYTES == 0)
+		begin
+			assert(fm_count + 16 == fc_len);
+		end else begin
+			// Verilator lint_off WIDTH
+			assert(fm_count + 8 + M_BYTES == fc_len);
+			// Verilator lint_on  WIDTH
+		end
+	end
+
+	always @(*)
+	if (fc_check_pkt && (pstate || dly_valid || M_VALID))
+		assume(!f_preamble && !f_half_preamble);
+
+	always @(*)
+	if (fc_check_pkt)
+		assume(!r_local_fault);
+
+	always @(posedge RX_CLK)
+	if (f_past_valid && S_ARESETN && fc_check_pkt)
+		assert(!M_ABORT);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Assume incoming contract data
+	// {{{
+
+	always @(*)
+		frx_posn = frx_count - 8;
+
+	always @(*)
+		frx_shift = fc_posn + 8 - frx_count;
+
+	always @(*)
+		frx_word = RX_DATA[65:2];
+
+	always @(*)
+	if (RX_DATA[1:0] == SYNC_CONTROL)
+		frx_byte = RX_DATA[65:10] >> (8*(fc_posn+8-frx_count));
+	else
+		frx_byte = frx_word >> (8*(fc_posn+8-frx_count));
+
+	always @(*)
+	if (!fc_check_pkt || !RX_VALID || frx_count < 4)
+		frx_now = 0;
+	else if (fc_posn + 8 < frx_count || fc_posn + 8 >= frx_count + 8)
+		frx_now = 0;
+	else if (RX_DATA[1:0] == SYNC_DATA)
+	begin
+		frx_now = 1;
+	end else case(f_ctrl_byte)
+	8'h99: frx_now = (fc_posn < frx_posn + 1);
+	8'haa: frx_now = (fc_posn < frx_posn + 2);
+	8'hb4: frx_now = (fc_posn < frx_posn + 3);
+	8'hcc: frx_now = (fc_posn < frx_posn + 4);
+	8'hd2: frx_now = (fc_posn < frx_posn + 5);
+	8'he1: frx_now = (fc_posn < frx_posn + 6);
+	8'hff: frx_now = (fc_posn < frx_posn + 7);
+	default: begin end
+	endcase
+
+	always @(posedge RX_CLK)
+	if (S_ARESETN && frx_now && fc_check_pkt)
+		assume(frx_byte[7:0] == fc_data);
+
+	always @(*)
+	if (fc_check_pkt)
+	begin
+		assume(!i_phy_fault);
+		assume(watchdog_counter > 100);
+		assume({ r_fault, r_fault_pipe } == 0);
+	end
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Assert outgoing contract data
+	// {{{
+	always @(*)
+	if (!S_ARESETN || !M_VALID || !fc_check_pkt || fm_count > fc_posn
+						|| fm_count + 8 <= fc_posn)
+		fm_now = 0;
+	// Verilator lint_off WIDTH
+	else if (M_BYTES == 0 || fc_posn < fm_count + M_BYTES)
+	// Verilator lint_on  WIDTH
+		fm_now = 1;
+	else
+		fm_now = 0;
+
+	always @(*)
+		fm_byte = M_DATA >> (8*(fc_posn - fm_count));
+
+	always @(posedge RX_CLK)
+	if (fm_now)
+		assert(fm_byte[7:0] == fc_data);
+	// }}}
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Careless assumptions
+	// {{{
+
+	// always @(*) assume(!poffset);
+
+	always @(posedge RX_CLK)
+	if ($past(f_preamble || f_half_preamble)
+			|| (!$past(RX_VALID) && $past(f_preamble||f_half_preamble, 2)))
+		assume(!f_eop);
+
+	always @(posedge RX_CLK)
+	if (f_midpkt)
+		assume(RX_VALID || $past(RX_VALID));
+
+	always @(*)
+	if (fc_check_pkt)
+		assume(!M_VALID || M_READY ||M_LAST);
+
+
+	// }}}
+	// Verilator lint_off UNUSED
+	wire	unused_formal;
+	assign	unused_formal = &{ 1'b0, fm_byte[63:8], frx_byte[65:8] };
+	// Verilator lint_on  UNUSED
+`endif
+// }}}
 endmodule
