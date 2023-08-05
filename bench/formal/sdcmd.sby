@@ -1,11 +1,13 @@
 [tasks]
 prf
-# cvr
+prfds prf opt_ds
+cvr
 
 [options]
 prf: mode prove
-# cvr: mode cover
-prf: depth 20
+cvr: mode cover
+prf: depth 8
+cvr: depth 200
 
 [engines]
 smtbmc
@@ -14,6 +16,7 @@ smtbmc
 read -formal sdcmd.v
 --pycode-begin--
 cmd = "hierarchy -top sdcmd"
+cmd += " -chparam OPT_DS %d"  % ( 1 if "op_ds" in tags else 0)
 output(cmd)
 --pycode-end--
 proc -norom

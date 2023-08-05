@@ -10,6 +10,7 @@ pktvfifowr_*/
 sdckgen_*/
 sdcmd_*/
 sdtxframe_*/
+sdrxframe_*/
 sdwb_*/
 wbi2cdma_*/
 wbmarbiter_*/
