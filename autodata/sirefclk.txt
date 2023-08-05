@@ -39,14 +39,15 @@
 @NADDR=1
 @SLAVE.TYPE=SINGLE
 @SLAVE.BUS=wb32
+@IOPREFIX=io_siref_clk
 @TOP.PORTLIST=
-		o_siref_clk_p, o_siref_clk_n
+		@$(IOPREFIX)_p, @$(IOPREFIX)_n
 @TOP.IODECL=
-	output	wire	o_siref_clk_p, o_siref_clk_n;
+	inout	wire	@$(IOPREFIX)_p, @$(IOPREFIX)_n;
 @TOP.DEFNS=
 	// Definitions for the clock generation circuit
-	wire		s_@$(PREFIX)_clk, w_@$(PREFIX)_pll_locked,
-			w_@$(PREFIX)_ce;
+	wire		s_@$(PREFIX)_clk, w_@$(PREFIX)_ce;
+			// w_@$(PREFIX)_pll_locked	-- not used at present
 	wire		s_clk4x; // s_clk4x_unbuffered,
 			// s_clksync, s_clksync_unbuffered;
 	wire	[7:0]	w_@$(PREFIX)_word;
@@ -79,13 +80,14 @@
 	// BUFG	clksync_buf(.I(s_clksync_unbuffered), .O(s_clk));
 	BUFG	clk4x_buf(.I(s_clk4x_unbuffered), .O(s_clk4x));
 
-	xgenclk
-	u_x@$(PREFIX)(
+	xgenclk #(
+		.OPT_LCLCLOCK(1'b1)
+	) u_x@$(PREFIX)(
 		// {{{
 		.i_clk(s_clk), .i_hsclk(s_clk4x),
 		.i_ce(w_@$(PREFIX)_ce),
 		.i_word(w_@$(PREFIX)_word),
-		.o_pin({ o_siref_clk_p, o_siref_clk_n }),
+		.o_pin({ @$(IOPREFIX)_p, @$(IOPREFIX)_n }),
 		.o_clk(s_@$(PREFIX)_clk)
 		// }}}
 	);

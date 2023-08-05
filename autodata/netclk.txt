@@ -1,0 +1,94 @@
+################################################################################
+##
+## Filename: 	netclk.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Measure the frequencies of the various network clocks with
+##		respect to the system clock.  May be useful for knowing if the
+##	clocks are locked, and locked to the right frequency.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=netclk
+@DEVID=NETCLK
+@ACCESS=@$(DEVID)_ACCESS
+@NADDR=5
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=DOUBLE
+@$NDEV=gnet.NDEV
+@MAIN.DEFNS=
+	genvar	g_@$(PREFIX);
+	wire	[31:0]	w_@$(PREFIX)_rxcounter	[0:@$(NDEV)-1];
+	wire	[31:0]	w_@$(PREFIX)_txcounter;
+	reg		r_@$(PREFIX)_ack;
+	reg	[31:0]	r_@$(PREFIX)_data;
+@MAIN.INSERT=
+	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+1)
+	begin : MEASURE_NETCLK
+
+		clkcounter
+		u_rx@$(PREFIX) (
+			.i_sys_clk(i_clk), .i_tst_clk(i_gnet_rx_clk[g_@$(PREFIX)]),
+			.i_sys_pps(1'b0),
+			.o_sys_counts(w_@$(PREFIX)_rxcounter[g_@$(PREFIX)])
+		);
+
+	end endgenerate
+
+	clkcounter
+	u_tx@$(PREFIX) (
+		.i_sys_clk(i_clk), .i_tst_clk(i_gnet_tx_clk[0]),
+		.i_sys_pps(1'b0), .o_sys_counts(w_@$(PREFIX)_txcounter)
+	);
+
+	always @(posedge i_clk)
+	begin
+		if (@$(SLAVE.PREFIX)_addr[2:0] < @$(NDEV))
+			r_@$(PREFIX)_data <= w_@$(PREFIX)_rxcounter[
+				@$(SLAVE.PREFIX)_addr[1:0]];
+		else
+			r_@$(PREFIX)_data <= w_@$(PREFIX)_txcounter;
+
+		if (!@$(SLAVE.PREFIX)_stb)
+			r_@$(PREFIX)_data <= 0;
+	end
+
+	assign	@$(SLAVE.PREFIX)_stall = 0;
+	always @(posedge i_clk)
+		r_@$(PREFIX)_ack <= @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_idata = r_@$(PREFIX)_data;
+@REGS.N=5
+@REGS.0=0 R_RXNETCK0  RXNETCLK0 RXNETCK0
+@REGS.1=1 R_RXNETCK1  RXNETCLK1 RXNETCK1
+@REGS.2=2 R_RXNETCK2  RXNETCLK2 RXNETCK2
+@REGS.3=3 R_RXNETCK3  RXNETCLK3 RXNETCK3
+@REGS.4=4 R_TXNETCLK  TXNETCLK
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
+@XDC.INSERT=
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/avgs_reg*}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/q_v*}]
+set_false_path -from [get_pins {thedesign/u_tx@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins thedesign/u_tx@$(PREFIX)/q_v_reg/D]

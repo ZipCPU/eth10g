@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp # rdedid sisetup contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck # rdedid contest
 all:	$(PROGRAMS)
 #
 #
@@ -46,7 +46,7 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c clkcheck.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
@@ -140,7 +140,10 @@ sdinfo: $(OBJDIR)/sdinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
 emmcinfo: $(OBJDIR)/emmcinfo.o $(OBJDIR)/txfns.o board.ld $(LIB) $(FAT)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBFAT) $(LIBS) -o $@
 
-sisetup: $(OBJDIR)/sisetup.o board.ld $(LIB) $(FAT)
+sisetup: $(OBJDIR)/sisetup.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+clkcheck: $(OBJDIR)/clkcheck.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 lockcheck: $(OBJDIR)/lockcheck.o $(OBJDIR)/txfns.o bkram.ld $(LIB)

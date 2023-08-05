@@ -108,16 +108,29 @@ module	xgenclk #(
 		// {{{
 		wire	w_clk;
 
+		// This is what I want to do.  It's illegal.  The IO buffer
+		// doesn't support any bidirectional 3.3V differential modes.
+
 		// IOBUFDS
 		// u_genclkio(
 		//	.T(high_z),.I(w_pin),.IO(o_pin[1]), .IOB(o_pin[0]),
 		//	.O(w_clk)
 		// );
 
+		// TMDS (the only 3.3V differential IO standard) doesn't support
+		// bidirectional buffers.  Hence only one of these output
+		// buffers will be bidirectional.  It's not really electrically
+		// compliant with what we want, but perhaps it'll "work".
 		IOBUF u_genclkio_p(.T(high_z),.I(w_pin),.IO(o_pin[1]),
 				.O(w_clk));
+
+		OBUF u_genclkio_n(.I(!w_clk) ,.O(o_pin[0]));
+
+		//
+		//
+		//
+		//
 		// OBUF u_genclkio_n(.T(high_z),.I(w_pin),.IO(!o_pin[0]));
-		assign o_pin[0] = 1'b0;
 		// OBUF u_genclkio_n(.T(high_z),.I(w_pin),.IO(!o_pin[0]));
 
 		// BUFG	clkgen_buf(.I(w_clk), .O(o_clk));

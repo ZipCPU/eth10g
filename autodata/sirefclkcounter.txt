@@ -1,0 +1,63 @@
+################################################################################
+##
+## Filename:	auto-data/sirefclkcounter.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Measures the frequency of the reference clock feeding the
+##		Si5324 clock controller with respect to the system clock.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## Apache License, Version 2.0 (the "License").  You may not use this project,
+## or this file, except in compliance with the License.  You may obtain a copy
+## of the License at
+## }}}
+##	http://www.apache.org/licenses/LICENSE-2.0
+## {{{
+## Unless required by applicable law or agreed to in writing, files
+## distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+## WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+## License for the specific language governing permissions and limitations
+## under the License.
+##
+################################################################################
+##
+## }}}
+@PREFIX=sirefclkcounter
+@ACCESS=REFCLKCOUNTER_ACCESS
+@DEVID=REFCLKCOUNTER
+@NADDR=1
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=SINGLE
+@TOP.PORTLIST=
+@TOP.IODECL=
+@TOP.MAIN=
+		// sirefclk
+		s_sirefclk_clk
+@MAIN.PORTLIST=
+		i_sirefclk_clk
+@MAIN.IODECL=
+	input	wire	i_sirefclk_clk;
+@MAIN.INSERT=
+	clkcounter
+	u_@$(PREFIX) (
+		.i_sys_clk(i_clk), .i_tst_clk(i_sirefclk_clk),
+		.i_sys_pps(1'b0), .o_sys_counts(@$(SLAVE.PREFIX)_idata)
+	);
+@REGS.N=1
+@REGS.0=0 R_SIREFFREQ SIREFFREQ
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
+@XDC.INSERT=
+## create_clock -period 5.0 -name SIREF -waveform { 0.0 2.50 } -add [get_ports io_siref_clk_p]
+## set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xsirefclk/o_clk]
+# set_false_path -from [get_pins {thedesign/u_@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins thedesign/u_@$(PREFIX)/q_v_reg/D]

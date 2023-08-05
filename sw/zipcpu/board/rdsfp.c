@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 				printf("%-16s: %02x (Unallocated)\n",
 					"[  2] CONN", cfg[1]);
 			else {
-				printf("%-16s: %02x\n", "[  2] CONN", cfg[1]);
+				printf("%-16s: %02x", "[  2] CONN", cfg[1]);
 				switch(cfg[2]) {
 				case 0: printf("(Unspecified connector)\n"); break;
 				case 1: printf("SC\n"); break;

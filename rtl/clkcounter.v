@@ -93,10 +93,13 @@ module	clkcounter #(
 
 		assign	sys_pps = r_sys_pps;
 
+		// Keep Verilator happy
+		// {{{
 		// Verilator lint_off UNUSED
 		wire	unused;
 		assign	unused = &{ 1'b0, i_sys_pps };
 		// Verilator lint_on  UNUSED
+		// }}}
 	end else begin : COPY_PPS
 		assign	sys_pps = i_sys_pps;
 	end endgenerate
@@ -104,12 +107,14 @@ module	clkcounter #(
 
 	// Now count edges between PPS signals
 	// {{{
+	initial	counter = 28'h00deadc;
 	always @(posedge i_sys_clk)
 	if (sys_pps)
 		counter <= 0;
 	else if (tst_posedge)
 		counter <= counter + 1'b1;
 
+	initial	r_sys_counts = 28'hdeadbef;
 	always @(posedge i_sys_clk)
 	if (sys_pps)
 		r_sys_counts <= counter;

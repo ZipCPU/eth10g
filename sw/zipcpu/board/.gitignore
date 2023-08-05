@@ -1,5 +1,7 @@
 *.txt
+clkcheck
 cputest
+deploy.sh
 emmcinfo
 hello
 qkhdmi

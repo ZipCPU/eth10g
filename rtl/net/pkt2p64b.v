@@ -101,14 +101,14 @@ module	pkt2p64b (
 		{ r_local_fault, r_local_fault_pipe } <= 0;
 	else
 		{ r_local_fault, r_local_fault_pipe }
-				<= { r_local_fault_pipe[0], i_local_fault };
+				<= { r_local_fault_pipe, i_local_fault };
 
 	always @(posedge TX_CLK)
 	if (!S_ARESETN)
 		{ r_remote_fault, r_remote_fault_pipe } <= 0;
 	else
 		{ r_remote_fault, r_remote_fault_pipe }
-				<= { r_remote_fault_pipe[0], i_remote_fault };
+				<= { r_remote_fault_pipe, i_remote_fault };
 
 	initial	stretch_fault   = 0;
 	initial	stretch_counter = 0;

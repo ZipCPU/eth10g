@@ -12,8 +12,8 @@ set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p]
 set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n]
 #create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
 
-#set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p]
-#set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n]
+set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p]
+set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n]
 #create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk_si_p]
 
 #set_property -dict { PACKAGE_PIN B26 } [get_ports i_emcclk]
@@ -22,11 +22,11 @@ set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n]
 #set_property -dict { PACKAGE_PIN B26 IOSTANDARD LVCMOS18 } [get_ports i_clk_66mhz_p]
 #create_clock -period 15.0 -name INITREF -waveform { 0.0 7.5 } -add [get_ports i_clk_66mhz_p]
 
-set_property -dict { PACKAGE_PIN R21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_p]
-set_property -dict { PACKAGE_PIN P21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_n]
+#set_property -dict { PACKAGE_PIN R21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_p]
+#set_property -dict { PACKAGE_PIN P21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_n]
 
-#set_property -dict { PACKAGE_PIN R21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_p]
-#set_property -dict { PACKAGE_PIN P21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_n]
+set_property -dict { PACKAGE_PIN R21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_p]
+set_property -dict { PACKAGE_PIN P21 IOSTANDARD LVCMOS33 } [get_ports io_siref_clk_n]
 
 ## }}}
 
@@ -453,9 +453,12 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## Adding in any XDC_INSERT tags
 
-## No XDC.INSERT tag in i2cscope
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in zip_alt_moc
+## From sirefclkcounter
+## From netclk
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/avgs_reg*}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/q_v*}]
+set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pins thedesign/u_txnetclk/q_v_reg/D]
+## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in wbu_arbiter
 ## No XDC.INSERT tag in spio
@@ -467,15 +470,21 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 ## No XDC.INSERT tag in zip_alt_uic
 ## No XDC.INSERT tag in clk200
 ## No XDC.INSERT tag in prebus
+## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in version
 ## No XDC.INSERT tag in zip_alt_mpc
 ## No XDC.INSERT tag in clk
 ## No XDC.INSERT tag in XDC
 ## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in RESET_ADDRESS
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in i2cdma
+## No XDC.INSERT tag in netlock
 ## No XDC.INSERT tag in wbdown
 ## No XDC.INSERT tag in wb32
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in netlock
+## From siclk
+set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
 ## No XDC.INSERT tag in buildtime
 ## No XDC.INSERT tag in REGDEFS
 ## No XDC.INSERT tag in zip_alt_mtc
@@ -483,7 +492,8 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in i2c
+## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in clk150
 ## No XDC.INSERT tag in zip_tmb
 ## No XDC.INSERT tag in zip_tmc
@@ -491,10 +501,6 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 ## No XDC.INSERT tag in zip_dmac
 ## From emmc
 set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
-## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in sirefclk
 ## No XDC.INSERT tag in zip_jiffies
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
@@ -528,8 +534,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
 
-## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in KEYS
+## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in cpunet
 ## No XDC.INSERT tag in emmcscope
 ## From netdbg

@@ -741,9 +741,10 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		if ((stat_grant == 0) && (stat_sample))
 		begin
 			// stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
-			stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
+			// stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
 			// if (!rx_fast_valid && !rx_valid)
 			//	stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
+			stat_data[25:0] <= { 1'b1, tx66b_data[24:0] };
 		end
 		// stat_data[29:26] <= { remote_fault, local_fault, tx_idle, tx_fault };
 		stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
@@ -789,7 +790,7 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 	wire	unused;
 	assign	unused =  &{ 1'b0,
 				ign_tx_high, ign_rx_high,
-				ign_tx66b_valid,
+				ign_tx66b_valid, tx_fault, tx_idle,
 				ign_rx66b_full, ign_tx_fast_empty };
 	// Verilator coverage_on
 	// Verialtor lint_off UNUSED
