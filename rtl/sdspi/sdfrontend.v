@@ -232,9 +232,9 @@ module	sdfrontend #(
 			else
 				r_cmd_strb <= 1'b0;
 
-			if (i_data_en || !sample_ck || !i_rx_en)
+			if (i_data_en || sample_ck == 0)
 				r_rx_strb <= 1'b0;
-			else if (io_started || i_dat[0] == 0)
+			else if (io_started)
 				r_rx_strb <= 1'b1;
 			else
 				r_rx_strb <= 1'b0;
@@ -585,6 +585,9 @@ module	sdfrontend #(
 		reg	[7:0]	busy_ck;
 		wire			raw_cmd;
 		wire	[NUMIO-1:0]	raw_iodat;
+		reg	[1:0]	r_rx_strb;
+		reg	[1:0]	start_io;
+		reg		io_started;
 		// }}}
 
 		// Clock
@@ -648,6 +651,7 @@ module	sdfrontend #(
 			reg	[7:0]	out_pin;
 			wire	[7:0]	in_pin;
 			integer		ikin, ikout;
+			reg	[1:0]	lcl_data;
 
 			always @(*)
 			for(ikout=0; ikout<4; ikout=ikout+1)
@@ -668,13 +672,34 @@ module	sdfrontend #(
 				.o_raw(raw_iodat[gk]), .o_wide(in_pin)
 			);
 
-			always @(*)
-			begin
-				r_rx_data[8+gk]= |(sample_ck[7:4]&in_pin[7:4]);
-				r_rx_data[  gk]= |(sample_ck[3:0]&in_pin[3:0]);
+			if (gk == 0)
+			begin : GEN_START_SIGNAL
+				always @(*)
+				begin
+					start_io[1] = (|sample_ck[7:4])
+						&&(0 == (sample_ck[7:4]&in_pin[7:4]));
+					start_io[0] = (|sample_ck[3:0])
+						&&(0 == (sample_ck[3:0]&in_pin[3:0]));
+				end
 			end
 
-			assign	w_rx_data = r_rx_data;
+			always @(posedge i_clk)
+			begin
+				if (io_started)
+					lcl_data[1] <= |(sample_ck[7:4]&in_pin[7:4]);
+				else
+					lcl_data[1] <= |(sample_ck[3:0]&in_pin[3:0]);
+				lcl_data[0] <= |(sample_ck[3:0]&in_pin[3:0]);
+
+
+				if (i_reset || i_data_en || !i_rx_en || i_afifo_reset_n)
+				begin
+					lcl_data <= 2'b0;
+				end
+			end
+
+			assign	w_rx_data[8+gk] = lcl_data[1];
+			assign	w_rx_data[  gk] = lcl_data[0];
 			// }}}
 		end for(gk=NUMIO; gk<8; gk=gk+1)
 		begin : NULL_DATIO
@@ -698,16 +723,27 @@ module	sdfrontend #(
 
 		// o_rx_strb, o_rx_data
 		// {{{
-		reg	[1:0]	r_rx_strb;
+		always @(posedge i_clk)
+		if (i_reset || i_data_en || !i_rx_en || i_afifo_reset_n)
+			io_started <= 1'b0;
+		else if (2'b00 != start_io)
+			io_started <= 1'b1;
 
 		always @(posedge i_clk)
+		if (i_afifo_reset_n)
+			r_rx_strb <= 2'b0;
+		else if (i_data_en || sample_ck == 0)
+				r_rx_strb <= 2'b0;
+		else if (io_started)
 		begin
 			r_rx_strb[1] <= (|sample_ck);
 			r_rx_strb[0] <= (|sample_ck[7:4]) && (|sample_ck[3:0]);
-
-			if (i_afifo_reset_n)
-				r_rx_strb <= 2'b0;
-		end
+		end else if (start_io[1])
+		begin
+			r_rx_strb[1] <= (|sample_ck[3:0]);
+			r_rx_strb[0] <= 1'b0;
+		end else
+			r_rx_strb <= 2'b0;
 
 		assign	o_rx_strb = r_rx_strb;
 		assign	o_rx_data = r_rx_data;

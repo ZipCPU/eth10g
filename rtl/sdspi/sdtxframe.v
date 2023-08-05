@@ -1491,6 +1491,11 @@ module	sdtxframe #(
 	// "Careless" assumptions
 	// {{{
 
+
+	// The following assertion just prevents overflow within the formal
+	// accounting.  It's unnecessary otherwise.
+	always @(*) assume(fb_count < 15'h7fd0);
+
 	// }}}
 `endif	// FORMAL
 // }}}
