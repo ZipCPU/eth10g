@@ -9,7 +9,7 @@
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinbroadcast</TD><TD>_prf</TD><TD rowspan=3>Packet 1:N broadcaster</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinbroadcast</TD><TD>_prflp</TD></TR>
-<TR><TD bgcolor=#ffffca>0 Cover points</TD><TD>axinbroadcast</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>axinbroadcast</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_cvr</TD><TD rowspan=10>Packet width adjuster</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx512x128</TD></TR>
@@ -22,22 +22,44 @@
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prv</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx32x64</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>4 Cover points</TD><TD>dropshort</TD><TD>_cvr</TD><TD rowspan=3>Abort short packets</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>cecbridge</TD><TD>_prf</TD><TD rowspan=1></TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>5 Cover points</TD><TD>dropshort</TD><TD>_cvr</TD><TD rowspan=3>Abort short packets</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prflp</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prf</TD></TR>
 <TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66brxgears</TD><TD>_cvr</TD><TD rowspan=2></TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66brxgears</TD><TD>_prf</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66btxgears</TD><TD>_cvr</TD><TD rowspan=2></TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66btxgears</TD><TD>_prf</TD></TR>
+<TR></TR>
 <TR><TD bgcolor=#ffa4a4>FAIL</TD><TD>pktvfiford</TD><TD>_prf</TD><TD rowspan=3>Virtual Packet FIFO (Read)</TD></TR>
 <TR><TD bgcolor=#ffa4a4>FAIL</TD><TD>pktvfiford</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfiford</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#ffffca>Out of date</TD><TD>pktvfiford</TD><TD>_cvr</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>6 Cover points</TD><TD>pktvfifowr</TD><TD>_cvr</TD><TD rowspan=3>Virtual Packet FIFO (Write)</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>7 Cover points</TD><TD>pktvfifowr</TD><TD>_cvr</TD><TD rowspan=3>Virtual Packet FIFO (Write)</TD></TR>
+<TR><TD bgcolor=#e5e5e5>Unknown</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
+<TR><TD bgcolor=#e5e5e5>Unknown</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#ffffca>0 Cover points</TD><TD>wbi2cdma</TD><TD>_cvr</TD><TD rowspan=2>Low throughput I2C DMA</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdckgen</TD><TD>_prf</TD><TD rowspan=1></TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdcmd</TD><TD>_prfds</TD><TD rowspan=2></TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdcmd</TD><TD>_prf</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdrxframe</TD><TD>_prf</TD><TD rowspan=3></TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdrxframe</TD><TD>_prfs</TD></TR>
+<TR><TD bgcolor=#caeec8>25 Cover points</TD><TD>sdrxframe</TD><TD>_cvr</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>31 Cover points</TD><TD>sdtxframe</TD><TD>_cvr</TD><TD rowspan=2></TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdtxframe</TD><TD>_prf</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdwb</TD><TD>_prf</TD><TD rowspan=1></TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>wbi2cdma</TD><TD>_cvr</TD><TD rowspan=2>Low throughput I2C DMA</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>wbi2cdma</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#ffffca>0 Cover points</TD><TD>wbmarbiter</TD><TD>_cvr</TD><TD rowspan=2>Wishbone N:1 arbiter</TD></TR>
+<TR><TD bgcolor=#ffa4a4>FAIL</TD><TD>wbmarbiter</TD><TD>_cvr</TD><TD rowspan=2>Wishbone N:1 arbiter</TD></TR>
 <TR><TD bgcolor=#ffffca>14 steps of BMC</TD><TD>wbmarbiter</TD><TD>_prf</TD></TR>
 </TABLE>
 </BODY></HTML>

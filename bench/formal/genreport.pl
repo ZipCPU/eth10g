@@ -41,9 +41,17 @@ $dir = ".";
 	"axinarbiter",
 	"axinbroadcast",
 	"axinwidth",
+	"cecbridge",
 	"dropshort",
+	"p66brxgears",
+	"p66btxgears",
 	"pktvfiford",
 	"pktvfifowr",
+	"sdckgen",
+	"sdcmd",
+	"sdtxframe",
+	"sdrxframe",
+	"sdwb",
 	"wbi2cdma",
 	"wbmarbiter"
 	);
@@ -121,7 +129,7 @@ sub getstatus($) {
 				# print "<TR><TD>basecase $bmc match</TD></TR>\n";
 			}
 		} if ($line =~ /engine_\d:.*Writing trace to VCD.*trace(\d+).vcd/) {
-			if ($1 > $ncvr) {
+			if ($1 >= $ncvr) {
 				$ncvr = $1+1;
 			}
 		}

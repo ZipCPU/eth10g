@@ -36,7 +36,8 @@
 ##
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth dropshort	# wbmarbiter
-TESTS += pktvfifowr cecbridge wbi2cdma			# pktvfiford
+TESTS += pktvfifowr cecbridge rxgears txgears wbi2cdma p642pkt	# pktvfiford
+TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
 .PHONY: $(TESTS)
 all: $(TESTS)
 full: all wbmarbiter pktvfiford
@@ -49,11 +50,19 @@ NARB   := axinarbiter
 BCAST  := axinbroadcast
 NWIDTH := axinwidth
 DSHORT := dropshort
+RXGEARS:= p66brxgears
+TXGEARS:= p66btxgears
+P642PKT:= p642pkt
 WBMARB := wbmarbiter
 PKTVRD := pktvfiford
 PKTVWR := pktvfifowr
-CEC := cecbridge
+CEC    := cecbridge
 I2CDMA := wbi2cdma
+SDCKGEN:= sdckgen
+SDCMD  := sdcmd
+SDWB   := sdwb
+SDTX   := sdtxframe
+SDRX   := sdrxframe
 ## }}}
 
 ## Interfaces
@@ -127,6 +136,34 @@ $(DSHORT)_cvr/PASS: $(DSHORT).sby   $(RTLNET)/$(DSHORT).v $(FAXIN)
 	sby -f $(DSHORT).sby cvr
 ## }}}
 
+.PHONY: $(RXGEARS) rxgears
+## {{{
+$(RXGEARS): $(RXGEARS)_prf/PASS # $(DSHORT)_cvr/PASS
+$(RXGEARS)_prf/PASS: $(RXGEARS).sby   $(RTLNET)/$(RXGEARS).v
+	sby -f $(DSHORT).sby prf
+$(RXGEARS)_cvr/PASS: $(RXGEARS).sby   $(RTLNET)/$(RXGEARS).v
+	sby -f $(RXGEARS).sby cvr
+## }}}
+
+.PHONY: $(TXGEARS) txgears
+## {{{
+txgears: $(TXGEARS)
+$(TXGEARS): $(TXGEARS)_prf/PASS # $(DSHORT)_cvr/PASS
+$(TXGEARS)_prf/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
+	sby -f $(TXGEARS).sby prf
+$(TXGEARS)_cvr/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
+	sby -f $(TXGEARS).sby cvr
+## }}}
+
+.PHONY: $(P642PKT)
+## {{{
+$(P642PKT): $(P642PKT)_prf/PASS # $(DSHORT)_cvr/PASS
+$(P642PKT)_prf/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
+	sby -f $(P642PKT).sby prf
+$(P642PKT)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
+	sby -f $(P642PKT).sby cvr
+## }}}
+
 .PHONY: $(WBMARB)
 ## {{{
 $(WBMARB): $(WBMARB)_prf/PASS $(WBMARB)_cvr/PASS
@@ -175,6 +212,56 @@ $(I2CDMA)_cvr/PASS: $(I2CDMA).sby  $(RTL)/wbi2c/$(I2CDMA).v $(WB) $(SKID)
 	sby -f $(I2CDMA).sby cvr
 ## }}}
 
+.PHONY: $(SDCKGEN)
+## {{{
+$(SDCKGEN): $(SDCKGEN)_prf/PASS # $(SDCKGEN)_cvr/PASS
+$(SDCKGEN)_prf/PASS: $(SDCKGEN).sby  $(RTL)/sdspi/$(SDCKGEN).v
+	sby -f $(SDCKGEN).sby prf
+$(SDCKGEN)_cvr/PASS: $(SDCKGEN).sby  $(RTL)/sdspi/$(SDCKGEN).v
+	sby -f $(SDCKGEN).sby cvr
+## }}}
+
+.PHONY: $(SDCMD)
+## {{{
+$(SDCMD): $(SDCMD)_prf/PASS $(SDCMD)_prfds/PASS # $(SDCMD)_cvr/PASS
+$(SDCMD)_prf/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
+	sby -f $(SDCMD).sby prf
+$(SDCMD)_prfds/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
+	sby -f $(SDCMD).sby prfds
+$(SDCMD)_cvr/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
+	sby -f $(SDCMD).sby cvr
+## }}}
+
+.PHONY: $(SDWB)
+## {{{
+$(SDWB): $(SDWB)_prf/PASS # $(SDWB)_cvr/PASS
+$(SDWB)_prf/PASS: $(SDWB).sby  $(RTL)/sdspi/$(SDWB).v $(WB) fwb_register.v
+	sby -f $(SDWB).sby prf
+$(SDWB)_cvr/PASS: $(SDWB).sby  $(RTL)/sdspi/$(SDWB).v $(WB) fwb_register.v
+	sby -f $(SDWB).sby cvr
+## }}}
+
+.PHONY: $(SDTX)
+## {{{
+$(SDTX): $(SDTX)_prf/PASS $(SDTX)_cvr/PASS
+$(SDTX)_prf/PASS: $(SDTX).sby  $(RTL)/sdspi/$(SDTX).v
+	sby -f $(SDTX).sby prf
+$(SDTX)_cvr/PASS: $(SDTX).sby  $(RTL)/sdspi/$(SDTX).v
+	sby -f $(SDTX).sby cvr
+## }}}
+
+.PHONY: $(SDRX)
+## {{{
+$(SDRX): $(SDRX)_prf/PASS $(SDRX)_prfs/PASS # $(SDRX)_cvr/PASS
+$(SDRX)_prf/PASS: $(SDRX).sby  $(RTL)/sdspi/$(SDRX).v
+	sby -f $(SDRX).sby prf
+$(SDRX)_prfs/PASS: $(SDRX).sby  $(RTL)/sdspi/$(SDRX).v
+	sby -f $(SDRX).sby prfs
+$(SDRX)_cvr/PASS: $(SDRX).sby  $(RTL)/sdspi/$(SDRX).v
+	sby -f $(SDRX).sby cvr
+## }}}
+
+SDRX   := sdrxframe
 
 .PHONY: report
 report:
