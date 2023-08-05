@@ -166,11 +166,11 @@ module	wbi2cdma #(
 	2'b01: begin end // Current address
 	2'b10: begin
 		r_baseaddr <= next_baseaddr[ADDRESS_WIDTH-1:0];
-		r_reset <= (|i_wb_sel);
+		r_reset <= r_reset || (|i_wb_sel);
 		end
 	2'b11: begin
 		r_memlen <= next_memlen[ADDRESS_WIDTH-1:0];
-		r_reset <= (|i_wb_sel);
+		r_reset  <= r_reset || (|i_wb_sel);
 		end
 	endcase else if (!i_wb_cyc)
 	begin
