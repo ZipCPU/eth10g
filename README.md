@@ -31,7 +31,7 @@ UART, HDMI Tx and Rx, a SATA controller, micro SD, eMMC, QSPI flash, I2C,
 temperature sensing and fan control, and much more.
 
 - [UART console via the debugbus](rtl/wbubus/wbuconsole.v)
-- [uSD](rtl/sdspi/sdspi.v) (SPI interface control only at present)
+- [uSD and EMMC](rtl/sdspi/sdspi.v)
 - [QSPI Flash](rtl/qflexpress.v)
 - [I2C](rtl/wbi2c/wbi2ccpu.v)
   - Si5324 clock generator
@@ -40,7 +40,6 @@ temperature sensing and fan control, and much more.
 - HDMI RX and TX
 - RPi CM4 SMI interface
 - SATA
-- EMMC
 
 ## Sponsorship
 
@@ -52,25 +51,5 @@ This project is released under the Apache 2 license.
 
 ## Status
 
-As of 15 May, 2023:
-
-- The PCB for this project has been built, and is currently under test.
-
-- The project RTL is partially assembled.  Components assembled, attached, and
-  (potentially under test) include:
-  - The bus itself has been assembled, to include the [Wishbone crossbar](rtl/wb2axip/rtl/wbxbar.v)s, as well as [up](rtl/wb2axip/wbupsz.v) and [down](rtl/wb2axip/wbdown.v) sizing components
-  - The [debug bus](https://github.com/ZipCPU/dbgbus), [the ZipCPU](https://github.com/ZipCPU/zipcpu), the [ZipCPU's (new) DMA](rtl/cpu/zipdma.v)
-  - The [QSPI flash](rtl/qflexpress.v)
-  - The [I2C Controller](rtl/wbi2c/wbi2ccpu.v).  This controller is also used to sense temperature, as part of the [fan controller](rtl/wbfan.v)
-  - [General](rtl/gpio.v) and [Special Purpose IO](rtl/spio.v) controllers
-  - [SPI based SD card controller](https://github.com/ZipCPU/sdspi)
-  - [Fan control and temperature measurement](rtl/wbfan.v)
-  - [Si5324 reference clock controller](https://zipcpu.com/blog/2019/06/28/genclk.html)
-  - [SMI Slave Controller](rtl/smi/smi.v)
-
-- Components not yet integrated include:
-  - The 10G Ethernet, to include the virtual packet FIFOs
-  - The DDR3 SDRAM memory controller
-  - [The SATA Controller](https://github.com/ZipCPU/wbsata)
-  - HDMI
-
+Checkout the [dev branch of this project](https://github.com/ZipCPU/tree/dev)
+for the most recent status updates.
