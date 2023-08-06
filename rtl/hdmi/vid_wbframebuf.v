@@ -343,7 +343,7 @@ module	vid_wbframebuf #(
 		assign	pix_clk   = i_pixclk;
 		assign	pix_reset = r_pix_reset;
 		// }}}
-	end else begin
+	end else begin : NO_ASYNC_FIFO
 		// {{{
 		assign	pix_clk     = i_clk;
 		assign	pix_reset   = i_reset;
@@ -482,7 +482,7 @@ module	vid_wbframebuf #(
 		if (OPT_MSB_FIRST)
 		begin : MSB
 			assign M_VID_TDATA = px_data[DW-PW +: PW];
-		end else begin
+		end else begin : LSB_FIRST
 			assign M_VID_TDATA = px_data[0 +: PW];
 		end
 		// }}}
@@ -537,7 +537,7 @@ module	vid_wbframebuf #(
 		end
 		// }}}
 		// }}}
-	end else begin
+	end else begin : NO_REWIDTH
 		// {{{
 		always @(*)
 			afifo_read = M_VID_TVALID && M_VID_TREADY;

@@ -54,10 +54,9 @@ module	xpxclk (
 		input	wire		i_sysclk,
 		input	wire		i_hdmirx_clk_p, i_hdmirx_clk_n,
 		input	wire		i_lcl_pixclk,
-		// input	wire		i_siclk_p, i_siclk_n,
+		input	wire		i_siclk,
 		input	wire	[1:0]	i_cksel,
 		output	wire		o_hdmick_locked,
-		output	wire		o_siclk,
 		output	wire		o_hdmirx_clk,
 		output	wire		o_pixclk, o_hdmick
 		// }}}
@@ -65,34 +64,21 @@ module	xpxclk (
 
 	// Local declarations
 	// {{{
-	wire	siclk, lclck, hdmirx_ck, preck;
+	wire	lclck, hdmirx_ck, preck;
 	wire	clk_fbout, clk_fb, pixclk_nobuf, hdmi_ck;
 	// }}}
 
 	// Select lclck from either i_lcl_pixclk or i_siclk
 	// {{{
-// `define	SICLK
-	// This doesn't work b/c the SiCLK comes in via the MGT interface.
-	// It needs to run through a MGT clk handler first, before we can
-	// work with it here.
+`define	SICLK
 `ifdef	SICLK
-	// {{{
-	IBUFDS
-	ibuf_si_ck (
-		.I(i_siclk_p), .IB(i_siclk_n), .O(siclk)
-	);
-
-	assign	o_siclk = siclk;
-
 	xclksw
 	lclpx (
 		.i_sys_clk(i_sysclk), .i_clk_sel(i_cksel[0]),
-		.i_ck0(i_lcl_pixclk), .i_ck1(siclk), .o_clk(lclck)
+		.i_ck0(i_lcl_pixclk), .i_ck1(i_siclk), .o_clk(lclck)
 	);
-	// }}}
 `else
 	assign	siclk   = i_lcl_pixclk;
-	assign	o_siclk = i_lcl_pixclk; // 1'b0;
 	assign	lclck   = i_lcl_pixclk;
 `endif
 	// }}}

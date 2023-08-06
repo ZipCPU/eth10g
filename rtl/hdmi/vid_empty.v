@@ -102,7 +102,7 @@ module	vid_empty #(
 	// }}}
 
 	generate if (OPT_TUSER_IS_SOF)
-	begin
+	begin : GEN_SOF
 		reg	sof;
 
 		always @(posedge i_clk)
@@ -118,7 +118,7 @@ module	vid_empty #(
 		if (!i_reset)
 			assert(sof == (xpos == 0 && ypos == 0));
 `endif
-	end else begin
+	end else begin : GEN_VLAST
 		assign	M_VID_LAST = vlast & hlast;
 		assign	M_VID_USER = hlast;
 	end endgenerate

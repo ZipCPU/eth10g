@@ -87,9 +87,9 @@ module	vidpipe #(
 	localparam	CWID = $clog2(CLOCKFREQ_HZ);
 	localparam	WBLSB = $clog2(DW/8);
 	localparam	[3:0]	ADR_CONTROL   = 4'h0,
-				ADR_SIFREQ    = 4'h1,
-				ADR_PXFREQ    = 4'h2,
-				ADR_HDMIFREQ  = 4'h3,
+				ADR_HDMIFREQ  = 4'h1,
+				ADR_SIFREQ    = 4'h2,
+				ADR_PXFREQ    = 4'h3,
 				ADR_INSIZE    = 4'h4,
 				ADR_INPORCH   = 4'h5,
 				ADR_INSYNC    = 4'h6,
@@ -400,8 +400,8 @@ module	vidpipe #(
 				pre_wb_data[16] <= in_locked_sys;
 				pre_wb_data[17] <= ovly_err_sys;
 			end
-		ADR_SIFREQ:	pre_wb_data <= sick_counts;
 		ADR_HDMIFREQ:	pre_wb_data <= hdmick_counts;
+		ADR_SIFREQ:	pre_wb_data <= sick_counts;
 		ADR_PXFREQ:	pre_wb_data <= pixck_counts;
 		ADR_INSIZE: begin
 			pre_wb_data[16 +: LGDIM] <= vin_height_sys;

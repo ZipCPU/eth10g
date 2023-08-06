@@ -41,7 +41,8 @@
 @TOP.DEFNS=
 	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
 			clk_feedback, clk_feedback_bufd,
-			s_lcl_pixclk_nobuf, s_clk4x_unbuffered, s_clk300;
+			s_lcl_pixclk_nobuf, s_clk4x_unbuffered,
+			s_clk300_nobuf, s_clk300;
 	reg	[2:0]	pipe_reset;
 	reg	[6:0]	refdly_reset_ctr;
 	wire		refdly_ready;
@@ -74,7 +75,7 @@
 		.CLKOUT0(s_clk_nobuf),		// 100MHz
 		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz
 		.CLKOUT2(s_lcl_pixclk_nobuf),	//  40MHz
-		.CLKOUT3(s_clk300),		// 300MHz
+		.CLKOUT3(s_clk300_nobuf),	// 300MHz
 		//
 		.CLKFBOUT(clk_feedback),
 		.LOCKED(sysclk_locked),
@@ -85,6 +86,7 @@
 
 	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
 	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
+	BUFG	clk300_buf(.I(s_clk300_nobuf), .O(s_clk300));
 	// BUFG	sysclk_buffer(.I(s_lcl_pixclk_nobuf), .O(s_lcl_pixclk));
 
 	// IDELAYCTRL

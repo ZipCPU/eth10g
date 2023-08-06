@@ -27,6 +27,8 @@
 #define	VALID_CLKCHECK
 #elif	defined(_BOARD_HAS_NETCLK)
 #define	VALID_CLKCHECK
+#elif	defined(_BOARD_HAS_VIDPIPE)
+#define	VALID_CLKCHECK
 #endif
 
 void	clkreport(const char *nm, const unsigned counts) {
@@ -59,6 +61,11 @@ printf("---\n");
 #endif
 #ifdef	_BOARD_HAS_SICLKCOUNTER
 		clkreport("Si5324", (*_siclk));
+#endif
+#ifdef	_BOARD_HAS_VIDPIPE
+		clkreport("HDMI.RX",_hdmi->v_hdmifreq);
+		clkreport("Si5324", _hdmi->v_sifreq);
+		clkreport("PixClk", _hdmi->v_pxfreq);
 #endif
 	}
 #endif

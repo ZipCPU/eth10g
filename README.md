@@ -78,7 +78,7 @@ As of 5 August, 2023:
 
     - [SFP+](https://en.wikipedia.org/wiki/Small_Form-factor_Pluggable) configuration information may also be read, and interpreted according to SFF-8472.  This information has been used successfully in the first round of debugging the Ethernet ports.
 
-    - [Si5324 reference clock controller](https://zipcpu.com/blog/2019/06/28/genclk.html).  That is, this clock can be configured.  I have yet to measure any clock output from this clock generator.
+    - [Si5324 reference clock controller](https://zipcpu.com/blog/2019/06/28/genclk.html).  The clock can be configured, and also measured within the FPGA.
 
     - [OLED display](https://www.amazon.com/Teyleten-Robot-Display-SSD1306-Raspberry/dp/B08ZY4YBHL/) via I2C.  You can see a [demonstration image here](doc/ssdlogo-demo.png).
 

@@ -56,7 +56,7 @@
 	wire	[9:0]	hdmirx_red, hdmirx_grn, hdmirx_blu;
 	wire	[9:0]	hdmitx_red, hdmitx_grn, hdmitx_blu;
 	wire	[1:0]	w_pxclk_sel;
-	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk, s_siclk;
+	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk;
 	wire		pxrx_locked;
 	wire [15-1:0]	set_hdmi_delay, actual_hdmi_delay;
 @TOP.INSERT=
@@ -69,18 +69,18 @@
 	// {{{
 	xpxclk
 	u_xpxclk (
-		.i_sysclk(s_clk),
-		.i_hdmirx_clk_p(i_hdmirx_clk_p),
+		.i_sysclk(s_clk),		// System clock
+		.i_cksel(w_pxclk_sel),		// Clock select switch
+		//
+		.i_hdmirx_clk_p(i_hdmirx_clk_p),	// HDMI RX input clock
 		.i_hdmirx_clk_n(i_hdmirx_clk_n),
-		.i_lcl_pixclk(s_lcl_pixclk_nobuf),
-		// .i_siclk_p(i_clk_si_p),
-		// .i_siclk_n(i_clk_si_n),
-		.i_cksel(w_pxclk_sel),
+		.i_lcl_pixclk(s_lcl_pixclk_nobuf),	// Locally generated clk
+		.i_siclk(s_siclk),			// Si5324 clock
+		//
 		.o_hdmick_locked(pxrx_locked),
-		.o_siclk(s_siclk),
-		.o_hdmirx_clk(hdmirx_clk),
-		.o_pixclk(hdmi_ck),
-		.o_hdmick(hdmi_serdes_clk)
+		.o_hdmirx_clk(hdmirx_clk),	// Clk for measurement only
+		.o_pixclk(hdmi_ck),		// Pixel clock
+		.o_hdmick(hdmi_serdes_clk)	// HS pixel clock
 	);
 	// }}}
 
@@ -155,14 +155,14 @@
 	// }}}
 @TOP.MAIN=
 		// HDMI control ports
-		hdmirx_clk, s_siclk, hdmi_ck,
+		hdmirx_clk, hdmi_ck,	// Depending on s_siclk
 		hdmirx_red, hdmirx_grn, hdmirx_blu,
 		hdmitx_red, hdmitx_grn, hdmitx_blu,
 		set_hdmi_delay, actual_hdmi_delay,
 		w_pxclk_sel
 @MAIN.PORTLIST=
 		// HDMI control ports
-		i_hdmiclk, i_siclk, i_pixclk,
+		i_hdmiclk, i_pixclk,
 		i_hdmi_red, i_hdmi_grn, i_hdmi_blu,
 		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		o_hdmi_iodelay, i_hdmi_iodelay,
@@ -170,7 +170,7 @@
 @MAIN.IODECL=
 	// @$(PREFIX) declarations
 	// {{{
-	input	wire		i_hdmiclk, i_siclk, i_pixclk;
+	input	wire		i_hdmiclk, i_pixclk;
 	input	wire	[9:0]	i_hdmi_red, i_hdmi_grn, i_hdmi_blu;
 	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
 	output	wire	[14:0]	o_hdmi_iodelay;
@@ -206,9 +206,9 @@
 @REGS.NOTE=// HDMI video processing pipe registers
 @REGS.N=17
 @REGS.0=   0  R_@$(DEVID) @$(DEVID) VIDCTRL
-@REGS.1=   1  R_SIFREQ    SIFREQ
-@REGS.2=   2  R_PXFREQ    PXFREQ
-@REGS.3=   3  R_HDMIFREQ  HDMIFREQ
+@REGS.1=   1  R_HDMIFREQ  HDMIFREQ
+@REGS.2=   2  R_SIFREQ    SIFREQ
+@REGS.3=   3  R_PXFREQ    PXFREQ
 @REGS.4=   4  R_INSIZE    INSIZE
 @REGS.5=   5  R_INPORCH   INPORCH
 @REGS.6=   6  R_INSYNC    INSYNC
@@ -224,6 +224,8 @@
 @REGS.16=256  R_CMAP      CMAP
 @XDC.INSERT=
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
+set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_pxclk/prepx/u_bufg/S0]
+set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_pxclk/prepx/u_bufg/S0]
 @BDEF.INCLUDE=
 #include <stdint.h>
 @BDEF.DEFN=
@@ -238,7 +240,7 @@ typedef struct __attribute__((packed)) VIDMODE_S {
 } VIDMODE;
 
 typedef struct __attribute__((packed)) @$(DEVID)_S {
-	uint32_t	v_control, v_sifreq, v_pxfreq, v_hdmifreq;
+	uint32_t	v_control, v_hdmifreq, v_sifreq, v_pxfreq;
 	VIDMODE		v_in, v_src;
 	const char	*v_overlay;
 	uint16_t	v_ovheight, v_ovmemwords;
@@ -290,19 +292,3 @@ typedef struct __attribute__((packed)) @$(DEVID)_S {
 		// Simulate an external HDMI monitor
 		(*m_hdmitx)(m_core->o_hdmi_blu, m_core->o_hdmi_grn, m_core->o_hdmi_red);
 #endif	// @$(ACCESS)
-##
-################################################################################
-## The Si5324 clock
-##
-## The following, as written and contained in xpxclk, won't work.  The SI
-## clock comes in on a MGT clock pin, therefore it needs to go to a GTX*
-## before we can use it.  That should probably be handled here.  Until we do so,
-## however, we'll need to disable this clock.
-## @PREFIX=siclk
-## @CLOCK.NAME=siclk
-## @CLOCK.WIRE=i_siclk
-## @CLOCK.FREQUENCY=148500000
-## @TOP.PORTLIST=
-##		i_clk_si_p, i_clk_si_n
-## @TOP.IODECL=
-##	input	wire	i_clk_si_p, i_clk_si_n;

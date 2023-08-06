@@ -471,8 +471,8 @@ module	netpath #(
 	assign	M_DATA =(!OPT_LITTLE_ENDIAN) ? SWAP_ENDIAN_PKT(unswapped_m_data)
 				: unswapped_m_data;
 
-	always @(posedge i_fast_clk or negedge fast_reset_n)
-	if (!fast_reset_n)
+	always @(posedge i_sys_clk or negedge i_reset_n)
+	if (!i_reset_n)
 		rx_activity <= 0;
 	else if (M_VALID && M_LAST && !M_ABORT)
 		rx_activity <= -1;
@@ -740,11 +740,11 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		stat_data[LGPKTLN+3:0] <= stat_pre_data;
 		if ((stat_grant == 0) && (stat_sample))
 		begin
-			// stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
+			stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
 			// stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
 			// if (!rx_fast_valid && !rx_valid)
 			//	stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
-			stat_data[25:0] <= { 1'b1, tx66b_data[24:0] };
+			// stat_data[25:0] <= { 1'b1, tx66b_data[24:0] };
 		end
 		// stat_data[29:26] <= { remote_fault, local_fault, tx_idle, tx_fault };
 		stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
@@ -764,8 +764,10 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 
 	always @(posedge i_sys_clk)
 	if (!stat_fifo_empty)
-		o_debug = { !stat_fifo_empty && !stat_fifo_data[27],
+		o_debug <= { !stat_fifo_data[27],
 			1'b0, stat_fifo_data[29:0] };
+	else
+		o_debug[31] <= 1'b0;
 	// }}}
 
 	assign	o_link_up = rx_link_up && tx_link_up;

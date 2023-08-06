@@ -222,7 +222,7 @@ sw-fatfs: check-zip-gcc
 	+@$(SUBMAKE) sw/zipcpu/fatfs
 ## }}}
 
-.PHONY: sw-board sw-zipcpu
+.PHONY: sw-board sw-zipcpu sw-fatfs
 ## {{{
 ## Build the board software.  This may (or may not) use the software library
 ##

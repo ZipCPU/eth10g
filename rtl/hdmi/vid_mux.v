@@ -138,9 +138,9 @@ module	vid_mux #(
 	// S_VID_HLAST, S_VID_SOF, S_VID_READY
 	// {{{
 	generate for(gk=0; gk<NIN; gk=gk+1)
-	begin
+	begin : GEN_PER_INPUT
 		if (OPT_TUSER_IS_SOF)
-		begin
+		begin : GEN_SOF
 			// {{{
 			reg	[LGDIM-1:0]	height, vpos;
 			reg			vlast;
@@ -168,7 +168,7 @@ module	vid_mux #(
 				vlast <= S_VID_HLAST[gk]&& (height == vpos + 1);
 			assign	S_VID_VLAST[gk] = vlast;
 			// }}}
-		end else begin
+		end else begin : GEN_VLAST
 			// {{{
 			reg	sof;
 
