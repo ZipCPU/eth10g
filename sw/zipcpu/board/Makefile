@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck # rdedid contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi # rdedid contest
 all:	$(PROGRAMS)
 #
 #
@@ -150,6 +150,9 @@ lockcheck: $(OBJDIR)/lockcheck.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
 dmatest: $(OBJDIR)/dmatest.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+rxhdmi: $(OBJDIR)/rxhdmi.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 define	mk-objdir

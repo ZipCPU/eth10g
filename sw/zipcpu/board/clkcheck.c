@@ -33,9 +33,9 @@
 
 void	clkreport(const char *nm, const unsigned counts) {
 	if (counts > 1000000)
-		printf("%-20s: %9.6f MHz\n", nm, (double)counts / 1e6);
+		printf("%-20s: %10.6f MHz\n", nm, (double)counts / 1e6);
 	else if (counts > 1000)
-		printf("%-20s:    %6.3f kHz\n", nm, (double)counts / 1e3);
+		printf("%-20s:    %7.3f kHz\n", nm, (double)counts / 1e3);
 	else // if (counts > 0)
 		printf("%-20s:       %3d  Hz\n", nm, counts);
 }

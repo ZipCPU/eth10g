@@ -55,7 +55,7 @@ module	hdmipixelsync (
 	//
 	wire	[3:0]	chosen_match_loc;
 	reg		sync_valid;
-	reg	[15:0]	lost_sync_counter;
+	reg	[19:0]	lost_sync_counter;
 	reg	[9:0]	sync;
 	// }}}
 
@@ -67,25 +67,28 @@ module	hdmipixelsync (
 	generate for(gk=0; gk<10; gk=gk+1)
 	begin
 		reg		control_word;
-		reg	[5:0]	control_matches;
+		reg	[4:0]	control_matches;
+		wire	[9:0]	check_word;
+
+		assign	check_word = pre_match_win[gk +: 10];
 
 		always @(posedge i_clk)
 		begin
 			control_word <= 1'b0;
-			if((pre_match_win[gk+9:gk]== 10'h0ab) // 354
-				    ||(pre_match_win[gk+9:gk]==10'h354) //0ab
-				    ||(pre_match_win[gk+9:gk]==10'h0aa) //154
-				    ||(pre_match_win[gk+9:gk]==10'h355))//2ab
+			if((check_word== 10'h0ab) // 354
+				    ||(check_word ==10'h354) //0ab
+				    ||(check_word ==10'h0aa) //154
+				    ||(check_word ==10'h355))//2ab
 				control_word <= 1'b1;
 
-			if (control_word)
-			begin
-				if (!control_matches[5])
-					control_matches <= control_matches + 1;
-			end else
+			if (!control_word)
 				control_matches <= 0;
+			else if (!control_matches[4])
+				control_matches <= control_matches + 1;
 
-			sync[gk] <= (control_matches >= 12);
+			sync[gk] <= (control_matches >= 12)
+					&& ((check_word == 10'h0cd) // 1011_0011_00
+					   ||(check_word== 10'h332)); // 01_0011_0011
 		end
 	end endgenerate
 	// }}}
@@ -126,10 +129,10 @@ module	hdmipixelsync (
 
 	// Declare no synch when ... we don't see anything for a long time
 	// {{{
-	initial	lost_sync_counter = 16'hffff; // Start with a lost synch
+	initial	lost_sync_counter = 20'hfffff; // Start with a lost synch
 	always @(posedge i_clk)
 	if (i_reset)
-		lost_sync_counter <= 16'hffff;
+		lost_sync_counter <= 20'hfffff;
 	else if (valid_match && match_loc == chosen_match_loc)
 		lost_sync_counter <= 0;
 	else if (!(&lost_sync_counter))

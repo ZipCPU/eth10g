@@ -266,6 +266,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_p
 ##
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray_cross*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
 ##
 ##
 ##

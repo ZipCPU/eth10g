@@ -36,7 +36,7 @@
 @PREFIX=hdmi
 @DEVID=VIDPIPE
 @ACCESS=@$(DEVID)_ACCESS
-@NADDR=512
+@NADDR=1024
 @SLAVE.BUS=wb32
 @SLAVE.TYPE=OTHER
 @MASTER.BUS=wbwide
@@ -204,7 +204,7 @@
 
 	// }}}
 @REGS.NOTE=// HDMI video processing pipe registers
-@REGS.N=17
+@REGS.N=21
 @REGS.0=   0  R_@$(DEVID) @$(DEVID) VIDCTRL
 @REGS.1=   1  R_HDMIFREQ  HDMIFREQ
 @REGS.2=   2  R_SIFREQ    SIFREQ
@@ -221,11 +221,15 @@
 @REGS.13= 13  R_OVSIZE    OVSIZE
 @REGS.14= 14  R_OVOFFSET  OVOFFSET
 @REGS.15= 15  R_FPS       FPS
-@REGS.16=256  R_CMAP      CMAP
+@REGS.16= 16  R_SYNCWORD  VSYNCWORD
+@REGS.17= 17  R_VIDRCAP   VIDRCAP
+@REGS.18= 18  R_VIDGCAP   VIDGCAP
+@REGS.19= 19  R_VIDBCAP   VIDBCAP
+@REGS.20=512  R_CMAP      CMAP
 @XDC.INSERT=
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
-set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_pxclk/prepx/u_bufg/S0]
-set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_pxclk/prepx/u_bufg/S0]
+set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_xpxclk/prepx/u_bufg/S0]
+set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_xpxclk/lclpx/u_bufg/S0]
 @BDEF.INCLUDE=
 #include <stdint.h>
 @BDEF.DEFN=

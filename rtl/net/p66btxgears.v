@@ -98,7 +98,7 @@ module	p66btxgears // #()
 `ifdef	FORMAL
 	reg	[7:0]	f_count;
 	reg		f_past_valid;
-	(* anyconst *)	reg	[18:0]	fc_posn
+	(* anyconst *)	reg	[18:0]	fc_posn;
 	(* anyconst *)	reg	[65:0]	fc_data;
 	(* anyconst *)	reg		fc_check;
 	reg	[18:0]	fs_posn, fg_posn, f_offset;
@@ -155,7 +155,7 @@ module	p66btxgears // #()
 	always @(posedge i_clk)
 	if (i_reset)
 		f_pipe <= 0;
-	else
+	else if (i_ready)
 		f_pipe <= { f_pipe[2:0], 1'b1 };
 
 	always @(posedge i_clk)
@@ -178,7 +178,7 @@ module	p66btxgears // #()
 	// point, and doesn't get skipped.
 	always @(*)
 	if (fs_posn <= fc_posn && fc_posn < fs_posn+66)
-		assume(fc_data == fs_posn);
+		assume(fc_posn == fs_posn);
 
 	// Finally, ASSUME the given data when we hit the given count.
 	always @(*)
@@ -207,8 +207,15 @@ module	p66btxgears // #()
 
 	always @(posedge i_clk)
 	if (!i_reset && fc_check && fg_posn <= fc_posn+66
+			&& shift >= 66
 			&& fc_posn < fg_posn + f_count && f_pipe[2])
 		assert(0 == ((fc_shift ^ f_shifted[65:0]) & f_mask));
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Cover properties
+	// {{{
 
 	// Let's just make sure we can do this properly ...
 	always @(*)
@@ -221,6 +228,16 @@ module	p66btxgears // #()
 		cover(fc_posn == 396 && fg_posn > 396 + 130);
 		cover(fc_posn == 462 && fg_posn > 462 + 130);
 	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// "Careless" assumptions
+	// {{{
+
+	always @(posedge i_clk)
+	if (!$past(i_ready))
+		assume(i_ready);
 
 	// }}}
 `endif

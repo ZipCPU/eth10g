@@ -46,7 +46,7 @@ module	vidpipe #(
 		// Wishbone Control ports
 		// {{{
 		input	wire		i_wb_cyc, i_wb_stb, i_wb_we,
-		input	wire	[8:0]	i_wb_addr,
+		input	wire	[9:0]	i_wb_addr,
 		input	wire	[31:0]	i_wb_data,
 		input	wire	[3:0]	i_wb_sel,
 		output	wire		o_wb_stall,
@@ -86,22 +86,26 @@ module	vidpipe #(
 	// {{{
 	localparam	CWID = $clog2(CLOCKFREQ_HZ);
 	localparam	WBLSB = $clog2(DW/8);
-	localparam	[3:0]	ADR_CONTROL   = 4'h0,
-				ADR_HDMIFREQ  = 4'h1,
-				ADR_SIFREQ    = 4'h2,
-				ADR_PXFREQ    = 4'h3,
-				ADR_INSIZE    = 4'h4,
-				ADR_INPORCH   = 4'h5,
-				ADR_INSYNC    = 4'h6,
-				ADR_INRAW     = 4'h7,
-				ADR_SIZE      = 4'h8,
-				ADR_PORCH     = 4'h9,
-				ADR_SYNC      = 4'ha,
-				ADR_RAW       = 4'hb,
-				ADR_OVLYBASE  = 4'hc,
-				ADR_OVLYSIZE  = 4'hd,
-				ADR_OVLYOFFSET= 4'he,
-				ADR_FPS       = 4'hf;
+	localparam	[4:0]	ADR_CONTROL   = 5'h00,
+				ADR_HDMIFREQ  = 5'h01,
+				ADR_SIFREQ    = 5'h02,
+				ADR_PXFREQ    = 5'h03,
+				ADR_INSIZE    = 5'h04,
+				ADR_INPORCH   = 5'h05,
+				ADR_INSYNC    = 5'h06,
+				ADR_INRAW     = 5'h07,
+				ADR_SIZE      = 5'h08,
+				ADR_PORCH     = 5'h09,
+				ADR_SYNC      = 5'h0a,
+				ADR_RAW       = 5'h0b,
+				ADR_OVLYBASE  = 5'h0c,
+				ADR_OVLYSIZE  = 5'h0d,
+				ADR_OVLYOFFSET= 5'h0e,
+				ADR_FPS       = 5'h0f,
+				ADR_SYNCWORD  = 5'h10,
+				ADR_REDCAP    = 5'h11,
+				ADR_GRNCAP    = 5'h12,
+				ADR_BLUCAP    = 5'h13;
 
 	// Verilator lint_off SYNCASYNCNET
 	reg		pix_reset_sys, pix_reset;
@@ -206,6 +210,7 @@ module	vidpipe #(
 
 	reg		pre_ack, cmap_ack;
 	reg	[31:0]	pre_wb_data;
+	wire	[31:0]	sync_word;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -246,9 +251,9 @@ module	vidpipe #(
 	initial	pix_reset_sys = 1'b1;
 	always @(posedge i_clk)
 	begin
-		if (i_wb_stb && i_wb_we && i_wb_addr[8:4]==5'h0)
+		if (i_wb_stb && i_wb_we && i_wb_addr[9:5]==5'h0)
 		begin
-			case(i_wb_addr[3:0])
+			case(i_wb_addr[4:0])
 			ADR_CONTROL: begin
 				// {{{
 				if (i_wb_sel[0])
@@ -382,7 +387,7 @@ module	vidpipe #(
 	// {{{
 	// Reading the color map takes an extra clock cyle
 	always @(posedge i_clk)
-		cmap_ack <= !i_wb_we && i_wb_addr[8];
+		cmap_ack <= !i_wb_we && i_wb_addr[9];
 	// }}}
 
 	// o_wb_data, pre_wb_data: Bus reads
@@ -391,8 +396,8 @@ module	vidpipe #(
 	if (i_wb_stb && !i_wb_we)
 	begin
 		pre_wb_data <= 0;
-		if (i_wb_data[8:4] == 5'h0)
-		case(i_wb_addr[3:0])
+		if (i_wb_addr[9:5] == 5'h0)
+		case(i_wb_addr[4:0])
 		ADR_CONTROL: begin
 				pre_wb_data[10:0] <= { cfg_cmap_mode_sys,
 					1'b0, cfg_src_sel_sys, o_pxclk_sel,
@@ -444,13 +449,33 @@ module	vidpipe #(
 			pre_wb_data[ 0 +: LGDIM] <= {
 					cfg_mem_width_sys[LGDIM-1:0] };
 			end
-		ADR_OVLYOFFSET: begin end
+		ADR_OVLYOFFSET: begin
+				// {{{
+				pre_wb_data[16 +: LGDIM] <= cfg_ovly_hpos_sys;
+				pre_wb_data[ 0 +: LGDIM] <= cfg_ovly_vpos_sys;
+				end
+				// }}}
 		ADR_FPS: begin
+			// {{{
 				pre_wb_data[7:0] <= frames_per_second;
 				pre_wb_data[ 8 +: 5] <= i_iodelay[ 4: 0];
 				pre_wb_data[16 +: 5] <= i_iodelay[ 9: 5];
 				pre_wb_data[24 +: 5] <= i_iodelay[14:10];
 			end
+			// }}}
+		ADR_SYNCWORD: begin
+				pre_wb_data <= sync_word;
+			end
+		ADR_REDCAP: begin
+				pre_wb_data <= redcap;
+			end
+		ADR_GRNCAP: begin
+				pre_wb_data <= grncap;
+			end
+		ADR_BLUCAP: begin
+				pre_wb_data <= blucap;
+			end
+		default: begin end
 		endcase
 	end
 
@@ -495,6 +520,32 @@ module	vidpipe #(
 	//
 	// Convert from HDMI to an AXI (video) stream
 	// {{{
+	reg	[2:0]	cap_valid;
+	reg	[31:0]	redcap_sr, grncap_sr, blucap_sr,
+			redcap_in, grncap_in, blucap_in;
+	wire	[31:0]	redcap, grncap, blucap;
+	
+	always @(posedge i_pixclk)
+	if (pix_reset)
+		cap_valid <= 0;
+	else if (&cap_valid && ign_px2sys_ready)
+		cap_valid <= 0;
+	else
+		cap_valid <= { cap_valid[1:0], 1'b1 };
+
+	always @(posedge i_pixclk)
+		redcap_sr <= { redcap_sr[21:0], i_hdmi_red };
+	always @(posedge i_pixclk)
+		grncap_sr <= { grncap_sr[21:0], i_hdmi_grn };
+	always @(posedge i_pixclk)
+		blucap_sr <= { blucap_sr[21:0], i_hdmi_blu };
+	always @(posedge i_pixclk)
+	if (&cap_valid && ign_px2sys_ready)
+	begin
+		redcap_in <= redcap_sr;
+		grncap_in <= grncap_sr;
+		blucap_in <= blucap_sr;
+	end
 
 	// hdmi2vga: Convert first to VGA
 	hdmi2vga
@@ -506,7 +557,8 @@ module	vidpipe #(
 		//
 		.o_pix_valid(vga_valid),
 		.o_vsync(vga_vsync), .o_hsync(vga_hsync),
-		.o_vga_red(vga_red), .o_vga_green(vga_grn), .o_vga_blue(vga_blu)
+		.o_vga_red(vga_red), .o_vga_green(vga_grn),.o_vga_blue(vga_blu),
+		.o_sync_word(sync_word)
 		// }}}
 	);
 
@@ -547,7 +599,7 @@ module	vidpipe #(
 	// {{{
 
 	tfrvalue #(
-		.W(LGDIM*8+2)
+		.W(LGDIM*8+2+3*32)
 	) u_px2sys (
 		// {{{
 		.i_a_clk(i_pixclk), .i_a_reset_n(pix_reset_n),
@@ -558,7 +610,8 @@ module	vidpipe #(
 				vin_raw,    hin_raw,
 				vin_synch,  hin_synch,
 				vin_front,  hin_front,
-				vin_height, hin_width
+				vin_height, hin_width,
+				redcap_in, grncap_in, blucap_in
 				}),
 		//
 		.i_b_clk(i_clk), .i_b_reset_n(!pix_reset_sys),
@@ -569,7 +622,8 @@ module	vidpipe #(
 				vin_raw_sys,    hin_raw_sys,
 				vin_synch_sys,  hin_synch_sys,
 				vin_front_sys,  hin_front_sys,
-				vin_height_sys, hin_width_sys
+				vin_height_sys, hin_width_sys,
+				redcap, grncap, blucap
 				})
 		// }}}
 	);
@@ -842,10 +896,10 @@ module	vidpipe #(
 		// Colormap control
 		// {{{
 		.i_cmap_clk(i_clk),
-		.i_cmap_rd(i_wb_stb && !i_wb_we && i_wb_addr[8]),
+		.i_cmap_rd(i_wb_stb && !i_wb_we && i_wb_addr[9]),
 		.i_cmap_raddr(i_wb_addr[7:0]),
 		.o_cmap_rdata(cmap_rdata[23:0]),
-		.i_cmap_we(i_wb_stb && i_wb_we && i_wb_addr[8]),
+		.i_cmap_we(i_wb_stb && i_wb_we && i_wb_addr[9]),
 		.i_cmap_waddr(i_wb_addr[7:0]),
 		.i_cmap_wdata(i_wb_data[23:0]),
 		.i_cmap_wstrb(i_wb_sel[2:0])

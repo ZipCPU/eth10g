@@ -37,7 +37,7 @@ all:
 ## {{{
 CXX := g++
 OBJDIR := obj-pc
-SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope
+SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope
 RTLD := ../../rtl
 ZIPSUPPORT := zipload zipstate zipdbg
 BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp devbus.cpp
@@ -86,6 +86,9 @@ smiscope: $(OBJDIR)/smiscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@
 
 netscope: $(OBJDIR)/netscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -o $@
+
+rxedidscope: $(OBJDIR)/rxedidscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@
 
 zipdbg: $(OBJDIR)/zipdbg.o $(OBJDIR)/twoc.o $(OBJDIR)/zopcodes.o $(BUSOBJS)

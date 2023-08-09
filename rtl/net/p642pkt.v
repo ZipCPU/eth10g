@@ -397,7 +397,40 @@ module	p642pkt (
 	// These faults are all determined by the data sent.  If no data
 	// gets sent, or if we never lock (and hence RX_VALID stays low),
 	// then we'll never know a fault
-	initial	o_remote_fault = 1'b0;
+
+	reg	past_stop;
+
+	initial	past_stop = 1'b0;
+	always @(posedge RX_CLK)
+	if (!S_ARESETN)
+		past_stop <= 1'b0;
+	else if (RX_VALID)
+	begin
+		past_stop <= (RX_DATA[1:0] != SYNC_DATA);
+		/*
+		if (RX_DATA[1:0] != SYNC_CONTROL)
+			past_stop <= 1'b0;
+		else case(RX_DATA[9:2])
+		// 8'h1e: r_local_fault <= 1'b0;
+		// 8'h2d: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		// 8'h33: r_local_fault <= 1'b0;
+		// 8'h66: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
+		// 8'h55: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		// 8'h78: r_local_fault <= 1'b0;
+		// 8'h4b: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
+		8'h87: past_stop <= 1'b1;
+		8'h99: past_stop <= 1'b1;
+		8'haa: past_stop <= 1'b1;
+		8'hb4: past_stop <= 1'b1;
+		8'hcc: past_stop <= 1'b1;
+		8'hd2: past_stop <= 1'b1;
+		8'he1: past_stop <= 1'b1;
+		8'hff: past_stop <= 1'b1;
+		default: past_stop <= 1'b0;
+		endcase
+		*/
+	end
+
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
 	begin
@@ -425,14 +458,14 @@ module	p642pkt (
 		8'h55: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
 		8'h78: r_local_fault <= 1'b0;
 		8'h4b: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		8'h87: r_local_fault <= 1'b0;
-		8'h99: r_local_fault <= 1'b0;
-		8'haa: r_local_fault <= 1'b0;
-		8'hb4: r_local_fault <= 1'b0;
-		8'hcc: r_local_fault <= 1'b0;
-		8'hd2: r_local_fault <= 1'b0;
-		8'he1: r_local_fault <= 1'b0;
-		8'hff: r_local_fault <= 1'b0;
+		8'h87: r_local_fault <= past_stop;
+		8'h99: r_local_fault <= past_stop;
+		8'haa: r_local_fault <= past_stop;
+		8'hb4: r_local_fault <= past_stop;
+		8'hcc: r_local_fault <= past_stop;
+		8'hd2: r_local_fault <= past_stop;
+		8'he1: r_local_fault <= past_stop;
+		8'hff: r_local_fault <= past_stop;
 		default: r_local_fault <= 1'b1;
 		endcase
 
@@ -471,7 +504,7 @@ module	p642pkt (
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
 	begin
-		max_packet_counter <= 0;
+		max_packet_counter <= -1;
 		max_packet_fault <=  0;
 	end else if (RX_VALID)
 	begin
@@ -485,6 +518,15 @@ module	p642pkt (
 			max_packet_fault <= (max_packet_counter <= 1);
 		end
 	end
+`ifdef	FORMAL
+	always @(*)
+	if (S_ARESETN)
+		assert(max_packet_fault == (max_packet_counter == 0));
+	always @(posedge RX_CLK)
+	if (S_ARESETN && $past(S_ARESETN && max_packet_fault
+				&& RX_DATA[1:0] != SYNC_CONTROL))
+		assert(max_packet_fault);
+`endif
 	// }}}
 
 	// link_up_counter--used to stretch faults and errors so the eye can
@@ -509,6 +551,10 @@ module	p642pkt (
 
 	assign	o_link_up = link_up_counter[LNKMSB];
 
+	// stretch_fault
+	// {{{
+	// Used to lengthen local fault signals sufficient that they can cross
+	// clock domains reliably and so be used in the return signaling.
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
 	begin
@@ -523,6 +569,7 @@ module	p642pkt (
 			stretch_local <= stretch_local - 1;
 		stretch_fault <= (stretch_local > 1);
 	end
+	// }}}
 
 	assign o_local_fault = stretch_fault || powering_up;
 	// }}}

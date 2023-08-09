@@ -41,6 +41,8 @@
 // under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
+//
+`default_nettype none
 // }}}
 module	pkt2p64b (
 		// {{{
@@ -90,6 +92,7 @@ module	pkt2p64b (
 
 	reg		stretch_fault;
 	reg	[7:0]	stretch_counter;
+	reg		r_aborted;
 
 	reg		r_local_fault, r_remote_fault;
 	(* ASYNC_REG = "TRUE" *) reg	[1:0]	r_local_fault_pipe,
@@ -137,7 +140,16 @@ module	pkt2p64b (
 	end
 	// }}}
 	// }}}
-	
+
+	// abort stretching
+	// {{{
+	always @(posedge TX_CLK)
+	if (!S_ARESETN || TXREADY)
+		r_aborted <= 1'b0;
+	else if (S_ABORT)
+		r_aborted <= 1'b1;
+	// }}}
+
 	initial	r_ready = 1'b0;
 	initial	TXDATA  = P_IDLE;
 	always @(posedge TX_CLK)
@@ -161,7 +173,7 @@ module	pkt2p64b (
 				TXDATA <= P_IDLE;
 		end
 
-		if (state == TX_DATA)
+		if (state == TX_DATA || r_ready)
 			flushing <= 1'b1;
 
 		state  <= TX_PAUSE;
@@ -188,7 +200,7 @@ module	pkt2p64b (
 				r_ready <= 1'b1;
 			end else begin
 				// Accept the ABORT flag and continue
-				r_ready <= 1'b1;
+				r_ready <= S_ABORT && !r_ready;
 			end
 		end end
 		// }}}
@@ -198,12 +210,13 @@ module	pkt2p64b (
 		if (TXREADY)
 		begin
 			TXDATA  <= { S_DATA, SYNC_DATA };
-			if (S_ABORT || !S_VALID)
+			if (S_ABORT || r_aborted || !S_VALID)
 			begin
 				// ERROR!!  Send error code, then terminate
 				state   <= TX_PAUSE;
 				TXDATA  <= P_FAULT;
 				r_ready <= 1'b0;
+				flushing <= !S_VALID && !S_ABORT && !r_aborted;
 			end else if (S_LAST)
 			begin
 				r_ready <= 1'b0;
@@ -227,6 +240,9 @@ module	pkt2p64b (
 				// No default needed
 				endcase
 			end
+		end else if (S_ABORT)
+		begin
+			r_ready <= 1'b0;
 		end end
 		// }}}
 	TX_LAST: begin
@@ -264,6 +280,9 @@ module	pkt2p64b (
 	reg	f_past_valid;
 	wire	[10:0]	fs_word;
 	wire	[12-1:0]	fs_packets;
+	(* keep *) wire	[63:0]		ftx_data;
+	(* keep *) wire	[1:0]		ftx_sync;
+	(* keep *) wire	[7:0]		ftx_control;
 
 	initial	f_past_valid = 1'b0;
 	always @(posedge TX_CLK)
@@ -272,6 +291,10 @@ module	pkt2p64b (
 	always @(*)
 	if (!f_past_valid)
 		assume(!S_ARESETN);
+
+	assign	ftx_data    = TXDATA[65:2];
+	assign	ftx_control = TXDATA[9:2];
+	assign	ftx_sync    = TXDATA[1:0];
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -299,10 +322,17 @@ module	pkt2p64b (
 	//
 	// Output 66b protocol
 	// {{{
+
+	// Our one assumption--TXREADY will be usually true, but may drop for
+	// one cycle, and one cycle only, every now and then
 	always @(posedge TX_CLK)
-	if (S_ARESETN && !$past(S_ARESETN))
+	if (!$past(TXREADY))
+		assume(TXREADY);
+
+	always @(posedge TX_CLK)
+	if (!S_ARESETN || !$past(S_ARESETN))
 	begin
-		assert(TXDATA == P_IDLE);
+		assert(!S_ARESETN || TXDATA == P_IDLE);
 	end else if (!$past(TXREADY))
 		assert($stable(TXDATA));
 	else if (($past(TXDATA[1:0]) == SYNC_CONTROL)
@@ -310,12 +340,6 @@ module	pkt2p64b (
 		assert(TXDATA[1:0] == SYNC_CONTROL);
 
 	always @(posedge TX_CLK)
-	if (S_ARESETN && !$past(S_ARESETN))
-	begin
-		assert(TXDATA == P_IDLE);
-	end
-
-	always @(*)
 	if (S_ARESETN)
 	begin
 		assert(^TXDATA[1:0]);
@@ -327,17 +351,22 @@ module	pkt2p64b (
 			8'h78: assert(TXDATA == P_START);
 			8'h87: assert(TXDATA == P_LAST);
 			//
-			8'h99: assert(TX_DATA[65:18] == 0);
-			8'haa: assert(TX_DATA[65:26] == 0);
-			8'hb4: assert(TX_DATA[65:34] == 0);
-			8'hcc: assert(TX_DATA[65:42] == 0);
-			8'hd2: assert(TX_DATA[65:50] == 0);
-			8'he1: assert(TX_DATA[65:58] == 0);
+			8'h99: assert(TXDATA[65:18] == 0);
+			8'haa: assert(TXDATA[65:26] == 0);
+			8'hb4: assert(TXDATA[65:34] == 0);
+			8'hcc: assert(TXDATA[65:42] == 0);
+			8'hd2: assert(TXDATA[65:50] == 0);
+			8'he1: assert(TXDATA[65:58] == 0);
 			8'hff: begin end
 			default: assert(0);
 			endcase
 		end
 	end
+
+	always @(posedge TX_CLK)
+	if ($past(TXREADY && TXDATA == P_START))
+		assert(TXDATA != P_START);
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -347,7 +376,7 @@ module	pkt2p64b (
 	(* anyconst *)	reg	[10:0]	fc_posn;
 	(* anyconst *)	reg	[63:0]	fc_data;
 	(* anyconst *)	reg	[2:0]	fc_bytes;
-	(* anyconst *)	reg		fc_last, fnvr_local;
+	(* anyconst *)	reg		fc_last, fnvr_local, fnvr_abort;
 	reg		f_eop;
 	reg	[10:0]	fpkt_word;
 
@@ -368,16 +397,16 @@ module	pkt2p64b (
 					&& $past(S_VALID && !S_LAST))
 		assume(S_VALID);
 
-	always @(*)
+	always @(posedge TX_CLK)
 	if (S_ARESETN && $past(S_ARESETN) && fc_check && S_VALID)
 		assume(!S_ABORT);
 
 	always @(*)
-	if (S_ARESETN && fc_check && fs_posn < fc_posn == fs_posn && S_VALID)
+	if (S_ARESETN && fc_check && fs_word < fc_posn && S_VALID)
 		assume(!S_LAST);
 
 	always @(*)
-	if (S_ARESETN && fc_check && fc_posn == fs_posn && S_VALID)
+	if (S_ARESETN && fc_check && fc_posn == fs_word && S_VALID)
 	begin
 		assume(S_DATA  == fc_data);
 		assume(S_BYTES == fc_bytes);
@@ -385,18 +414,34 @@ module	pkt2p64b (
 	end
 
 	always @(*)
+	if (fnvr_abort)
+		assume(!S_ABORT);
+
+	always @(*)
+	if (S_ARESETN && fnvr_abort)
+		assert(!r_aborted);
+
+	always @(*)
 	if (fnvr_local)
 		assume(!i_local_fault);
+
+	always @(*)
+	if (fc_check)
+		assume(fnvr_local);
+
+	always @(*)
+	if (fc_check)
+		assume(fnvr_abort);
 
 	// This won't work if faults take place, so let's assume no faults
 	// during our special check packet
 	always @(*)
 	if (fc_check)
-		assume(fpkt_word == 0 || !r_remote_fault);
+		assume((fpkt_word == 0 && state==TX_IDLE) || !r_remote_fault);
 	// }}}
 
 	always @(*)
-	if (TXDATA[1:0] != S_CONTROL)
+	if (TXDATA[1:0] != SYNC_CONTROL)
 		f_eop = 1'b0;
 	else case(TXDATA[9:2])
 		8'h99: f_eop = 1'b1;
@@ -416,8 +461,8 @@ module	pkt2p64b (
 		fpkt_word <= 0;
 	end else if (TXREADY)
 	begin
-		if (TXDATA == P_START)
-			fpkt_word <= 1;
+		if (TXDATA == P_START || TXDATA == P_IDLE)
+			fpkt_word <= 0;
 		else if (TXDATA[1:0] == SYNC_DATA)
 			fpkt_word <= fpkt_word + 1;
 		else if (f_eop)
@@ -425,39 +470,53 @@ module	pkt2p64b (
 	end
 
 	always @(posedge TX_CLK)
-	if (S_ARESETN && !flushing)
+	if (S_ARESETN && !flushing && !stretch_fault && !r_remote_fault)
 	begin
 		if (fs_word > 0)
-			assert(fs_word == fpkt_word);
-		else if (!f_eop)
-			assert(fpkt_word == 0);
+		begin
+			assert(fs_word == fpkt_word + 1);
+		end else if (!f_eop && state != TX_LAST)
+			assert(fpkt_word == 0 || !fnvr_local || !fnvr_abort);
 	end
 
-	always @(*)
-	if (fc_check && fpkt_word == fc_posn && TXDATA[1:0] == SYNC_DATA)
+	// Contract assertion
+	always @(posedge TX_CLK)
+	if (S_ARESETN && fc_check && fc_posn > 0)
 	begin
-		assert(TXDATA[65:0] == fc_data);
-		assert(!fc_last || fc_bytes == 0);
-	end else if (fc_check && fpkt_word == fc_posn
-					&& TXDATA[1:0] == SYNC_CONTROL)
-	begin
-		assert(fc_last && fc_bytes != 0);
-		case(TXDATA[9:2])
-		8'h99: assert(TX_DATA[17:10] == fc_data[7:0]);
-		8'haa: assert(TX_DATA[25:10] == fc_data[15:0]);
-		8'hb4: assert(TX_DATA[33:10] == fc_data[23:0]);
-		8'hcc: assert(TX_DATA[41:10] == fc_data[31:0]);
-		8'hd2: assert(TX_DATA[49:10] == fc_data[39:0]);
-		8'he1: assert(TX_DATA[57:10] == fc_data[47:0]);
-		8'hff: assert(TX_DATA[65:10] == fc_data[55:0]);
-		default: begin end
+		if (TXDATA[1:0]== SYNC_DATA)
+		begin
+			if (fpkt_word == fc_posn)
+			begin
+				assert(TXDATA[65:2] == fc_data);
+				assert(!fc_last || fc_bytes == 0);
+			end
+
+			if (fc_last)
+				assert(fpkt_word <= fc_posn);
+		end else if (fpkt_word == fc_posn
+						&& TXDATA[1:0] == SYNC_CONTROL)
+		begin
+			assert(fc_last && fc_bytes != 0);
+			case(TXDATA[9:2])
+			8'h99: assert(TXDATA[17:10] == fc_data[7:0]);
+			8'haa: assert(TXDATA[25:10] == fc_data[15:0]);
+			8'hb4: assert(TXDATA[33:10] == fc_data[23:0]);
+			8'hcc: assert(TXDATA[41:10] == fc_data[31:0]);
+			8'hd2: assert(TXDATA[49:10] == fc_data[39:0]);
+			8'he1: assert(TXDATA[57:10] == fc_data[47:0]);
+			8'hff: assert(TXDATA[65:10] == fc_data[55:0]);
+			default: begin end
+			endcase
+		end else if (fc_last)
+		begin
+			if (fpkt_word == fc_posn + 1)
+			begin
+				assert(fc_last && fc_bytes == 0);
+				assert(f_eop && TXDATA == P_LAST);
+			end else if (fc_posn > 0)
+				assert(fpkt_word < fc_posn);
 		end
-	end else if (fc_check && fpkt_word == fc_posn + 1)
-	begin
-		assert(f_last && f_bytes == 0);
-		assert(f_eop && TXDATA == P_LAST);
-	end else if (fc_check && fc_posn > 0)
-		assert(fpkt_word < fc_posn);
+	end
 
 	always @(*)
 	if (S_ARESETN && fnvr_local)
@@ -471,10 +530,14 @@ module	pkt2p64b (
 	end
 
 	always @(*)
-	if (S_ARESETN && !flushing)
+	if (S_ARESETN && !flushing && !r_aborted)
 	case(state)
 	TX_IDLE: assert(fs_word == 0);
-	TX_DATA: assert(fs_word == fpkt_word);
+	TX_DATA: begin
+		assert(r_ready != r_aborted);
+		assert((fs_word == fpkt_word + 1) || TXDATA == P_START
+			|| S_ABORT);
+		end
 	TX_LAST: assert(fs_word == 0);
 	TX_PAUSE: assert(fs_word == 0);
 	endcase
@@ -512,6 +575,13 @@ module	pkt2p64b (
 	//
 	// "Careless" assumptions
 	// {{{
+
+	// The following assumption simply prevents overflow in our packet word
+	// counting math.  The number of bits used to count words could be
+	// increased arbitrarily if we desired.  That would just increase the
+	// bit used in the assumption below.
+	always @(*)
+		assume(!fs_word[10]);
 	// }}}
 `endif
 // }}}

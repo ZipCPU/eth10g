@@ -77,7 +77,7 @@
 		i_si5324_int,!sysclk_locked,!i_pi_reset_n,i_soft_reset };
 	assign	o_tp = o_gpio[3:0];
 	assign	o_si5324_rst = o_gpio[4];
-	assign	o_hdmirx_hpd_n = o_gpio[5];
+	assign	o_hdmirx_hpd_n = !o_gpio[5];
 	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
 	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
 	// }}}

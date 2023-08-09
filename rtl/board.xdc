@@ -462,6 +462,7 @@ set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pi
 ## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in mem_flash_bkram
 ## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in rxedidscope
 ## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in wbu_arbiter
 ## No XDC.INSERT tag in spio
@@ -498,8 +499,8 @@ set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins 
 ## No XDC.INSERT tag in SIM
 ## From hdmi
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
-set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_pxclk/prepx/u_bufg/S0]
-set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_pxclk/prepx/u_bufg/S0]
+set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_xpxclk/prepx/u_bufg/S0]
+set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_xpxclk/lclpx/u_bufg/S0]
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in clk150
@@ -527,6 +528,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_p
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.rx_fault_pipe*}] 3.2
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/r_fault_pipe*}] 3.2
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray_cross*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/rgray_cross*}] 5.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wr_addr*}] 5.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray*}] 5.0

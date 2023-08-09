@@ -1,0 +1,24 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+prf: depth 6
+
+[engines]
+smtbmc
+
+[script]
+read -formal pkt2p64b.v
+read -formal faxin_slave.v
+--pycode-begin--
+cmd = "hierarchy -top pkt2p64b"
+output(cmd)
+--pycode-end--
+prep -top pkt2p64b
+
+[files]
+faxin_slave.v
+../../rtl/net/pkt2p64b.v

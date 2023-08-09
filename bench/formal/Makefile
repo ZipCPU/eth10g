@@ -35,8 +35,10 @@
 ################################################################################
 ##
 ## }}}
-TESTS := axinarbiter axinbroadcast axinwidth dropshort	# wbmarbiter
-TESTS += pktvfifowr cecbridge rxgears txgears wbi2cdma p642pkt	# pktvfiford
+TESTS := axinarbiter axinbroadcast axinwidth dropshort
+TESTS += pktvfifowr cecbridge rxgears txgears wbi2cdma p642pkt pkt2p64b
+# wbmarbiter
+# pktvfiford
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
 .PHONY: $(TESTS)
 all: $(TESTS)
@@ -53,6 +55,7 @@ DSHORT := dropshort
 RXGEARS:= p66brxgears
 TXGEARS:= p66btxgears
 P642PKT:= p642pkt
+PKT2P64B:= pkt2p64b
 WBMARB := wbmarbiter
 PKTVRD := pktvfiford
 PKTVWR := pktvfifowr
@@ -148,7 +151,7 @@ $(RXGEARS)_cvr/PASS: $(RXGEARS).sby   $(RTLNET)/$(RXGEARS).v
 .PHONY: $(TXGEARS) txgears
 ## {{{
 txgears: $(TXGEARS)
-$(TXGEARS): $(TXGEARS)_prf/PASS # $(DSHORT)_cvr/PASS
+$(TXGEARS): $(TXGEARS)_prf/PASS $(TXGEARS)_cvr/PASS
 $(TXGEARS)_prf/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
 	sby -f $(TXGEARS).sby prf
 $(TXGEARS)_cvr/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
@@ -157,11 +160,20 @@ $(TXGEARS)_cvr/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
 
 .PHONY: $(P642PKT)
 ## {{{
-$(P642PKT): $(P642PKT)_prf/PASS # $(DSHORT)_cvr/PASS
+$(P642PKT): $(P642PKT)_prf/PASS # $(P642PKT)_cvr/PASS
 $(P642PKT)_prf/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
 	sby -f $(P642PKT).sby prf
 $(P642PKT)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
 	sby -f $(P642PKT).sby cvr
+## }}}
+
+.PHONY: $(PKT2P64B)
+## {{{
+$(PKT2P64B): $(PKT2P64B)_prf/PASS $(PKT2P64B)_cvr/PASS
+$(PKT2P64B)_prf/PASS: $(PKT2P64B).sby   $(RTLNET)/$(PKT2P64B).v $(FAXIN)
+	sby -f $(PKT2P64B).sby prf
+$(PKT2P64B)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(PKT2P64B).v $(FAXIN)
+	sby -f $(PKT2P64B).sby cvr
 ## }}}
 
 .PHONY: $(WBMARB)

@@ -279,11 +279,12 @@ module	wbi2cslave #(
 		if (i2c_posedge)
 			dreg  <= { dreg[6:0], this_sda };
 		if (i2c_negedge)
-			oreg  <= { oreg[6:0], oreg[0] };
+			oreg  <= { oreg[6:0], 1'b1 };
 		case(i2c_state)
 		I2CIDLE: begin
 			// {{{
 			dbits <= 0;
+			oreg <= 8'hff;
 			if (i2c_start)
 				i2c_state <= I2CSTART;
 			end
@@ -362,10 +363,17 @@ module	wbi2cslave #(
 				dbits <= 3'h0;
 				if (i2c_negedge)
 				begin
-					i2c_state <= I2CTX;
-					oreg <= i2c_tx_byte;
+					if (!this_sda)
+					begin
+						// I2C ACK -- continue
+						i2c_state <= I2CTX;
+						oreg <= rd_val;
+					end else begin	
+						// NAK -- break
+						i2c_state <= I2CIDLE;
+						oreg <= 8'hff;
+					end
 				end
-				oreg <= rd_val;
 			end
 			// }}}
 		I2CILLEGAL:	dbits <= 3'h0;

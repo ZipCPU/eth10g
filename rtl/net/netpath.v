@@ -747,7 +747,8 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 			// stat_data[25:0] <= { 1'b1, tx66b_data[24:0] };
 		end
 		// stat_data[29:26] <= { remote_fault, local_fault, tx_idle, tx_fault };
-		stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
+		// stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
+		stat_data[29:26] <= { remote_fault, local_fault, 2'b00 };
 		// stat_data[29:28] <= { remote_fault, local_fault };
 	end
 
