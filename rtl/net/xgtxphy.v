@@ -58,6 +58,8 @@ module	xgtxphy #(
 
 	// Local declarations
 	// {{{
+	localparam [0:0]	OPT_LOOPBACK = 1'b0;
+
 	genvar		gk;
 	wire		pll_lock, qpll_clk, gtx_refck, qpll_refck,
 			tx_user_clk;
@@ -187,7 +189,7 @@ module	xgtxphy #(
 		(* ASYNC_REG = "TRUE" *) reg		r_phy_fault; 
 		wire		rx_invalid_alignment_fsm,
 				tx_reset_done,
-				tx_gearbox_ready,
+				ign_tx_gearbox_ready,
 				ign_txphaligndone,
 				ign_txphinitdone,
 				ign_qspisenn,
@@ -207,33 +209,79 @@ module	xgtxphy #(
 		wire	gtx_rx_clk;
 		// }}}
 
+		// seq_reset_counter, seq_reset_stb
+		// {{{
+		reg	[6:0]	seq_reset_counter;
+		reg		seq_reset_stb;
+
+		initial	seq_reset_counter <= -1;
+		always @(posedge i_wb_clk)
+		if (gtx_reset || (!tx_pcs_reset && !rx_buf_reset))
+		begin
+			seq_reset_counter <= -1;
+			seq_reset_stb <= 1'b0;
+		end else begin
+			seq_reset_counter <= seq_reset_counter - 1;
+			seq_reset_stb <= (seq_reset_counter == 0);
+		end
+		// }}}
+
 		// gtx_tx_reset
 		// {{{
-		reg	[6:0]	tx_reset_counter;
 		reg		gtx_tx_reset, tx_pcs_reset, tx_pma_reset;
 		assign	tx_mmcm_locked = !tx_pcs_reset;
-		assign	rx_mmcm_locked = 1'b1;
-
-		initial	tx_reset_counter <= -1;
-		always @(posedge i_wb_clk)
-		if (gtx_reset || !tx_pcs_reset)
-			tx_reset_counter <= -1;
-		else
-			tx_reset_counter <= tx_reset_counter - 1;
 
 		initial	{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
 		always @(posedge i_wb_clk)
 		if (gtx_reset)
 			{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
-		else if (tx_reset_counter == 0)
+		else if (seq_reset_stb)
 		begin
 			if (gtx_tx_reset)
 				{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b110;
 			else if (tx_pma_reset)
 				{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b100;
 			else if (tx_pcs_reset)
-				tx_pcs_reset <= !tx_mmcm_locked;
+				tx_pcs_reset <= 1'b0; // !tx_mmcm_locked;
 		end
+		// }}}
+
+		// gtx_rx_reset
+		// {{{
+		wire		rx_buf_reset, rx_pcs_reset, eye_scan_reset,
+				rx_dfe_lpm_reset, rx_pma_reset, rx_cdr_reset,
+				rx_cdr_freq_reset;
+		wire		rx_reset_done;
+		wire		gtx_rx_reset;
+
+		assign	rx_mmcm_locked = 1'b1;
+
+		assign	{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } = 0;
+		assign	gtx_rx_reset = gtx_tx_reset;
+		/*
+		always @(posedge i_wb_clk)
+		if (gtx_reset)
+			{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b000_0000;
+		else if (seq_reset_stb)
+		begin
+			if (rx_pma_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b111_1110;
+			else if (rx_cdr_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b111_1100;
+			else if (rx_cdr_freq_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b111_1000;
+			else if (rx_dfe_lpm_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b111_0000;
+			else if (eye_scan_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b110_0000;
+			else if (rx_pcs_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b100_0000;
+			else if (rx_buf_reset)
+				{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } <= 7'b000_0000;
+			// else if (rx_reset_done)
+			//	tx_pcs_reset <= !tx_mmcm_locked;
+		end
+		*/
 		// }}}
 
 		// assign	brv_data = BITREV(S_DATA);
@@ -536,7 +584,7 @@ module	xgtxphy #(
 			.GTXTXP(o_tx_p[gk]),
 			.GTXTXN(o_tx_n[gk]),
 			//
-			.GTRXRESET(gtx_reset),
+			.GTRXRESET(gtx_rx_reset),
 			.GTXRXP(i_rx_p[gk]),
 			.GTXRXN(i_rx_n[gk]),
 			.RXQPIEN(1'b0),		// Disable sense outputs
@@ -545,8 +593,8 @@ module	xgtxphy #(
 			// }}}
 			// TX Control
 			// {{{
-			.TXPMARESET(tx_pma_reset),	// Input
-			.TXPCSRESET(tx_pcs_reset),	// Input
+			.TXPMARESET(1'b0), // XGTX ties to GND (tx_pma_reset),	// Input
+			.TXPCSRESET(1'b0), // XGTX ties to GND tx_pcs_reset),	// Input
 			.TXPHDLYRESET(1'b0),
 			.TXDLYSRESET(1'b0),
 			.TXRESETDONE(tx_reset_done),
@@ -556,7 +604,7 @@ module	xgtxphy #(
 			.TXUSRCLK(tx_user_clk),
 			.TXHEADER(3'h0),
 			.TXDATA(brv_data[63:0]),
-			.TXGEARBOXREADY(tx_gearbox_ready),
+			.TXGEARBOXREADY(ign_tx_gearbox_ready),
 			//
 			.TXSEQUENCE(7'h0),
 			.TXSTARTSEQ(1'b0),	// First valid byte of first sequence
@@ -569,10 +617,10 @@ module	xgtxphy #(
 			.TXDLYBYPASS(1'b1),
 			.TXPHALIGNDONE(ign_txphaligndone),
 			.TXPHINITDONE(ign_txphinitdone),
-			.TXPHDLYTSTCLK(),
+			.TXPHDLYTSTCLK(1'b0),
 			.TXPHALIGN(1'b0),
 			.TXPHALIGNEN(1'b0),
-			.TXPHDLYPD(1'b1),
+			.TXPHDLYPD(1'b0),
 			.TXPHINIT(1'b0),
 			.TXPHOVRDEN(1'b0),
 			.TXDLYEN(1'b0),
@@ -584,22 +632,22 @@ module	xgtxphy #(
 			// TX Configurable driver
 			// {{{
 			.TXBUFDIFFCTRL(3'b100),		//
-			// .TXDEEMPH(),			// ???
-			// .TXDIFFCTRL(),			// ???
+			.TXDEEMPH(1'b0),			// ???
+			.TXDIFFCTRL(4'b1000),			// ???
 			.TXELECIDLE(1'b0),
 			.TXINHIBIT(1'b0),
 			.TXMAINCURSOR(7'h0),		// Unused (I hope)
-			// .TXMARGIN(),			// ???
+			.TXMARGIN(3'h0),		// ???
 			.TXQPIBIASEN(1'b0),
 			.TXQPISTRONGPDOWN(1'b0),
 			.TXQPIWEAKPUP(1'b0),
 			.TXQPISENN(ign_qspisenn),
 			.TXQPISENP(ign_qspisenp),
-			// .TXPOSTCURSOR(),		// ???
+			.TXPOSTCURSOR(5'h0),		// ???
 			.TXPOSTCURSORINV(1'b0),
-			// .TXPRECURSOR(),
-			// .TXPRECURSORINV(),
-			.TXSWING(1'b1),			// Full swing
+			.TXPRECURSOR(5'h0),
+			.TXPRECURSORINV(1'b0),
+			.TXSWING(1'b0),			// Full swing
 			.TXDIFFPD(1'b0),		// Reserved
 			.TXPISOPD(1'b0),		// Reserved
 			// }}}
@@ -607,7 +655,7 @@ module	xgtxphy #(
 			.TXSYSCLKSEL(2'b11),
 			.TXOUTCLKSEL(3'b010),
 			.TXRATE(3'b000),
-			.TX8B10BBYPASS(),
+			.TX8B10BBYPASS(8'h00),
 			// Constants
 			// {{{
 			.TX8B10BEN(1'b0),	// Disable the 8B10B encoder
@@ -622,7 +670,7 @@ module	xgtxphy #(
 			.TXPRBSFORCEERR(1'b0),
 			// }}}
 			.TXDETECTRX(1'b0),	// Normal operation
-			.TXPDELECIDLEMODE(1'b1),
+			.TXPDELECIDLEMODE(1'b0),
 			.TXPD(2'b00),		// Normal operation
 			// }}}
 			// Unused
@@ -638,16 +686,15 @@ module	xgtxphy #(
 			// }}}
 			// RX Control
 			// {{{
-			.RXPCSRESET(),
-			.RXBUFRESET(gtx_tx_reset),
+			.RXPCSRESET(rx_pcs_reset),
+			.RXBUFRESET(rx_buf_reset),
 			.RXUSERRDY(rx_mmcm_locked),	// DRIVE THIS!!
-			.RXRESETDONE(),
-			.RXPMARESET(),
+			.RXRESETDONE(rx_reset_done),
+			.RXPMARESET(rx_pma_reset),
 			.RXPD(2'b00),		// Normal operation
 			.RXUSRCLK2(rx_user_clk),
 			.RXUSRCLK(rx_user_clk),
 			.RXSYSCLKSEL(2'b11),
-			// .RXPMARESETDONE(),
 			// RX Margin analysis
 			// {{{
 			.EYESCANTRIGGER(1'b0),
@@ -656,8 +703,8 @@ module	xgtxphy #(
 			// }}}
 			// Equalizer/DFE config
 			// {{{
-			.RXLPMEN(1'b0),
-			.RXDFELPMRESET(gtx_reset),
+			.RXLPMEN(1'b1),		// CHANGE ME BACK!
+			.RXDFELPMRESET(rx_dfe_lpm_reset),
 			.RXOSHOLD(1'b0),
 			.RXOSOVRDEN(1'b0),
 			//
@@ -683,27 +730,27 @@ module	xgtxphy #(
 			.RXDFETAP5HOLD(2'b00),
 			.RXDFETAP5OVRDEN(2'b00),
 			//
-			.RXDFECM1EN(),
-			.RXDFEVSEN(),
+			.RXDFECM1EN(1'b0),
+			.RXDFEVSEN(1'b0),
 			.RXDFEXYDEN(1'b1),
-			.RXDFEXYDHOLD(1'b0),		// Reserved
-			.RXDFEXYDOVRDEN(1'b0),		// Reserved
+			.RXDFEXYDHOLD(1'b0),
+			.RXDFEXYDOVRDEN(1'b0),
 			// .RXMONITORSEL(),
 			// .RXMONITOROUT(),		// Ignore/reserved
 			// }}}
 			// RX Clock data recovery (CDR)
 			// {{{
-			.RXCDRFREQRESET(1'b0),
+			.RXCDRFREQRESET(rx_cdr_freq_reset),
 			.RXCDRHOLD(1'b0),
 			.RXCDROVRDEN(1'b0),		// Tie to ground??
-			.RXCDRRESET(1'b0),
+			.RXCDRRESET(rx_cdr_reset),
 			.RXCDRRESETRSV(1'b0),
 			.RXRATE(3'b000),
 			.RXCDRLOCK(rx_cdr_lock),
 			// }}}
 			// RX fabric clock output control
 			// {{{
-			.RXOUTCLKSEL(3'b010),
+			.RXOUTCLKSEL(3'b010),	// (RXOUTCLKPCS for OPT_LOOPBACK = path #1)
 			.RXOUTCLKFABRIC(),	// Redundant output -- ignore this
 			.RXOUTCLK(raw_gtx_rx_clk),	// RX clock to fabric
 			// .RXOUTCLKPCS(),	// Redundant output -- ignore this
@@ -754,7 +801,7 @@ module	xgtxphy #(
 			.RXPHSLIPMONITOR(),
 			.RXDLYSRESETDONE(),
 			.RXDDIEN(),
-			.RXPHDLYRESET(),
+			.RXPHDLYRESET(rx_buf_reset),
 			// Outputs
 			.RXBUFSTATUS(rx_buf_status),
 			// }}}
@@ -809,7 +856,7 @@ module	xgtxphy #(
 			// }}}
 			// Other unused
 			// {{{
-			.LOOPBACK(3'b000),	// Normal operation
+			.LOOPBACK(OPT_LOOPBACK ? 3'b010 : 3'b000),	// PMA loopback or Normal operation
 			.DMONITOROUT(ign_monitor),	// 8b ignore
 			.PCSRSVDOUT(),
 			.GTRSVD(16'h0),
@@ -818,7 +865,7 @@ module	xgtxphy #(
 			.PCSRSVDIN2(5'h0),
 			.PMARSVDIN(5'h0),
 			.PMARSVDIN2(5'h0),
-			.EYESCANRESET()
+			.EYESCANRESET(eye_scan_reset)
 			// }}}
 			// }}}
 		);
@@ -846,7 +893,7 @@ module	xgtxphy #(
 		assign	o_phy_fault[gk] = r_phy_fault;
 		// }}}
 
-		assign	o_lock_status[gk] = rx_cdr_lock;
+		assign	o_lock_status[gk] = rx_cdr_lock && rx_reset_done;
 	end endgenerate
 
 	assign	o_lock_status[NDEV] = pll_lock;
