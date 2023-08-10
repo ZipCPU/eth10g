@@ -119,9 +119,9 @@ module rxuart #(
 	) (
 		// {{{
 		input	wire		i_clk, i_reset,
-		/* verilator lint_off UNUSED */
+		// verilator lint_off UNUSED
 		input	wire	[30:0]	i_setup,
-		/* verilator lint_on UNUSED */
+		// verilator lint_on  UNUSED
 		input	wire		i_uart_rx,
 		output	reg		o_wr,
 		output	reg	[7:0]	o_data,

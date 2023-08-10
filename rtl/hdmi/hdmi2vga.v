@@ -48,7 +48,8 @@ module	hdmi2vga // #()	// No parameters (yet)
 		output	reg		o_hsync,
 		output	reg	[7:0]	o_vga_red, o_vga_green, o_vga_blue,
 		//
-		output	wire	[31:0]	o_sync_word
+		output	wire	[31:0]	o_sync_word,
+		output	wire	[31:0]	o_debug
 		// }}}
 	);
 
@@ -91,8 +92,13 @@ module	hdmi2vga // #()	// No parameters (yet)
 	// Bit synchronization: [clr]_word and sync_word generation
 	// {{{
 	hdmibitsync
-	bitsync(i_clk, i_reset, i_hdmi_blu, i_hdmi_grn, i_hdmi_red,
-			blu_word, grn_word, red_word, o_sync_word);
+	bitsync(
+		.i_pix_clk(i_clk), .i_reset(i_reset),
+		.i_r(i_hdmi_red), .i_g(i_hdmi_grn), .i_b(i_hdmi_blu),
+		.o_r(red_word), .o_g(grn_word), .o_b(blu_word),
+		.o_sync_word(o_sync_word),
+		.o_debug(o_debug)
+	);
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////

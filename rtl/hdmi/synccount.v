@@ -68,6 +68,11 @@ module	synccount #(
 		always @(posedge i_clk)
 		if (i_v)
 			o_val <= i_val;
+
+		// Verilator lint_off UNUSED
+		wire	unused;
+		assign	unused = &{ 1'b0, i_reset };
+		// Verilator lint_on  UNUSED
 	end else begin : REQUIRE_QUALITY
 		reg			inc, dec;
 		reg [QUALITY_BITS-1:0]	ngood;

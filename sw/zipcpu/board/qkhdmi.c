@@ -65,24 +65,28 @@ int main(int argc, char **argv) {
 
 	// Set up the empty image video mode
 	// {{{
-	_hdmi->v_src.m_width     = 800; _hdmi->v_src.m_height = 600;
-	_hdmi->v_src.m_hporch    = 840; _hdmi->v_src.m_vporch = 601;
-	_hdmi->v_src.m_hsync     = 968; _hdmi->v_src.m_vsync  = 605;
-	_hdmi->v_src.m_raw_width =1056; _hdmi->v_src.m_raw_height = 628;
+	_hdmi->v_src.m_width     = 1360; _hdmi->v_src.m_height = 768;
+	_hdmi->v_src.m_hporch    = 1424; _hdmi->v_src.m_vporch = 771;
+	_hdmi->v_src.m_hsync     = 1536; _hdmi->v_src.m_vsync  = 778;
+	_hdmi->v_src.m_raw_width = 1792; _hdmi->v_src.m_raw_height = 795;
 	// }}}
 
 	// Set up the overlay
 	// {{{
+	// Turn the overlay off so we can set it up
 	_hdmi->v_overlay = (void *)0;
 	// We have a width of 800 pixels * 2 bits per pixel=>1600 bits=>200Bytes
 	//	We have a bus width of 512 bits, or 64 bytes
 	//	Lines must be bus aligned, we round 200Bytes up to the nearest
 	//	  64 byte boundary, so ... ovmemwords = 256
+	//	That said, the Video pipe handler will handle all of that math
+	//	for us, so we can just set this to 800 pixels and let the
+	//	hardware handle the rest.
 	_hdmi->v_ovmemwords = 800;
-	_hdmi->v_ovheight= 491;
-	_hdmi->v_ovhpos  =   0;
-	_hdmi->v_ovypos  =  54;
-	_hdmi->v_overlay = grayimg;
+	_hdmi->v_ovheight= 491;	// Required, so we know when to stop reading
+	_hdmi->v_ovhpos  = 280;	// Let's center our image: (1360-800)/2
+	_hdmi->v_ovypos  = 138;	//	(768-491)/2
+	_hdmi->v_overlay = grayimg;	// Pointer to the image itself
 	// }}}
 
 	_hdmi->v_control = 0x0100;	// Release it all from reset

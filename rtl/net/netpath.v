@@ -156,6 +156,9 @@ module	netpath #(
 
 	// Local declarations
 	// {{{
+	localparam [0:0]	OPT_DROPSHORT = 1'b0;
+	localparam [0:0]	OPT_CRC = 1'b0;
+
 	// The clock speed is nominally (10GHz * 66/64) / 64
 	//	or about 156.25MHz (or 161.1428..MHz)
 	// Packets should keep the LED high for about 1/10th of a second or so
@@ -266,6 +269,8 @@ module	netpath #(
 	// Incoming packet -> M_* processing
 	// {{{
 
+	// 32:66b Gearbox
+	// {{{
 	p66brxgears
 	u_p66brxgears (
 		.i_clk(i_rx_clk), .i_reset(!rx_reset_n),
@@ -273,7 +278,10 @@ module	netpath #(
 		.M_VALID(rx66b_valid),
 		.M_DATA( rx66b_data)
 	);
+	// }}}
 
+	// Cross clock domains: RX_CLK to 200MHz
+	// {{{
 	afifo #(
 		.LGFIFO(LGCDCRAM),
 		.WIDTH(66)
@@ -289,7 +297,10 @@ module	netpath #(
 		.o_rd_empty(rx_fast_empty)
 	);
 	assign	rx_fast_valid = !rx_fast_empty;
+	// }}}
 
+	// Descramble the incoming data
+	// {{{
 	p64bscrambler #(
 		.OPT_RX(1'b1), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_descrambler (
@@ -304,7 +315,10 @@ module	netpath #(
 		.o_data(rx_data)
 		// }}}
 	);
+	// }}}
 
+	// Convert from 66b (near XGMII) to AXI network packet format
+	// {{{
 	p642pkt
 	u_p642pkt (
 		// {{{
@@ -329,6 +343,8 @@ module	netpath #(
 
 	assign	rx_ready = 1'b1;
 
+	// Count packets, generate stats
+	// {{{
 	pktcount #(
 		.LGPKTLN(LGPKTLN)
 	) u_src_stats (
@@ -343,30 +359,46 @@ module	netpath #(
 		.M_DATA(stat_src_data)
 		// }}}
 	);
+	// }}}
+	// }}}
 
-	dropshort #(
-		.DW(64)
-	) u_dropshort (
-		// {{{
-		.S_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
-		//
-		.S_VALID(SRC_VALID),
-		.S_READY(SRC_READY),
-		.S_DATA( SRC_DATA),
-		.S_BYTES(SRC_BYTES),
-		.S_ABORT(SRC_ABORT),
-		.S_LAST( SRC_LAST),
-		//
-		.M_VALID(PKT_VALID),
-		.M_READY(PKT_READY),
-		.M_DATA( PKT_DATA),
-		.M_BYTES(PKT_BYTES),
-		.M_ABORT(PKT_ABORT),
-		.M_LAST( PKT_LAST)
-		// }}}
-	);
+	// Drop short packets--anything less than 64 bytes
+	// {{{
+	generate if (OPT_DROPSHORT)
+	begin : GEN_DROPSHORT
+		dropshort #(
+			.DW(64)
+		) u_dropshort (
+			// {{{
+			.S_CLK(i_fast_clk), .S_ARESETN(fast_reset_n),
+			//
+			.S_VALID(SRC_VALID),
+			.S_READY(SRC_READY),
+			.S_DATA( SRC_DATA),
+			.S_BYTES(SRC_BYTES),
+			.S_ABORT(SRC_ABORT),
+			.S_LAST( SRC_LAST),
+			//
+			.M_VALID(PKT_VALID),
+			.M_READY(PKT_READY),
+			.M_DATA( PKT_DATA),
+			.M_BYTES(PKT_BYTES),
+			.M_ABORT(PKT_ABORT),
+			.M_LAST( PKT_LAST)
+			// }}}
+		);
+	end else begin : NO_DROPSHORT
+		assign	PKT_VALID = SRC_VALID;
+		assign	SRC_READY = PKT_READY;
+		assign	PKT_DATA  = SRC_DATA;
+		assign	PKT_BYTES = SRC_BYTES;
+		assign	PKT_ABORT = SRC_ABORT;
+		assign	PKT_LAST  = SRC_LAST;
+	end endgenerate
+	// }}}
 
-	localparam [0:0]	OPT_CRC = 1'b0;
+	// Check CRCs, drop packets that don't match
+	// {{{
 	generate if (OPT_CRC)
 	begin : GEN_CRC_CHECK
 		// Verilator lint_off UNUSED
@@ -420,7 +452,10 @@ module	netpath #(
 		.M_DATA(stat_crc_data)
 		// }}}
 	);
+	// }}}
 
+	// Width conversion--from 64b to PKTDW (128b) bits
+	// {{{
 	axinwidth #(
 		.IW(64), .OW(PKTDW)
 	) u_rxwidth (
@@ -442,7 +477,10 @@ module	netpath #(
 		.M_AXIN_ABORT(RXWD_ABORT)
 		// }}}
 	);
+	// }}}
 
+	// CDC -- switch to the bus clock
+	// {{{
 	axincdc #(
 		.DW(PKTDW),
 		.LGFIFO(LGCDCRAM)
@@ -467,10 +505,13 @@ module	netpath #(
 		.M_ABORT(M_ABORT)
 		// }}}
 	);
+	// }}}
 
 	assign	M_DATA =(!OPT_LITTLE_ENDIAN) ? SWAP_ENDIAN_PKT(unswapped_m_data)
 				: unswapped_m_data;
 
+	// rx_activity
+	// {{{
 	always @(posedge i_sys_clk or negedge i_reset_n)
 	if (!i_reset_n)
 		rx_activity <= 0;
@@ -478,6 +519,7 @@ module	netpath #(
 		rx_activity <= -1;
 	else if (rx_activity != 0)
 		rx_activity <= rx_activity - 1;
+	// }}}
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -547,7 +589,8 @@ module	netpath #(
 		// }}}
 	);
 
-
+	// Hold packets until we have a full and complete one
+	// {{{
 	pktgate #(
 		.DW(64), .LGFLEN(LGPKTGATE)
 	) u_pktgate (
@@ -584,7 +627,10 @@ module	netpath #(
 		.M_DATA(stat_gate_data)
 		// }}}
 	);
+	// }}}
 
+	// Convert from AXI Net Packets to the p66b (near XGMII) format
+	// {{{
 	pkt2p64b
 	u_pkt2p64b (
 		// {{{
@@ -604,13 +650,10 @@ module	netpath #(
 		.TXDATA(tx_data)
 		// }}}
 	);
+	// }}}
 
-reg tx_idle, tx_fault;
-always @(posedge i_fast_clk)
-tx_idle <= tx_data == { {(8){7'h0}}, 8'h1e, 2'b01 };
-always @(posedge i_fast_clk)
-tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
-
+	// Scramble the (near XGMII) data
+	// {{{
 	p64bscrambler #(
 		.OPT_RX(1'b0), .OPT_ENABLE(OPT_SCRAMBLER)
 	) u_scrambler (
@@ -626,7 +669,10 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		.o_data( tx66b_data)
 		// }}}
 	);
+	// }}}
 
+	// 66:64b Gearbox
+	// {{{
 	p66btxgears
 	u_p66btxgears (
 		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
@@ -635,8 +681,10 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		.i_ready(!tx64b_full),
 		.o_data(tx64b_data)
 	);
+	// }}}
 
-
+	// CDC: Move TX packets to TX clock domain
+	// {{{
 	afifo #(
 		.LGFIFO(LGCDCRAM),
 		.WIDTH(64)
@@ -651,7 +699,10 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		.o_rd_data(tx_fast_data),
 		.o_rd_empty(ign_tx_fast_empty)
 	);
+	// }}}
 
+	// 64:32b gearbox
+	// {{{
 	always @(posedge i_tx_clk or negedge tx_reset_n)
 	if (!tx_reset_n)
 		tx_phase <= 0;
@@ -660,9 +711,12 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 
 	always @(posedge i_tx_clk)
 		o_raw_data<=(tx_phase)? tx_fast_data[63:32]:tx_fast_data[31:0];
+	// }}}
 
 	assign	tx_link_up = tx_reset_n;
 
+	// tx_activity checking
+	// {{{
 	always @(posedge i_sys_clk or negedge i_reset_n)
 	if (!i_reset_n)
 		tx_activity <= 0;
@@ -670,6 +724,8 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		tx_activity <= -1;
 	else if (tx_activity != 0)
 		tx_activity <= tx_activity - 1;
+	// }}}
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -741,14 +797,10 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 		if ((stat_grant == 0) && (stat_sample))
 		begin
 			stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
-			// stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
-			// if (!rx_fast_valid && !rx_valid)
-			//	stat_data[25:0] <= { 1'b1, rx_fast_data[24:0] };
-			// stat_data[25:0] <= { 1'b1, tx66b_data[24:0] };
 		end
-		// stat_data[29:26] <= { remote_fault, local_fault, tx_idle, tx_fault };
 		// stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
-		stat_data[29:26] <= { remote_fault, local_fault, 2'b00 };
+		stat_data[29:26] <= { remote_fault, local_fault, SRC_VALID, SRC_LAST };
+		// stat_data[29:26] <= { remote_fault, local_fault, 2'b00 };
 		// stat_data[29:28] <= { remote_fault, local_fault };
 	end
 
@@ -793,7 +845,7 @@ tx_fault <= tx_data == { 8'h02, 24'h0, 8'h02, 16'h0, 8'h55, 2'b01 };
 	wire	unused;
 	assign	unused =  &{ 1'b0,
 				ign_tx_high, ign_rx_high,
-				ign_tx66b_valid, tx_fault, tx_idle,
+				ign_tx66b_valid,
 				ign_rx66b_full, ign_tx_fast_empty };
 	// Verilator coverage_on
 	// Verialtor lint_off UNUSED

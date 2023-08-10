@@ -69,8 +69,7 @@ typedef	struct	EMMCDRV_S {
 #define	SETSCOPE	_emmcscope->s_ctrl = 0x04000000
 #define	TRIGGER		_emmcscope->s_ctrl = 0xff000000
 #else
-
-#error "No scope"
+// #error "No scope"
 #define	SETSCOPE
 #define	TRIGGER
 #endif

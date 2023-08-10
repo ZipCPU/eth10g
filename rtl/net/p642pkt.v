@@ -64,11 +64,11 @@ module	p642pkt (
 	localparam		PRE_IDLE = 1'b0,
 				PRE_DATA = 1'b1;
 
-	localparam	[65:0]	R_PREAMBLE = { 32'habaa_aaaa, 32'haaaa_aa1e,
+	localparam	[65:0]	R_PREAMBLE = { 32'h5d55_5555, 32'h5555_551e,
 							SYNC_CONTROL },
-			R_HALF_PREAMBLE1= { 24'haaaa_aa,4'h0,28'h0000_00, 8'h33,
+			R_HALF_PREAMBLE1= { 24'h5555_55,4'h0,28'h0000_00, 8'h33,
 							SYNC_CONTROL },
-			R_HALF_PREAMBLE2= { 24'haaaa_aa,4'h0,28'h0000_00, 8'h66,
+			R_HALF_PREAMBLE2= { 24'h5555_55,4'h0,28'h0000_00, 8'h66,
 							SYNC_CONTROL },
 			R_HALF_MASK = { 24'hff_ffff, 4'h0, 28'h000_0000, 8'hff,
 							2'b11 };

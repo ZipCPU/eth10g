@@ -101,10 +101,10 @@ module	xpxclk (
 
 	PLLE2_BASE #(
 		// {{{
-		.CLKFBOUT_MULT(20),
+		.CLKFBOUT_MULT(10),
 		.CLKFBOUT_PHASE(0.0),
 		.CLKIN1_PERIOD(6.6),	// Up to 200MHz input
-		.CLKOUT0_DIVIDE(20),
+		.CLKOUT0_DIVIDE(10),
 		.CLKOUT1_DIVIDE(2)
 		// }}}
 	) u_hdmi_pll (

@@ -39,7 +39,8 @@ module	hdmibitsync (
 		input	wire	[9:0]	i_r, i_g, i_b,
 		output	reg	[9:0]	o_r, o_g, o_b,
 		//
-		output	wire	[31:0]	o_sync_word
+		output	wire	[31:0]	o_sync_word,
+		output	wire	[31:0]	o_debug
 		// }}}
 	);
 
@@ -52,12 +53,36 @@ module	hdmibitsync (
 
 	// Automatically synchronize to each color stream.
 	// {{{
+	wire	[31:0]	dbg_red, dbg_grn, dbg_blu;
+
 	// It is possible that we'll lock up to one color on one word and
 	// another word on another cut.  Hence, we may still need to lock
 	// the words together afterwards.
-	hdmipixelsync	rasync(i_pix_clk, i_reset, i_r, auto_bitslip_r, auto_r);
-	hdmipixelsync	gasync(i_pix_clk, i_reset, i_g, auto_bitslip_g, auto_g);
-	hdmipixelsync	basync(i_pix_clk, i_reset, i_b, auto_bitslip_b, auto_b);
+	hdmipixelsync
+	rasync(
+		.i_clk(i_pix_clk), .i_reset(i_reset),
+		.i_px(i_r),
+		.o_sync(auto_bitslip_r), .o_pix(auto_r),
+		.o_debug(dbg_red)
+	);
+
+	hdmipixelsync
+	gasync(
+		.i_clk(i_pix_clk), .i_reset(i_reset),
+		.i_px(i_g),
+		.o_sync(auto_bitslip_g), .o_pix(auto_g),
+		.o_debug(dbg_grn)
+	);
+
+	hdmipixelsync
+	basync(
+		.i_clk(i_pix_clk), .i_reset(i_reset),
+		.i_px(i_b),
+		.o_sync(auto_bitslip_b), .o_pix(auto_b),
+		.o_debug(dbg_blu)
+	);
+
+	assign	o_debug = dbg_red;
 	// }}}
 
 	// all_locked
@@ -92,7 +117,7 @@ module	hdmibitsync (
 	// {{{
 	// Verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0 };
+	assign	unused = &{ 1'b0, dbg_red, dbg_grn, dbg_blu };
 	// Verilator lint_on  UNUSED
 	// }}}
 endmodule

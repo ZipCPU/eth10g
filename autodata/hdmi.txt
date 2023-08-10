@@ -177,6 +177,10 @@
 	input	wire	[14:0]	i_hdmi_iodelay;
 	output	wire	[1:0]	o_pxclk_sel;
 	// }}}
+@MAIN.DEFNS=
+	// Verilator lint_off UNUSED
+	wire	[31:0]	hdmiclr_debug;
+	// Verilator lint_on  UNUSED
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -199,7 +203,9 @@
 				.o_hdmi_blu(o_hdmi_blu),
 		.o_pxclk_sel(o_pxclk_sel),
 		.o_iodelay(o_hdmi_iodelay),
-		.i_iodelay(i_hdmi_iodelay)
+		.i_iodelay(i_hdmi_iodelay),
+		//
+		.o_pixdebug(hdmiclr_debug)
 	);
 
 	// }}}
@@ -230,6 +236,26 @@
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_xpxclk/prepx/u_bufg/S0]
 set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_xpxclk/lclpx/u_bufg/S0]
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/b_pipe*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_pipe*}] 5
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/b_pipe*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/a_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/o_b_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/a_pipe*}] 5
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/wgray_cross*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/rgray_cross*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_pipe*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_r*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.r_pix_reset*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_mem2pix/cmap*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_mem2pix/cmap*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/pixloc/*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/sync_valid*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/all_locked*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/avgs*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/q_v*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_pipe*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_pipe*}] 5
 @BDEF.INCLUDE=
 #include <stdint.h>
 @BDEF.DEFN=

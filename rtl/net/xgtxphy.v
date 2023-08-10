@@ -242,7 +242,7 @@ module	xgtxphy #(
 			else if (tx_pma_reset)
 				{ tx_pcs_reset, tx_pma_reset, gtx_tx_reset } <= 3'b100;
 			else if (tx_pcs_reset)
-				tx_pcs_reset <= 1'b0; // !tx_mmcm_locked;
+				tx_pcs_reset <= 1'b0;
 		end
 		// }}}
 
@@ -631,19 +631,19 @@ module	xgtxphy #(
 			// }}}
 			// TX Configurable driver
 			// {{{
-			.TXBUFDIFFCTRL(3'b100),		//
-			.TXDEEMPH(1'b0),			// ???
-			.TXDIFFCTRL(4'b1000),			// ???
+			.TXBUFDIFFCTRL(3'b100),
+			.TXDEEMPH(1'b0),
+			.TXDIFFCTRL(4'b1000),
 			.TXELECIDLE(1'b0),
 			.TXINHIBIT(1'b0),
-			.TXMAINCURSOR(7'h0),		// Unused (I hope)
-			.TXMARGIN(3'h0),		// ???
+			.TXMAINCURSOR(7'h0),
+			.TXMARGIN(3'h0),
 			.TXQPIBIASEN(1'b0),
 			.TXQPISTRONGPDOWN(1'b0),
 			.TXQPIWEAKPUP(1'b0),
 			.TXQPISENN(ign_qspisenn),
 			.TXQPISENP(ign_qspisenp),
-			.TXPOSTCURSOR(5'h0),		// ???
+			.TXPOSTCURSOR(5'h0),
 			.TXPOSTCURSORINV(1'b0),
 			.TXPRECURSOR(5'h0),
 			.TXPRECURSORINV(1'b0),
@@ -703,7 +703,7 @@ module	xgtxphy #(
 			// }}}
 			// Equalizer/DFE config
 			// {{{
-			.RXLPMEN(1'b1),		// CHANGE ME BACK!
+			.RXLPMEN(1'b0),
 			.RXDFELPMRESET(rx_dfe_lpm_reset),
 			.RXOSHOLD(1'b0),
 			.RXOSOVRDEN(1'b0),
@@ -750,7 +750,7 @@ module	xgtxphy #(
 			// }}}
 			// RX fabric clock output control
 			// {{{
-			.RXOUTCLKSEL(3'b010),	// (RXOUTCLKPCS for OPT_LOOPBACK = path #1)
+			.RXOUTCLKSEL(3'b010),	// (RXOUTCLKPMA)
 			.RXOUTCLKFABRIC(),	// Redundant output -- ignore this
 			.RXOUTCLK(raw_gtx_rx_clk),	// RX clock to fabric
 			// .RXOUTCLKPCS(),	// Redundant output -- ignore this

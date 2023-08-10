@@ -77,8 +77,9 @@ module	vidpipe #(
 		// }}}
 		// Clock control
 		output	reg	[1:0]	o_pxclk_sel,
-		output	reg	[14:0]	o_iodelay,
-		input	wire	[14:0]	i_iodelay
+		output	wire	[14:0]	o_iodelay,
+		input	wire	[14:0]	i_iodelay,
+		output	wire	[31:0]	o_pixdebug
 		// }}}
 	);
 
@@ -211,6 +212,9 @@ module	vidpipe #(
 	reg		pre_ack, cmap_ack;
 	reg	[31:0]	pre_wb_data;
 	wire	[31:0]	sync_word;
+
+	wire	[14:0]	i_iodelay_sys;
+	reg	[14:0]	o_iodelay_sys;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -338,11 +342,11 @@ module	vidpipe #(
 			ADR_FPS: begin
 				// {{{
 				if (i_wb_sel[1])
-					o_iodelay[4:0] <= i_wb_data[ 8+:5];
+					o_iodelay_sys[4:0] <= i_wb_data[ 8+:5];
 				if (i_wb_sel[2])
-					o_iodelay[9:5] <= i_wb_data[16+:5];
+					o_iodelay_sys[9:5] <= i_wb_data[16+:5];
 				if (i_wb_sel[3])
-					o_iodelay[14:10]<=i_wb_data[24+:5];
+					o_iodelay_sys[14:10]<=i_wb_data[24+:5];
 				end
 				// }}}
 			default: begin end
@@ -458,9 +462,9 @@ module	vidpipe #(
 		ADR_FPS: begin
 			// {{{
 				pre_wb_data[7:0] <= frames_per_second;
-				pre_wb_data[ 8 +: 5] <= i_iodelay[ 4: 0];
-				pre_wb_data[16 +: 5] <= i_iodelay[ 9: 5];
-				pre_wb_data[24 +: 5] <= i_iodelay[14:10];
+				pre_wb_data[ 8 +: 5] <= i_iodelay_sys[ 4: 0];
+				pre_wb_data[16 +: 5] <= i_iodelay_sys[ 9: 5];
+				pre_wb_data[24 +: 5] <= i_iodelay_sys[14:10];
 			end
 			// }}}
 		ADR_SYNCWORD: begin
@@ -558,7 +562,8 @@ module	vidpipe #(
 		.o_pix_valid(vga_valid),
 		.o_vsync(vga_vsync), .o_hsync(vga_hsync),
 		.o_vga_red(vga_red), .o_vga_green(vga_grn),.o_vga_blue(vga_blu),
-		.o_sync_word(sync_word)
+		.o_sync_word(sync_word),
+		.o_debug(o_pixdebug)
 		// }}}
 	);
 
@@ -599,7 +604,7 @@ module	vidpipe #(
 	// {{{
 
 	tfrvalue #(
-		.W(LGDIM*8+2+3*32)
+		.W(LGDIM*8+2+3*32+15)
 	) u_px2sys (
 		// {{{
 		.i_a_clk(i_pixclk), .i_a_reset_n(pix_reset_n),
@@ -607,6 +612,7 @@ module	vidpipe #(
 			.i_a_data({
 				ovly_err,
 				in_locked,
+				i_iodelay,
 				vin_raw,    hin_raw,
 				vin_synch,  hin_synch,
 				vin_front,  hin_front,
@@ -619,6 +625,7 @@ module	vidpipe #(
 			.o_b_data({
 				ovly_err_sys,
 				in_locked_sys,
+				i_iodelay_sys,
 				vin_raw_sys,    hin_raw_sys,
 				vin_synch_sys,  hin_synch_sys,
 				vin_front_sys,  hin_front_sys,
@@ -629,12 +636,13 @@ module	vidpipe #(
 	);
 
 	tfrvalue #(
-		.W(LGDIM*11+3+4)
+		.W(LGDIM*11+3+4+15)
 	) u_sys2px (
 		// {{{
 		.i_a_clk(i_clk), .i_a_reset_n(!pix_reset_sys),
 		.i_a_valid(1'b1), .o_a_ready(ign_sys2px_ready),
 			.i_a_data({
+				o_iodelay_sys,
 				cfg_ovly_enable_sys,
 				cfg_src_sel_sys,
 				cfg_alpha_sys,
@@ -647,9 +655,10 @@ module	vidpipe #(
 				vm_height_sys, hm_width_sys
 				}),
 		//
-		.i_b_clk(i_clk), .i_b_reset_n(!pix_reset_n),
+		.i_b_clk(i_pixclk), .i_b_reset_n(!pix_reset_n),
 		.o_b_valid(ign_sys2px_valid), .i_b_ready(1'b1),
 			.o_b_data({
+				o_iodelay,
 				cfg_ovly_enable,
 				cfg_src_sel,
 				cfg_alpha,

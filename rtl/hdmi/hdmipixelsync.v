@@ -39,7 +39,8 @@ module	hdmipixelsync (
 		input	wire		i_clk, i_reset,
 		input	wire	[9:0]	i_px,
 		output	wire	[4:0]	o_sync,
-		output	reg	[9:0]	o_pix
+		output	reg	[9:0]	o_pix,
+		output	reg	[31:0]	o_debug
 		// }}}
 	);
 
@@ -57,6 +58,8 @@ module	hdmipixelsync (
 	reg		sync_valid;
 	reg	[19:0]	lost_sync_counter;
 	reg	[9:0]	sync;
+
+	reg	[10:0]	dbg_trigger_count;
 	// }}}
 
 	always @(posedge i_clk)
@@ -65,7 +68,7 @@ module	hdmipixelsync (
 	// Test all possible synchronizations for a match
 	// {{{
 	generate for(gk=0; gk<10; gk=gk+1)
-	begin
+	begin : CHECK_SYNC_OPTIONS
 		reg		control_word;
 		reg	[4:0]	control_matches;
 		wire	[9:0]	check_word;
@@ -74,6 +77,12 @@ module	hdmipixelsync (
 
 		always @(posedge i_clk)
 		begin
+			// Look for a control word
+			//	(Bit reversed)	(User guide)
+			//	0010101011	1101010100
+			//	1101010100	0101010100
+			//	1101010101	1010101011
+			//
 			control_word <= 1'b0;
 			if((check_word== 10'h0ab) // 354
 				    ||(check_word ==10'h354) //0ab
@@ -86,6 +95,9 @@ module	hdmipixelsync (
 			else if (!control_matches[4])
 				control_matches <= control_matches + 1;
 
+			// Look for a guard word:
+			//	1011001100
+			//	0100110011
 			sync[gk] <= (control_matches >= 12)
 					&& ((check_word == 10'h0cd) // 1011_0011_00
 					   ||(check_word== 10'h332)); // 01_0011_0011
@@ -104,7 +116,7 @@ module	hdmipixelsync (
 	end
 	// }}}
 
-	// valid_match, match_log
+	// valid_match, match_loc
 	// {{{
 	always @(posedge i_clk)
 	begin
@@ -148,7 +160,7 @@ module	hdmipixelsync (
 
 	// Check for and remove any glitches
 	// {{{
-	synccount	#(.NBITS(4), .OPT_BYPASS_TEST(1'b0))
+	synccount	#(.NBITS(4), .OPT_BYPASS_TEST(1'b1)) // CHANGE ME BACK!
 	pixloc(i_clk, i_reset, valid_match, match_loc, chosen_match_loc);
 	// }}}
 
@@ -157,6 +169,23 @@ module	hdmipixelsync (
 
 	always @(posedge i_clk)
 		o_pix <= pre_pix[9:0];
+
+	initial	dbg_trigger_count = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		dbg_trigger_count <= 0;
+	else if (dbg_trigger_count >= 1220)
+		dbg_trigger_count <= 0;
+	else
+		dbg_trigger_count <= dbg_trigger_count + 1;
+
+	always @(posedge i_clk)
+		o_debug <= {
+			(dbg_trigger_count == 0), sync_valid,	// 2b
+			chosen_match_loc, match_loc,		// 8b
+			sync[9:0],				// 10b
+			valid_match, (|sync), i_px		// 12b
+		};
 
 	// Make Verilator happy
 	// {{{
