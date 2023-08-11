@@ -305,7 +305,7 @@ i_sdcard_cd_n,
 	wire	[9:0]	hdmitx_red, hdmitx_grn, hdmitx_blu;
 	wire	[1:0]	w_pxclk_sel;
 	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk;
-	wire		pxrx_locked;
+	wire		pxrx_locked, pix_reset_n;
 	wire [15-1:0]	set_hdmi_delay, actual_hdmi_delay;
 	// eMMC Card definitions
 	// {{{
@@ -433,6 +433,7 @@ i_sdcard_cd_n,
 		hdmirx_red, hdmirx_grn, hdmirx_blu,
 		hdmitx_red, hdmitx_grn, hdmitx_blu,
 		set_hdmi_delay, actual_hdmi_delay,
+		pix_reset_n, pxrx_locked,
 		w_pxclk_sel,
 		// eMMC Card
 		!i_emmc_cd_n,
@@ -773,7 +774,7 @@ i_sdcard_cd_n,
 	xhdmiin
 	u_hdmirx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_delay(set_hdmi_delay[14:10]),
 		.o_delay(actual_hdmi_delay[14:10]),
 		.i_hs_wire({ i_hdmirx_p[2], i_hdmirx_n[2] }),
@@ -783,7 +784,7 @@ i_sdcard_cd_n,
 	xhdmiin
 	u_hdmirx_grn(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_delay(set_hdmi_delay[9:5]),
 		.o_delay(actual_hdmi_delay[9:5]),
 		.i_hs_wire({ i_hdmirx_p[1], i_hdmirx_n[1] }),
@@ -793,7 +794,7 @@ i_sdcard_cd_n,
 	xhdmiin
 	u_hdmirx_blu(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_delay(set_hdmi_delay[4:0]),
 		.o_delay(actual_hdmi_delay[4:0]),
 		.i_hs_wire({ i_hdmirx_p[0], i_hdmirx_n[0] }),
@@ -806,7 +807,7 @@ i_sdcard_cd_n,
 	xhdmiout
 	u_hdmitx_clk(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(10'b11111_00000),
 		.o_port({ o_hdmitx_clk_p, o_hdmitx_clk_n })
 	);
@@ -814,7 +815,7 @@ i_sdcard_cd_n,
 	xhdmiout
 	u_hdmitx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(hdmitx_red),
 		.o_port({ o_hdmitx_p[2], o_hdmitx_n[2] })
 	);
@@ -822,7 +823,7 @@ i_sdcard_cd_n,
 	xhdmiout
 	u_hdmitx_grn(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(hdmitx_grn),
 		.o_port({ o_hdmitx_p[1], o_hdmitx_n[1] })
 	);
@@ -830,7 +831,7 @@ i_sdcard_cd_n,
 	xhdmiout
 	u_hdmitx_blu(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(hdmitx_blu),
 		.o_port({ o_hdmitx_p[0], o_hdmitx_n[0] })
 	);

@@ -186,6 +186,7 @@ module	main(i_clk, i_reset,
 		i_hdmi_red, i_hdmi_grn, i_hdmi_blu,
 		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		o_hdmi_iodelay, i_hdmi_iodelay,
+		o_pix_reset_n, i_pxpll_locked,
 		o_pxclk_sel,
 		// eMMC Card
 		i_emmc_detect,
@@ -377,6 +378,8 @@ module	main(i_clk, i_reset,
 	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
 	output	wire	[14:0]	o_hdmi_iodelay;
 	input	wire	[14:0]	i_hdmi_iodelay;
+	output	wire		o_pix_reset_n;
+	input	wire		i_pxpll_locked;
 	output	wire	[1:0]	o_pxclk_sel;
 	// }}}
 	// eMMC Card declarations
@@ -2589,6 +2592,8 @@ module	main(i_clk, i_reset,
 		.i_dma_stall(wbwide_hdmi_stall), .i_dma_ack(wbwide_hdmi_ack), .i_dma_data(wbwide_hdmi_idata), .i_dma_err(wbwide_hdmi_err),
 		.o_hdmi_red(o_hdmi_red), .o_hdmi_grn(o_hdmi_grn),
 				.o_hdmi_blu(o_hdmi_blu),
+		.o_pix_reset_n(o_pix_reset_n),
+		.i_pxpll_locked(i_pxpll_locked),
 		.o_pxclk_sel(o_pxclk_sel),
 		.o_iodelay(o_hdmi_iodelay),
 		.i_iodelay(i_hdmi_iodelay),

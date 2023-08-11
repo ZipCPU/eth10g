@@ -39,8 +39,6 @@
 // }}}
 module	sync2stream #(
 		// {{{
-		parameter [0:0]	OPT_INVERT_HSYNC = 0,
-		parameter [0:0]	OPT_INVERT_VSYNC = 0,
 		parameter [0:0]	OPT_TUSER_IS_SOF = 0,
 		parameter	LGDIM = 16
 		// }}}
@@ -64,11 +62,13 @@ module	sync2stream #(
 		output	reg	[LGDIM-1:0]		o_hfront,
 		output	reg	[LGDIM-1:0]		o_hsync,
 		output	reg	[LGDIM-1:0]		o_raw_width,
+		output	reg				o_hsync_pol,
 		//
 		output	reg	[LGDIM-1:0]		o_height,
 		output	reg	[LGDIM-1:0]		o_vfront,
 		output	reg	[LGDIM-1:0]		o_vsync,
 		output	reg	[LGDIM-1:0]		o_raw_height,
+		output	reg				o_vsync_pol,
 		//
 		output	wire				o_locked
 		// }}}
@@ -84,7 +84,7 @@ module	sync2stream #(
 		this_line_had_vsync, this_line_had_pixels, last_line_had_pixels;
 
 	reg	[LGDIM:0]	vcount_lines, vcount_shelf, vcount_sync, vcount_tot;
-	reg		vin_shelf, vlost_lock, vlocked;
+	reg		vin_shelf, vlost_lock, vlocked, hpol, vpol;
 	reg		empty_row;
 
 	reg		M_AXIS_HLAST, M_AXIS_VLAST;
@@ -92,8 +92,8 @@ module	sync2stream #(
 
 	// Adjust for sync inversion (if necessary)
 	// {{{
-	assign	hsync = OPT_INVERT_HSYNC ^ i_hsync;
-	assign	vsync = OPT_INVERT_VSYNC ^ i_vsync;
+	assign	hsync = hpol ^ i_hsync;
+	assign	vsync = vpol ^ i_vsync;
 	// }}}
 
 	initial	last_pv = 0;
@@ -119,27 +119,37 @@ module	sync2stream #(
 	initial	hin_shelf    = 1'b1;
 	initial	empty_row    = 1;
 	always @(posedge i_clk)
+	if (i_reset)
+		// Assume polarities are inverted until we have reason to
+		// believe otherwise
+		{ hpol, vpol } <= 2'b11;
+	else if (!i_pix_valid && last_pv)
+		{ hpol, vpol } <= { i_hsync, i_vsync };
+
+	always @(posedge i_clk)
 	if (new_data_row)
 	begin
 		hcount_pix   <= 1;
 		hcount_shelf <= 0;
 		hcount_sync  <= 0;
 		hcount_tot   <= 1;
-		hin_shelf    <= 0;
+		hin_shelf    <= 1;
 		empty_row    <= 0;
 	end else begin
 		if (!hcount_tot[LGDIM])
 			hcount_tot <= hcount_tot + 1'b1;
-		if ((!hcount_pix[LGDIM])&&(i_pix_valid))
+		if (!hcount_pix[LGDIM] && i_pix_valid)
 			hcount_pix <= hcount_pix + 1'b1;
-		if ((!hcount_sync[LGDIM])&&(hsync))
+		if (!hcount_sync[LGDIM] && !i_pix_valid && hsync)
 			hcount_sync <= hcount_sync + 1'b1;
-		if ((!hcount_sync[LGDIM])&&(hsync && !last_hs) && hcount_sync != 0)
+		if (!hcount_sync[LGDIM]&& hsync && !last_hs && hcount_sync != 0)
+			// If we see the same sync twice, with no valid data
+			// in between, then the row is empty.
 			empty_row <= 1;
-		if ((!hcount_shelf[LGDIM])&&(!i_pix_valid)
-				&&(!hsync)&&(hin_shelf))
+		if(!hcount_shelf[LGDIM] && !i_pix_valid
+					&& (last_pv || !hsync) && hin_shelf)
 			hcount_shelf <= hcount_shelf + 1'b1;
-		if (hsync)
+		if (hsync && !i_pix_valid)
 			hin_shelf <= 1'b0;
 	end
 	// }}}
@@ -157,6 +167,8 @@ module	sync2stream #(
 		o_raw_width <= hcount_tot[LGDIM-1:0]; // +16'd1;
 		o_hfront    <= hcount_pix[LGDIM-1:0] + hcount_shelf[LGDIM-1:0]; // + 16'd11;
 		o_hsync     <= hcount_pix[LGDIM-1:0] + hcount_shelf[LGDIM-1:0] + hcount_sync[LGDIM-1:0];
+
+		o_hsync_pol <= hpol;
 	end
 	// }}}
 
@@ -201,7 +213,7 @@ module	sync2stream #(
 	initial	has_vsync  = 1'b0;
 	initial	newframe   = 1'b0;
 	always @(posedge i_clk)
-	if ((!last_hs)&&(hsync))
+	if (!last_hs && hsync && !last_pv)
 	begin
 		linestart  <= 1'b1;
 		has_pixels <= 1'b0;
@@ -215,7 +227,7 @@ module	sync2stream #(
 		newframe   <= 1'b0;
 		if (i_pix_valid)
 			has_pixels <= 1'b1;
-		if (vsync)
+		else if (vsync && !last_pv)
 			has_vsync  <= 1'b1;
 	end
 	// }}}
@@ -276,6 +288,7 @@ module	sync2stream #(
 		o_vfront     <= vcount_shelf[LGDIM-1:0] + vcount_lines[LGDIM-1:0];
 		o_vsync      <= vcount_sync[LGDIM-1:0] + vcount_shelf[LGDIM-1:0]
 					+ vcount_lines[LGDIM-1:0] - 1;
+		o_vsync_pol <= vpol;
 	end
 	// }}}
 
@@ -357,8 +370,11 @@ module	sync2stream #(
 	end endgenerate
 	// }}}
 
+	// Keep Verilator happy
+	// {{{
 	// Verilator lint_off UNUSED
 	wire	unused;
 	assign	unused = &{ 1'b0, M_AXIS_TREADY };
 	// Verilator lint_on  UNUSED
+	// }}}
 endmodule

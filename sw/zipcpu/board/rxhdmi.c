@@ -75,6 +75,9 @@ int main(int argc, char **argv) {
 #else
 	unsigned	frq, gp;
 
+	// Let the PI know there's nothing there ... yet
+	(*_gpio) = GPIO_HDMIRXD_CLR;
+
 	if ((gp = *_gpio) & GPIO_HDMITXD)
 		printf("HDMI TXD is *SET*\n");
 	else {
@@ -91,14 +94,18 @@ int main(int argc, char **argv) {
 				| VCTRL_CMAP_2BGRY
 				| VCTRL_ALPHA_0;
 
+	// Read the downstream EDID
+	// {{{
 	// Copy EDID to our I2C slave
 	_i2c->ic_address = (unsigned)i2casm;
 
 	// Wait for the EDID command to complete
 	while(0 == (_i2c->ic_control & 0x0780000))
 		;
+	// }}}
 
 	// Copy the EDID to stdout
+	// {{{
 	for(int k=0; k<256; k++) {
 		char	edidb;
 
@@ -111,6 +118,7 @@ int main(int argc, char **argv) {
 		else
 			printf(" ");
 	}
+	// }}}
 
 	// Wait for the EDID to be read by the Pi
 		// We have no signal for this ...
@@ -136,41 +144,117 @@ int main(int argc, char **argv) {
 */
 	// }}}
 
-	// Let the PI know we're up
+	// Let the PI know we're up.  We need this to get the HDMIRX clock
 	(*_gpio) = GPIO_HDMIRXD_SET;
 
-	_hdmi->v_control = 0x04170;	// Release it all from reset
+	// Let's now let the clock lock, and release from reset
+	// {{{
+	// _hdmi->v_control = 0x04170;	// Release it all from reset
 	_hdmi->v_control = // VCTRL_PIX_RESET |	// Release it all from reset
 				VCTRL_PXCLK_HDMIIN
 				| VCTRL_EXTERNAL_SRC
 				| VCTRL_CMAP_2BGRY
 				| VCTRL_ALPHA_0;
+	// }}}
 
+	// Check for the release from reset
+	// {{{
+	if (_hdmi->v_control & 1) {
+		printf("Waiting for the pixel clock to lock ...\n");
+		while(_hdmi->v_control & 1)
+			;
+	} printf("Pixel clock is locked, HDMIRX is released from reset\n");
+	// }}}
+
+	// Lock to the timing
+	// {{{
+	{
+		unsigned	lock[32];
+		unsigned	vsyncword;
+		unsigned	sync = 0;
+
+		for(int i=0; i<32; i++) {
+			lock[i] = 0;
+
+			_hdmi->v_fps = (i << 24) | (i<<16) | (i<<8);
+
+			// Wait to get some statistics
+			_zip->z_tma = 60000000;	// 600ms
+			while(_zip->z_tma != 0)
+				;
+
+			vsyncword = _hdmi->v_syncword;
+			lock[i] = vsyncword;
+			printf("0x%02x - %08x\n", i, vsyncword);
+		}
+
+		for(int clr=0; clr<3; clr++) {
+			int start = -1, dly=-1;
+			for(int i=0; i<32; i++) {
+				unsigned v = lock[i] >> (8*clr);
+
+				if ((v & 0x10)&&(dly < 0 || dly == (v&0x0f))) {
+					if (start < 0) {
+						// printf("CLR#%d starts at %d\n", clr, i);
+						start = i;
+					} dly = (v & 0x0f);
+				} else if (start >= 0) {
+					// printf("CLR#%d ends at %d\n", clr, i);
+					if (i-start > 10) {
+						unsigned sv;
+						sync &= ~(0x0ff << (8+(8*clr)));
+						sv = start + (i-start)/2;
+						sync |= (sv << (8+(8*clr)));
+
+						// printf("CLR#%d set to %d\n", clr, sv);
+					} start = -1; dly = -1;
+				}
+			}
+		}
+
+		printf("Setting sync word to: %08x\n", sync);
+		_hdmi->v_fps = sync;
+	}
+	// }}}
+
+	// Waiting for some video frames
+	// {{{
+	printf("Waiting for some frames to determine video format\n");
 	_zip->z_tma = 0x7fffffff;
 	while(_zip->z_tma != 0)
 		;
+	// }}}
 
-	printf("IN WIDTH   : %4d   IN HEIGHT  :%4d\n",
+	// Display the video output format
+	// {{{
+	printf("IN WIDTH   : %4d   IN HEIGHT  : %4d\n",
 		_hdmi->v_in.m_width,  _hdmi->v_in.m_height);
-	printf("IN H-PORCH :%4d    IN V-PORCH :%4d\n",
+	printf("IN H-PORCH : %4d   IN V-PORCH : %4d\n",
 		_hdmi->v_in.m_hporch, _hdmi->v_in.m_vporch);
-	printf("IN H-SYNC  : %4d   IN V-SYNC  :%4d\n",
-		_hdmi->v_in.m_hsync,  _hdmi->v_in.m_vsync);
-	printf("IN H-RAW   : %4d   IN V-RAW   :%4d\n",
+	printf("IN H-SYNC  :%s%4d   IN V-SYNC  :%s%4d\n",
+		(_hdmi->v_in.m_hsync & 0x8000) ? "-":"+",
+		_hdmi->v_in.m_hsync & 0x7fff,
+		(_hdmi->v_in.m_hsync & 0x8000) ? "-":"+",
+		 _hdmi->v_in.m_vsync & 0x7fff);
+	printf("IN H-RAW   : %4d   IN V-RAW   : %4d\n",
 		_hdmi->v_in.m_raw_width, _hdmi->v_in.m_raw_height);
 
-	printf("SRC WIDTH  : %4d   SRC HEIGHT :%4d\n",
+	printf("SRC WIDTH  : %4d   SRC HEIGHT : %4d\n",
 		_hdmi->v_src.m_width, _hdmi->v_src.m_height);
-	printf("SRC H-PORCH:%4d    SRC V-PORCH:%4d\n",
+	printf("SRC H-PORCH: %4d   SRC V-PORCH: %4d\n",
 		_hdmi->v_src.m_hporch, _hdmi->v_src.m_vporch);
-	printf("SRC H-SYNC : %4d   SRC V-SYNC :%4d\n",
-		_hdmi->v_src.m_hsync, _hdmi->v_src.m_vsync);
-	printf("SRC H-RAW  : %4d   SRC V-RAW  :%4d\n",
+	printf("SRC H-SYNC :%s%4d   SRC V-SYNC :%s%4d\n",
+		(_hdmi->v_src.m_hsync & 0x8000) ? "-":"+",
+		_hdmi->v_src.m_hsync & 0x07fff,
+		(_hdmi->v_src.m_vsync & 0x8000) ? "-":"+",
+		_hdmi->v_src.m_vsync & 0x07fff);
+	printf("SRC H-RAW  : %4d   SRC V-RAW  : %4d\n",
 		_hdmi->v_src.m_raw_width, _hdmi->v_src.m_raw_height);
+	// }}}
 
-	frq = _hdmi->v_sifreq;   printf("Si Clk   : %08x %9d\n", frq, frq);
-	frq = _hdmi->v_pxfreq;   printf("Pixel Clk: %08x %9d\n", frq, frq);
-	frq = _hdmi->v_hdmifreq; printf("Hdmi Clk : %08x %9d\n", frq, frq);
+	frq = _hdmi->v_sifreq;   printf("Si Clk   : %08x %10.6f MHz\n", frq, (double)frq / 1e6);
+	frq = _hdmi->v_pxfreq;   printf("Pixel Clk: %08x %10.6f MHz\n", frq, (double)frq / 1e6);
+	frq = _hdmi->v_hdmifreq; printf("Hdmi Clk : %08x %10.6f MHz\n", frq, (double)frq / 1e6);
 
 	printf("HDMI setup complete\n");
 #endif

@@ -39,7 +39,7 @@ module	xhdmiout (
 		// {{{
 		input	wire		i_clk,
 		input	wire		i_hsclk,
-		input	wire		i_ce,
+		input	wire		i_reset_n,
 		input	wire	[9:0]	i_word,
 		output	wire	[1:0]	o_port
 		// }}}
@@ -50,9 +50,8 @@ module	xhdmiout (
 	wire	[5:0]	ignored_data;
 	wire	[1:0]	slave_to_master;
 
-	(* ASYNC_REG *)
-	reg		sync_ce, q_ce, qq_ce;
-	reg		reset;
+	(* ASYNC_REG="TRUE" *) reg		sync_reset_n;
+	(* ASYNC_REG="TRUE" *) reg	[1:0]	reset_pipe;
 
 	wire	[9:0]	w_word;
 	wire	[9:0]	w_in_word;
@@ -62,10 +61,11 @@ module	xhdmiout (
 
 	// Generate a synchronous reset and CE signals
 	// {{{
-	always @(posedge i_clk)
-		{ sync_ce, qq_ce, q_ce } <= { qq_ce, q_ce, i_ce };
-	always @(posedge i_clk)
-		reset <= !sync_ce;
+	always @(posedge i_clk or negedge i_reset_n)
+	if (!i_reset_n)
+		{ sync_reset_n, reset_pipe} <= 1'b0;
+	else
+		{ sync_reset_n, reset_pipe} <= { reset_pipe, 1'b1 };
 	// }}}
 
 	// (Optionally) bit reverse the input (not necessary)
@@ -104,7 +104,7 @@ module	xhdmiout (
 		always @(posedge i_clk)
 			r_word <= w_in_word[(DLY-1):0];
 		always @(posedge i_clk)
-			d_word <= (i_ce) ? { r_word, w_in_word[9:DLY] }: 10'h00;
+			d_word <= { r_word, w_in_word[9:DLY] };
 
 		assign	w_word = d_word;
 	end else begin : ZERO_DELAY
@@ -123,7 +123,7 @@ module	xhdmiout (
 	) lowserdes(
 		// {{{
 		// Verilator lint_off PINCONNECTEMPTY
-		.OCE(sync_ce),	.OFB(),
+		.OCE(1'b1),	.OFB(),
 		.TCE(1'b0),	.TFB(), .TQ(),
 		.CLK(i_hsclk),	// HS clock
 		.CLKDIV(i_clk),
@@ -136,7 +136,7 @@ module	xhdmiout (
 		.D6(w_word[4]),
 		.D7(w_word[3]),
 		.D8(w_word[2]),
-		.RST(reset),
+		.RST(!sync_reset_n),
 		.TBYTEIN(1'b0), .TBYTEOUT(),
 		.T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0),
 		.SHIFTIN1(slave_to_master[0]), .SHIFTIN2(slave_to_master[1]),
@@ -156,7 +156,7 @@ module	xhdmiout (
 	) hiserdes(
 		// {{{
 		// Verilator lint_off PINCONNECTEMPTY
-		.OCE(sync_ce),	.OFB(), .OQ(),
+		.OCE(1'b1),	.OFB(), .OQ(),
 		.TCE(1'b0),	.TFB(), .TQ(),
 		.CLK(i_hsclk),	// HS clock
 		.CLKDIV(i_clk),
@@ -168,7 +168,7 @@ module	xhdmiout (
 		.D6(1'h0),
 		.D7(1'h0),
 		.D8(1'h0),
-		.RST(reset),
+		.RST(!sync_reset_n),
 		.TBYTEIN(1'b0), .TBYTEOUT(),
 		.T1(1'b0), .T2(1'b0), .T3(1'b0), .T4(1'b0),
 		.SHIFTIN1(1'b0), .SHIFTIN2(1'b0),

@@ -39,7 +39,7 @@ module	xhdmiin_deserdes #(
 		// {{{
 		input	wire		i_clk,
 		input	wire		i_hsclk,
-		input	wire		i_ce,
+		input	wire		i_reset_n,
 		input	wire	[4:0]	i_delay,
 		output	wire	[4:0]	o_delay,
 		input	wire		i_pin,
@@ -59,29 +59,24 @@ module	xhdmiin_deserdes #(
 	wire	w_hs_delayed_wire, w_hs_wire;
 	wire	[9:0]	w_word;
 
-	wire		async_reset;
-	reg	[2:0]	reset_pipe;
+	(* ASYNC_REG="TRUE" *)	wire		async_reset;
+	(* ASYNC_REG="TRUE" *)	reg	[2:0]	reset_pipe;
 
 	wire		lcl_ce;
-	reg	[1:0]	syncd_ce;
 	wire	[9:0]	w_use_this_word;
 	// }}}
 
-	// Turn i_ce into an async reset
+	// Synchronize the reset
 	// {{{
-	always @(posedge i_clk, negedge i_ce)
-	if (!i_ce)
+	always @(posedge i_clk, negedge i_reset_n)
+	if (!i_reset_n)
 		reset_pipe[2:0] <= 3'h7;
 	else
 		reset_pipe[2:0] <= { reset_pipe[1:0], 1'b0 };
 	assign	async_reset = reset_pipe[2];
 	// }}}
 
-	// Make sure i_ce is properly synchronized to the pixel clock
-	// {{{
-	always @(posedge i_clk)
-		syncd_ce <= { syncd_ce[0], i_ce };
-	assign	lcl_ce = syncd_ce[1];
+	assign	lcl_ce = 1'b1;
 	// }}}
 
 	// Optionally delay the incoming signal

@@ -56,10 +56,10 @@ module	hdmipixelsync (
 	//
 	wire	[3:0]	chosen_match_loc;
 	reg		sync_valid;
-	reg	[19:0]	lost_sync_counter;
+	reg	[15:0]	lost_sync_counter;
 	reg	[9:0]	sync;
 
-	reg	[10:0]	dbg_trigger_count;
+	reg	[11:0]	dbg_trigger_count;
 	// }}}
 
 	always @(posedge i_clk)
@@ -95,12 +95,7 @@ module	hdmipixelsync (
 			else if (!control_matches[4])
 				control_matches <= control_matches + 1;
 
-			// Look for a guard word:
-			//	1011001100
-			//	0100110011
-			sync[gk] <= (control_matches >= 12)
-					&& ((check_word == 10'h0cd) // 1011_0011_00
-					   ||(check_word== 10'h332)); // 01_0011_0011
+			sync[gk] <= (control_matches >= 12);
 		end
 	end endgenerate
 	// }}}
@@ -141,10 +136,10 @@ module	hdmipixelsync (
 
 	// Declare no synch when ... we don't see anything for a long time
 	// {{{
-	initial	lost_sync_counter = 20'hfffff; // Start with a lost synch
+	initial	lost_sync_counter = 16'hffff; // Start with a lost synch
 	always @(posedge i_clk)
 	if (i_reset)
-		lost_sync_counter <= 20'hfffff;
+		lost_sync_counter <= 16'hffff;
 	else if (valid_match && match_loc == chosen_match_loc)
 		lost_sync_counter <= 0;
 	else if (!(&lost_sync_counter))
@@ -160,7 +155,7 @@ module	hdmipixelsync (
 
 	// Check for and remove any glitches
 	// {{{
-	synccount	#(.NBITS(4), .OPT_BYPASS_TEST(1'b1)) // CHANGE ME BACK!
+	synccount	#(.NBITS(4), .OPT_BYPASS_TEST(1'b0))
 	pixloc(i_clk, i_reset, valid_match, match_loc, chosen_match_loc);
 	// }}}
 
@@ -174,7 +169,7 @@ module	hdmipixelsync (
 	always @(posedge i_clk)
 	if (i_reset)
 		dbg_trigger_count <= 0;
-	else if (dbg_trigger_count >= 1220)
+	else if (dbg_trigger_count >= 2199)
 		dbg_trigger_count <= 0;
 	else
 		dbg_trigger_count <= dbg_trigger_count + 1;

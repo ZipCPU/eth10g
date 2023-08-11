@@ -82,7 +82,7 @@ module	hdmibitsync (
 		.o_debug(dbg_blu)
 	);
 
-	assign	o_debug = dbg_red;
+	assign	o_debug = dbg_grn;
 	// }}}
 
 	// all_locked
@@ -90,8 +90,8 @@ module	hdmibitsync (
 	// True if all channels are locked.
 	initial	all_locked = 0;
 	always @(posedge i_pix_clk)
-		all_locked <= ((auto_bitslip_r[4])
-				&&(auto_bitslip_g[4])&&(auto_bitslip_b[4]));
+		all_locked <= auto_bitslip_r[4]
+				&& auto_bitslip_g[4] && auto_bitslip_b[4];
 	// }}}
 
 	// o_r, o_g, o_b --- our bit-synchronized output channels

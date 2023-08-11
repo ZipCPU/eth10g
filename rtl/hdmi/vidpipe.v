@@ -76,6 +76,8 @@ module	vidpipe #(
 		output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		// }}}
 		// Clock control
+		output	wire		o_pix_reset_n,
+		input	wire		i_pxpll_locked,
 		output	reg	[1:0]	o_pxclk_sel,
 		output	wire	[14:0]	o_iodelay,
 		input	wire	[14:0]	i_iodelay,
@@ -104,12 +106,11 @@ module	vidpipe #(
 				ADR_OVLYOFFSET= 5'h0e,
 				ADR_FPS       = 5'h0f,
 				ADR_SYNCWORD  = 5'h10,
-				ADR_REDCAP    = 5'h11,
-				ADR_GRNCAP    = 5'h12,
-				ADR_BLUCAP    = 5'h13;
+				ADR_TEST1     = 5'h11,
+				ADR_TEST2     = 5'h12;
 
 	// Verilator lint_off SYNCASYNCNET
-	reg		pix_reset_sys, pix_reset;
+	reg		pix_reset_sys, pix_reset, pix_reset_request;
 	reg	[1:0]	pix_reset_pipe;
 	wire		pix_reset_n;
 	// Verilator lint_on  SYNCASYNCNET
@@ -170,10 +171,12 @@ module	vidpipe #(
 				vm_synch_sys,  hm_synch_sys,
 				vm_front_sys,  hm_front_sys,
 				vm_height_sys, hm_width_sys;
+	reg			vm_syncpol_sys,hm_syncpol_sys;
 	wire	[LGDIM-1:0]	vm_raw,    hm_raw,
 				vm_synch,  hm_synch,
 				vm_front,  hm_front,
 				vm_height, hm_width;
+	wire			vm_syncpol,hm_syncpol;
 	// }}}
 
 	wire	[LGDIM-1:0]	cfg_mem_width;
@@ -198,13 +201,14 @@ module	vidpipe #(
 				vout_synch,  hout_synch,
 				vout_front,  hout_front,
 				vout_height, hout_width;
+	wire			vout_syncpol,hout_syncpol;
 	wire			cfg_src_sel;
 	wire			cfg_ovly_enable;
 	wire	[LGDIM-1:0]	cfg_ovly_vpos, cfg_ovly_hpos;
 	reg	[LGDIM-1:0]	cfg_ovly_vpos_sys, cfg_ovly_hpos_sys;
 
-	wire		ign_px2sys_valid, ign_px2sys_ready;
-	wire		ign_sys2px_valid, ign_sys2px_ready;
+	wire		px2sys_valid, ign_px2sys_ready;
+	wire		ign_sys2px_valid, sys2px_ready;
 	wire		ign_frame_ready;
 
 	wire	[23:0]	cmap_rdata;
@@ -213,8 +217,19 @@ module	vidpipe #(
 	reg	[31:0]	pre_wb_data;
 	wire	[31:0]	sync_word;
 
-	wire	[14:0]	i_iodelay_sys;
-	reg	[14:0]	o_iodelay_sys;
+	wire	[14:0]	iodelay_actual_sys;
+	reg	[14:0]	iodelay_request_sys;
+
+	wire			alph_valid, alph_ready,
+				alph_hlast, alph_vlast;
+	wire	[26-1:0]	alph_pixel;
+
+	reg		pxpll_locked_sys;
+	reg	[1:0]	pxpll_locked_pipe;
+
+	wire		hin_syncpol, vin_syncpol;
+	wire		hin_syncpol_sys, vin_syncpol_sys;
+	// Verilator lint_on  UNUSED
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -229,8 +244,8 @@ module	vidpipe #(
 	//	ovly_err
 	//	[1:0]	cfg_clk_src -> o_pxclk_sel
 	// cfg_src_sel
-	//	hm_width,  hm_front, hm_synch, hm_raw,
-	//	vm_height, vm_front, vm_synch, vm_raw,
+	//	hm_width,  hm_front, hm_synch, hm_raw, hm_syncpol
+	//	vm_height, vm_front, vm_synch, vm_raw, vm_syncpol
 	//
 	//	in_locked
 // Register controls:
@@ -238,9 +253,9 @@ module	vidpipe #(
 //		CMAP mode, HDMI RX locked, Overlay error
 //
 //	FREQUENCY FEEDBACK
-//	1. Measured (not commanded) Si5324 frequency
-//	2. Measured pixel clock frequency
-//	3. HDMIRX pixel clock frequency
+//	1. HDMIRX pixel clock frequency
+//	2. Measured (not commanded) Si5324 frequency
+//	3. Measured pixel clock frequency
 //
 //	FRAME SIZE (4 regs each)
 //	4-7: Measured HDMI incoming frame size
@@ -251,10 +266,29 @@ module	vidpipe #(
 //	14. Overlay position offset
 //	15. Measured incoming frame rate
 //
+//	16. Sync word (debug only)
+//	17. Test #1 (Unused at present)
+//	18. Test #2 (Unused at present)
+//
+	always @(posedge i_clk or negedge i_pxpll_locked)
+	if (!i_pxpll_locked)
+		{ pxpll_locked_sys, pxpll_locked_pipe } <= 0;
+	else
+		{ pxpll_locked_sys, pxpll_locked_pipe }
+						<= { pxpll_locked_pipe, 1'b1 };
+
 
 	initial	pix_reset_sys = 1'b1;
+	initial	pix_reset_request = 1'b1;
+	initial	hm_syncpol_sys = 1'b1;
+	initial	vm_syncpol_sys = 1'b1;
 	always @(posedge i_clk)
 	begin
+		if (pix_reset_request)
+			pix_reset_sys <= 1'b1;
+		else
+			pix_reset_sys <= !pxpll_locked_sys;
+
 		if (i_wb_stb && i_wb_we && i_wb_addr[9:5]==5'h0)
 		begin
 			case(i_wb_addr[4:0])
@@ -267,7 +301,11 @@ module	vidpipe #(
 					o_pxclk_sel <= i_wb_data[5:4];
 					// tx_reset_sys <= i_wb_data[2];
 					// rx_reset_sys <= i_wb_data[1];
-					pix_reset_sys <= i_wb_data[0];
+					pix_reset_request <= i_wb_data[0];
+					if (i_wb_data[5:4] != o_pxclk_sel)
+						pix_reset_sys <= 1'b1;
+					if (i_wb_data[0])
+						pix_reset_sys <= 1'b1;
 				end
 				if (i_wb_sel[1])
 				begin
@@ -301,10 +339,17 @@ module	vidpipe #(
 			ADR_SYNC: begin
 				// {{{
 				if (&i_wb_sel[1:0])
+				begin
 					hm_synch_sys <= i_wb_data[0 +: LGDIM];
-				if (&i_wb_sel[3:2])
-					vm_synch_sys <=i_wb_data[16 +: LGDIM];
+					if (LGDIM < 16)
+						hm_syncpol_sys <= i_wb_data[15];
 				end
+				if (&i_wb_sel[3:2])
+				begin
+					vm_synch_sys <=i_wb_data[16 +: LGDIM];
+					if (LGDIM < 16)
+						vm_syncpol_sys <= i_wb_data[31];
+				end end
 				// }}}
 			ADR_RAW: begin
 				// {{{
@@ -342,11 +387,11 @@ module	vidpipe #(
 			ADR_FPS: begin
 				// {{{
 				if (i_wb_sel[1])
-					o_iodelay_sys[4:0] <= i_wb_data[ 8+:5];
+					iodelay_request_sys[4:0] <= i_wb_data[ 8+:5];
 				if (i_wb_sel[2])
-					o_iodelay_sys[9:5] <= i_wb_data[16+:5];
+					iodelay_request_sys[9:5] <= i_wb_data[16+:5];
 				if (i_wb_sel[3])
-					o_iodelay_sys[14:10]<=i_wb_data[24+:5];
+					iodelay_request_sys[14:10]<=i_wb_data[24+:5];
 				end
 				// }}}
 			default: begin end
@@ -360,7 +405,9 @@ module	vidpipe #(
 			cfg_ovly_enable_sys <= 1'b0;
 			cfg_framebase <= {(AW){1'b0}};
 
+			pix_reset_request <= 1'b1;
 			pix_reset_sys <= 1'b1;
+			iodelay_request_sys <= 15'h0;
 		end
 	end
 
@@ -405,9 +452,11 @@ module	vidpipe #(
 		ADR_CONTROL: begin
 				pre_wb_data[10:0] <= { cfg_cmap_mode_sys,
 					1'b0, cfg_src_sel_sys, o_pxclk_sel,
-					3'h0, pix_reset_sys };
+					2'b0, pxpll_locked_sys, pix_reset_sys };
 				pre_wb_data[16] <= in_locked_sys;
 				pre_wb_data[17] <= ovly_err_sys;
+				pre_wb_data[18] <= px2sys_valid;
+				pre_wb_data[19] <= sys2px_ready;
 			end
 		ADR_HDMIFREQ:	pre_wb_data <= hdmick_counts;
 		ADR_SIFREQ:	pre_wb_data <= sick_counts;
@@ -421,6 +470,9 @@ module	vidpipe #(
 			pre_wb_data[ 0 +: LGDIM] <= hin_front_sys;
 			end
 		ADR_INSYNC: begin
+			pre_wb_data[15] <= hin_syncpol_sys;
+			pre_wb_data[31] <= vin_syncpol_sys;
+
 			pre_wb_data[16 +: LGDIM] <= vin_synch_sys;
 			pre_wb_data[ 0 +: LGDIM] <= hin_synch_sys;
 			end
@@ -439,6 +491,9 @@ module	vidpipe #(
 		ADR_SYNC: begin
 			pre_wb_data[16 +: LGDIM] <= vm_synch_sys;
 			pre_wb_data[ 0 +: LGDIM] <= hm_synch_sys;
+
+			pre_wb_data[15] <= hm_syncpol_sys;
+			pre_wb_data[31] <= vm_syncpol_sys;
 			end
 		ADR_RAW: begin
 			pre_wb_data[16 +: LGDIM] <= vm_raw_sys;
@@ -462,23 +517,22 @@ module	vidpipe #(
 		ADR_FPS: begin
 			// {{{
 				pre_wb_data[7:0] <= frames_per_second;
-				pre_wb_data[ 8 +: 5] <= i_iodelay_sys[ 4: 0];
-				pre_wb_data[16 +: 5] <= i_iodelay_sys[ 9: 5];
-				pre_wb_data[24 +: 5] <= i_iodelay_sys[14:10];
+				pre_wb_data[ 8 +: 5] <= iodelay_actual_sys[ 4: 0];
+				pre_wb_data[16 +: 5] <= iodelay_actual_sys[ 9: 5];
+				pre_wb_data[24 +: 5] <= iodelay_actual_sys[14:10];
 			end
 			// }}}
 		ADR_SYNCWORD: begin
 				pre_wb_data <= sync_word;
 			end
-		ADR_REDCAP: begin
-				pre_wb_data <= redcap;
+		ADR_TEST1: begin
+			// {{{
 			end
-		ADR_GRNCAP: begin
-				pre_wb_data <= grncap;
+			// }}}
+		ADR_TEST2: begin
+			// {{{
 			end
-		ADR_BLUCAP: begin
-				pre_wb_data <= blucap;
-			end
+			// }}}
 		default: begin end
 		endcase
 	end
@@ -518,46 +572,21 @@ module	vidpipe #(
 		{ pix_reset, pix_reset_pipe } <= { pix_reset_pipe, 1'b0 };
 
 	assign	pix_reset_n = !pix_reset;
+	assign	o_pix_reset_n = pix_reset_n;
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Convert from HDMI to an AXI (video) stream
 	// {{{
-	reg	[2:0]	cap_valid;
-	reg	[31:0]	redcap_sr, grncap_sr, blucap_sr,
-			redcap_in, grncap_in, blucap_in;
-	wire	[31:0]	redcap, grncap, blucap;
-	
-	always @(posedge i_pixclk)
-	if (pix_reset)
-		cap_valid <= 0;
-	else if (&cap_valid && ign_px2sys_ready)
-		cap_valid <= 0;
-	else
-		cap_valid <= { cap_valid[1:0], 1'b1 };
-
-	always @(posedge i_pixclk)
-		redcap_sr <= { redcap_sr[21:0], i_hdmi_red };
-	always @(posedge i_pixclk)
-		grncap_sr <= { grncap_sr[21:0], i_hdmi_grn };
-	always @(posedge i_pixclk)
-		blucap_sr <= { blucap_sr[21:0], i_hdmi_blu };
-	always @(posedge i_pixclk)
-	if (&cap_valid && ign_px2sys_ready)
-	begin
-		redcap_in <= redcap_sr;
-		grncap_in <= grncap_sr;
-		blucap_in <= blucap_sr;
-	end
 
 	// hdmi2vga: Convert first to VGA
 	hdmi2vga
 	u_hdmi2vga (
 		// {{{
 		.i_clk(i_pixclk), .i_reset(pix_reset),
-		.i_hdmi_blu(i_hdmi_blu), .i_hdmi_grn(i_hdmi_grn),
-			.i_hdmi_red(i_hdmi_red),
+		.i_hdmi_red(i_hdmi_red), .i_hdmi_grn(i_hdmi_grn),
+			.i_hdmi_blu(i_hdmi_blu),
 		//
 		.o_pix_valid(vga_valid),
 		.o_vsync(vga_vsync), .o_hsync(vga_hsync),
@@ -592,6 +621,8 @@ module	vidpipe #(
 		.o_hsync(hin_synch),   .o_raw_width(hin_raw),
 		.o_height(vin_height), .o_vfront(vin_front),
 		.o_vsync(vin_synch),   .o_raw_height(vin_raw),
+		//
+		.o_vsync_pol(vin_syncpol),.o_hsync_pol(hin_syncpol),
 		.o_locked(in_locked)
 		// }}}
 		// }}}
@@ -604,58 +635,59 @@ module	vidpipe #(
 	// {{{
 
 	tfrvalue #(
-		.W(LGDIM*8+2+3*32+15)
+		.W(LGDIM*8+4+15)
 	) u_px2sys (
 		// {{{
 		.i_a_clk(i_pixclk), .i_a_reset_n(pix_reset_n),
 		.i_a_valid(1'b1), .o_a_ready(ign_px2sys_ready),
 			.i_a_data({
-				ovly_err,
-				in_locked,
-				i_iodelay,
-				vin_raw,    hin_raw,
+				ovly_err,			//  1b
+				in_locked,			//  1b
+				i_iodelay,			// 15b
+				vin_syncpol,hin_syncpol,	//  2b
+				vin_raw,    hin_raw,		// LGDIM
 				vin_synch,  hin_synch,
 				vin_front,  hin_front,
-				vin_height, hin_width,
-				redcap_in, grncap_in, blucap_in
+				vin_height, hin_width
 				}),
 		//
 		.i_b_clk(i_clk), .i_b_reset_n(!pix_reset_sys),
-		.o_b_valid(ign_px2sys_valid), .i_b_ready(1'b1),
+		.o_b_valid(px2sys_valid), .i_b_ready(1'b1),
 			.o_b_data({
-				ovly_err_sys,
-				in_locked_sys,
-				i_iodelay_sys,
-				vin_raw_sys,    hin_raw_sys,
+				ovly_err_sys,			//  1b
+				in_locked_sys,			//  1b
+				iodelay_actual_sys,		// 15b
+				vin_syncpol_sys,hin_syncpol_sys, //  2b
+				vin_raw_sys,    hin_raw_sys,	// LGDIM
 				vin_synch_sys,  hin_synch_sys,
 				vin_front_sys,  hin_front_sys,
-				vin_height_sys, hin_width_sys,
-				redcap, grncap, blucap
+				vin_height_sys, hin_width_sys
 				})
 		// }}}
 	);
 
 	tfrvalue #(
-		.W(LGDIM*11+3+4+15)
+		.W(LGDIM*11+3+4+15+2)
 	) u_sys2px (
 		// {{{
 		.i_a_clk(i_clk), .i_a_reset_n(!pix_reset_sys),
-		.i_a_valid(1'b1), .o_a_ready(ign_sys2px_ready),
+		.i_a_valid(1'b1), .o_a_ready(sys2px_ready),
 			.i_a_data({
-				o_iodelay_sys,
-				cfg_ovly_enable_sys,
-				cfg_src_sel_sys,
-				cfg_alpha_sys,
-				cfg_cmap_mode_sys,
-				cfg_mem_width_sys,
+				iodelay_request_sys,		// 15b
+				cfg_ovly_enable_sys,		// 1b
+				cfg_src_sel_sys,		// 1b
+				cfg_alpha_sys,			// 2b
+				cfg_cmap_mode_sys,		// 3b
+				cfg_mem_width_sys,		// LGDIM
 				cfg_ovly_hpos_sys, cfg_ovly_vpos_sys,
+				vm_syncpol_sys,hm_syncpol_sys,
 				vm_raw_sys,    hm_raw_sys,
 				vm_synch_sys,  hm_synch_sys,
 				vm_front_sys,  hm_front_sys,
 				vm_height_sys, hm_width_sys
 				}),
 		//
-		.i_b_clk(i_pixclk), .i_b_reset_n(!pix_reset_n),
+		.i_b_clk(i_pixclk), .i_b_reset_n(pix_reset_n),
 		.o_b_valid(ign_sys2px_valid), .i_b_ready(1'b1),
 			.o_b_data({
 				o_iodelay,
@@ -665,6 +697,7 @@ module	vidpipe #(
 				cfg_cmap_mode,
 				cfg_mem_width,
 				cfg_ovly_hpos, cfg_ovly_vpos,
+				vout_syncpol,hout_syncpol,
 				vout_raw,    hout_raw,
 				vout_synch,  hout_synch,
 				vout_front,  hout_front,
@@ -677,10 +710,13 @@ module	vidpipe #(
 	assign	hm_front  = (cfg_src_sel) ? hin_front  : hout_front;
 	assign	hm_synch  = (cfg_src_sel) ? hin_synch  : hout_synch;
 	assign	hm_raw    = (cfg_src_sel) ? hin_raw    : hout_raw;
+	assign	hm_syncpol= (cfg_src_sel) ? hin_syncpol: hout_syncpol;
+
 	assign	vm_height = (cfg_src_sel) ? vin_height : vout_height;
 	assign	vm_front  = (cfg_src_sel) ? vin_front  : vout_front;
 	assign	vm_synch  = (cfg_src_sel) ? vin_synch  : vout_synch;
 	assign	vm_raw    = (cfg_src_sel) ? vin_raw    : vout_raw;
+	assign	vm_syncpol= (cfg_src_sel) ? vin_syncpol: vout_syncpol;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -925,10 +961,6 @@ module	vidpipe #(
 	// If the color == TRANSPARENT, alpha should be set to all 1'b1s,
 	// cfg_alpha otherwise.
 
-	wire			alph_valid, alph_ready,
-				alph_hlast, alph_vlast;
-	wire	[26-1:0]	alph_pixel;
-
 	skidbuffer #(
 		.OPT_LOWPOWER(1'b0), .OPT_OUTREG(1'b1),
 		.DW(28)
@@ -997,9 +1029,11 @@ module	vidpipe #(
 		// {{{
 		.i_hm_width(hm_width), .i_hm_porch(hm_front),
 			.i_hm_synch(hm_synch), .i_hm_raw(hm_raw),
+			.i_hm_syncpol(hm_syncpol),
 		//
 		.i_vm_height(vm_height), .i_vm_porch(vm_front),
 			.i_vm_synch(vm_synch), .i_vm_raw(vm_raw),
+			.i_vm_syncpol(vm_syncpol),
 		// }}}
 		// HDMI outputs
 		.o_red(o_hdmi_red), .o_grn(o_hdmi_grn), .o_blu(o_hdmi_blu)
@@ -1011,8 +1045,8 @@ module	vidpipe #(
 	// Keep Verilator happy
 	// {{{
 	wire	unused;
-	assign	unused = &{ 1'b0, ign_px2sys_valid, ign_px2sys_ready,
-			ign_sys2px_valid, ign_sys2px_ready, ign_frame_ready,
+	assign	unused = &{ 1'b0,
+			ign_sys2px_valid, ign_frame_ready, ign_px2sys_ready,
 			i_wb_data };
 	// }}}
 endmodule

@@ -516,6 +516,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_h
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/avgs*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/q_v*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_pipe*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_pipe*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_hdmirx_*/the_deserdes/delay*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
 ## From hdmiclrscope
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/waddr_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/this_addr_r*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_stopped*}] 5
@@ -523,7 +525,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdm
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/ASYNC_STATUS.q_oflags*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/ASYNC_STATUS.q_oflags*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/ASYNC_STATUS.q_oflags*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/o_debug_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/o_bus_data_r*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/o_debug_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/o_bus_data_r*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/GEN_ASYNC.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/GEN_ASYNC.q_reset_complete*}] 5
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_utc

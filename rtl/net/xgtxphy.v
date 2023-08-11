@@ -196,8 +196,8 @@ module	xgtxphy #(
 				ign_qspisenp,
 				tx_mmcm_locked,
 				ign_comfinish,
-				rx_cdr_lock,
-				rx_buf_status;
+				rx_cdr_lock;
+		wire	[1:0]	rx_buf_status;
 		wire	[1:0]	ign_txbufstatus;
 		wire		rxbuf_reset, rx_mmcm_locked, rx_user_clk;
 		wire	[7:0]	ign_monitor;
@@ -207,13 +207,21 @@ module	xgtxphy #(
 				raw_gtx_tx_clk, raw_gtx_rx_clk;
 
 		wire	gtx_rx_clk;
+		reg		gtx_tx_reset, tx_pcs_reset, tx_pma_reset;
+
+		reg	[6:0]	seq_reset_counter;
+		reg		seq_reset_stb;
+
+		wire		rx_buf_reset, rx_pcs_reset, eye_scan_reset,
+				rx_dfe_lpm_reset, rx_pma_reset, rx_cdr_reset,
+				rx_cdr_freq_reset;
+		wire		rx_reset_done;
+		wire		gtx_rx_reset;
+		wire	[31:0]	ign_data;
 		// }}}
 
 		// seq_reset_counter, seq_reset_stb
 		// {{{
-		reg	[6:0]	seq_reset_counter;
-		reg		seq_reset_stb;
-
 		initial	seq_reset_counter <= -1;
 		always @(posedge i_wb_clk)
 		if (gtx_reset || (!tx_pcs_reset && !rx_buf_reset))
@@ -228,7 +236,6 @@ module	xgtxphy #(
 
 		// gtx_tx_reset
 		// {{{
-		reg		gtx_tx_reset, tx_pcs_reset, tx_pma_reset;
 		assign	tx_mmcm_locked = !tx_pcs_reset;
 
 		initial	{ gtx_tx_reset, tx_pma_reset, tx_pcs_reset } <= -1;
@@ -248,12 +255,6 @@ module	xgtxphy #(
 
 		// gtx_rx_reset
 		// {{{
-		wire		rx_buf_reset, rx_pcs_reset, eye_scan_reset,
-				rx_dfe_lpm_reset, rx_pma_reset, rx_cdr_reset,
-				rx_cdr_freq_reset;
-		wire		rx_reset_done;
-		wire		gtx_rx_reset;
-
 		assign	rx_mmcm_locked = 1'b1;
 
 		assign	{ rx_buf_reset, rx_pcs_reset, eye_scan_reset, rx_dfe_lpm_reset, rx_cdr_freq_reset, rx_cdr_reset, rx_pma_reset } = 0;
@@ -827,7 +828,7 @@ module	xgtxphy #(
 			.RXDATAVALID(ign_rx_data_valid),
 			.RXGEARBOXSLIP(1'b0),
 			.RXHEADER(ign_rx_header),
-			.RXDATA(M_DATA[gk*32 +: 32]),
+			.RXDATA({ ign_data, M_DATA[gk*32 +: 32] }),
 			.RXHEADERVALID(ign_rx_header_valid),
 			// }}}
 			// Constants

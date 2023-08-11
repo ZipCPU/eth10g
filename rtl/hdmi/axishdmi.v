@@ -67,11 +67,13 @@ module	axishdmi #(
 		input	wire [HW-1:0]	i_hm_porch,
 		input	wire [HW-1:0]	i_hm_synch,
 		input	wire [HW-1:0]	i_hm_raw,
+		input	wire 		i_hm_syncpol,
 		//
 		input	wire [VW-1:0]	i_vm_height,
 		input	wire [VW-1:0]	i_vm_porch,
 		input	wire [VW-1:0]	i_vm_synch,
 		input	wire [VW-1:0]	i_vm_raw,
+		input	wire 		i_vm_syncpol,
 		// }}}
 		//
 		// HDMI outputs
@@ -369,9 +371,12 @@ module	axishdmi #(
 
 	// hdmi_data
 	// {{{
+	wire	[1:0]	sync_data;
+	assign		sync_data = { vsync ^ i_vm_syncpol,
+					hsync ^ i_hm_syncpol };
 	always @(*)
 	begin
-		hdmi_data[1:0]	= { vsync, hsync };
+		hdmi_data[1:0]	= sync_data;
 		hdmi_data[11:2] = 0;
 	end
 	// }}}
@@ -393,7 +398,7 @@ module	axishdmi #(
 `else
 	// Channel 0 = blue
 	tmdsencode #(.CHANNEL(2'b00)) hdmi_encoder_ch0(i_pixclk,
-			hdmi_type, { vsync, hsync },
+			hdmi_type, sync_data,
 			hdmi_data[3:0], blu_pixel, o_blu);
 
 	// Channel 1 = green

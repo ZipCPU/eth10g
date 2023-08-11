@@ -39,7 +39,7 @@ module	xhdmiin #(
 		// {{{
 		input	wire		i_clk,		// Pixel clock
 					i_hsclk,	// 10x pixel clock
-					i_ce,
+					i_reset_n,
 		input	wire	[4:0]	i_delay,
 		output	wire	[4:0]	o_delay,
 		input	wire	[1:0]	i_hs_wire,
@@ -70,7 +70,7 @@ module	xhdmiin #(
 	the_deserdes(
 		.i_clk(i_clk),
 		.i_hsclk(i_hsclk),
-		.i_ce(i_ce),
+		.i_reset_n(i_reset_n),
 		.i_delay(i_delay),
 		.o_delay(o_delay),
 		.i_pin(w_hs_wire),

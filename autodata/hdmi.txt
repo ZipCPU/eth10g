@@ -57,7 +57,7 @@
 	wire	[9:0]	hdmitx_red, hdmitx_grn, hdmitx_blu;
 	wire	[1:0]	w_pxclk_sel;
 	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk;
-	wire		pxrx_locked;
+	wire		pxrx_locked, pix_reset_n;
 	wire [15-1:0]	set_hdmi_delay, actual_hdmi_delay;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
@@ -89,7 +89,7 @@
 	xhdmiin
 	u_hdmirx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_delay(set_hdmi_delay[14:10]),
 		.o_delay(actual_hdmi_delay[14:10]),
 		.i_hs_wire({ i_hdmirx_p[2], i_hdmirx_n[2] }),
@@ -99,7 +99,7 @@
 	xhdmiin
 	u_hdmirx_grn(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_delay(set_hdmi_delay[9:5]),
 		.o_delay(actual_hdmi_delay[9:5]),
 		.i_hs_wire({ i_hdmirx_p[1], i_hdmirx_n[1] }),
@@ -109,7 +109,7 @@
 	xhdmiin
 	u_hdmirx_blu(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_delay(set_hdmi_delay[4:0]),
 		.o_delay(actual_hdmi_delay[4:0]),
 		.i_hs_wire({ i_hdmirx_p[0], i_hdmirx_n[0] }),
@@ -122,7 +122,7 @@
 	xhdmiout
 	u_hdmitx_clk(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(10'b11111_00000),
 		.o_port({ o_hdmitx_clk_p, o_hdmitx_clk_n })
 	);
@@ -130,7 +130,7 @@
 	xhdmiout
 	u_hdmitx_red(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(hdmitx_red),
 		.o_port({ o_hdmitx_p[2], o_hdmitx_n[2] })
 	);
@@ -138,7 +138,7 @@
 	xhdmiout
 	u_hdmitx_grn(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(hdmitx_grn),
 		.o_port({ o_hdmitx_p[1], o_hdmitx_n[1] })
 	);
@@ -146,7 +146,7 @@
 	xhdmiout
 	u_hdmitx_blu(
 		.i_clk(hdmi_ck), .i_hsclk(hdmi_serdes_clk),
-		.i_ce(1'b1),
+		.i_reset_n(pix_reset_n),
 		.i_word(hdmitx_blu),
 		.o_port({ o_hdmitx_p[0], o_hdmitx_n[0] })
 	);
@@ -159,6 +159,7 @@
 		hdmirx_red, hdmirx_grn, hdmirx_blu,
 		hdmitx_red, hdmitx_grn, hdmitx_blu,
 		set_hdmi_delay, actual_hdmi_delay,
+		pix_reset_n, pxrx_locked,
 		w_pxclk_sel
 @MAIN.PORTLIST=
 		// HDMI control ports
@@ -166,6 +167,7 @@
 		i_hdmi_red, i_hdmi_grn, i_hdmi_blu,
 		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		o_hdmi_iodelay, i_hdmi_iodelay,
+		o_pix_reset_n, i_pxpll_locked,
 		o_pxclk_sel
 @MAIN.IODECL=
 	// @$(PREFIX) declarations
@@ -175,6 +177,8 @@
 	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
 	output	wire	[14:0]	o_hdmi_iodelay;
 	input	wire	[14:0]	i_hdmi_iodelay;
+	output	wire		o_pix_reset_n;
+	input	wire		i_pxpll_locked;
 	output	wire	[1:0]	o_pxclk_sel;
 	// }}}
 @MAIN.DEFNS=
@@ -201,6 +205,8 @@
 		@$(MASTER.ANSIPORTLIST),
 		.o_hdmi_red(o_hdmi_red), .o_hdmi_grn(o_hdmi_grn),
 				.o_hdmi_blu(o_hdmi_blu),
+		.o_pix_reset_n(o_pix_reset_n),
+		.i_pxpll_locked(i_pxpll_locked),
 		.o_pxclk_sel(o_pxclk_sel),
 		.o_iodelay(o_hdmi_iodelay),
 		.i_iodelay(i_hdmi_iodelay),
@@ -256,6 +262,9 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_h
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/avgs*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/q_v*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_pipe*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_pipe*}] 5
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_hdmirx_*/the_deserdes/delay*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
 @BDEF.INCLUDE=
 #include <stdint.h>
 @BDEF.DEFN=
@@ -276,7 +285,8 @@ typedef struct __attribute__((packed)) @$(DEVID)_S {
 	uint16_t	v_ovheight, v_ovmemwords;
 	uint16_t	v_ovypos,  v_ovhpos;
 	unsigned	v_fps;
-	uint32_t	v_unused[256-16];
+	unsigned	v_syncword;
+	uint32_t	v_unused[512-17];
 	uint32_t	v_clrmap[256];
 } @$(DEVID);
 

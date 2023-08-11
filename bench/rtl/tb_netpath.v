@@ -102,7 +102,7 @@ module tb_netpath;
 
 	reg	wb_clk, phy_refclk, wb_reset, s_clk200;
 	wire	phy_fault, fpga_tx_clk, fpga_rx_clk;
-	wire	[63:0]	fpga_rx_data, fpga_tx_data;
+	wire	[31:0]	fpga_rx_data, fpga_tx_data;
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////

@@ -70,34 +70,100 @@ public:
 		: SCOPE(fpga, addr, false, vecread) {};
 	~HDMICLRSCOPE(void) {}
 
+	const int SCOPETYPE = 2;
+
 	virtual	void	decode(DEVBUS::BUSW val) const {
-		unsigned	cloc, mloc, sync, vld, px;
-		static	 unsigned	lpx = 0;
+		switch(SCOPETYPE) {
+		case 0: {
+			unsigned	cloc, mloc, sync, vld, px;
+			static	 unsigned	lpx = 0;
 
-		cloc = (val >> 26) & 0x0f;
-		mloc = (val >> 22) & 0x0f;
-		sync = (val >> 12) & 0x03ff;
-		vld  = (val >> 11) & 0x03ff;
-		px   =  val        & 0x03ff;
+			cloc = (val >> 26) & 0x0f;
+			mloc = (val >> 22) & 0x0f;
+			sync = (val >> 12) & 0x03ff;
+			vld  = (val >> 11) & 0x03ff;
+			px   =  val        & 0x03ff;
 
-		lpx = (lpx << 10) | px;
+			lpx = (lpx << 10) | px;
 
-		printf("%x %x S:%03x %s %s P:%03x L:%08x", cloc, mloc, sync,
-			(sync != 0) ? "SYNC":"    ",
-			(vld) ? "VLD":"   ", px, lpx);
+			printf("%x %x S:%03x %s %s P:%03x L:%08x",
+				cloc, mloc, sync,
+				(sync != 0) ? "SYNC":"    ",
+				(vld) ? "VLD":"   ", px, lpx);
+			} break;
+		case 1: {
+			unsigned	r, g, b, h, v, vld, sr, sg, sb;
+
+			sr =(val >> 26) & 0x01;
+			sg = (val >> 25) & 0x01;
+			sb = (val >> 24) & 0x01;
+			vld=(val >> 26) & 0x01;
+			v = (val >> 25) & 0x01;
+			h = (val >> 24) & 0x01;
+			r = (val >> 16) & 0x0ff;
+			g = (val >>  8) & 0x0ff;
+			b = (val      ) & 0x0ff;
+			printf("%s %s %s %2s%3d %2s%3d %2s%3d\n",
+				vld ? "VLD":"   ",
+				v ? "VSYNC":"     ",
+				h ? "HSYNC":"     ",
+				sr ? "S:":"  ", r,
+				sg ? "S:":"  ", g,
+				sb ? "S:":"  ", b);
+			} break;
+		case 2: {
+			unsigned	r, g, b, gs, rs;
+
+			rs= (val >> 31) & 0x01;
+			gs= (val >> 30) & 0x01;
+			r = (val >> 20) & 0x03ff;
+			g = (val >> 10) & 0x03ff;
+			b = (val      ) & 0x03ff;
+			printf("%s%03x %s%03x   %03x",
+				(rs) ? "S:":"  ", r,
+				(gs) ? "S:":"  ", g,
+				b);
+			} break;
+		}
 	}
 
 	virtual	void	define_traces(void) {
-		//
-		register_trace("trigger",           1, 31);
-		register_trace("sync_valid",        1, 30);
-		register_trace("chosen_match_loc",  4, 26);
-		//
-		register_trace("match_loc",  4, 22);
-		register_trace("full_sync", 10, 12);
-		register_trace("match",      1, 11);
-		register_trace("sync",       1, 10);
-		register_trace("i_px",      10,  0);
+		switch(SCOPETYPE) {
+		case 0: {
+			//
+			register_trace("trigger",           1, 31);
+			register_trace("sync_valid",        1, 30);
+			register_trace("chosen_match_loc",  4, 26);
+			//
+			register_trace("match_loc",  4, 22);
+			register_trace("full_sync", 10, 12);
+			register_trace("match",      1, 11);
+			register_trace("sync",       1, 10);
+			register_trace("i_px",      10,  0);
+			} break;
+		case 1: {
+			register_trace("start", 1, 31);
+			//
+			register_trace("control_sync",1, 30);
+			register_trace("start_red",   1, 29);
+			register_trace("start_green", 1, 28);
+			register_trace("start_blue",  1, 27);
+			register_trace("valid", 1, 26);
+			register_trace("vsync", 1, 25);
+			register_trace("hsync", 1, 24);
+			register_trace("red",   8, 16);
+			register_trace("green", 8,  8);
+			register_trace("blue",  8,  0);
+			} break;
+		case 2:
+		default: {
+			register_trace("start_red",   1, 31);
+			register_trace("start_green", 1, 30);
+			register_trace("red",   10, 20);
+			register_trace("green", 10, 10);
+			register_trace("blue",  10,  0);
+			} break;
+		};
 	}
 };
 

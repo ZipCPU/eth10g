@@ -260,7 +260,8 @@ typedef struct __attribute__((packed)) VIDPIPE_S {
 	uint16_t	v_ovheight, v_ovmemwords;
 	uint16_t	v_ovypos,  v_ovhpos;
 	unsigned	v_fps;
-	uint32_t	v_unused[256-16];
+	unsigned	v_syncword;
+	uint32_t	v_unused[512-17];
 	uint32_t	v_clrmap[256];
 } VIDPIPE;
 

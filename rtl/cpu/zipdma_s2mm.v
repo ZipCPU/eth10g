@@ -77,7 +77,7 @@ module	zipdma_s2mm #(
 		output	reg	[DW/8-1:0]	o_wr_sel,
 		input	wire			i_wr_stall,
 		input	wire			i_wr_ack,
-		input	wire	[DW-1:0]	i_wr_data,
+		input	wire	[DW-1:0]	i_wr_data,	// UNUSED
 		input	wire			i_wr_err
 		// }}}
 		// }}}
