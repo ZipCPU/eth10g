@@ -54,7 +54,7 @@ As of 5 August, 2023:
 - The PCB for this project has been built, and is currently under test.  Several issues have been found, which will likely be fixed in a next revision.
 
 - The project RTL is mostly assembled.  Key components not yet integrated
-  include the SATA, HDMI Rx, and DDR3 controllers.
+  include the SATA and DDR3 controllers.
 
 - Components assembled, attached, and demonstrated to be working include:
 
@@ -72,7 +72,7 @@ As of 5 August, 2023:
 
     - [Fan control and temperature measurement](rtl/wbfan.v).  The [I2C controller](rtl/wbi2c/wbi2ccpu.v) is used here to sense temperature, and so it is an integral part of the [fan controller](rtl/wbfan.v).
 
-    - [EDID information](https://en.wikipedia.org/wiki/Extended_Display_Identification_Data) may be successfully read from the downstream HDMI port.
+    - [EDID information](https://en.wikipedia.org/wiki/Extended_Display_Identification_Data) may be successfully read from the downstream HDMI port, and pushed upstream to support the HDMI receiver.
 
     - DDR3 configuration information may be read successfully from the DDR3 daughter board
 
@@ -96,7 +96,7 @@ As of 5 August, 2023:
 
   - _(Sort of) Working:_ [SMI Slave Controller](rtl/smi/smi.v).  The SMI pins appear to work--all except the SMI address pins.  I'm not sure why that is, but appears to be a design issue with the [CM4 daughter board](https://www.raspberrypi.com/products/compute-module-4/?variant=raspberry-pi-cm4001000).
 
-  - [HDMI transmitter](rtl/hdmi/vidpipe.v).  This is not part of the current integration, since the simulation for it didn't mix well with the CI/CD options under test.  However, it has been demonstrated to work successfully.
+  - [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v).  The receiver appears to work (pending lab confirmation).  It should be generating accepting video from the RPi and forwarding it downstream.  The transmitter can also generate video independent of the receiver, and an overlay module can overlay a video on top of the received image before transmitting it.
 
 - Components assembled, attached, and currently under test include:
 
@@ -106,10 +106,20 @@ As of 5 August, 2023:
 
 - Components not yet integrated include:
 
-  - The [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller) has been ported to the board, but isn't yet working.  It's listed here because the integration configuration hasn't yet been merged with the project.
+  - The [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller) has been ported to the board, but isn't yet working.  It's listed here as "not yet integrated" because the integration configuration (i.e. the AutoFPGA configuration file) hasn't yet been merged with the project.
 
   - [The SATA Controller](https://github.com/ZipCPU/wbsata).  This component needs some more development time at present.
 
-  - The HDMI receiver has been wired up for testing in the lab.  Though wired up, this hasn't yet been tested.
 
-    - Pushing [EDID information](https://en.wikipedia.org/wiki/Extended_Display_Identification_Data) upstream hasn't yet been tested
+To track the project's status at a glance, you can check either the [bus blocks
+testing stoplight chart](doc/eth10g-busblocks.png), or the [10Gb Ethernet
+testing](doc/eth10g-blocks.png) diagram.  Both show the status of the hardware
+testing of various components within the system, although from different
+viewpoints.  The [bus blocks](doc/eth10g-busblocks.png) chart shows the status
+of the various components connected to the backbone Wishbone bus, but doesn't
+really break down the 10Gb ethernet components. The [10Gb Ethernet
+blocks](doc/eth10g-blocks.png) diagram, on the other hand, breaks down the
+status of the 10Gb Ethernet components, but doesn't show the status of the
+rest of the design.  Together, both will provide insight into the current
+state of the design.
+
