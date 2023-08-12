@@ -99,6 +99,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
+`timescale	1ns / 1ps
 `default_nettype none
 // }}}
 module	pktvfiford #(
@@ -145,6 +146,9 @@ module	pktvfiford #(
 		// Outgoing packet
 		// {{{
 		output	reg			M_VALID,
+		// No backpressure supt here.  Back pressure handling is via the
+		// i_fifo_rd pin, and counting the number of items used in the
+		// FIFO internally.
 		// input wire			M_READY, // No backpressure supt
 		output	reg	[BUSDW-1:0]	M_DATA,
 		output	reg [$clog2(BUSDW/8)-1:0] M_BYTES,
