@@ -38,7 +38,7 @@
 module	hdmi2vga // #()	// No parameters (yet)
 	(
 		// {{{
-		input	wire	i_clk,	i_reset,
+		input	wire		i_clk,	i_reset,
 		input	wire	[9:0]	i_hdmi_red,
 		input	wire	[9:0]	i_hdmi_grn,
 		input	wire	[9:0]	i_hdmi_blu,
@@ -92,6 +92,7 @@ module	hdmi2vga // #()	// No parameters (yet)
 	//
 	// Bit synchronization: [clr]_word and sync_word generation
 	// {{{
+`ifndef	FORMAL
 	hdmibitsync
 	bitsync(
 		.i_pix_clk(i_clk), .i_reset(i_reset),
@@ -100,7 +101,13 @@ module	hdmi2vga // #()	// No parameters (yet)
 		.o_sync_word(o_sync_word),
 		.o_debug(dbg_bitsync)
 	);
-
+`else
+	assign	red_word = i_hdmi_red;
+	assign	grn_word = i_hdmi_grn;
+	assign	blu_word = i_hdmi_blu;
+	assign	o_sync_word = 32'h0;
+	assign	dbg_bitsync = 32'h0;
+`endif
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -117,6 +124,12 @@ module	hdmi2vga // #()	// No parameters (yet)
 
 	tmdsdecode
 	decred(i_clk, red_word, ured_ctl, ured_aux, ured_pix);
+
+
+// ifdef	FORMAL
+//	We assume the tmdsdecode works, and start with making assumptions about
+//	the outputs of the tmds decoder.
+// endif
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -457,4 +470,217 @@ module	hdmi2vga // #()	// No parameters (yet)
 			};
 	// Verilator lint_on  UNUSED
 	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+	localparam	LGDIM = 16;
+	reg	f_past_valid;
+	(* anyconst *)	reg	[LGDIM-1:0]	fh_width, fv_height,
+						fh_front, fv_front,
+						fh_sync,  fv_sync,
+						fh_raw,   fv_raw;
+	(* anyconst *)	reg		fh_syncpol, fv_syncpol;
+	(* anyconst *)	reg	[1:0] fred_offset, fgrn_offset, fblu_offset;
+	reg	[LGDIM-1:0]	f_hpos, f_vpos;
+
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	always @(*)
+	if (!f_past_valid)
+		assume(i_reset);
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Input assumptions
+	// {{{
+	always @(*)
+	begin
+		assume(fh_width  > 4);
+		assume(fh_width  < fh_front);
+		assume(fh_front  < fh_sync);
+		assume(fh_sync +10 < fh_raw);
+
+		assume(fv_height > 2);
+		assume(fv_height < fv_front);
+		assume(fv_front  < fv_sync);
+		assume(fv_sync   < fv_raw);
+
+		assume(fred_offset <= 2);
+		assume(fgrn_offset <= 2);
+		assume(fblu_offset <= 2);
+
+		assume((fred_offset == 0)
+			|| (fgrn_offset == 0)
+			|| (fblu_offset == 0));
+	end
+
+	initial	f_hpos = 0;
+	initial	f_vpos = 0;
+	always @(posedge i_clk)
+	begin
+		if (f_hpos +1 >= fh_raw)
+			f_hpos <= 0;
+		else
+			f_hpos <= f_hpos + 1;
+
+		if (f_hpos +1 == fh_front)
+		begin
+			if (f_vpos + 1 >= fv_raw)
+				f_vpos <= 0;
+			end
+				f_vpos <= f_vpos + 1;
+		end
+	end
+
+	always @(*)
+	begin
+		if (f_hpos + fred_offset >= fh_raw)
+			fred_hpos = f_hpos + fred_offset - fh_raw;
+		else
+			fred_hpos = f_hpos + fred_offset;
+
+		if (f_hpos + fgrn_offset >= fh_raw)
+			fgrn_hpos = f_hpos + fgrn_offset - fh_raw;
+		else
+			fgrn_hpos = f_hpos + fgrn_offset;
+
+		if (f_hpos + fblu_offset >= fh_raw)
+			fblu_hpos = f_hpos + fblu_offset - fh_raw;
+		else
+			fblu_hpos = f_hpos + fblu_offset;
+
+		if (f_hpos + fblu_offset >= fh_front && f_hpos < fh_front)
+		begin
+			if (fblu_vpos + 1 < fv_raw)
+				fblu_vpos = f_vpos + 1;
+			else
+				fblu_vpos = 0;
+		end else
+			fblu_vpos = f_vpos;
+
+		if (f_hpos + fblu_offset == fh_front)
+			assume(ublu_aux[4]);
+		if (ublu_aux[4])
+		begin
+			assume(ublu_ctl[0] ^ fh_syncpol
+				== ((fblu_hpos >= fh_front)&&(fblu_hpos<fh_sync)));
+			assume(ublu_ctl[1] ^ fv_syncpol
+				== ((fblu_vpos >= fv_front)&&(fblu_vpos<fv_sync)));
+		end
+	end
+
+	always @(*)
+	begin
+		if (fred_hpos < fh_width)
+			assume(ured_aux[6:4] == 3'h0);
+		if (fgrn_hpos < fh_width)
+			assume(ugrn_aux[6:4] == 3'h0);
+		if (fblu_hpos < fh_width)
+			assume(ublu_aux[6:4] == 3'h0);
+
+		if (fred_hpos == fh_width) assume(ured_aux[4]);
+		if (fgrn_hpos == fh_width) assume(ugrn_aux[4]);
+		if (fblu_hpos == fh_width) assume(ublu_aux[4]
+					&& ublu_ctl[1] == fv_syncpol
+					&& ublu_ctl[0] == fh_syncpol);
+
+		// Video starts
+		// {{{
+		// Control words
+		if (fred_hpos + 10 >= fh_raw && fred_hpos + 2 <= fh_raw)
+			assume(ured_aux[4]);
+
+		if (fgrn_hpos + 10 >= fh_raw && fgrn_hpos + 2 <= fh_raw)
+			assume(ugrn_aux[4] && ugrn_ctl == 2'b01);
+
+		if (fgrn_hpos + 10 >= fh_raw && fgrn_hpos + 2 <= fh_raw)
+			assume(ublu_aux[4]);
+
+		// Guard words
+		if (fred_hpos + 2 >= fh_raw)
+			assume(ured_aux[6] && !ured_aux[0]);
+
+		if (fgrn_hpos + 2 >= fh_raw)
+			assume(ugrn_aux[6] &&  ugrn_aux[0]);
+
+		if (fgrn_hpos + 2 >= fh_raw)
+			assume(ublu_aux[6] && !ublu_aux[0]);
+		// }}}
+
+		// Data starts
+		// {{{
+		if (fred_hpos + 2 < fh_raw) assume(!ured_aux[6]);
+		if (fgrn_hpos + 2 < fh_raw) assume(!ugrn_aux[6]);
+		if (fblu_hpos + 2 < fh_raw) assume(!ublu_aux[6]);
+
+		if (fred_hpos + 10 < fh_raw)
+			assume(!ured_aux[4] || ured_ctl == 2'b00);
+
+		/*
+		// Control words
+		if (fred_hpos + 10 >= fh_raw && fred_hpos + 2 <= fh_raw)
+			assume(ured_aux[4]);
+
+		if (fgrn_hpos + 10 >= fh_raw && fgrn_hpos + 2 <= fh_raw)
+			assume(ugrn_aux[4] && ugrn_ctl == 2'b01);
+
+		if (fgrn_hpos + 10 >= fh_raw && fgrn_hpos + 2 <= fh_raw)
+			assume(ublu_aux[4]);
+
+		// Guard words
+		if (fred_hpos + 2 >= fh_raw)
+			assume(ured_aux[6] && !ured_aux[0]);
+
+		if (fgrn_hpos + 2 >= fh_raw)
+			assume(ugrn_aux[6] &&  ugrn_aux[0]);
+
+		if (fgrn_hpos + 2 >= fh_raw)
+			assume(ublu_aux[6] && !ublu_aux[0]);
+		*/
+		// }}}
+	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Output assertions
+	// {{{
+	always @(posedge i_clk)
+	if (fred_hpos != 1)
+		assert(!video_start_red);
+	always @(posedge i_clk)
+	if (fgrn_hpos != 1)
+		assert(!video_start_grn);
+	always @(posedge i_clk)
+	if (fblu_hpos != 1)
+		assert(!video_start_blue);
+	always @(posedge i_clk)
+	if (f_hpos != 2)
+		assert(!video_start);
+
+	always @(posedge i_clk)
+	if ((f_hpos < 3) || (f_hpos +3 >= fh_width))
+		assert(!o_pix_valid);
+	else if (f_past_valid && !$past(i_reset) && $past(o_pix_valid))
+		assert(o_pix_valid == (f_hpos + 3 < f_hwidth));
+
+	always @(posedge i_clk)
+	if (f_hpos + 3 >= fh_width)
+	begin
+		assert(!o_hsync
+			|| (fh_syncpol^o_hsync) == ((f_hpos + 3 >= fh_front)
+						&&(f_hpos + 3 < fh_sync)));
+	end else if (f_hpos < 3)
+		assert(!o_hsync || ((o_hsync^fh_syncpol) == 0));
+	// }}}
+`endif
+// }}}
 endmodule

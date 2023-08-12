@@ -4,7 +4,8 @@
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	
+// Purpose:	A wrapper for the 1:10 ISERDES+IOBUF capability required to
+//		support HDMI ingestion.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC

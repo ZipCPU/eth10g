@@ -4,7 +4,23 @@
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	
+// Purpose:	A Xilinx 1:10 ISERDES configuration, sufficient to support
+//		reading a 10-bit HDMI word.  The ISERDES is done blindly,
+//	according to an external clock which may (or may not) be aligned with
+//	the data.  In the case where it is not aligned, a Xilinx 7-series IDELAY
+//	is used to adjust the relationship between the data and the clock.
+//	Bit order is such that o_word[9] is the *first* bit received, whereas
+//	o_word[0] is the last.
+//
+//	This routine by itself is not sufficient.  An external routine may
+//	be required to determine the proper IDELAY amount.  This should be
+//	handled in hardware, but I've often resorted to doing this in software.
+//	Likewise, an external synchronizer is required to determine which output
+//	bits in the o_word stream constitute a 10-bit HDMI word.  This is
+//	handled (currently) by the hdmipixelsync.v module.  A third
+//	synchronizer, found in my hdmi2vga.v module is required to handle any
+//	case where the words from the various color streams need to be further
+//	aligned.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC

@@ -175,17 +175,14 @@ module	sync2stream #(
 	// hlocked
 	// {{{
 	always @(posedge i_clk)
+	if (i_reset)
+		hlocked <= 0;
+	else if (new_data_row && !empty_row)
 	begin
-		if (new_data_row && !empty_row)
-		begin
-			hlocked <= 1;
-			if ({ 1'b0, o_width } != hcount_pix)
-				hlocked <= 0;
-			if ({ 1'b0, o_raw_width } != hcount_tot)
-				hlocked <= 0;
-		end
-
-		if (i_reset)
+		hlocked <= 1;
+		if ({ 1'b0, o_width } != hcount_pix)
+			hlocked <= 0;
+		if ({ 1'b0, o_raw_width } != hcount_tot)
 			hlocked <= 0;
 	end
 	// }}}
@@ -238,7 +235,6 @@ module	sync2stream #(
 	initial	vcount_shelf = 0;
 	initial	vcount_sync  = 0;
 	initial	vcount_tot   = 1;
-	initial	vlost_lock   = 1;
 	always @(posedge i_clk)
 	if (linestart)
 	begin
@@ -251,7 +247,6 @@ module	sync2stream #(
 			vcount_sync  <= 0;
 			vcount_tot   <= 1;
 			vin_shelf    <= 1'b1;
-			vlost_lock   <= !hlocked;
 			// }}}
 		end else begin
 			// Count up
@@ -267,11 +262,18 @@ module	sync2stream #(
 				vcount_shelf <= vcount_shelf + 1'b1;
 			if (this_line_had_vsync)
 				vin_shelf <= 1'b0;
-			if (!hlocked)
-				vlost_lock <= 1;
 			// }}}
 		end
 	end
+
+	initial	vlost_lock   = 1;
+	always @(posedge i_clk)
+	if (i_reset)
+		vlost_lock <= 1'b1;
+	else if (!hlocked)
+		vlost_lock <= 1'b1;
+	else if (linestart && newframe)
+		vlost_lock <= !hlocked;
 	// }}}
 
 	// o_height, o_raw_height, o_vfront, o_vsync
@@ -377,4 +379,324 @@ module	sync2stream #(
 	assign	unused = &{ 1'b0, M_AXIS_TREADY };
 	// Verilator lint_on  UNUSED
 	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+	reg	f_past_valid;
+	(* anyconst *)	reg	fh_syncpol, fv_syncpol;
+	(* anyconst *)	reg	[LGDIM:0]	fh_width, fv_height,
+					fh_front, fv_front,
+					fh_sync,  fv_sync,
+					fh_raw,   fv_raw,
+					fc_hpos,  fc_vpos;
+	(* anyconst *)	reg	[23:0]	fc_pixel;
+	reg	[LGDIM:0]	f_hpos, f_vpos;
+	reg			f_hsync, f_vsync,
+				f_valid, fv_valid;
+
+	initial	f_past_valid = 0;
+	always @(posedge i_clk)
+		f_past_valid <= 1;
+
+	always @(*)
+	if (!f_past_valid)
+		assume(i_reset);
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Input assumptions
+	// {{{
+	always @(*)
+	begin
+		assume(fh_width >= 4);
+		assume(fh_front > fh_width);
+		assume(fh_sync  > fh_front);
+		assume(fh_raw   > fh_sync + 10);
+
+		assume(fv_height >= 2);
+		assume(fv_front > fv_height);
+		assume(fv_sync  > fv_front);
+		assume(fv_raw   > fv_sync);
+	end
+
+	always @(*)
+	if (i_reset)
+	begin
+		assume(f_hpos < fh_raw);
+		assume(f_vpos < fv_raw);
+	end
+
+	always @(posedge i_clk)
+	begin
+		f_hpos <= f_hpos + 1;
+		if (f_hpos +1 >= fh_raw)
+			f_hpos <= 0;
+		if (f_hpos +1 == fh_front)
+		begin
+			f_vpos <= f_vpos + 1;
+			if (f_vpos + 1 >= fv_raw)
+				f_vpos <= 0;
+		end
+	end
+
+	always @(posedge i_clk)
+	if (i_reset)
+		f_valid <= 0;
+	else if (i_pix_valid && !last_pv && !has_vsync)
+		f_valid <= 1;
+
+	// When are the vertical counters valid?
+	always @(posedge i_clk)
+	if (i_reset)
+		fv_valid <= 0;
+	else if (f_valid && i_px_valid && f_vpos == 0
+				&& !this_line_had_pixels && !has_vsync)
+		fv_valid <= 1;
+
+	always @(*)
+	begin
+		assume(i_pix_valid == ((f_hpos < fh_width)
+						&& (f_vpos < fv_height)));
+		f_hsync = (f_hpos >= fh_front && f_hpos < fh_sync);
+		f_vsync = (f_vpos >= fv_front && f_vpos < fv_sync);
+
+		if (!i_pix_valid)
+		begin
+			assume(i_hsync == (f_hsync ^ fh_syncpol));
+			assume(i_vsync == (f_hsync ^ fh_syncpol));
+		end
+	end
+
+	always @(*)
+	if (fc_hpos == f_hpos && fc_vpos == f_vpos && i_pix_valid)
+		assume(i_pixel == fc_pixel);
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Intermediate counting assertions
+	// {{{
+
+	always @(*)
+	if (!i_reset)
+	begin
+		assert(hcount_pix   <= (1<<LGDIM));
+		assert(hcount_tot   <= (1<<LGDIM));
+		assert(hcount_sync  <= (1<<LGDIM));
+		assert(hcount_shelf <= (1<<LGDIM));
+	end
+
+	// empty_row
+	// {{{
+	always @(*)
+	if (!i_reset && f_valid && f_hpos > 0 && f_vpos < fv_height)
+	begin
+		assert(!empty_row);
+	end else if (!i_reset && f_valid && f_hpos > 0 && f_hpos < fh_raw
+							&& f_vpos == fv_height)
+		assert(!empty_row);
+
+	always @(*)
+	if (!i_reset && f_valid && hcount_tot > fh_raw)
+	begin
+		assert(f_vpos >= fv_height);
+		if (f_hpos > fh_front)
+			assert(empty_row);
+		if (f_vpo > fv_height)
+			assert(empty_row);
+	end
+	// }}}
+
+	// hcount* assertions
+	// {{{
+	always @(*)
+	if (!i_reset && f_valid && !empty_row)
+	begin
+		assert((hcount_tot == (1<<LGDIM) && f_hpos >= (1<<LGDIM))
+				|| (hcount_tot == { 1'b0, fh_pos[LGDIM-1:0]}));
+
+		if (f_hpos < fh_width)
+		begin
+			assert((hcount_pix == (1<<LGDIM))&&f_hpos >= (1<<LGDIM))
+				|| (hcount_pix == { 1'b0, fh_pos[LGDIM-1:0]}));
+		end else begin
+			assert((hcount_pix == (1<<LGDIM))&&f_hpos >= (1<<LGDIM))
+				|| (hcount_pix == fh_width));
+		end
+
+		if (f_hpos > fh_width)
+		begin
+			assert(hpol == fh_syncpol);
+			assert(vpol == fv_syncpol);
+		end
+
+		if (f_hpos == 0)
+		begin
+		end else if (i_pix_valid && f_hpos < fh_width)
+		begin
+			assert(hcount_tot == hcount_pix);
+			assert(hin_shelf);
+			assert(hin_sync  == 0);
+			assert(hin_shelf == 0);
+			assert(empty_row == 0);
+		end
+
+		if (f_hpos >= fh_width && f_hpos <= fh_front)
+		begin
+			assert(hcount_sync == 0);
+			assert(hcount_shelf == (f_hpos-fh_width));
+			assert(hin_shelf);
+		end else if (f_hpos > fh_front && f_hpos < fh_sync)
+		begin
+			assert(hcount_shelf == (f_hfront - fh_width));
+			assert(hcount_sync  == (f_hpos   - fh_front);
+			assert(!hin_shelf);
+		end else if (f_hpos > fh_sync)
+		begin
+			assert(hcount_shelf == (fh_front - fh_width));
+			assert(hcount_sync  == (fh_sync  - fh_front));
+			assert(!hin_shelf);
+		end
+	end
+	// }}}
+
+	always @(*)
+	if (!i_reset && f_valid && f_vpos < fv_height && f_hpos < fh_sync)
+	begin
+		assert(f_hpos == 0 || has_pixels);
+	end
+
+	always @(*)
+	if (!i_reset && fv_valid)
+		assert(f_valid);
+
+	always @(*)
+	if (!i_reset && f_valid)
+	begin
+		if (fv_valid)
+		begin
+			assert(this_line_had_pixels == (f_vpos != 0 && f_vpos <= fv_height);
+			assert(last_line_had_pixels == (f_vpos > 1 && f_vpos <= fv_height+1);
+			assert(this_line_had_vsync  == (f_vpos > fv_front && f_vpos <= fv_sync+1);
+		end
+
+		if (f_hpos < fh_front || f_hpos > fh_front+3)
+			assert(has_vsync == (f_vpos >= fv_front && f_vpos < fv_sync));
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && f_valid)
+	begin
+		assert(linestart == (f_hpos == fh_front + 1));
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && fv_valid && !linestart)
+	begin
+		// {{{
+		assert(vcount_tot == fv_vpos);
+		if (fv_vpos < fv_height)
+			assert(vcount_lines == fv_vpos);
+		else
+			assert(vcount_lines == fv_height);
+
+		assert(vin_shelf == (fv_vpos < fv_front));
+
+		if (fv_vpos < fv_height)
+		begin
+			assert(vcount_shelf == 0);
+		end else if (fv_vpos < fv_front)
+		begin
+			assert(vcount_shelf == (fv_vpos - fv_height));
+		end else
+			assert(vcount_shelf == (fv_front - fv_height));
+
+		if (fv_vpos < fv_front)
+		begin
+			assert(vcount_sync == 0);
+		end else begin
+			assert(vcount_sync == (fv_vpos - fv_front));
+		end
+
+		if (!fv_valid) assert(o_height == 0);
+		if (o_height == 0)
+		begin
+			// assert(o_height == 0);
+			assert(o_vfront == 0);
+			assert(o_vsync  == 0);
+			assert(o_raw_front  == 0);
+			assert(o_vsync_pol  == 0);
+			assert(vlost_lock);
+		end else begin
+			assert(o_height    == fv_height);
+			assert(o_vfront    == fv_front);
+			assert(o_vsync     == fv_sync);
+			assert(o_raw_front == fv_raw);
+			assert(o_vsync_pol == fv_syncpol);
+		end
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset)
+	begin
+		if (!$past(hlocked))
+			assert(vlost_lock);
+		if (!fv_valid)
+			assert(vlost_lock);
+		if (!$past(i_reset))
+			assert(!$rose(vlost_lock));
+	end
+	
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Output assertions
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset || $past(i_reset))
+	begin
+	end else if (o_width == 0)
+	begin
+		assert(o_height == 0);
+		assert(o_sync   == 0);
+		assert(o_hfront == 0);
+		assert(o_hsync  == 0);
+		assert(o_raw_width == 0);
+		assert(!hlocked);
+	end else begin
+		assert(o_width     == fh_width);
+		assert(o_hsync     == fh_sync);
+		assert(o_hfront   == fh_front);
+		assert(o_raw_width == fh_raw);
+		assert(o_hsync_pol == fh_syncpol);
+
+		assert(!$fell(hlocked));
+	end
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// "Careless" assumptions
+	// {{{
+
+	always @(*)
+	begin
+		assume(!fh_width[LGDIM]);
+		assume(!fh_front[LGDIM]);
+		assume(!fh_sync[LGDIM]);
+		assume(!fh_raw[LGDIM]);
+
+		assume(!fv_height[LGDIM]);
+		assume(!fv_front[LGDIM]);
+		assume(!fv_sync[LGDIM]);
+		assume(!fv_raw[LGDIM]);
+	end
+	// }}}
+`endif
+// }}}
 endmodule

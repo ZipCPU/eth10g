@@ -4,7 +4,8 @@
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	
+// Purpose:	Encapsulates Xilinx's 7-series 10:1 OSERDES element in a fashion
+//		that works nicely with the rest of my HDMI infrastructure.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
