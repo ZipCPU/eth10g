@@ -35,12 +35,21 @@
 //
 `timescale 1ns/1ps
 `default_nettype	none
+`ifdef	VERILATOR
+`define	OPENSIM
+`endif
+`ifdef	IVERILOG
+`define	OPENSIM
+`endif
 // }}}
 module	xsdserdes8x #(
+		// Verilator lint_off UNUSED
 		parameter [0:0]		OPT_BIDIR = 1'b1
+		// Verilator lint_on  UNUSED
 	) (
 		// {{{
-		input	wire		i_clk, i_hsclk,
+		input	wire		i_clk,
+					i_hsclk,
 		// input	wire		i_reset,
 		//
 		input	wire		i_en,
@@ -55,15 +64,29 @@ module	xsdserdes8x #(
 		// }}}
 	);
 
-`ifdef VERILATOR
-	assign	io_tristate = 1'b1;
-	assign	o_pin = 1'b1;
-	assign	o_wide = 8'h0;
+`ifdef OPENSIM
+	reg		last_ck;
+	reg	[7:0]	ir_wide, or_wide;
+	always @(posedge i_hsclk)
+		last_ck <= i_clk;
+
+	always @(posedge i_hsclk)
+	if (i_clk && !last_ck)
+		or_wide <= i_data;
+	else
+		or_wide <= { or_wide[6:0], 1'b0 };
+
+	always @(posedge i_hsclk)
+		ir_wide <= { ir_wide[6:0], i_pin };
+
+	assign	io_tristate = !i_en;
+	assign	o_pin = or_wide[7];
+	assign	o_wide = ir_wide;
 	assign	o_raw = i_pin;
 
 	// Verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = i_pin;
+	assign	unused = &{ 1'b0 };
 	// Verilator lint_on  UNUSED
 `else
 	wire	w_pin, w_in, w_reset, high_z, fabric_return;
@@ -140,5 +163,5 @@ module	xsdserdes8x #(
 		assign	unused = &{ 1'b0, w_in };
 		// Verilator lint_on  UNUSED
 	end endgenerate
-`endif	// VERILATOR
+`endif	// OPENSIM
 endmodule

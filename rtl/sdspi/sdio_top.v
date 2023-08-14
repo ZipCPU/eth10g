@@ -85,7 +85,7 @@ module sdio_top #(
 
 	// Local declarations
 	// {{{
-	wire		cfg_ddr;
+	wire		cfg_ddr, cfg_ds;
 	wire	[4:0]	cfg_sample_shift;
 	wire	[7:0]	sdclk;
 		//
@@ -94,7 +94,6 @@ module sdio_top #(
 		//
 	wire		data_en, pp_data, rx_en;
 	wire	[31:0]	tx_data;
-	wire		afifo_reset_n;
 		//
 	wire	[1:0]	rply_strb, rply_data;
 	wire		card_busy;
@@ -131,7 +130,7 @@ module sdio_top #(
 		.o_int(o_int),
 		// Interface to PHY
 		// {{{
-		.o_cfg_ddr(cfg_ddr),
+		.o_cfg_ddr(cfg_ddr), .o_cfg_ds(cfg_ds),
 		.o_cfg_sample_shift(cfg_sample_shift),
 		.o_sdclk(sdclk),
 		//
@@ -140,7 +139,6 @@ module sdio_top #(
 		//
 		.o_data_en(data_en), .o_rx_en(rx_en), .o_pp_data(pp_data),
 		.o_tx_data(tx_data),
-		.o_afifo_reset_n(afifo_reset_n),
 		//
 		.i_cmd_strb(rply_strb), .i_cmd_data(rply_data),
 		.i_card_busy(card_busy),
@@ -158,7 +156,8 @@ module sdio_top #(
 	) u_sdfrontend (
 		// {{{
 		.i_clk(i_clk), .i_hsclk(i_hsclk), .i_reset(i_reset),
-		.i_cfg_ddr(cfg_ddr), .i_sample_shift(cfg_sample_shift),
+		.i_cfg_ddr(cfg_ddr), .i_cfg_ds(cfg_ds),
+		.i_sample_shift(cfg_sample_shift),
 		// Tx path
 		// {{{
 		// MSB "first" incoming data.
@@ -167,7 +166,6 @@ module sdio_top #(
 		.i_cmd_en(cmd_en), .i_pp_cmd(pp_cmd), .i_cmd_data(cmd_data),				.o_data_busy(card_busy),
 		//
 		.i_data_en(data_en), .i_pp_data(pp_data), .i_tx_data(tx_data),
-			.i_afifo_reset_n(afifo_reset_n),
 		// }}}
 		// Synchronous Rx path
 		// {{{
