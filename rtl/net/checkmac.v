@@ -49,6 +49,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
+`timescale 1ns/1ps
 `default_nettype none
 // }}}
 module	checkmac #(
@@ -61,7 +62,7 @@ module	checkmac #(
 		// }}}
 	) (
 		// {{{
-		input	wire		i_clk, i_reset,
+		input	wire		i_clk, i_reset, i_en,
 		//
 		input	wire				S_VALID,
 		output	wire				S_READY,
@@ -110,16 +111,28 @@ module	checkmac #(
 			M_VALID <= 1'b0;
 		else if (S_VALID && S_READY && !aborting)
 			M_VALID <= S_VALID && !S_ABORT
-						&& (midpkt || initial_match);
+					&& (midpkt || initial_match || !i_en);
 		else if (M_READY)
 			M_VALID <= 1'b0;
 
 		always @(posedge i_clk)
-		if (S_VALID && S_READY && (!OPT_LOWPOWER || !aborting))
+		if (OPT_LOWPOWER && i_reset)
+		begin
+			M_BYTES <= 0;
+			M_DATA  <= 0;
+			M_LAST  <= 0;
+		end else if (!M_VALID || M_READY)
 		begin
 			M_BYTES <= S_BYTES;
 			M_DATA  <= S_DATA;
 			M_LAST  <= S_LAST;
+
+			if (OPT_LOWPOWER && (!S_VALID || aborting))
+			begin
+				M_BYTES <= 0;
+				M_DATA  <= 0;
+				M_LAST  <= 0;
+			end
 		end
 
 		always @(posedge i_clk)
@@ -129,7 +142,8 @@ module	checkmac #(
 			aborting <= 1'b0;
 		else if (S_VALID && S_READY && S_LAST)
 			aborting <= 1'b0;
-		else if (S_VALID && S_READY && !midpkt && !initial_match)
+		else if (S_VALID && S_READY && !midpkt && !initial_match
+								&& i_en)
 			aborting <= 1'b1;
 
 		always @(posedge i_clk)
