@@ -1,0 +1,25 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+prf: depth 35
+cvr: depth 180
+
+[engines]
+smtbmc
+
+[script]
+read -formal sync2stream.v
+--pycode-begin--
+cmd = "hierarchy -top sync2stream"
+cmd += " -chparam LGDIM 8"
+output(cmd)
+--pycode-end--
+# proc -norom
+prep -top sync2stream
+
+[files]
+../../rtl/hdmi/sync2stream.v
