@@ -69,8 +69,13 @@
 #define	CFG_USER_CS_n	(1<<8)
 
 const	bool	HIGH_SPEED = false;
+#ifdef	FLASH_ACCESS
 const	bool	OPT_ADDR32 = (FLASHLEN > (1<<24));
 const	unsigned FLASH_ADDR_MASK = (FLASHLEN -1);
+#else
+const	bool	OPT_ADDR32 = false;
+const	unsigned FLASH_ADDR_MASK = -1;
+#endif
 
 static const unsigned	F_RESET = (CFG_USERMODE|0x0ff),
 			F_EMPTY = (CFG_USERMODE|0x000),
