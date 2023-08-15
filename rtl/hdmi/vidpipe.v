@@ -789,7 +789,7 @@ module	vidpipe #(
 	);
 	// }}}
 
-	// Frame counter
+	// frame_counter
 	// {{{
 	always @(posedge i_clk)
 	if (pix_reset_sys)
@@ -826,7 +826,7 @@ module	vidpipe #(
 		.OPT_TUSER_IS_SOF(1'b0)
 	) u_empty (
 		// {{{
-		.i_clk(i_pixclk), .i_reset(cfg_src_sel),
+		.i_clk(i_pixclk), .i_reset(pix_reset),
 		.i_width(hm_width), .i_height(vm_height),
 		//
 		.M_VID_VALID(empty_valid),
@@ -852,9 +852,9 @@ module	vidpipe #(
 		//
 		.S_VID_VALID({ rx_valid, empty_valid }),
 		.S_VID_READY({ rx_ready, empty_ready }),
-		.S_VID_DATA({ rx_data,   empty_data }),
-		.S_VID_LAST({ rx_vlast,  empty_vlast }),	// VLAST
-		.S_VID_USER({ rx_hlast,  empty_hlast }),	// HLAST
+		.S_VID_DATA({  rx_data,  empty_data  }),
+		.S_VID_LAST({  rx_vlast, empty_vlast }),	// VLAST
+		.S_VID_USER({  rx_hlast, empty_hlast }),	// HLAST
 		//
 		.M_VID_VALID(pipe_valid), .M_VID_READY(pipe_ready),
 		.M_VID_DATA(pipe_data),

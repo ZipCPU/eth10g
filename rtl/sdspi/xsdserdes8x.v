@@ -66,22 +66,26 @@ module	xsdserdes8x #(
 
 `ifdef OPENSIM
 	reg		last_ck;
-	reg	[7:0]	ir_wide, or_wide;
-	always @(posedge i_hsclk)
+	reg	[7:0]	ir_wide, or_wide, rx_wide;
+
+	always @(posedge i_hsclk or negedge i_hsclk)
 		last_ck <= i_clk;
 
-	always @(posedge i_hsclk)
+	always @(posedge i_hsclk or negedge i_hsclk)
 	if (i_clk && !last_ck)
 		or_wide <= i_data;
 	else
 		or_wide <= { or_wide[6:0], 1'b0 };
 
-	always @(posedge i_hsclk)
-		ir_wide <= { ir_wide[6:0], i_pin };
+	always @(posedge i_hsclk or negedge i_hsclk)
+		ir_wide <= { ir_wide[6:0], i_pin !== 1'b0 };
+
+	always @(posedge i_clk)
+		rx_wide <= ir_wide;
 
 	assign	io_tristate = !i_en;
 	assign	o_pin = or_wide[7];
-	assign	o_wide = ir_wide;
+	assign	o_wide = rx_wide;
 	assign	o_raw = i_pin;
 
 	// Verilator lint_off UNUSED

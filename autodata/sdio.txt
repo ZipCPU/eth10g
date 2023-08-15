@@ -80,6 +80,7 @@
 	// @$(NAME) definitions
 	// {{{
 	wire		w_@$(PREFIX)_cfg_ddr;
+	wire		w_@$(PREFIX)_cfg_ds;
 	wire	[4:0]	w_@$(PREFIX)_cfg_sample_shift;
 	wire		w_@$(PREFIX)_pp_cmd;
 	wire		w_@$(PREFIX)_pp_data;
@@ -90,7 +91,6 @@
 	wire		w_@$(PREFIX)_data_en;
 	wire		w_@$(PREFIX)_rx_en;
 	wire	[31:0]	w_@$(PREFIX)_tx_data;
-	wire		w_@$(PREFIX)_afifo_reset_n;
 		//
 	wire	[1:0]	w_@$(PREFIX)_cmd_strb;
 	wire	[1:0]	w_@$(PREFIX)_cmd_idata;
@@ -119,6 +119,7 @@
 		.i_clk(s_clk), .i_hsclk(s_clk4x), .i_reset(s_reset),
 		// Configuration
 		.i_cfg_ddr(w_@$(PREFIX)_cfg_ddr),
+		.i_cfg_ds(w_@$(PREFIX)_cfg_ds),
 		.i_sample_shift(w_@$(PREFIX)_cfg_sample_shift),
 		.i_pp_cmd(w_@$(PREFIX)_pp_cmd),
 		.i_pp_data(w_@$(PREFIX)_pp_data),
@@ -129,7 +130,6 @@
 		.i_data_en(w_@$(PREFIX)_data_en),
 		.i_rx_en(w_@$(PREFIX)_rx_en),
 		.i_tx_data(w_@$(PREFIX)_tx_data),
-		.i_afifo_reset_n(w_@$(PREFIX)_afifo_reset_n),
 		// Return values
 		.o_cmd_strb(w_@$(PREFIX)_cmd_strb),
 		.o_cmd_data(w_@$(PREFIX)_cmd_idata),
@@ -159,6 +159,7 @@
 		!i_@$(TOP.IOPREFIX)_cd_n,
 		//
 		w_@$(PREFIX)_cfg_ddr,
+		w_@$(PREFIX)_cfg_ds,
 		w_@$(PREFIX)_cfg_sample_shift,
 		w_@$(PREFIX)_pp_cmd,
 		w_@$(PREFIX)_pp_data,
@@ -169,7 +170,6 @@
 		w_@$(PREFIX)_data_en,
 		w_@$(PREFIX)_rx_en,
 		w_@$(PREFIX)_tx_data,
-		w_@$(PREFIX)_afifo_reset_n,
 		//
 		w_@$(PREFIX)_cmd_strb,
 		w_@$(PREFIX)_cmd_idata,
@@ -189,6 +189,7 @@
 		i_@$(PREFIX)_detect,
 		//
 		o_@$(PREFIX)_cfg_ddr,
+		o_@$(PREFIX)_cfg_ds,
 		o_@$(PREFIX)_cfg_sample_shift,
 		o_@$(PREFIX)_pp_cmd,
 		o_@$(PREFIX)_pp_data,
@@ -199,7 +200,6 @@
 		o_@$(PREFIX)_data_en,
 		o_@$(PREFIX)_rx_en,
 		o_@$(PREFIX)_tx_data,
-		o_@$(PREFIX)_afifo_reset_n,
 		//
 		i_@$(PREFIX)_cmd_strb,
 		i_@$(PREFIX)_cmd_data,
@@ -218,6 +218,7 @@
 	input	wire		i_@$(PREFIX)_detect;
 		//
 	output	wire		o_@$(PREFIX)_cfg_ddr;
+	output	wire		o_@$(PREFIX)_cfg_ds;
 	output	wire	[4:0]	o_@$(PREFIX)_cfg_sample_shift;
 	output	wire		o_@$(PREFIX)_pp_cmd;
 	output	wire		o_@$(PREFIX)_pp_data;
@@ -228,7 +229,6 @@
 	output	wire		o_@$(PREFIX)_data_en;
 	output	wire		o_@$(PREFIX)_rx_en;
 	output	wire	[31:0]	o_@$(PREFIX)_tx_data;
-	output	wire		o_@$(PREFIX)_afifo_reset_n;
 		//
 	input	wire	[1:0]	i_@$(PREFIX)_cmd_strb;
 	input	wire	[1:0]	i_@$(PREFIX)_cmd_data;
@@ -279,6 +279,7 @@
 		.o_int(@$(PREFIX)_int),
 		//
 		.o_cfg_ddr(o_@$(PREFIX)_cfg_ddr),
+		.o_cfg_ds(o_@$(PREFIX)_cfg_ds),
 		.o_cfg_sample_shift(o_@$(PREFIX)_cfg_sample_shift),
 		.o_pp_cmd(o_@$(PREFIX)_pp_cmd),
 		.o_pp_data(o_@$(PREFIX)_pp_data),
@@ -289,7 +290,6 @@
 		.o_data_en( o_@$(PREFIX)_data_en),
 		.o_rx_en(   o_@$(PREFIX)_rx_en),
 		.o_tx_data( o_@$(PREFIX)_tx_data),
-		.o_afifo_reset_n(o_@$(PREFIX)_afifo_reset_n),
 		//
 		.i_cmd_strb( i_@$(PREFIX)_cmd_strb),
 		.i_cmd_data( i_@$(PREFIX)_cmd_data),
@@ -358,7 +358,7 @@ struct @$(DEVID)_S;
 		m_core->i_@$(PREFIX)_rx_data  =  tmp & 0x0ffff;
 		m_core->i_@$(PREFIX)_ac_valid = (tmp_async & 2) ? 1:0;
 		m_core->i_@$(PREFIX)_ad_valid =  tmp_async & 1;
-		if (!m_core->o_@$(PREFIX)_afifo_reset_n) {
+		if (!m_core->o_@$(PREFIX)_cfg_ds) {
 			m_core->i_@$(PREFIX)_ad_valid = 0;
 			m_core->i_@$(PREFIX)_ad_data = 0;
 		} }

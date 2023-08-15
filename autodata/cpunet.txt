@@ -48,7 +48,7 @@
 ## }}}
 @PREFIX=cpunet
 @DEVID=CPUNET
-@NADDR=8
+@NADDR=32
 @ACCESS=@$(DEVID)_ACCESS
 @DEPENDS=ETH_ROUTER
 @SLAVE.BUS=wb32
@@ -92,7 +92,7 @@
 
 	cpunet #(
 		.AW(@$(MASTER.BUS.AWID)),
-		.DW(@$(MASTER.BUS.WIDTH)),
+		.BUSDW(@$(MASTER.BUS.WIDTH)),
 		.PKTDW(128)
 	) u_@$(PREFIX) (
 		// {{{

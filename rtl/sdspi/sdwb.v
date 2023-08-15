@@ -427,7 +427,7 @@ module	sdwb #(
 			&& (i_wb_data[9:8] != R2_REPLY
 					|| i_wb_data[7:6] == NUL_PREFIX))
 		r_rx_request <= 1'b1;
-	else if (!cmd_busy && !o_cmd_request)
+	else if (!o_cmd_request)
 		r_rx_request <= 1'b0;
 
 	initial	o_rx_en = 1'b0;
@@ -436,7 +436,7 @@ module	sdwb #(
 		o_rx_en <= 1'b0;
 	else if (o_rx_en && i_rx_done)
 		o_rx_en <= 1'b0;
-	else if (!cmd_busy && !o_cmd_request && r_rx_request)
+	else if (!o_cmd_request && r_rx_request)
 		o_rx_en <= 1'b1;
 `ifdef	FORMAL
 	always @(*)

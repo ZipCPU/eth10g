@@ -188,7 +188,7 @@ module	sdcmd #(
 	end
 
 	assign	o_cmd_en = active;
-	assign	o_cmd_data = tx_sreg[47:46];
+	assign	o_cmd_data = (cfg_dbl) ? tx_sreg[47:46] : {(2){tx_sreg[47]}};
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -209,16 +209,6 @@ module	sdcmd #(
 		waiting_on_response <= (i_cmd_type != R_NONE);
 	else if (o_done)
 		waiting_on_response <= 1'b0;
-/*;
-	begin
-		if (cmd_type[0] && resp_count >= 48)
-			waiting_on_response <= 1'b0;
-		if (resp_count >= 136)
-			waiting_on_response <= 1'b0;
-		if (rx_timeout)
-			waiting_on_response <= 1'b0;
-	end
-*/
 	// }}}
 
 	// cfg_ds, cfg_dbl, cmd_type
@@ -252,9 +242,23 @@ module	sdcmd #(
 		begin
 			if (S_ASYNC_VALID)
 				resp_count <= resp_count + 2;
+		end else if (cmd_type[0])
+		begin
+			if (resp_count + (i_cmd_strb[1] ? 1:0)
+					+ (i_cmd_strb[0] ? 1:0) >= 48)
+			begin
+				resp_count <= 48;
+			end else begin
+				resp_count <= resp_count + (i_cmd_strb[1] ? 1:0)
+						+ (i_cmd_strb[0] ? 1:0);
+			end
+		end else if (resp_count + (i_cmd_strb[1] ? 1:0)
+						+ (i_cmd_strb[0] ? 1:0) >= 136)
+		begin
+			resp_count <= 136;
 		end else
 			resp_count <= resp_count + (i_cmd_strb[1] ? 1:0)
-					+ (i_cmd_strb[0] ? 1:0);
+							+ (i_cmd_strb[0] ? 1:0);
 	end
 
 	always @(posedge i_clk)
@@ -282,11 +286,24 @@ module	sdcmd #(
 	begin
 		if (S_ASYNC_VALID)
 			rx_sreg <= { rx_sreg[37:0], S_ASYNC_DATA[1:0] };
-	end else if (i_cmd_strb[1])
+	end else if (cmd_type[0])
 	begin
-		if (i_cmd_strb[0])
-			rx_sreg <= { rx_sreg[37:0], i_cmd_data[1:0] };
-		else
+		if (resp_count < 47 && i_cmd_strb[1])
+		begin
+			if (i_cmd_strb[0])
+				rx_sreg <= { rx_sreg[37:0], i_cmd_data[1:0] };
+			else
+				rx_sreg <= { rx_sreg[38:0], i_cmd_data[1] };
+		end else if (resp_count < 48 && i_cmd_strb[1])
+			rx_sreg <= { rx_sreg[38:0], i_cmd_data[1] };
+	end else begin
+		if (resp_count < 135 && i_cmd_strb[1])
+		begin
+			if (i_cmd_strb[0])
+				rx_sreg <= { rx_sreg[37:0], i_cmd_data[1:0] };
+			else
+				rx_sreg <= { rx_sreg[38:0], i_cmd_data[1] };
+		end else if (resp_count < 136 && i_cmd_strb[1])
 			rx_sreg <= { rx_sreg[38:0], i_cmd_data[1] };
 	end
 	// }}}
@@ -328,8 +345,10 @@ module	sdcmd #(
 	else if (cmd_type == R_R2)
 	begin
 		o_arg  <= 32'h0;
-	end else
-		o_arg <= rx_sreg[8 +: 32];
+	end else if (resp_count == 47)
+		o_arg <= rx_sreg[7 +: 32];
+	else if (resp_count == 46)
+		o_arg <= rx_sreg[6 +: 32];
 	// }}}
 
 	//////////
@@ -342,10 +361,10 @@ module	sdcmd #(
 	initial	o_mem_valid = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset || cmd_type != R_R2 || !waiting_on_response
-					|| rx_timeout || mem_addr >= 4)
+						|| rx_timeout || mem_addr >= 4)
 		o_mem_valid <= 1'b0;
 	else
-		o_mem_valid <= new_data
+		o_mem_valid <= !o_mem_valid && new_data
 			&& (resp_count[4:0] == 8 && resp_count[7:5] != 0);
 	// }}}
 
@@ -539,19 +558,25 @@ module	sdcmd #(
 	//
 
 	always @(posedge i_clk)
-	if (i_reset || !waiting_on_response)
+	if (i_reset || !waiting_on_response || o_cmd_en)
 		crc_fill <= 0;
-	else if (i_cmd_type[0] || resp_count > 7)
+	else if (cmd_type[0] || resp_count > 7)
 	begin
 		if (OPT_DS && cfg_ds && S_ASYNC_VALID)
 			crc_fill <= STEPCRC(STEPCRC(crc_fill,
 					S_ASYNC_DATA[1]), S_ASYNC_DATA[0]);
-		else if ((!OPT_DS || !cfg_ds) && i_cmd_strb == 2'b11)
+		else if ((!OPT_DS || !cfg_ds) && i_cmd_strb == 2'b11
+				&& (resp_count < 47
+					|| (!cmd_type[0] && resp_count < 135)))
 			crc_fill <= STEPCRC(STEPCRC(crc_fill,
 					i_cmd_data[1]), i_cmd_data[0]);
-		else if ((!OPT_DS || !cfg_ds) && i_cmd_strb[1])
+		else if ((!OPT_DS || !cfg_ds) && i_cmd_strb[1]
+				&&(resp_count < 48
+					|| (!cmd_type[0] && resp_count < 136)))
 			crc_fill <= STEPCRC(crc_fill, i_cmd_data[1]);
-	end
+	end else if ((!OPT_DS || !cfg_ds) && resp_count > 6
+					&& i_cmd_strb == 2'b11)
+		crc_fill <= STEPCRC(crc_fill, i_cmd_data[0]);
 
 	assign	crc_err = w_done && (crc_fill != CRC_POLYNOMIAL);
 
@@ -631,7 +656,7 @@ module	sdcmd #(
 		o_done <= 1'b0;
 	else
 		o_done <= (rx_timeout || w_no_response
-			|| (r_done && i_ckstb));
+					|| (r_done && i_ckstb));
 
 	// r_busy is true if we are unable to accept a command
 	initial	r_busy = 1'b0;
@@ -651,7 +676,7 @@ module	sdcmd #(
 	// verilator coverage_off
 	// verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0, R_R1 };
+	assign	unused = &{ 1'b0, R_R1, rx_sreg[39] };
 	// verilator lint_on  UNUSED
 	// verilator coverage_on
 	// }}}
@@ -791,11 +816,6 @@ module	sdcmd #(
 	always @(*)
 	if (!i_reset && (!OPT_DS || !cfg_ds))
 		assume(!S_ASYNC_VALID);
-
-	always @(*)
-	if (r_busy && cfg_dbl)
-		assume(i_cmd_strb[1] == i_cmd_strb[0]);
-
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -1024,6 +1044,10 @@ module	sdcmd #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
+	// always @(*) if (r_busy && cfg_dbl)
+	//	assume(i_cmd_strb[1] == i_cmd_strb[0]);
+
 
 	// }}}
 `endif	// FORMAL

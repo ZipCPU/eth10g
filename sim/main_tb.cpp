@@ -202,7 +202,7 @@ public:
 		m_core->i_sdio_rx_data  =  tmp & 0x0ffff;
 		m_core->i_sdio_ac_valid = (tmp_async & 2) ? 1:0;
 		m_core->i_sdio_ad_valid =  tmp_async & 1;
-		if (!m_core->o_sdio_afifo_reset_n) {
+		if (!m_core->o_sdio_cfg_ds) {
 			m_core->i_sdio_ad_valid = 0;
 			m_core->i_sdio_ad_data = 0;
 		} }
@@ -247,7 +247,7 @@ public:
 		m_core->i_emmc_rx_data  =  tmp & 0x0ffff;
 		m_core->i_emmc_ac_valid = (tmp_async & 2) ? 1:0;
 		m_core->i_emmc_ad_valid =  tmp_async & 1;
-		if (!m_core->o_emmc_afifo_reset_n) {
+		if (!m_core->o_emmc_cfg_ds) {
 			m_core->i_emmc_ad_valid = 0;
 			m_core->i_emmc_ad_data = 0;
 		} }

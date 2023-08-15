@@ -251,7 +251,7 @@ module	sdio #(
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || soft_reset),
 		//
-		.i_cfg_ds(o_cfg_ds), .i_cfg_dbl(o_cfg_ds && cfg_ckspeed == 0),
+		.i_cfg_ds(o_cfg_ds), .i_cfg_dbl(cfg_ckspeed == 0),
 		.i_ckstb(clk_stb),
 		//
 		.i_cmd_request(cmd_request), .i_cmd_type(cmd_type),

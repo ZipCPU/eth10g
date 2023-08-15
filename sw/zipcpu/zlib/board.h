@@ -348,7 +348,7 @@ static volatile unsigned *const _netclk = ((unsigned *)0x00040a80);
 #endif	// NETCLK_ACCESS
 #ifdef	FAN_ACCESS
 #define	_BOARD_HAS_FAN
-static volatile FAN *const _fan=((FAN *)0x00040500);
+static volatile FAN *const _fan=((FAN *)0x00040400);
 #endif	// FAN_ACCESS
 #ifdef	I2CCPU_ACCESS
 #define	_BOARD_HAS_I2CCPU
@@ -364,7 +364,7 @@ static volatile unsigned *const _spio = ((unsigned *)0x00040adc);
 #endif	// SPIO_ACCESS
 #ifdef	SDIO_ACCESS
 #define	_BOARD_HAS_SDIO
-static volatile struct SDIO_S *const _sdio = ((struct SDIO_S *)0x00040600);
+static volatile struct SDIO_S *const _sdio = ((struct SDIO_S *)0x00040500);
 #endif	// SDIO_ACCESS
 #ifdef	GPIO_ACCESS
 #define	_BOARD_HAS_GPIO
@@ -372,7 +372,7 @@ static volatile unsigned *const _gpio = ((unsigned *)0x00040ac4);
 #endif	// GPIO_ACCESS
 #ifdef	CFG_ACCESS
 #define	_BOARD_HAS_ICAPTETWO
-static volatile unsigned *const _icape = ((unsigned *)0x00000800);
+static volatile unsigned *const _icape = ((unsigned *)0x00000700);
 #endif	// CFG_ACCESS
 #ifdef	VERSION_ACCESS
 #define	_BOARD_HAS_VERSION
@@ -402,7 +402,7 @@ static volatile WBSCOPE *const _hdmiclrscope = ((WBSCOPE *)0x00040000);
 #endif	// HDMICLRSCOPE_SCOPE
 #ifdef	EMMC_ACCESS
 #define	_BOARD_HAS_EMMC
-static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x00040400);
+static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x00040300);
 #endif	// EMMC_ACCESS
 #ifdef	BKRAM_ACCESS
 #define	_BOARD_HAS_BKRAM
@@ -410,7 +410,7 @@ extern char	_bkram[0x00080000];
 #endif	// BKRAM_ACCESS
 #ifdef	CPUNET_ACCESS
 #define	_BOARD_HAS_CPUNET
-static volatile CPUNET *const _cpunet=((CPUNET *)0x00040300);
+static volatile CPUNET *const _cpunet=((CPUNET *)0x00040800);
 #endif	// CPUNET_ACCESS
 #ifdef	EDID_ACCESS
 #define	_BOARD_HAS_EDID
