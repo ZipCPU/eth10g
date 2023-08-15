@@ -34,9 +34,16 @@ development), [micro SD, eMMC](https://github.com/ZipCPU/sdspi),
 [I2C](https://github.com/ZipCPU/wbi2c), temperature sensing and [fan
 control](rtl/wbfan.v), and much more.
 
+- [UART console via the debugbus](rtl/wbubus/wbuconsole.v)
+- [uSD and EMMC](rtl/sdspi/sdspi.v)
+- [QSPI Flash](rtl/qflexpress.v)
+- [I2C](rtl/wbi2c/wbi2ccpu.v)
+  - Si5324 clock generator
+  - B/W OLED display
 - [SPIO: 5 buttons, 8 LEDs, and 9 switches](rtl/spio.v)
+- HDMI RX and TX
 - [RPi CM4 SMI interface](rtl/smi/smi.v)
-
+- SATA
 - [An open source Verilog DDR3 SDRAM controller](https://github.com/AngeloJacobo/DDR3_Controller) is currently under development to support this project.
 
 ## Sponsorship
@@ -49,7 +56,7 @@ This project is released under the Apache 2 license.
 
 ## Status
 
-As of 5 August, 2023:
+As of 15 August, 2023:
 
 - The PCB for this project has been built, and is currently under test.  Several issues have been found, which will likely be fixed in a next revision.
 
@@ -123,3 +130,6 @@ status of the 10Gb Ethernet components, but doesn't show the status of the
 rest of the design.  Together, both will provide insight into the current
 state of the design.
 
+Be sure to checkout the [dev branch of this
+project](https://github.com/ZipCPU/eth10g/tree/dev) for the most recent status
+updates.
