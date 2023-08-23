@@ -122,7 +122,7 @@ module	p642pkt (
 	// pstate
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || r_fault)
+	if (!S_ARESETN || r_fault || M_ABORT || powering_up || r_local_fault)
 		pstate <= PRE_IDLE;
 	else if (RX_VALID)
 	case(pstate)
@@ -157,7 +157,7 @@ module	p642pkt (
 	//	four bytes to output, and four bytes to reserve for the next
 	//	cycle.
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || r_fault)
+	if (!S_ARESETN || r_fault || M_ABORT)
 		{ phalf, poffset } <= 2'b00;
 	else if (RX_VALID)
 	case(pstate)
@@ -172,7 +172,13 @@ module	p642pkt (
 		end
 		// }}}
 	PRE_DATA: phalf <= 1'b0;
-	endcase
+	endcase else if ((!M_VALID || M_READY) && dly_last)
+		{ phalf, poffset } <= 2'b00;
+`ifdef	FORMAL
+	always @(*)
+	if (S_ARESETN && !poffset)
+		assert(!phalf);
+`endif
 	// }}}
 
 	////////////////////////////////////////////////////////////////////////
@@ -217,25 +223,27 @@ module	p642pkt (
 	// dly_valid
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || r_fault || r_local_fault)
+	if (!S_ARESETN || r_fault || r_local_fault || powering_up || M_ABORT)
 		dly_valid <= 0;
 	else if (RX_VALID)
 	begin
 		if (RX_DATA[1:0] == SYNC_DATA)
-			dly_valid <= 1'b1;
+			dly_valid <= pstate;
 		else if (RX_DATA[1:0] != SYNC_CONTROL)
 			dly_valid <= 1'b0;
 		else if (RX_DATA[9:2] == 8'h87)
-			// Unless this is a completely control frame, we're
-			// valid
-			dly_valid <= 1'b0;
+			// Unless this is a completely control frame,
+			// we're valid
+			dly_valid <= poffset;
 		else
 			dly_valid <= pstate;
 
-		if (pstate != PRE_DATA || phalf)
+		if (pstate != PRE_DATA)
+			dly_valid <= (dly_bytes > 8);
+		else if (phalf)
 			dly_valid <= 1'b0;
 	end else if (dly_last && (!M_VALID || M_READY))
-		dly_valid <= 1'b0;
+		dly_valid <= dly_valid && (dly_bytes > 8);
 	// }}}
 
 	// dly_half
@@ -244,7 +252,7 @@ module	p642pkt (
 	// we need a bit of a gearbox to realign the packet back onto a 64bit
 	// boundary.  dly_half is where we stuff that extra data.
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || !poffset || r_fault || r_local_fault)
+	if (!S_ARESETN || !poffset || r_fault || r_local_fault || M_ABORT)
 		dly_half <= 0;
 	else if (RX_VALID)
 	begin
@@ -273,7 +281,7 @@ module	p642pkt (
 	always @(posedge RX_CLK)
 	if (!S_ARESETN || r_fault || r_local_fault)
 		dly_data <= 0;
-	else if (RX_VALID)
+	else if (RX_VALID && !dly_last)
 	begin
 		if (poffset)
 		begin // Gearbox.  Use 32-bits from before, and up to 32-bits
@@ -314,21 +322,23 @@ module	p642pkt (
 				dly_data <= 0;
 			// }}}
 		end
-	end
+	end else if (dly_valid && dly_last)
+		dly_data <= { 32'h0, dly_half };
 	// }}}
 
 	// dly_bytes
 	// {{{
 	// Number of valid bytes in the delay cell.
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || r_fault || r_local_fault)
+	if (!S_ARESETN || r_fault || r_local_fault || M_ABORT)
 		dly_bytes <= 0;
 	else if (RX_VALID && !dly_last)
 	begin
-		if (!pstate && RX_DATA[9:0] == { 8'h78, SYNC_CONTROL })
-			dly_bytes <= 0;
-		else if (!pstate && RX_DATA[9:0] == { 8'h78, SYNC_CONTROL })
-			dly_bytes <= 0;
+		// if (!pstate && RX_DATA[9:0] == { 8'h78, SYNC_CONTROL })
+		//	dly_bytes <= 0;
+		// else if (!pstate && RX_DATA[9:0] == { 8'h78, SYNC_CONTROL })
+		//	dly_bytes <= 0;
+
 		if (phalf)
 			dly_bytes <= 4;	// These bytes are in dly_half
 		else if (poffset)
@@ -350,7 +360,8 @@ module	p642pkt (
 			if (pstate != PRE_DATA)
 				dly_bytes<=(dly_bytes <= 8) ? 0 : (dly_bytes-8);
 			// }}}
-		end else begin
+		end else if (pstate)
+		begin
 			dly_bytes <= 4'd8;	// 64 incoming bits => 8bytes
 			if (RX_DATA[1:0] == SYNC_CONTROL)
 			case(RX_DATA[9:2])
@@ -363,25 +374,36 @@ module	p642pkt (
 			8'hff: dly_bytes <= 4'd7;
 			default: begin end
 			endcase
-		end
+		end else
+			dly_bytes <= 0;
 	end else if (dly_valid && dly_last)
-		dly_bytes <= (dly_bytes > 8) ? (dly_bytes - 8) : 0;
+		dly_bytes <= (dly_last && dly_bytes > 8) ? (dly_bytes - 8) : 0;
+	else if (!dly_valid)
+		dly_bytes <= 0;
+`ifdef	FORMAL
+	always @(*)
+	if (S_ARESETN && dly_valid && !dly_last)
+		assert(dly_bytes[2] == poffset);
+`endif
 	// }}}
 
 	// dly_last
 	// {{{
 	always @(posedge RX_CLK)
-	if (!S_ARESETN || r_fault || r_local_fault)
+	if (!S_ARESETN || r_fault || r_local_fault || M_ABORT)
 		dly_last <= 0;
 	else if (RX_VALID && !dly_last)
 	begin
 		dly_last <= 1'b0;
 		if (pstate != PRE_DATA)
-			dly_last <= poffset;
+			dly_last <= 1'b1; // poffset;
 		else if (RX_DATA[1:0] == SYNC_CONTROL)
-			dly_last <= (RX_DATA[9:2] != 8'h87);
+			dly_last <= 1'b1; // (RX_DATA[9:2] != 8'h87);
+
+		if (!dly_valid)
+			dly_last <= 1'b0;
 	end else if (!M_VALID || M_READY)
-		dly_last <= (dly_bytes > 8);
+		dly_last <= !pstate && dly_valid && (dly_bytes > 8);
 	// }}}
 
 	// }}}
@@ -546,7 +568,7 @@ module	p642pkt (
 	always @(posedge RX_CLK or negedge S_ARESETN)
 	if (!S_ARESETN)
 		powering_up <= 1'b1;
-	else if (RX_VALID && !r_fault)
+	else if (RX_VALID && !r_fault && RX_DATA[1:0] == SYNC_CONTROL)
 		powering_up <= 1'b0;
 
 	assign	o_link_up = link_up_counter[LNKMSB];
@@ -586,14 +608,16 @@ module	p642pkt (
 	if (!S_ARESETN)
 		M_VALID <= 0;
 	else if (!M_VALID || M_READY)
-		M_VALID <= dly_valid && (RX_VALID || dly_last);
+		M_VALID <= dly_valid && (RX_VALID || dly_last) && !M_ABORT;
 
 	always @(posedge RX_CLK)
 	if (!M_VALID || M_READY)
 	begin
 		M_DATA <= dly_data;
-		M_BYTES<= (dly_bytes[3] && !dly_last) ? 3'h0 : dly_bytes[2:0];
-		M_LAST <= dly_last || (!poffset && RX_DATA[9:0] == { 8'h87, SYNC_CONTROL });
+		M_BYTES<= (dly_bytes[3] || !dly_last) ? 3'h0 : dly_bytes[2:0];
+		M_LAST <= (dly_last && dly_bytes <= 8)
+			|| (!poffset && RX_VALID
+				&& RX_DATA[9:0] == { 8'h87, SYNC_CONTROL });
 	end
 
 	always @(posedge RX_CLK)
@@ -604,7 +628,7 @@ module	p642pkt (
 	else if (r_local_fault && (M_VALID || dly_valid))
 		M_ABORT <= 1'b1;
 	else if (r_fault && ((dly_valid && !dly_last)
-					|| (M_VALID && !M_READY && !M_LAST)))
+				|| (M_VALID && (!M_READY || !M_LAST))))
 		M_ABORT <= 1'b1;
 	else if (dly_valid && !M_ABORT)
 	begin
@@ -687,6 +711,14 @@ module	p642pkt (
 		f_midpkt <= 1'b1;
 	else if (f_eop)
 		f_midpkt <= 1'b0;
+
+	always @(*)
+	if (S_ARESETN && !f_midpkt)
+	begin
+		assert(!dly_valid || dly_last);
+		if (!M_VALID && !M_ABORT)
+			assert(fm_word == 0);
+	end
 
 	always @(*)
 	if (f_midpkt)
@@ -807,16 +839,18 @@ module	p642pkt (
 		if (frx_count + 8 <= fc_len)
 		begin
 			assume(RX_DATA[1:0] == SYNC_DATA);
-		end else case(f_ctrl_byte)
-		8'h87: assume(frx_count == fc_len);
-		8'h99: assume(frx_count + 1 == fc_len);
-		8'haa: assume(frx_count + 2 == fc_len);
-		8'hb4: assume(frx_count + 3 == fc_len);
-		8'hcc: assume(frx_count + 4 == fc_len);
-		8'hd2: assume(frx_count + 5 == fc_len);
-		8'he1: assume(frx_count + 6 == fc_len);
-		8'hff: assume(frx_count + 7 == fc_len);
-		default: begin end
+		end else case(RX_DATA[9:0])
+		{ 8'h87, SYNC_CONTROL }: assume(frx_count == fc_len);
+		{ 8'h99, SYNC_CONTROL }: assume(frx_count + 1 == fc_len);
+		{ 8'haa, SYNC_CONTROL }: assume(frx_count + 2 == fc_len);
+		{ 8'hb4, SYNC_CONTROL }: assume(frx_count + 3 == fc_len);
+		{ 8'hcc, SYNC_CONTROL }: assume(frx_count + 4 == fc_len);
+		{ 8'hd2, SYNC_CONTROL }: assume(frx_count + 5 == fc_len);
+		{ 8'he1, SYNC_CONTROL }: assume(frx_count + 6 == fc_len);
+		{ 8'hff, SYNC_CONTROL }: assume(frx_count + 7 == fc_len);
+		default: begin
+			assume(0);
+			end
 		endcase
 	end
 
@@ -837,15 +871,31 @@ module	p642pkt (
 		assume(!RX_VALID || RX_DATA[1:0] == SYNC_DATA);
 
 	always @(*)
-	if (S_ARESETN)
+	if (S_ARESETN && !r_fault && !r_local_fault)
 	begin
 		if (dly_last)
+		begin
 			assert(M_VALID);
+			assert(!pstate);
+		end
 
 		if (!f_midpkt && dly_valid)
 			assert(dly_last);
 		if (dly_last && !M_ABORT)
-			assert(dly_valid);
+			assert(dly_valid || (M_VALID && M_LAST));
+	end
+
+	always @(*)
+	if (S_ARESETN && dly_valid && !dly_last)
+		assert(dly_bytes == 12 || dly_bytes == 8);
+
+	always @(*)
+	if (S_ARESETN && M_VALID && M_LAST)
+	begin
+		assert(!poffset);
+		assert(!dly_valid);
+		// assert(!dly_last);
+		assert(dly_bytes[2:0] == 0);
 	end
 
 	// }}}
@@ -887,6 +937,10 @@ module	p642pkt (
 	end
 
 	always @(posedge RX_CLK)
+	if (S_ARESETN && !pstate && !dly_valid && !M_VALID && !M_ABORT)
+		assert(fm_word == 0);
+
+	always @(posedge RX_CLK)
 	if (S_ARESETN && !M_ABORT)
 		assert(fm_count == { fm_word, 3'h0 });
 
@@ -919,6 +973,15 @@ module	p642pkt (
 	if (f_past_valid && S_ARESETN && fc_check_pkt)
 		assert(!M_ABORT);
 
+	always @(posedge RX_CLK)
+	if (f_past_valid && S_ARESETN && !dly_valid
+						&& !r_local_fault && !r_fault)
+		assert(!M_VALID || M_LAST || M_ABORT);
+
+	always @(posedge RX_CLK)
+	if (f_past_valid && S_ARESETN && M_VALID && M_LAST)
+		assert(dly_bytes[2:0] == 0);
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -936,19 +999,38 @@ module	p642pkt (
 
 	always @(*)
 	if (RX_DATA[1:0] == SYNC_CONTROL)
-		frx_byte = RX_DATA[65:10] >> (8*(fc_posn+8-frx_count));
+		frx_byte = RX_DATA[65:10] >> ({ frx_shift, 3'h0 });
 	else
-		frx_byte = frx_word >> (8*(fc_posn+8-frx_count));
+		frx_byte = frx_word >> ({ frx_shift, 3'h0 });
+
+	(* keep *) reg	[1:0]	frx_check;
+	(* keep *) reg	[2:0]	frx_check2;
+	always @(*)
+	begin
+		frx_check2[0] = (frx_count < 8);
+		frx_check2[1] = (frx_posn > fc_posn);
+		frx_check2[2] = (fc_posn <= frx_posn + 8);
+	end
 
 	always @(*)
-	if (!fc_check_pkt || !RX_VALID || frx_count < 4)
+	if (!fc_check_pkt || !RX_VALID || frx_count < 4 || powering_up
+						|| r_fault || r_local_fault)
+	begin
 		frx_now = 0;
-	else if (fc_posn + 8 < frx_count || fc_posn + 8 >= frx_count + 8)
+		frx_check = 0;
+	end else if ((frx_count < 8)
+		|| (frx_posn > fc_posn) || (fc_posn >= frx_posn + 8))
+	begin
+	// else if (fc_posn + 8 < frx_count || fc_posn + 8 >= frx_count + 8)
 		frx_now = 0;
-	else if (RX_DATA[1:0] == SYNC_DATA)
+		frx_check = 1;
+	end else if (RX_DATA[1:0] == SYNC_DATA)
 	begin
 		frx_now = 1;
-	end else case(f_ctrl_byte)
+		frx_check = 2;
+	end else begin
+		frx_check = 3;
+		case(f_ctrl_byte)
 	8'h99: frx_now = (fc_posn < frx_posn + 1);
 	8'haa: frx_now = (fc_posn < frx_posn + 2);
 	8'hb4: frx_now = (fc_posn < frx_posn + 3);
@@ -958,6 +1040,7 @@ module	p642pkt (
 	8'hff: frx_now = (fc_posn < frx_posn + 7);
 	default: begin end
 	endcase
+	end
 
 	always @(posedge RX_CLK)
 	if (S_ARESETN && frx_now && fc_check_pkt)
@@ -967,17 +1050,27 @@ module	p642pkt (
 	if (fc_check_pkt)
 	begin
 		assume(!i_phy_fault);
+		assume(!r_local_fault);
 		assume(watchdog_counter > 100);
 		assume({ r_fault, r_fault_pipe } == 0);
 	end
+
+	always @(*)
+	if (S_ARESETN && frx_count >= 8 && pstate && !M_ABORT)
+	begin
+		if (!dly_last)
+		assert(frx_count == fm_count + (dly_valid ? dly_bytes : 0) + 8 + (M_VALID ? 8:0));
+		assert(frx_count[2] == poffset);
+	end
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Assert outgoing contract data
 	// {{{
 	always @(*)
-	if (!S_ARESETN || !M_VALID || !fc_check_pkt || fm_count > fc_posn
-						|| fm_count + 8 <= fc_posn)
+	if (!S_ARESETN || !M_VALID || M_ABORT || !fc_check_pkt
+			|| fm_count > fc_posn || fm_count + 8 <= fc_posn)
 		fm_now = 0;
 	// Verilator lint_off WIDTH
 	else if (M_BYTES == 0 || fc_posn < fm_count + M_BYTES)
@@ -1014,12 +1107,18 @@ module	p642pkt (
 	if (fc_check_pkt)
 		assume(!M_VALID || M_READY ||M_LAST);
 
+always @(*)
+	assume(fm_word < 8190);
 
 	// }}}
+
+	// Keep Verilator happy
+	// {{{
 	// Verilator lint_off UNUSED
 	wire	unused_formal;
 	assign	unused_formal = &{ 1'b0, fm_byte[63:8], frx_byte[65:8] };
 	// Verilator lint_on  UNUSED
+	// }}}
 `endif
 // }}}
 endmodule

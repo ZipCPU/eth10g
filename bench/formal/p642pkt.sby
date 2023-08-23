@@ -6,7 +6,7 @@ prf
 prf: mode prove
 # cvr: mode cover
 prf: depth 20
-prf: depth 200
+# prf: depth 200
 
 [engines]
 smtbmc
