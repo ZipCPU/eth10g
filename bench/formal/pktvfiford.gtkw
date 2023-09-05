@@ -1,0 +1,127 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Aug 23 03:01:24 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1774 840
+[pos] -1 -1
+*-4.784481 50 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] pktvfiford.
+[sst_width] 343
+[signals_width] 238
+[sst_expanded] 1
+[sst_vpaned_height] 231
+@28
+pktvfiford.i_clk
+pktvfiford.i_reset
+pktvfiford.i_cfg_reset_fifo
+@22
+pktvfiford.i_cfg_baseaddr[27:0]
+pktvfiford.i_cfg_memsize[27:0]
+pktvfiford.end_of_memory[30:0]
+@200
+-
+@22
+pktvfiford.o_readptr[27:0]
+pktvfiford.i_writeptr[27:0]
+@200
+-
+@28
+pktvfiford.o_fifo_err
+@200
+-
+@28
+pktvfiford.dly_check
+@22
+pktvfiford.r_endptr[27:0]
+pktvfiford.wide_baseaddr[29:0]
+pktvfiford.wide_memsize[29:0]
+pktvfiford.wide_committed[30:0]
+pktvfiford.wide_end_of_packet[30:0]
+pktvfiford.wide_readptr[29:0]
+pktvfiford.wide_writeptr[29:0]
+@800200
+-Wishbone
+@28
+[color] 2
+pktvfiford.o_wb_cyc
+[color] 2
+pktvfiford.o_wb_stb
+[color] 3
+pktvfiford.i_wb_stall
+[color] 2
+pktvfiford.o_wb_we
+@22
+[color] 2
+pktvfiford.o_wb_addr[27:0]
+[color] 2
+pktvfiford.o_wb_data[31:0]
+[color] 2
+pktvfiford.o_wb_sel[3:0]
+@28
+[color] 3
+pktvfiford.i_wb_ack
+@22
+[color] 3
+pktvfiford.i_wb_data[31:0]
+@28
+[color] 1
+pktvfiford.i_wb_err
+@200
+-
+@22
+pktvfiford.frd_nacks[6:0]
+pktvfiford.frd_nreqs[6:0]
+pktvfiford.frd_outstanding[6:0]
+@1000200
+-Wishbone
+@22
+pktvfiford.next_rdlen[31:0]
+pktvfiford.rd_outstanding[6:0]
+pktvfiford.rd_pktlen[29:0]
+@28
+[color] 2
+pktvfiford.rd_state[1:0]
+@22
+pktvfiford.rd_wb_addr[27:0]
+@200
+-
+@22
+pktvfiford.fs_word[14:0]
+@200
+-
+@23
+pktvfiford.f_return_words[28:0]
+@22
+pktvfiford.return_len[29:0]
+pktvfiford.f_startptr[29:0]
+pktvfiford.f_endptr[29:0]
+pktvfiford.fwb_bytes_outstanding[8:0]
+pktvfiford.fwb_bytes_requested[30:0]
+pktvfiford.fwb_words_returned[30:0]
+@800200
+-Packet stream out
+@28
+pktvfiford.M_VALID
+@22
+pktvfiford.M_DATA[31:0]
+@28
+pktvfiford.M_BYTES[1:0]
+pktvfiford.M_LAST
+pktvfiford.i_fifo_rd
+@200
+-
+@28
+pktvfiford.fifo_commit
+@22
+pktvfiford.fifo_space[5:0]
+pktvfiford.fs_word[14:0]
+@1000200
+-Packet stream out
+@22
+pktvfiford.fwb_bytes_requested[30:0]
+pktvfiford.fwb_next_addr[29:0]
+pktvfiford.rd_pktlen[29:0]
+[pattern_trace] 1
+[pattern_trace] 0
