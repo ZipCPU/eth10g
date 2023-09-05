@@ -227,7 +227,7 @@ sw-fatfs: check-zip-gcc
 ## Build the board software.  This may (or may not) use the software library
 ##
 sw-zipcpu: sw-board
-sw-board: sw-i2c sw-zlib check-zip-gcc # sw-fatfs
+sw-board: sw-i2c sw-zlib sw-fatfs check-zip-gcc
 	+@$(SUBMAKE) sw/zipcpu/board
 ## }}}
 

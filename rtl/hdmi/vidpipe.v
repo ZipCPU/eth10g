@@ -81,7 +81,7 @@ module	vidpipe #(
 		output	reg	[1:0]	o_pxclk_sel,
 		output	wire	[14:0]	o_iodelay,
 		input	wire	[14:0]	i_iodelay,
-		output	wire	[31:0]	o_pixdebug
+		output	reg	[31:0]	o_pixdebug
 		// }}}
 	);
 
@@ -229,6 +229,11 @@ module	vidpipe #(
 
 	wire		hin_syncpol, vin_syncpol;
 	wire		hin_syncpol_sys, vin_syncpol_sys;
+
+	reg	[1:0]	dbg_sel_sys;
+	wire	[1:0]	dbg_sel;
+	// Verilator lint_off UNUSED
+	wire	[31:0]	src_debug, tx_debug, alph_debug, pip_debug, vga_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -392,6 +397,8 @@ module	vidpipe #(
 					iodelay_request_sys[9:5] <= i_wb_data[16+:5];
 				if (i_wb_sel[3])
 					iodelay_request_sys[14:10]<=i_wb_data[24+:5];
+				if (i_wb_sel[3])
+					dbg_sel_sys <= i_wb_data[31:30];
 				end
 				// }}}
 			default: begin end
@@ -520,6 +527,7 @@ module	vidpipe #(
 				pre_wb_data[ 8 +: 5] <= iodelay_actual_sys[ 4: 0];
 				pre_wb_data[16 +: 5] <= iodelay_actual_sys[ 9: 5];
 				pre_wb_data[24 +: 5] <= iodelay_actual_sys[14:10];
+				pre_wb_data[31:30] <= dbg_sel_sys;
 			end
 			// }}}
 		ADR_SYNCWORD: begin
@@ -592,7 +600,7 @@ module	vidpipe #(
 		.o_vsync(vga_vsync), .o_hsync(vga_hsync),
 		.o_vga_red(vga_red), .o_vga_green(vga_grn),.o_vga_blue(vga_blu),
 		.o_sync_word(sync_word),
-		.o_debug(o_pixdebug)
+		.o_debug(vga_debug)
 		// }}}
 	);
 
@@ -627,6 +635,10 @@ module	vidpipe #(
 		// }}}
 		// }}}
 	);
+
+	assign	src_debug = { (rx_hlast && rx_vlast), (rx_hlast && rx_vlast), 2'b0,
+			rx_valid, rx_ready, rx_hlast, rx_vlast,
+			rx_data };
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -667,12 +679,13 @@ module	vidpipe #(
 	);
 
 	tfrvalue #(
-		.W(LGDIM*11+3+4+15+2)
+		.W(LGDIM*11+3+4+15+2+2)
 	) u_sys2px (
 		// {{{
 		.i_a_clk(i_clk), .i_a_reset_n(!pix_reset_sys),
 		.i_a_valid(1'b1), .o_a_ready(sys2px_ready),
 			.i_a_data({
+				dbg_sel_sys,
 				iodelay_request_sys,		// 15b
 				cfg_ovly_enable_sys,		// 1b
 				cfg_src_sel_sys,		// 1b
@@ -690,6 +703,7 @@ module	vidpipe #(
 		.i_b_clk(i_pixclk), .i_b_reset_n(pix_reset_n),
 		.o_b_valid(ign_sys2px_valid), .i_b_ready(1'b1),
 			.o_b_data({
+				dbg_sel,
 				o_iodelay,
 				cfg_ovly_enable,
 				cfg_src_sel,
@@ -1008,6 +1022,14 @@ module	vidpipe #(
 		// }}}
 	);
 
+	assign	alph_debug = { alph_vlast && alph_hlast, (alph_hlast && alph_vlast),
+				alph_pixel[25:24],
+			alph_valid, alph_ready, alph_hlast, alph_vlast,
+			alph_pixel[23:0] };
+
+	assign	pip_debug = { pipe_vlast && pipe_hlast, (pipe_hlast && pipe_vlast), 2'b0,
+			pipe_valid, pipe_ready, pipe_hlast, pipe_vlast,
+			pipe_data };
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -1040,12 +1062,25 @@ module	vidpipe #(
 		// }}}
 	);
 
+	assign	tx_debug = {
+			out_vlast && out_hlast, (out_hlast && out_vlast), 2'b0,	// 4b
+			out_valid, out_ready, out_hlast, out_vlast,	// 4b
+			out_data };					//24b
 	// }}}
+
+	always @(posedge i_pixclk)
+	case(dbg_sel)
+	2'b00:	o_pixdebug <= src_debug;
+	2'b01:	o_pixdebug <= alph_debug;
+	2'b10:	o_pixdebug <= pip_debug;
+	2'b11:	o_pixdebug <= tx_debug;
+	endcase
 
 	// Keep Verilator happy
 	// {{{
 	wire	unused;
 	assign	unused = &{ 1'b0,
+			src_debug, alph_debug, pip_debug,
 			ign_sys2px_valid, ign_frame_ready, ign_px2sys_ready,
 			i_wb_data };
 	// }}}

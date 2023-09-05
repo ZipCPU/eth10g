@@ -140,10 +140,8 @@ sub getstatus($) {
 				$bmc = $1;
 				# print "<TR><TD>basecase $bmc match</TD></TR>\n";
 			}
-		} if ($line =~ /engine_\d:.*Writing trace to VCD.*trace(\d+).vcd/) {
-			if ($1 >= $ncvr) {
-				$ncvr = $1+1;
-			}
+		} if ($line =~ /engine_\d:.*Reached cover statement/) {
+			$ncvr = $ncvr+1;
 		}
 	}
 	close(LOG);
@@ -172,9 +170,17 @@ sub getstatus($) {
 
 ## Start the HTML output
 ## {{{
+## Grab a timestamp
+$now = time;
+($sc,$mn,$nhr,$ndy,$nmo,$nyr,$nwday,$nyday,$nisdst) = localtime($now);
+$nyr = $nyr+1900; $nmo = $nmo+1;
+$tstamp = sprintf("%04d%02d%02d",$nyr,$nmo,$ndy);
+
 print <<"EOM";
 <HTML><HEAD><TITLE>Formal Verification Report</TITLE></HEAD>
 <BODY>
+<H1 align=center>10Gb Ethernet Board Verification Report</H1>
+<H2 align=center>$tstamp</H2>
 <TABLE border>
 <TR><TH>Status</TH><TH>Component</TD><TH>Proof</TH><TH>Component description</TH></TR>
 EOM
@@ -197,7 +203,7 @@ foreach $prf (sort @proofs) {
 	foreach $dent (@dirent) {
 		next if (! -d $dent);
 		next if ($dent =~ /^\./);
-		next if ($dent !~ /$prf(_\S+)/);
+		next if ($dent !~ /^$prf(_\S+)/);
 			$subprf = $1;
 
 		$ndirs = $ndirs+1;
@@ -213,7 +219,7 @@ foreach $prf (sort @proofs) {
 		# Only look at subdirectories
 		next if (! -d $dent);
 		next if ($dent =~ /^\./);
-		next if ($dent !~ /$prf(_\S+)/);
+		next if ($dent !~ /^$prf(_\S+)/);
 			$subprf = $1;
 		# print("<TR><TD>$dent matches $prf</TD></TR>\n");
 		## }}}

@@ -168,12 +168,15 @@ module	faxin_slave #(
 		`SLAVE_ASSUME(MIN_LENGTH <= 1 || f_stream_word+1 >= MIN_LENGTH);
 
 	generate if (MAX_LENGTH > 0)
-	begin
+	begin : F_CHECK_MAXLEN
 		always @(*)
-		if (S_AXI_ARESETN && !S_AXIN_ABORT && MAX_LENGTH != 0)
+		if (S_AXI_ARESETN && !S_AXIN_ABORT)
 		begin
 			if (f_stream_word + 1 == MAX_LENGTH)
+			begin
 				`SLAVE_ASSUME(!S_AXIN_VALID || S_AXIN_LAST);
+			end
+
 			assert(f_stream_word < MAX_LENGTH);
 		end
 	end endgenerate

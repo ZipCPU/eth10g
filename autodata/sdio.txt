@@ -52,7 +52,7 @@
 @SDIO.CLKASSIGN=
 	assign	o_@$(TOP.IOPREFIX)_clk = w_@$(PREFIX)_ck;
 @SDIO.DSASSIGN=
-	assign	w_@$(PREFIX)_ds = 1'b0;
+	assign	w_@$(PREFIX)_ds    = 1'b0;
 @SDIO.DSDECL=
 @SDIO.CDETDECL= i_@$(TOP.IOPREFIX)_cd_n,
 @SDIO.CLKDECL= o_@$(TOP.IOPREFIX)_clk,
@@ -80,7 +80,7 @@
 	// @$(NAME) definitions
 	// {{{
 	wire		w_@$(PREFIX)_cfg_ddr;
-	wire		w_@$(PREFIX)_cfg_ds;
+	wire		w_@$(PREFIX)_cfg_ds, w_@$(PREFIX)_cfg_dscmd;
 	wire	[4:0]	w_@$(PREFIX)_cfg_sample_shift;
 	wire		w_@$(PREFIX)_pp_cmd;
 	wire		w_@$(PREFIX)_pp_data;
@@ -120,6 +120,7 @@
 		// Configuration
 		.i_cfg_ddr(w_@$(PREFIX)_cfg_ddr),
 		.i_cfg_ds(w_@$(PREFIX)_cfg_ds),
+		.i_cfg_dscmd(w_@$(PREFIX)_cfg_dscmd),
 		.i_sample_shift(w_@$(PREFIX)_cfg_sample_shift),
 		.i_pp_cmd(w_@$(PREFIX)_pp_cmd),
 		.i_pp_data(w_@$(PREFIX)_pp_data),
@@ -160,6 +161,7 @@
 		//
 		w_@$(PREFIX)_cfg_ddr,
 		w_@$(PREFIX)_cfg_ds,
+		w_@$(PREFIX)_cfg_dscmd,
 		w_@$(PREFIX)_cfg_sample_shift,
 		w_@$(PREFIX)_pp_cmd,
 		w_@$(PREFIX)_pp_data,
@@ -190,6 +192,7 @@
 		//
 		o_@$(PREFIX)_cfg_ddr,
 		o_@$(PREFIX)_cfg_ds,
+		o_@$(PREFIX)_cfg_dscmd,
 		o_@$(PREFIX)_cfg_sample_shift,
 		o_@$(PREFIX)_pp_cmd,
 		o_@$(PREFIX)_pp_data,
@@ -219,6 +222,7 @@
 		//
 	output	wire		o_@$(PREFIX)_cfg_ddr;
 	output	wire		o_@$(PREFIX)_cfg_ds;
+	output	wire		o_@$(PREFIX)_cfg_dscmd;
 	output	wire	[4:0]	o_@$(PREFIX)_cfg_sample_shift;
 	output	wire		o_@$(PREFIX)_pp_cmd;
 	output	wire		o_@$(PREFIX)_pp_data;
@@ -280,6 +284,7 @@
 		//
 		.o_cfg_ddr(o_@$(PREFIX)_cfg_ddr),
 		.o_cfg_ds(o_@$(PREFIX)_cfg_ds),
+		.o_cfg_dscmd(o_@$(PREFIX)_cfg_dscmd),
 		.o_cfg_sample_shift(o_@$(PREFIX)_cfg_sample_shift),
 		.o_pp_cmd(o_@$(PREFIX)_pp_cmd),
 		.o_pp_data(o_@$(PREFIX)_pp_data),

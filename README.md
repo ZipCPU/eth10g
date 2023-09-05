@@ -101,15 +101,15 @@ As of 15 August, 2023:
 
     - Filesystem support is being provided by [FATFS](http://elm-chan.org/fsw/ff/00index_e.html).  It has been used to (successfully) read the directory of an attached SD Card.
 
-  - _(Sort of) Working:_ [SMI Slave Controller](rtl/smi/smi.v).  The SMI pins appear to work--all except the SMI address pins.  I'm not sure why that is, but appears to be a design issue with the [CM4 daughter board](https://www.raspberrypi.com/products/compute-module-4/?variant=raspberry-pi-cm4001000).
+  - _(Sort of) Working:_ [SMI Slave Controller](rtl/smi/smi.v).  The SMI pins appear to work--all except the SMI address pins.  I'm not sure why that is, but appears to be a design issue with the [CM4 daughter board](https://www.raspberrypi.com/products/compute-module-4/?variant=raspberry-pi-cm4001000).  Still, it's working well enough that the project can use SMI if desired.
 
-  - [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v).  The receiver appears to work (pending lab confirmation).  It should be generating accepting video from the RPi and forwarding it downstream.  The transmitter can also generate video independent of the receiver, and an overlay module can overlay a video on top of the received image before transmitting it.
+  - [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v).  The receiver now accepts video from the RPi and forwards it downstream.  Either this video, or a blank screen, can then be forwarded to an overlay module.  The result has now been display (successfully) via the HDMI transmitter.
 
 - Components assembled, attached, and currently under test include:
 
-  - The 10Gb Ethernet component is currently connected and undergoing test.  As of 2023/08/05, I can receive a remote fault condition from one of the four connections.  I have been unable to demonstrate transmit, even in a loopback configuration.  I think this means the Xilinx GTX transceivers are at least working in a receive configuration, but that transmit is still struggling.
+  - The 10Gb Ethernet component is currently connected and undergoing test.  At present, I still receive a remote fault condition from one of the four connections.  The other three connections appear to be up and running without fault, but need more testing.
 
-  - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are integrated, but do not pass a [simulation test](bench/rtl/tb_netpath.v) as of 2023/08/05.
+  - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are integrated, but need further testing.
 
 - Components not yet integrated include:
 

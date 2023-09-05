@@ -242,7 +242,7 @@ i_sdcard_cd_n,
 	// SDIO SD Card definitions
 	// {{{
 	wire		w_sdio_cfg_ddr;
-	wire		w_sdio_cfg_ds;
+	wire		w_sdio_cfg_ds, w_sdio_cfg_dscmd;
 	wire	[4:0]	w_sdio_cfg_sample_shift;
 	wire		w_sdio_pp_cmd;
 	wire		w_sdio_pp_data;
@@ -310,7 +310,7 @@ i_sdcard_cd_n,
 	// eMMC Card definitions
 	// {{{
 	wire		w_emmc_cfg_ddr;
-	wire		w_emmc_cfg_ds;
+	wire		w_emmc_cfg_ds, w_emmc_cfg_dscmd;
 	wire	[4:0]	w_emmc_cfg_sample_shift;
 	wire		w_emmc_pp_cmd;
 	wire		w_emmc_pp_data;
@@ -386,6 +386,7 @@ i_sdcard_cd_n,
 		//
 		w_sdio_cfg_ddr,
 		w_sdio_cfg_ds,
+		w_sdio_cfg_dscmd,
 		w_sdio_cfg_sample_shift,
 		w_sdio_pp_cmd,
 		w_sdio_pp_data,
@@ -440,6 +441,7 @@ i_sdcard_cd_n,
 		//
 		w_emmc_cfg_ddr,
 		w_emmc_cfg_ds,
+		w_emmc_cfg_dscmd,
 		w_emmc_cfg_sample_shift,
 		w_emmc_pp_cmd,
 		w_emmc_pp_data,
@@ -564,6 +566,7 @@ i_sdcard_cd_n,
 		// Configuration
 		.i_cfg_ddr(w_sdio_cfg_ddr),
 		.i_cfg_ds(w_sdio_cfg_ds),
+		.i_cfg_dscmd(w_sdio_cfg_dscmd),
 		.i_sample_shift(w_sdio_cfg_sample_shift),
 		.i_pp_cmd(w_sdio_pp_cmd),
 		.i_pp_data(w_sdio_pp_data),
@@ -597,7 +600,7 @@ i_sdcard_cd_n,
 
 	assign	o_sdcard_clk = w_sdio_ck;
 
-	assign	w_sdio_ds = 1'b0;
+	assign	w_sdio_ds    = 1'b0;
 
 
 	////////////////////////////////////////////////////////////////////////
@@ -849,6 +852,7 @@ i_sdcard_cd_n,
 		// Configuration
 		.i_cfg_ddr(w_emmc_cfg_ddr),
 		.i_cfg_ds(w_emmc_cfg_ds),
+		.i_cfg_dscmd(w_emmc_cfg_dscmd),
 		.i_sample_shift(w_emmc_cfg_sample_shift),
 		.i_pp_cmd(w_emmc_pp_cmd),
 		.i_pp_data(w_emmc_pp_data),

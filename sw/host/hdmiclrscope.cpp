@@ -70,7 +70,7 @@ public:
 		: SCOPE(fpga, addr, false, vecread) {};
 	~HDMICLRSCOPE(void) {}
 
-	const int SCOPETYPE = 2;
+	const int SCOPETYPE = 3;
 
 	virtual	void	decode(DEVBUS::BUSW val) const {
 		switch(SCOPETYPE) {
@@ -124,6 +124,23 @@ public:
 				(gs) ? "S:":"  ", g,
 				b);
 			} break;
+		case 3: {
+			unsigned	r, g, b, vld, rdy, h, v;
+
+			vld = (val >> 27) & 0x01;
+			rdy = (val >> 26) & 0x01;
+			h   = (val >> 25) & 0x01;
+			v   = (val >> 24) & 0x01;
+			r   = (val >> 16) & 0x0ff;
+			g   = (val >>  8) & 0x0ff;
+			b   = (val      ) & 0x0ff;
+			printf("%s %s %02x,%02x,%02x %s %s",
+				(vld) ? "VALID":"     ",
+				(rdy) ? "READY":"     ",
+				r, g, b,
+				(h) ? "EOL":"   ",
+				(v) ? "EOF":"   ");
+			} break;
 		}
 	}
 
@@ -155,13 +172,24 @@ public:
 			register_trace("green", 8,  8);
 			register_trace("blue",  8,  0);
 			} break;
-		case 2:
-		default: {
+		case 2: {
 			register_trace("start_red",   1, 31);
 			register_trace("start_green", 1, 30);
 			register_trace("red",   10, 20);
 			register_trace("green", 10, 10);
 			register_trace("blue",  10,  0);
+			} break;
+		case 3:
+		default: {
+			register_trace("eof",     1, 30);
+			register_trace("alpha",   2, 28);
+			register_trace("valid",   1, 27);
+			register_trace("ready",   1, 26);
+			register_trace("hlast",   1, 25);
+			register_trace("vlast",   1, 24);
+			register_trace("red",   8, 16);
+			register_trace("green", 8,  8);
+			register_trace("blue",  8,  0);
 			} break;
 		};
 	}

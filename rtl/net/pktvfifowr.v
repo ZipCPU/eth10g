@@ -96,7 +96,7 @@
 module	pktvfifowr #(
 		// {{{
 		parameter	BUSDW = 512,
-		parameter	AW = 30-$clog2(BUSDW/8),
+		parameter	AW = 24-$clog2(BUSDW/8),
 		parameter	LGPIPE = 6,
 		parameter [0:0]	OPT_LOWPOWER = 1,
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 0

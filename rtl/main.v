@@ -132,6 +132,7 @@ module	main(i_clk, i_reset,
 		//
 		o_sdio_cfg_ddr,
 		o_sdio_cfg_ds,
+		o_sdio_cfg_dscmd,
 		o_sdio_cfg_sample_shift,
 		o_sdio_pp_cmd,
 		o_sdio_pp_data,
@@ -193,6 +194,7 @@ module	main(i_clk, i_reset,
 		//
 		o_emmc_cfg_ddr,
 		o_emmc_cfg_ds,
+		o_emmc_cfg_dscmd,
 		o_emmc_cfg_sample_shift,
 		o_emmc_pp_cmd,
 		o_emmc_pp_data,
@@ -319,6 +321,7 @@ module	main(i_clk, i_reset,
 		//
 	output	wire		o_sdio_cfg_ddr;
 	output	wire		o_sdio_cfg_ds;
+	output	wire		o_sdio_cfg_dscmd;
 	output	wire	[4:0]	o_sdio_cfg_sample_shift;
 	output	wire		o_sdio_pp_cmd;
 	output	wire		o_sdio_pp_data;
@@ -388,6 +391,7 @@ module	main(i_clk, i_reset,
 		//
 	output	wire		o_emmc_cfg_ddr;
 	output	wire		o_emmc_cfg_ds;
+	output	wire		o_emmc_cfg_dscmd;
 	output	wire	[4:0]	o_emmc_cfg_sample_shift;
 	output	wire		o_emmc_pp_cmd;
 	output	wire		o_emmc_pp_data;
@@ -2020,6 +2024,7 @@ module	main(i_clk, i_reset,
 		//
 		.o_cfg_ddr(o_sdio_cfg_ddr),
 		.o_cfg_ds(o_sdio_cfg_ds),
+		.o_cfg_dscmd(o_sdio_cfg_dscmd),
 		.o_cfg_sample_shift(o_sdio_cfg_sample_shift),
 		.o_pp_cmd(o_sdio_pp_cmd),
 		.o_pp_data(o_sdio_pp_data),
@@ -2699,6 +2704,7 @@ module	main(i_clk, i_reset,
 		//
 		.o_cfg_ddr(o_emmc_cfg_ddr),
 		.o_cfg_ds(o_emmc_cfg_ds),
+		.o_cfg_dscmd(o_emmc_cfg_dscmd),
 		.o_cfg_sample_shift(o_emmc_cfg_sample_shift),
 		.o_pp_cmd(o_emmc_pp_cmd),
 		.o_pp_data(o_emmc_pp_data),

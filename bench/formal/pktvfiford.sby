@@ -2,11 +2,13 @@
 prf        bus64
 prf32  prf bus32
 prf512 prf bus512
-cvr bus64
+cvr bus32
 
 [options]
 prf: mode prove
 cvr: mode cover
+prf: depth 12
+depth 200
 
 [engines]
 smtbmc

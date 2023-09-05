@@ -1066,8 +1066,7 @@ module	axisvoverlay #(
 					- ovskd_data[ALPHA_BITS + DW-1 : DW]
 					- ovskd_data[ALPHA_BITS + DW-1];
 			// Verilator lint_on  WIDTH
-			if (!ovskd_valid || frame_err || !in_overlay
-							|| !i_enable)
+			if (!ovskd_valid || frame_err || !in_overlay)
 			begin
 				ovw_pixel <= 0;
 				alpha     <= TRANSPARENT;
@@ -1080,26 +1079,44 @@ module	axisvoverlay #(
 		for(clr=0; clr<COLORS; clr=clr+1)
 		begin : MIXCLR
 			// Verilator lint_off UNUSED
-			reg	[BPP + ALPHA_BITS:0] pclr, oclr, sclr;
+			reg	[BPP + ALPHA_BITS:0] pclr, oclr;
+			wire	[BPP + ALPHA_BITS:0] sum_clr;
 			wire	[BPP-1:0] pri_clr, ovw_clr;
+			reg	[BPP-1:0] bypass_clr, sclr;
 
 			assign	pri_clr = pri_pixel[clr * BPP +: BPP];
 			assign	ovw_clr = ovw_pixel[clr * BPP +: BPP];
 			// Verilator lint_on  UNUSED
 
 			always @(posedge ACLK)
-			if (pix_loaded && pix_ready)
+			if (pix_loaded && pix_ready && !i_enable)
+				bypass_clr <= pri_clr;
+
+			always @(posedge ACLK)
+			if (pix_loaded && pix_ready && i_enable)
 				pclr <= pri_clr * alpha;
 
 			always @(posedge ACLK)
-			if (pix_loaded && pix_ready)
+			if (pix_loaded && pix_ready && i_enable)
 				oclr <= ovw_clr * negalpha;
+
+			assign	sum_clr = pclr + oclr;
 
 			always @(posedge ACLK)
 			if (mpy_loaded && mpy_ready)
-				sclr <= pclr + oclr;
+			begin
+				if (!i_enable)
+					// Skip
+					sclr <= bypass_clr;
+				else if (sum_clr[ALPHA_BITS + BPP])
+					// Overflow
+					sclr <= -1;
+				else
+					// Color is valid
+					sclr <= sum_clr[ALPHA_BITS +: BPP];
+			end
 
-			assign	mix_pixel[clr * BPP +: BPP] = sclr[ALPHA_BITS +: BPP];
+			assign	mix_pixel[clr * BPP +: BPP] = sclr;
 		end
 		// }}}
 		// }}}
