@@ -157,7 +157,7 @@ module	netpath #(
 	// Local declarations
 	// {{{
 	localparam [0:0]	OPT_DROPSHORT = 1'b0;
-	localparam [0:0]	OPT_CRC = 1'b0;
+	localparam [0:0]	OPT_CRC = 1'b1;
 
 	// The clock speed is nominally (10GHz * 66/64) / 64
 	//	or about 156.25MHz (or 161.1428..MHz)

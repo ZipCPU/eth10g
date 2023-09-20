@@ -36,7 +36,7 @@
 ##
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth dropshort wbi2cdma cecbridge
-TESTS += pktvfifowr pktvfiford rxgears txgears p642pkt pkt2p64b
+TESTS += pktvfifowr pktvfiford rxgears txgears p642pkt pkt2p64b crc_eqn
 # wbmarbiter
 # pktvfiford
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
@@ -51,6 +51,7 @@ RTLNET := ../../rtl/net
 NARB   := axinarbiter
 BCAST  := axinbroadcast
 NWIDTH := axinwidth
+CRCEQ  := crc_eqn
 DSHORT := dropshort
 RXGEARS:= p66brxgears
 TXGEARS:= p66btxgears
@@ -95,6 +96,13 @@ $(BCAST)_prflp/PASS: $(BCAST).sby $(RTLNET)/$(BCAST).v $(FAXIN)
 	sby -f $(BCAST).sby prflp
 $(BCAST)_cvr/PASS: $(BCAST).sby   $(RTLNET)/$(BCAST).v $(FAXIN)
 	sby -f $(BCAST).sby cvr
+## }}}
+
+.PHONY: $(CRCEQ)
+## {{{
+$(CRCEQ): $(CRCEQ)_prf/PASS
+$(CRCEQ)_prf/PASS: $(CRCEQ).sby   $(RTLNET)/$(CRCEQ).v
+	sby -f $(CRCEQ).sby prf
 ## }}}
 
 .PHONY: $(NWIDTH)

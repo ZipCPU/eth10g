@@ -1,0 +1,22 @@
+[tasks]
+prf
+# cvr
+
+[options]
+prf: mode prove
+# cvr: mode cover
+depth 2
+
+[engines]
+smtbmc
+
+[script]
+read -formal crc_eqn.v
+--pycode-begin--
+cmd = "hierarchy -top crc_eqn"
+output(cmd)
+--pycode-end--
+prep -top crc_eqn
+
+[files]
+../../rtl/net/crc_eqn.v

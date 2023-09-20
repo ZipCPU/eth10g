@@ -11,6 +11,30 @@
 //	signal, so subsequent components know not to store the packet into
 //	memory, or to forward it through the network.)
 //
+// Algorithm notes:
+//	Since we don't know which byte will end a packet, we have to calculate
+//	the appropriate CRC for all possible packet endings.  Sadly, the
+//	traditional CRC algorithm (compute CRC for ending #1, ending #2 is
+//	then calculated from ending #1 and a new byte, ending #3 is calculated
+//	from ending #2 and a second new byte, etc.) doesn't meet timing.  Hence,
+//	the algorithm has been modified so that each bit of the CRC is
+//	calculated from a linear equation instead.  That way, we can calculate
+//	each CRC bit (b), for each of the 32bits composing a CRC, for each
+//	potential ending byte (B) all using the same equation:
+//
+//	(Let's let k = 32*B+b)
+//	for(k=0; k<32*DATA_WIDTH/8; k=k+1)
+//	if (S_AXIN_VALID && S_AXIN_READY)
+//		crc[k] = ^(EQUATION[k] & { new_input_word, crc })
+//
+//	For a DATA_WIDTH of 64b, EQUATION[k] will have (typically and roughly)
+//	(DATA_WIDTH/8 + CRC_WIDTH/2 = 32+16 =) 48 bits active.  These 48 bits
+//	can then be placed into 8 LUT6s, the output of these 8 LUT6s can then
+//	be fed into two LUT6s (with carry) to finish the logic.  Hence:
+//	32*(64/8)*(8+2) = 32*8*10 = 2560 LUTs.  In practice, Yosys can build
+//	this entire module in 2,305 LUTs (including merging less than fully
+//	utilized LUTs), so its not quite so bad.
+//
 // Creator:	Sukru Uzun.
 //	    	Gisselquist Technology, LLC
 //
