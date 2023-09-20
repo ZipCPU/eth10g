@@ -4,6 +4,7 @@ cputest
 deploy.sh
 emmcinfo
 hello
+memtest
 qkhdmi
 rdedid
 rdramcfg

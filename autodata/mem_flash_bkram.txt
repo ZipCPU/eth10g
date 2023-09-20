@@ -37,7 +37,7 @@
 @PREFIX=mem_flash_bkram
 @MASTER.TYPE=SCRIPT
 @MASTER.BUS=wbwide
-@LD.FILE=board.ld
+@LD.FILE=nosdram.ld
 @LD.DEFNS=
 /* LD.DEFNS from zipmaster.txt */
 _kram  = 0; /* No high-speed kernel RAM */

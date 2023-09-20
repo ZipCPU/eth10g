@@ -1,3 +1,6 @@
 [submodule "pcb"]
 	path = pcb
 	url = https://github.com/pcbarts/fast-open-switch-hardware
+[submodule "DDR3_Controller"]
+	path = DDR3_Controller
+	url = https://github.com/AngeloJacobo/DDR3_Controller

@@ -114,7 +114,7 @@
 @TOP.IODECL=
 	input	wire	i_clk_200mhz_p, i_clk_200mhz_n;
 @TOP.DEFNS=
-	wire	s_clk200;
+	wire	s_clk200, s_clk200_unbuf;
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -123,8 +123,11 @@
 	IBUFDS
 	ibuf_ck200 (
 		.I(i_clk_200mhz_p), .IB(i_clk_200mhz_n),
-		.O(s_clk200)
+		.O(s_clk200_unbuf)
 	);
+
+	BUFG
+	ck200_buf(.I(s_clk200_unbuf), .O(s_clk200));
 	// }}}
 @TOP.MAIN=
 		s_clk200

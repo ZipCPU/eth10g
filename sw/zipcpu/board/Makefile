@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest # contest
 all:	$(PROGRAMS)
 #
 #
@@ -46,7 +46,7 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c clkcheck.c # contest.c
+SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c clkcheck.c memtest.c # contest.c
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
@@ -154,6 +154,9 @@ dmatest: $(OBJDIR)/dmatest.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
 
 rxhdmi: $(OBJDIR)/rxhdmi.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+memtest: $(OBJDIR)/memtest.o bkram.ld $(LIB)
+	$(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
 
 define	mk-objdir
 	@bash -c "if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR)/; fi"
