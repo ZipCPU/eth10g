@@ -36,3 +36,4 @@ vivado_pid*
 pi/
 reports/
 tcl/
+deploy.sh
