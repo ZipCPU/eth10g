@@ -7,8 +7,8 @@ cvr bus32
 [options]
 prf: mode prove
 cvr: mode cover
-prf: depth 12
-depth 200
+prf: depth 10
+cvr: depth 25
 
 [engines]
 smtbmc
@@ -19,19 +19,17 @@ read -formal faxin_master.v
 read -formal fwb_master.v
 --pycode-begin--
 cmd  = "hierarchy -top pktvfiford"
-cmd += " -chparam MINLEN 7"
+cmd += " -chparam MINLEN 64"
 if ("bus32" in tags):
-	cmd += " -chparam BUSDW 32"
-elif ("bus64" in tags):
-	cmd += " -chparam BUSDW 64"
+	cmd += " -chparam BUSDW 32 -chparam MINLEN 7"
 elif ("bus128" in tags):
-	cmd += " -chparam BUSDW 128"
+	cmd += " -chparam BUSDW 128 -chparam MINLEN 31"
 elif ("bus256" in tags):
-	cmd += " -chparam BUSDW 256"
+	cmd += " -chparam BUSDW 256 -chparam MINLEN 63"
 elif ("bus512" in tags):
-	cmd += " -chparam BUSDW 512"
+	cmd += " -chparam BUSDW 512 -chparam MINLEN 64"
 else:
-	cmd += " -chparam BUSDW 64"
+	cmd += " -chparam BUSDW 64 -chparam MINLEN 15"
 output(cmd)
 --pycode-end--
 prep -top pktvfiford

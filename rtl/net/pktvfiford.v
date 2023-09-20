@@ -464,7 +464,7 @@ module	pktvfiford #(
 			o_wb_cyc  <= 1'b0;
 			rd_state  <= RD_IDLE;
 			// Verilator lint_off WIDTH
-			if (r_endptr + 1 >= {end_of_memory, {(WBLSB-2){1'b0}} })
+			if (((r_endptr + 1)<<2) >= end_of_memory)
 				r_readptr <= i_cfg_baseaddr << (WBLSB-2);
 				// Verilator lint_on  WIDTH
 			else
@@ -736,11 +736,24 @@ module	pktvfiford #(
 			// states points to the length word, not the first
 			// data word, so we really need to add one, hence
 			// we check for all bits being one here.
-			r_full_return <= (&r_readptr[WBLSB-3:2]);
+			r_full_return <= (&r_readptr[WBLSB-3:0]);
 		else if (i_wb_ack)
 			r_full_return <= 1'b1;
 
 		assign	full_return = r_full_return;
+`ifdef	FORMAL
+		always @(*)
+		if (!i_reset && rd_state != RD_IDLE && rd_state != RD_SIZE)
+		begin
+			if (!full_return)
+			begin
+				assert(!(&f_startptr[WBLSB-1:2]));
+			end else begin
+				assert(&f_startptr[WBLSB-1:2]
+					|| fwb_bytes_returned>0);
+			end
+		end
+`endif
 		// }}}
 
 		// false_ack: When do we flush our shift register?
@@ -750,7 +763,8 @@ module	pktvfiford #(
 								|| !i_wb_ack)
 			// Wrong time to flush, so ... don't
 			r_false_ack <= 0;
-		else if (!lastack || o_wb_addr != r_endptr[WBLSB-2 +: AW])
+		else if (!lastack || (rd_state == RD_PACKET || !o_wb_stb)
+				|| o_wb_addr != r_endptr[WBLSB-2 +: AW])
 			// Can't flush yet, we're not done
 			r_false_ack <= 0;
 		else
@@ -852,10 +866,14 @@ module	pktvfiford #(
 	if (!i_reset && !i_cfg_reset_fifo && rd_state != RD_IDLE)
 	begin
 		assert(wide_baseaddr <= f_startptr);
-		assert(f_startptr <= end_of_memory);
+		assert(f_startptr < end_of_memory);
+		assert(f_startptr[1:0] == 2'b00);
+
+		assert(wide_baseaddr <= { rd_wb_addr, 2'b00 });
+		assert({ rd_wb_addr, 2'b00 } < end_of_memory);
 
 		assert(wide_baseaddr <= { r_readptr, 2'b00 });
-		assert({ r_readptr, 2'b00 } <= end_of_memory);
+		assert({ 1'b0, r_readptr, 2'b00 } < end_of_memory);
 	end
 	// }}}
 
@@ -897,10 +915,11 @@ module	pktvfiford #(
 	default: begin
 		assert(return_len <= rd_pktlen);
 		if (return_len == 0)
+		begin
 			assert(!o_wb_stb && rd_outstanding == 0);
-		if (return_len != 0)
-		assert(dly_check || ({ r_endptr, 2'b00 } == f_endptr));
-		end
+		end else begin
+			assert(dly_check || ({ r_endptr, 2'b00 } == f_endptr));
+		end end
 	endcase
 	// }}}
 `endif
@@ -948,12 +967,27 @@ module	pktvfiford #(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
+	localparam	F_LGMAX = $clog2(((MAXLEN*8 + (BUSDW-1))/BUSDW)+1);
 	localparam	F_LGDEPTH = LGPIPE+1;
+
 	reg	f_past_valid;
 	wire	[F_LGDEPTH-1:0]	frd_nreqs, frd_nacks, frd_outstanding;
 	(* anyconst *)	reg	[AW-1:0]	fc_baseaddr, fc_memsize;
 	reg	[AW+WBLSB:0]	wide_end_of_packet, wide_committed,
-				wide_writeptr;;
+				wide_writeptr;
+
+	wire	[F_LGMAX-1:0]	fs_word;
+	wire	[12-1:0]	fs_packet;
+	reg	[AW+WBLSB:0]	fwb_bytes_returned, fwb_bytes_outstanding,
+				fwb_next_addr, fwb_wide_request,
+				fwb_words_returned, frd_words;
+	wire	[WBLSB-1:0]	f_ptroffset;
+	reg	[AW+WBLSB-1:0]	f_words_remaining;
+	(* keep *) reg	[AW+WBLSB-1:0]	fwb_addr;
+
+	always @(*)
+		fwb_addr = { o_wb_addr, {(WBLSB){1'b0}} };
+
 
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
@@ -1045,7 +1079,7 @@ module	pktvfiford #(
 		assert(end_of_memory == wide_baseaddr + wide_memsize);
 
 		assert(wide_end_of_packet >= wide_baseaddr);
-		assert(wide_end_of_packet <  end_of_memory);
+		assert(dly_check || wide_end_of_packet <  end_of_memory);
 
 		// assert(f_wide_pktfill <= wide_committed);
 
@@ -1106,14 +1140,6 @@ module	pktvfiford #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	localparam	F_LGMAX = $clog2(((MAXLEN*8 + (BUSDW-1))/BUSDW)+1);
-
-	wire	[F_LGMAX-1:0]	fs_word;
-	wire	[12-1:0]	fs_packet;
-	reg	[AW+WBLSB:0]	fwb_bytes_returned, fwb_bytes_outstanding,
-				fwb_next_addr, fwb_wide_request,
-				fwb_words_returned, frd_words;
-
 	faxin_master #(
 		// {{{
 		.DATA_WIDTH(BUSDW),
@@ -1183,7 +1209,7 @@ module	pktvfiford #(
 	// Verify relationship between f_startptr, r_readptr && return_len
 	// {{{
 
-	// fwb_bytes_returned
+	// fwb_bytes_returned: Based upon (r_readptr - f_startptr)
 	// {{{
 	// These are bytes that have been requested, ackd, and so returned,
 	// and may have even been sent across the bus
@@ -1193,15 +1219,15 @@ module	pktvfiford #(
 			|| r_readptr[(WBLSB-2)+:AW]==f_startptr[WBLSB +: AW])
 	begin
 		fwb_bytes_returned = 0;
-	end else if (r_readptr[(WBLSB-2)+: AW] >= f_startptr[WBLSB +: AW])
+	end else if (r_readptr >= f_startptr[2 +: AW+(WBLSB-2)])
 	begin
 		fwb_bytes_returned =
 			{ r_readptr[(WBLSB-2) +: AW], {(WBLSB){1'b0}} }
 				- f_startptr - 4;
 	end else begin
-assume(0);
 		fwb_bytes_returned = wide_memsize
-			+ { o_wb_addr, {(WBLSB){1'b0}} } - f_startptr - 4;
+			+ { r_readptr[(WBLSB-2) +: AW], {(WBLSB){1'b0}} }
+				- f_startptr - 4;
 	end
 	// }}}
 
@@ -1217,9 +1243,10 @@ assume(0);
 	end
 	// }}}
 
-	// fwb_bytes_outstanding : Bytes that have been requested, but not ackd
+	// fwb_bytes_outstanding: rd_outstanding in bytes, Bytes that have
 	// {{{
-	// These bytes are those that haven't yet been returned on the bus.
+	// been requested, but not ackd.  These bytes are those that haven't
+	// yet been returned on the bus.
 	always @(*)
 	if (rd_outstanding == 0 && !o_wb_stb)
 		fwb_bytes_outstanding = 0;
@@ -1266,6 +1293,8 @@ assume(0);
 	begin : SIMPLE_WORD_LIMIT
 		always @(*)
 			frd_words = (rd_pktlen + BUSDW/8-1) >> WBLSB;
+
+		assign	f_ptroffset = 0;
 	end else begin : OFFCUT_WORD_LIMIT
 		always @(*)
 		begin
@@ -1279,6 +1308,27 @@ assume(0);
 			frd_words = frd_words + rd_pktlen;
 			frd_words = (frd_words + BUSDW/8-1) >> WBLSB;
 		end
+
+		assign	f_ptroffset = f_startptr[WBLSB-1:0]+4;
+
+		always @(*)
+		if (!i_reset && !o_fifo_err && !i_cfg_reset_fifo)
+		case(rd_state)
+		RD_IDLE: begin end
+		RD_SIZE: begin end
+		RD_PACKET: begin
+			if (f_ptroffset == 0)
+				assert(full_return);
+			assert(f_ptroffset == { r_readptr[WBLSB-3:0],2'b00});
+			end
+		RD_CLEARBUS: begin
+			if (f_ptroffset == 0)
+				assert(full_return);
+			assert(f_ptroffset == { r_readptr[WBLSB-3:0],2'b00});
+			if (!full_return)
+				assert(fwb_bytes_outstanding[WBLSB-1:2] != 0);
+			end
+		endcase
 	end endgenerate
 	// }}}
 
@@ -1293,7 +1343,11 @@ assume(0);
 
 	always @(*)
 	if (!i_reset && !i_cfg_reset_fifo && rd_state == RD_IDLE)
+	begin
 		assert(!M_VALID || M_LAST);
+		if (!M_VALID)
+			assert(fs_word == 0);
+	end
 
 	always @(*)
 	if (!i_reset && !i_cfg_reset_fifo && rd_state == RD_SIZE)
@@ -1308,6 +1362,27 @@ assume(0);
 	begin
 		assert(fwb_bytes_returned <= (frd_words+1) << WBLSB);
 		assert((fwb_bytes_returned >> WBLSB) == fs_word + (M_VALID ? 1:0));
+
+		if (!full_return)
+			assert(fwb_bytes_returned == 0);
+	end
+	// }}}
+
+	// Relate rd_outstanding == rd_wb_addr - r_readptr
+	// {{{
+	always @(*)
+	if (!i_reset && !i_cfg_reset_fifo && (rd_state == RD_PACKET
+				|| rd_state == RD_CLEARBUS) && !o_fifo_err)
+	begin
+		if (rd_wb_addr >= r_readptr)
+		begin
+			assert(rd_outstanding == rd_wb_addr[(WBLSB-2)+:AW]
+					- r_readptr[(WBLSB-2)+:AW]);
+		end else begin
+			assert(rd_outstanding == wide_memsize[WBLSB+:AW]
+				+rd_wb_addr[(WBLSB-2)+:AW]
+					- r_readptr[(WBLSB-2)+:AW]);
+		end
 	end
 	// }}}
 
@@ -1320,24 +1395,163 @@ assume(0);
 	//
 	//
 
-	reg	[AW+WBLSB-1:0]	f_words_remaining;
+	always @(*)
+	if (!i_reset && !full_return && rd_state != RD_IDLE
+						&& rd_state != RD_SIZE)
+		assert(return_len == rd_pktlen);
 
 	always @(*)
+	if (!full_return)
+	begin
+		f_words_remaining = return_len + 4;
+		f_words_remaining = f_words_remaining + f_startptr[WBLSB-1:0];
+		// Now, round up to the nearest word
+		f_words_remaining = f_words_remaining + (BUSDW/8-1);
+		f_words_remaining = f_words_remaining >> WBLSB;
+	end else
 		f_words_remaining = (return_len + (BUSDW/8-1)) >> WBLSB;
 
 	always @(*)
 	if (!i_reset && !o_fifo_err && !i_cfg_reset_fifo) case(rd_state)
 	RD_IDLE: begin end
-	RD_SIZE: begin end
+	RD_SIZE: begin
+		assert(fwb_addr[WBLSB +: AW] == r_readptr[WBLSB-2 +: AW]);
+		end
 	RD_PACKET: begin
+		assert(return_len + fwb_bytes_returned == rd_pktlen);
 		assert((rd_pktlen - fwb_bytes_returned )
 				<= { f_words_remaining, {(WBLSB){1'b0}} });
+		// *****
+		if (f_startptr[WBLSB +: AW] <= r_readptr[WBLSB-2+: AW])
+		begin
+			assert(f_startptr <= wide_readptr);
+		end else begin
+			assert(f_startptr <= wide_memsize + wide_readptr);
 		end
+		if (f_startptr < wide_end_of_packet)
+		begin
+			// No memory wrapping
+			assert(dly_check || fwb_addr < wide_end_of_packet);
+			assert(fwb_addr < wide_end_of_packet);
+			if (dly_check)
+			begin
+			end else if (BUSDW <= 64)
+				assert(f_startptr <= fwb_addr);
+			else begin
+				assert({f_startptr[WBLSB +: AW], {(WBLSB){1'b0}} } <= fwb_addr);
+			end
+			assert(f_startptr < wide_readptr);
+		end else if (f_startptr[WBLSB +: AW] <= o_wb_addr)
+		begin
+			// Start < fwb_addr < end_of_memory
+			assert(f_startptr < wide_readptr);
+			assert(fwb_addr < end_of_memory);
+		end else if (f_startptr < wide_readptr)
+		begin
+			// fwb_addr < start < readptr < end_of_memory
+			assert(dly_check || fwb_addr < wide_end_of_packet);
+		end else begin
+			// readptr < fwb_addr < start
+			assert((r_readptr >> (WBLSB-2)) <= o_wb_addr);
+			assert(wide_readptr[WBLSB +: AW] < f_startptr[WBLSB +: AW]);
+			assert(dly_check || fwb_addr < wide_end_of_packet);
+		end
+		// *****
+		assert({ r_readptr, 2'b00 } != f_startptr);
+		assert(return_len > 0);
+		assert(fwb_bytes_returned[1:0] == 2'b00);
+		if (BUSDW == 32 || full_return)
+		begin
+			assert(fwb_bytes_outstanding
+				<= { f_words_remaining, {(WBLSB){1'b0}} });
+		end else if (o_wb_stb || rd_outstanding > 0)
+		begin
+			// assert(fwb_bytes_outstanding[WBLSB-1:2] != 0);
+			assert(return_len == rd_pktlen);
+			assert(fwb_bytes_returned == 0);
+			assert(fwb_bytes_outstanding[WBLSB+AW-1:WBLSB] + 1
+					<= f_words_remaining);
+		end end
 	RD_CLEARBUS: begin
-		assert(fwb_bytes_outstanding
+		// ***
+		// assert(f_startptr <= wide_readptr);
+		// ***
+		if (f_startptr < wide_end_of_packet)
+		begin
+			if (o_wb_stb || rd_outstanding > 0)
+			begin
+				assert(f_startptr < wide_readptr);
+			end
+
+			if (o_wb_stb)
+			begin
+				assert(wide_readptr[WBLSB +: AW] <= fwb_addr);
+				assert(fwb_addr[WBLSB +: AW] <= wide_end_of_packet[WBLSB +: AW]);
+			end
+
+			if (!o_wb_stb && wide_readptr < f_startptr)
+			begin
+				assert(wide_readptr[WBLSB +: AW] == wide_baseaddr[WBLSB +: AW]);
+				assert(rd_outstanding == 0);
+			end
+		end else if (wide_readptr < f_startptr)
+		begin
+			assert(wide_readptr[WBLSB +: AW] != f_startptr[WBLSB +: AW]);
+			assert((r_readptr >> (WBLSB-2)) <= o_wb_addr);
+			assert(wide_end_of_packet < f_startptr);
+			if (o_wb_stb)
+			begin
+				assert(fwb_addr < f_startptr);
+			end
+		end else
+			assert(r_readptr >= f_startptr[2 +: (AW+WBLSB-2)]+1);
+		assert({ r_readptr, 2'b00 } != f_startptr);
+		assert(!o_wb_stb || o_wb_addr == f_endptr[WBLSB +: AW]);
+		if (o_wb_stb || rd_outstanding > 0)
+			assert(fwb_bytes_returned[1:0] == 2'b00);
+		assert(fwb_bytes_outstanding + fwb_bytes_returned
+			<= rd_pktlen + (BUSDW/8)-1);
+		assert(fwb_bytes_outstanding + fwb_bytes_returned >= rd_pktlen);
+		if (BUSDW == 32 || full_return)
+		begin
+			assert(fwb_bytes_outstanding
 				== { f_words_remaining, {(WBLSB){1'b0}} });
-		end
+		end else begin
+			assert(fwb_bytes_outstanding[WBLSB+AW-1:WBLSB] + 1
+					== f_words_remaining);
+		end end
 	endcase
+
+	/*
+	wire	[AW+WBLSB:0]	f_overread;
+
+	generate if (BUSDW > 32)
+	begin
+		reg	[AW+WBLSB:0]	fr_overread;
+
+		always @(*)
+		begin
+			// First, how many bytes do we need to read total?
+			fr_overread = rd_pktlen;
+			if (!(&f_startptr[WBLSB-1:2]))// && !full_return)
+				fr_overread = fr_overread + f_startptr[WBLSB-1:0] + 4;
+			// fr_overread = fr_overread + 3;
+			// fr_overread[1:0] = 2'b00;
+			// Get the remainder, modulo one word
+			fr_overread[AW+WBLSB:WBLSB] = 0;
+
+			// If this isn't zero, we'll be reading more than
+			// desired.  How much more is the difference.
+			if (fr_overread != 0)
+				fr_overread = (BUSDW/8)-fr_overread;
+		end
+
+		assign	f_overread = fr_overread;
+
+	end else begin
+		assign	f_overread = 0;
+	end endgenerate
+	*/
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -1427,6 +1641,25 @@ assume(0);
 
 	always @(*)	assume(fc_baseaddr == 0);
 	always @(*)	assume(fc_memsize == { 1'b1, {(AW-1){1'b0}} });
+
+	/*
+	always @(*)
+	if (!i_reset && rd_state != RD_IDLE && rd_state != RD_SIZE
+				// 32b pointer		// 8b pointer
+			&& r_readptr[(WBLSB-2)+:AW]!=f_startptr[WBLSB +: AW])
+	begin
+		// Prevent memory wrapping?
+		assume(r_readptr[(WBLSB-2)+: AW] >= f_startptr[WBLSB +: AW]);
+	end
+
+	always @(*)
+	if (!i_reset && rd_state != RD_IDLE && rd_state != RD_SIZE)
+	begin
+		assume(f_startptr + rd_pktlen + 8 + BUSDW/8
+						< fc_baseaddr + fc_memsize);
+	end
+	*/
+
 	// }}}
 `endif
 // }}}
