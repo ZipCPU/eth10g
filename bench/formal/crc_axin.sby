@@ -1,0 +1,23 @@
+[tasks]
+prv
+cvr
+
+[options]
+prv: mode prove
+prv: depth 4
+cvr: mode cover
+cvr: depth 20
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal crc_axin.v
+read_verilog -formal faxin_slave.v
+read_verilog -formal faxin_master.v
+prep -top crc_axin
+
+[files]
+crc_axin.v
+faxin_slave.v
+faxin_master.v

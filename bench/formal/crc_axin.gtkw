@@ -1,0 +1,69 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Apr 12 14:48:41 2023
+[*]
+[dumpfile] "/home/sukruuzun/formal_verification/eth_crc/axincrc/crc_axin_prv/engine_0/trace.vcd"
+[dumpfile_mtime] "Wed Apr 12 14:47:39 2023"
+[dumpfile_size] 23326
+[savefile] "/home/sukruuzun/formal_verification/eth_crc/axincrc/crc_axin.gtkw"
+[timestart] 0
+[size] 1920 996
+[pos] -1 -1
+*-2.966447 30 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] crc_axin.
+[sst_width] 276
+[signals_width] 313
+[sst_expanded] 1
+[sst_vpaned_height] 310
+@28
+crc_axin.ACLK
+crc_axin.ARESETN
+@200
+-
+-SLAVE
+@28
+crc_axin.S_AXIN_VALID
+crc_axin.S_AXIN_READY
+crc_axin.S_AXIN_LAST
+crc_axin.S_AXIN_ABORT
+@24
+crc_axin.S_AXIN_BYTES[3:0]
+@22
+crc_axin.S_AXIN_DATA[63:0]
+@24
+[color] 1
+crc_axin.fslave.f_stream_word[6:0]
+@200
+-
+-MASTER
+@28
+crc_axin.M_AXIN_VALID
+crc_axin.M_AXIN_READY
+crc_axin.M_AXIN_LAST
+crc_axin.M_AXIN_ABORT
+@24
+crc_axin.M_AXIN_BYTES[3:0]
+@22
+crc_axin.M_AXIN_DATA[63:0]
+@24
+[color] 1
+crc_axin.fmaster.f_stream_word[6:0]
+@200
+-
+-INTERNALS
+@28
+crc_axin.f_no_abort
+crc_axin.f_never_abort_slave
+@24
+crc_axin.crc_index[2:0]
+@22
+crc_axin.crc_value[31:0]
+crc_axin.end_word[31:0]
+crc_axin.last_axin_data[63:0]
+crc_axin.wide_word[127:0]
+@28
+crc_axin.skd_abort
+crc_axin.skd_ready
+crc_axin.skd_last
+[pattern_trace] 1
+[pattern_trace] 0

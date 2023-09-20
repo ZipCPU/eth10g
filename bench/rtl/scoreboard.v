@@ -160,13 +160,13 @@ module scoreboard (
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
 		crc_packets_rcvd <= 0;
-	else if (CRC_AXIN_VALID && CRC_AXIN_READY && CRC_AXIN_LAST)
+	else if (CRC_FIFO_VALID && CRC_FIFO_READY && CRC_FIFO_LAST)
 		crc_packets_rcvd <= crc_packets_rcvd + 1;
 
 	initial is_first_data = 1;
 	initial is_passed = 0;
 	always @(posedge S_AXI_ACLK)
-	if (!S_AXI_ARESETN)
+	if (!S_AXI_ARESETN || CRC_FIFO_ABORT || MODEL_AXIN_ABORT)
 	begin
 		is_first_data <= 1;
 		is_passed <= 0;
