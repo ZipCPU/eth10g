@@ -496,7 +496,6 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 ## No XDC.INSERT tag in zip
 ## No XDC.INSERT tag in RESET_ADDRESS
 ## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in alt
 ## No XDC.INSERT tag in ddr3_phy
 ## No XDC.INSERT tag in netlock
 ## No XDC.INSERT tag in cec
@@ -541,6 +540,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_h
 ## No XDC.INSERT tag in clk150
 ## No XDC.INSERT tag in zip_tmb
 ## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in netscope
+## No XDC.INSERT tag in edid
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
 ## From emmc
@@ -552,6 +553,8 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
 ## No XDC.INSERT tag in TMA
 ## No XDC.INSERT tag in bkram
 ## No XDC.INSERT tag in ddr3_controller
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in netreset
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
 create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
@@ -586,11 +589,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_addr*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
-
 ## No XDC.INSERT tag in KEYS
 ## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in cpunet
 ## From netdbg
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
-## No XDC.INSERT tag in edid
-## No XDC.INSERT tag in netscope

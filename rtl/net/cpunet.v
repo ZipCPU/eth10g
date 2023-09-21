@@ -250,9 +250,9 @@ module	cpunet #(
 		default: begin end
 		endcase
 
-		if (rd_baseaddr + rd_memsize >= (1<<AW))
+		if (rd_baseaddr + rd_memsize > (1<<AW))
 			reset_rdfifo <= 1;
-		if (wr_baseaddr + wr_memsize >= (1<<AW))
+		if (wr_baseaddr + wr_memsize > (1<<AW))
 			reset_wrfifo <= 1;
 
 		// Because of the way the bus multiplexer works, we can't

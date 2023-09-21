@@ -41,10 +41,10 @@ control](rtl/wbfan.v), and much more.
   - Si5324 clock generator
   - B/W OLED display
 - [SPIO: 5 buttons, 8 LEDs, and 9 switches](rtl/spio.v)
-- HDMI RX and TX
+- [HDMI RX and TX](rtl/hdmi)
 - [RPi CM4 SMI interface](rtl/smi/smi.v)
 - SATA
-- [An open source Verilog DDR3 SDRAM controller](https://github.com/AngeloJacobo/DDR3_Controller) is currently under development to support this project.
+- This project also uses [an open source Verilog DDR3 SDRAM controller](https://github.com/AngeloJacobo/DDR3_Controller).
 
 ## Sponsorship
 
@@ -60,8 +60,7 @@ As of 15 August, 2023:
 
 - The PCB for this project has been built, and is currently under test.  Several issues have been found, which will likely be fixed in a next revision.
 
-- The project RTL is mostly assembled.  Key components not yet integrated
-  include the SATA and DDR3 controllers.
+- The project RTL is mostly assembled.  The only significant component not yet integrated is the SATA.
 
 - Components assembled, attached, and demonstrated to be working include:
 
@@ -111,12 +110,14 @@ As of 15 August, 2023:
 
   - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are integrated, but need further testing.
 
-- Components not yet integrated include:
+  - This design uses an open source [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller).  Integration has been fairly seamless.  While I haven't (yet) measured its performance, I'm expecting close to a 2x speed improvement over the MIG.
 
-  - The [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller) has been ported to the board, but isn't yet working.  It's listed here as "not yet integrated" because the integration configuration (i.e. the AutoFPGA configuration file) hasn't yet been merged with the project.
+
+- Components not yet integrated include:
 
   - [The SATA Controller](https://github.com/ZipCPU/wbsata).  This component needs some more development time at present.
 
+  - While all of the network functionality exists and has been properly integrated, further software development work remains before the switch can be fully demonstrated.
 
 To track the project's status at a glance, you can check either the [bus blocks
 testing stoplight chart](doc/eth10g-busblocks.png), or the [10Gb Ethernet

@@ -1,0 +1,138 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sat Jun 24 17:13:48 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1749 600
+[pos] -1 -1
+*-4.786479 100 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 362
+[signals_width] 256
+[sst_expanded] 1
+[sst_vpaned_height] 156
+@28
+sdtxframe.f_past_valid
+sdtxframe.i_clk
+sdtxframe.i_reset
+sdtxframe.i_en
+[color] 2
+sdtxframe.i_ckstb
+[color] 3
+sdtxframe.i_hlfck
+sdtxframe.f_pending_half
+@800200
+-CFG
+@28
+sdtxframe.i_cfg_ddr
+@22
+sdtxframe.i_cfg_spd[7:0]
+@28
+sdtxframe.i_cfg_width[1:0]
+@200
+-
+@28
+sdtxframe.cfg_ddr
+sdtxframe.cfg_period[1:0]
+sdtxframe.cfg_width[1:0]
+@1000200
+-CFG
+@28
+sdtxframe.start_packet
+@c00200
+-STREAM IN
+@28
+sdtxframe.S_VALID
+sdtxframe.S_READY
+@22
+sdtxframe.S_DATA[31:0]
+@28
+sdtxframe.S_LAST
+@22
+sdtxframe.fs_count[9:0]
+@28
+sdtxframe.fs_last
+@1401200
+-STREAM IN
+@800201
+-Pre-state
+@29
+sdtxframe.pstate[1:0]
+sdtxframe.pre_valid
+sdtxframe.pre_ready
+sdtxframe.pre_count[1:0]
+@23
+sdtxframe.pre_data[31:0]
+@1000201
+-Pre-state
+@c00200
+-CKPinmap
+@28
+sdtxframe.ck_valid
+sdtxframe.ck_ready
+@22
+sdtxframe.ck_counts[4:0]
+sdtxframe.ck_data[31:0]
+@c00022
+sdtxframe.ck_sreg[31:0]
+@28
+(0)sdtxframe.ck_sreg[31:0]
+(1)sdtxframe.ck_sreg[31:0]
+(2)sdtxframe.ck_sreg[31:0]
+(3)sdtxframe.ck_sreg[31:0]
+(4)sdtxframe.ck_sreg[31:0]
+(5)sdtxframe.ck_sreg[31:0]
+(6)sdtxframe.ck_sreg[31:0]
+(7)sdtxframe.ck_sreg[31:0]
+(8)sdtxframe.ck_sreg[31:0]
+(9)sdtxframe.ck_sreg[31:0]
+(10)sdtxframe.ck_sreg[31:0]
+(11)sdtxframe.ck_sreg[31:0]
+(12)sdtxframe.ck_sreg[31:0]
+(13)sdtxframe.ck_sreg[31:0]
+(14)sdtxframe.ck_sreg[31:0]
+(15)sdtxframe.ck_sreg[31:0]
+(16)sdtxframe.ck_sreg[31:0]
+(17)sdtxframe.ck_sreg[31:0]
+(18)sdtxframe.ck_sreg[31:0]
+(19)sdtxframe.ck_sreg[31:0]
+(20)sdtxframe.ck_sreg[31:0]
+(21)sdtxframe.ck_sreg[31:0]
+(22)sdtxframe.ck_sreg[31:0]
+(23)sdtxframe.ck_sreg[31:0]
+(24)sdtxframe.ck_sreg[31:0]
+(25)sdtxframe.ck_sreg[31:0]
+(26)sdtxframe.ck_sreg[31:0]
+(27)sdtxframe.ck_sreg[31:0]
+(28)sdtxframe.ck_sreg[31:0]
+(29)sdtxframe.ck_sreg[31:0]
+(30)sdtxframe.ck_sreg[31:0]
+(31)sdtxframe.ck_sreg[31:0]
+@1401200
+-group_end
+-CKPinmap
+@22
+sdtxframe.fb_count[14:0]
+sdtxframe.fd_count[14:0]
+sdtxframe.fd_offset[5:0]
+sdtxframe.fp_count[9:0]
+@800200
+-TX
+@28
+[color] 3
+sdtxframe.tx_valid
+sdtxframe.tx_ready
+@22
+sdtxframe.tx_data[31:0]
+@1000200
+-TX
+@800200
+-CONTRACT
+@22
+sdtxframe.crc_8d_reg[255:0]
+sdtxframe.fc_posn[9:0]
+sdtxframe.fc_data[31:0]
+@1000200
+-CONTRACT
+[pattern_trace] 1
+[pattern_trace] 0

@@ -161,10 +161,34 @@
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
+#define	CPUNET_PROMISCUOUS	1
+#define	CPUNET_EN		2
+#define	CPUNET_ERROR		4
+#define	CPUNET_RDRESET		8
+#define	CPUNET_TXRESET		8
+#define	CPUNET_WRRESET		16
+#define	CPUNET_RXRESET		16
+
 typedef struct  @$(DEVID)_S        {
-	volatile unsigned
-		net_rxbase, net_rxlen, net_rxwptr, net_rxrptr,
-		net_txbase, net_txlen, net_txwptr, net_txrptr;
+	// Control registers
+	volatile unsigned	net_control;
+		unsigned	net_mac[2];
+		unsigned	net_ip[5];
+	volatile unsigned	net_rxdrops;
+	volatile unsigned	net_rxpkts;
+	volatile unsigned	net_txpkts;
+		unsigned	net_unused[5];
+	//
+	// RX side
+		char		*net_rxbase;
+		unsigned	net_rxlen;
+	volatile char		*net_rxwptr, *net_rxrptr;
+	//
+	// TX side
+		char		*net_txbase;
+		unsigned	net_txlen;
+	volatile char		*net_txwptr, *net_txrptr;
 } @$(DEVID);
 
 #endif	// @$(DEVID)_H

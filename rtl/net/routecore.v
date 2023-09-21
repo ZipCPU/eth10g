@@ -626,7 +626,7 @@ module routecore #(
 			.S_AXIS_TDATA(smac_data),
 			//
 			.M_AXIS_TVALID(rxtbl_valid[(NETH-1) * NETH +: NETH]),
-			.M_AXIS_TREADY(rxtbl_ready[(NETH-1) * NETH +: NETH] | ETH_RESET),
+			.M_AXIS_TREADY(rxtbl_ready[(NETH-1) * NETH +: NETH]),
 			.M_AXIS_TDATA(rxtbl_data[(NETH-1) * MACW * NETH +: MACW * NETH])
 			// }}}
 		);
@@ -728,7 +728,7 @@ module routecore #(
 			.S_DATA( prearb_data),
 			.S_BYTES(prearb_bytes),
 			.S_LAST( prearb_last),
-			.S_ABORT(prearb_abort),
+			.S_ABORT(prearb_abort | ETH_RESET),
 			//
 			.M_VALID(TX_VALID[(NETH-1)]),
 			.M_READY(TX_READY[(NETH-1)]),

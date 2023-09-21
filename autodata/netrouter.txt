@@ -32,6 +32,7 @@
 ##
 ## }}}
 @PREFIX=gnet
+@DEVID=ROUTER
 @ACCESS=ETH_ROUTER
 @$NDEV=4
 @SLAVE.BUS=wb32
@@ -91,7 +92,12 @@
 		gnet_phy_fault, o_gnet_linkup, o_gnet_activity,
 		i_gnet_los, gnet_locked
 @MAIN.PARAM=
-	localparam	NETDEVS = @$(NDEV);
+	localparam	NETDEVS  = @$(NDEV);
+`ifdef	CPUNET_ACCESS
+	localparam	NETPORTS = @$(NDEV)+1;
+`else
+	localparam	NETPORTS = @$(NDEV);
+`endif
 @MAIN.PORTLIST=
 		i_@$(PREFIX)_rx_clk, i_@$(PREFIX)_rx_data,
 		i_@$(PREFIX)_tx_clk, o_@$(PREFIX)_tx_data,
@@ -186,11 +192,10 @@
 	// {{{
 
 	routecore #(
+		.NETH(NETPORTS),
 `ifdef	CPUNET_ACCESS
-		.NETH(@$(NDEV)+1),
 		.OPT_CPUNET(1'b1),
 `else
-		.NETH(@$(NDEV)),
 		.OPT_CPUNET(1'b0),
 `endif
 		.DEF_BASEADDR(0),
@@ -201,10 +206,10 @@
 	) u_router (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
-`ifdef	CPUNET_ACCESS
-		.ETH_RESET({(@$(NDEV)+1){i_reset}}),
+`ifdef	NETRESET_ACCESS
+		.ETH_RESET(r_netreset),
 `else
-		.ETH_RESET({(@$(NDEV)){i_reset}}),
+		.ETH_RESET({(NETPORTS){i_reset}}),
 `endif
 		// Incoming (RX) packet interface
 		// {{{
@@ -250,7 +255,25 @@
 	);
 
 	// }}}
+@REGS.N=1
+@REGS.0=0 R_@$(DEVID) @$(DEVID)
+@BDEF.DEFN=
+
+typedef	struct	PKTVFIFO_S {
+	char		*v_base;
+	unsigned	v_memsize;
+	volatile char	*v_wrptr, *v_rdptr;
+} PKTVFIFO;
+
+struct	@$(DEVID)_S {
+	PKTVFIFO	vfif[@$(NDEV)];
+};
+
+@BDEF.IONAME=	struct @$(DEVID)_S
+@BDEF.IOTYPE=	unsigned
+@BDEF.OSVAL=	static @(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
+## {{{
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
 create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
 create_clock -period 3.2 -name RXNETCK1 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[1]]
@@ -296,7 +319,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rd_addr*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
-
+## }}}
 @RTL.MAKE.GROUP=NET
 @RTL.MAKE.SUBD=net
 @RTL.MAKE.FILES= axinbroadcast.v axincdc.v axinwidth.v crc_axin.v dropshort.v
@@ -305,3 +328,34 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 @SIM.CLOCK=clk
 @SIM.TICK=
 		m_core->i_@$(PREFIX)_phy_fault= 0;
+######################################
+@PREFIX=netreset
+@DEVID=NETRESET
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS=ETH_ROUTER
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=SINGLE
+@NADDR=1
+@MAIN.DEFNS=
+	reg	[NETPORTS-1:0]	r_@$(PREFIX);
+@MAIN.INSERT=
+	initial	r_@$(PREFIX)=0;
+	always @(posedge @$(SLAVE.BUS.CLOCK.WIRE))
+	if (@$(SLAVE.BUS.CLOCK.RESET))
+		r_@$(PREFIX) <= 0;
+	else if (@$(SLAVE.PREFIX)_stb && @$(SLAVE.PREFIX)_we
+			&& (@$(SLAVE.PREFIX)_sel[0]))
+		r_@$(PREFIX) <= @$(SLAVE.PREFIX)_data[NETPORTS-1:0];
+
+	assign	@$(SLAVE.PREFIX)_stall=1'b0;
+	assign	@$(SLAVE.PREFIX)_ack=@$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_idata={ {(32-NETPORTS){1'b0}}, r_@$(PREFIX) };
+@MAIN.ALT=
+	initial	r_@$(PREFIX)=0;
+	always @(*)
+		r_@$(PREFIX) = {(NETPORTS){i_reset)};
+@REGS.N=1
+@REGS.0=0 R_@$(DEVID) @$(DEVID)
+@BDEF.IONAME=	_@$(PREFIX)
+@BDEF.IOTYPE=	unsigned
+@BDEF.OSVAL=	static volatile @(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));

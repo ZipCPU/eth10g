@@ -71,11 +71,11 @@
 `define	SICLK
 `define	BUSCONSOLE_ACCESS
 `define	VIDPIPE_ACCESS
+`define	EDID_ACCESS
 `define	EMMC_ACCESS
 `define	BKRAM_ACCESS
 `define	DDR3_CONTROLLER_ACCESS
 `define	ETH_ROUTER
-`define	EDID_ACCESS
 //
 //
 // The list of those things that have @DEPENDS tags
@@ -86,6 +86,10 @@
 // Any core with both an @ACCESS and a @DEPENDS tag will show up here.
 // The @DEPENDS tag will turn into a series of ifdef's, with the @ACCESS
 // being defined only if all of the ifdef's are true//
+// Deplist for @$(PREFIX)=cpunet
+`ifdef	ETH_ROUTER
+`define	CPUNET_ACCESS
+`endif	// ETH_ROUTER
 // Deplist for @$(PREFIX)=netscope
 `ifdef	ETH_ROUTER
 `define	NETSCOPE_SCOPC
@@ -94,9 +98,9 @@
 `ifdef	VIDPIPE_ACCESS
 `define	HDMICLRSCOPE_SCOPE
 `endif	// VIDPIPE_ACCESS
-// Deplist for @$(PREFIX)=cpunet
+// Deplist for @$(PREFIX)=netreset
 `ifdef	ETH_ROUTER
-`define	CPUNET_ACCESS
+`define	NETRESET_ACCESS
 `endif	// ETH_ROUTER
 //
 // End of dependency list
@@ -191,6 +195,8 @@ module	main(i_clk, i_reset,
 		o_hdmi_iodelay, i_hdmi_iodelay,
 		o_pix_reset_n, i_pxpll_locked,
 		o_pxclk_sel,
+			i_edid_sda, i_edid_scl,
+			o_edid_sda, o_edid_scl,
 		// eMMC Card
 		i_emmc_detect,
 		//
@@ -236,9 +242,7 @@ module	main(i_clk, i_reset,
 		i_gnet_rx_clk, i_gnet_rx_data,
 		i_gnet_tx_clk, o_gnet_tx_data,
 		i_gnet_phy_fault,o_gnet_linkup,o_gnet_activity,
-		i_gnet_los, i_gnet_phy_locked,
-			i_edid_sda, i_edid_scl,
-			o_edid_sda, o_edid_scl
+		i_gnet_los, i_gnet_phy_locked
 	// }}}
 	);
 ////////////////////////////////////////////////////////////////////////////////
@@ -311,7 +315,12 @@ module	main(i_clk, i_reset,
                     DDR3_CONTROLLERCMD_LEN = 4 + 3 + DDR3_CONTROLLERBA_BITS + DDR3_CONTROLLERROW_BITS;
 
 
-	localparam	NETDEVS = 4;
+	localparam	NETDEVS  = 4;
+`ifdef	CPUNET_ACCESS
+	localparam	NETPORTS = 4+1;
+`else
+	localparam	NETPORTS = 4;
+`endif
 // }}}
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -414,6 +423,11 @@ module	main(i_clk, i_reset,
 	input	wire		i_pxpll_locked;
 	output	wire	[1:0]	o_pxclk_sel;
 	// }}}
+	// I2C Port declarations
+	// {{{
+	input	wire	i_edid_sda, i_edid_scl;
+	output	wire	o_edid_sda, o_edid_scl;
+	// }}}
 	// eMMC Card declarations
 	// {{{
 	input	wire		i_emmc_detect;
@@ -479,11 +493,6 @@ module	main(i_clk, i_reset,
 	input	wire	[4:0]	i_gnet_phy_locked;
 	// Verilator lint_on  UNUSED
 	// }}}
-	// I2C Port declarations
-	// {{{
-	input	wire	i_edid_sda, i_edid_scl;
-	output	wire	o_edid_sda, o_edid_scl;
-	// }}}
 // }}}
 	// Make Verilator happy
 	// {{{
@@ -507,10 +516,10 @@ module	main(i_clk, i_reset,
 	wire	uarttx_int;	// uart.INT.UARTTX.WIRE
 	wire	uarttxf_int;	// uart.INT.UARTTXF.WIRE
 	wire	uartrx_int;	// uart.INT.UARTRX.WIRE
+	wire	netscope_int;	// netscope.INT.NETSCOPE.WIRE
 	wire	emmc_int;	// emmc.INT.EMMC.WIRE
 	wire	cpunet_tx_int;	// cpunet.INT.TXNET.WIRE
 	wire	cpunet_rx_int;	// cpunet.INT.RXNET.WIRE
-	wire	netscope_int;	// netscope.INT.NETSCOPE.WIRE
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -611,6 +620,18 @@ module	main(i_clk, i_reset,
 	// Verilator lint_off UNUSED
 	wire	[31:0]	hdmiclr_debug;
 	// Verilator lint_on  UNUSED
+	// EDID I2C Controller
+	// {{{
+	// Verilator lint_off UNUSED
+	// localparam	I2C_ID_WIDTH=(@$(IDW) == 0) ? 1 : @$(IDW);
+
+	wire		edid_valid, edid_ready, edid_last;
+	wire	[7:0]	edid_data;
+	// wire	[I2C_ID_WIDTH-1:0]	edid_id;
+
+	wire	[31:0]	edid_debug;
+	// Verilator lint_on  UNUSED
+	// }}}
 	// eMMC Card definitions
 	// Verilator lint_off UNUSED
 	wire		w_emmc_1p8v;
@@ -621,6 +642,7 @@ module	main(i_clk, i_reset,
 	wire	[DDR3_CONTROLLERAUX_WIDTH-1:0]	ddr3_controller_aux_out;
 	wire	[31:0]	ddr3_controller_debug1, ddr3_controller_debug2, ddr3_controller_debug3;
 	// Verilator lint_on  UNUSED
+	reg	[NETPORTS-1:0]	r_netreset;
 	// Incoming 10Gb packet signaling
 	// {{{
 	wire	[4-1:0]		gnet_rx_valid,
@@ -667,18 +689,6 @@ module	main(i_clk, i_reset,
 	// Verilator lint_off UNUSED
 	wire	[32*NETDEVS-1:0]	netdbg_wide;
 	// Verilator lint_on  UNUSED
-	// EDID I2C Controller
-	// {{{
-	// Verilator lint_off UNUSED
-	// localparam	I2C_ID_WIDTH=(@$(IDW) == 0) ? 1 : @$(IDW);
-
-	wire		edid_valid, edid_ready, edid_last;
-	wire	[7:0]	edid_data;
-	// wire	[I2C_ID_WIDTH-1:0]	edid_id;
-
-	wire	[31:0]	edid_debug;
-	// Verilator lint_on  UNUSED
-	// }}}
 
 // }}}
 	////////////////////////////////////////////////////////////////////////
@@ -836,6 +846,15 @@ module	main(i_clk, i_reset,
 	wire	[3:0]	wb32_netlock_sel;
 	wire		wb32_netlock_stall, wb32_netlock_ack, wb32_netlock_err;
 	wire	[31:0]	wb32_netlock_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32(SIO), component netreset
+	// Verilator lint_off UNUSED
+	wire		wb32_netreset_cyc, wb32_netreset_stb, wb32_netreset_we;
+	wire	[10:0]	wb32_netreset_addr;
+	wire	[31:0]	wb32_netreset_data;
+	wire	[3:0]	wb32_netreset_sel;
+	wire		wb32_netreset_stall, wb32_netreset_ack, wb32_netreset_err;
+	wire	[31:0]	wb32_netreset_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32(SIO), component siclk
 	// Verilator lint_off UNUSED
@@ -1275,11 +1294,12 @@ module	main(i_clk, i_reset,
 	4'h1: r_wb32_sio_data <= wb32_gpio_idata;
 	4'h2: r_wb32_sio_data <= wb32_netdbg_idata;
 	4'h3: r_wb32_sio_data <= wb32_netlock_idata;
-	4'h4: r_wb32_sio_data <= wb32_siclk_idata;
-	4'h5: r_wb32_sio_data <= wb32_sirefclk_idata;
-	4'h6: r_wb32_sio_data <= wb32_sirefclkcounter_idata;
-	4'h7: r_wb32_sio_data <= wb32_spio_idata;
-	4'h8: r_wb32_sio_data <= wb32_version_idata;
+	4'h4: r_wb32_sio_data <= wb32_netreset_idata;
+	4'h5: r_wb32_sio_data <= wb32_siclk_idata;
+	4'h6: r_wb32_sio_data <= wb32_sirefclk_idata;
+	4'h7: r_wb32_sio_data <= wb32_sirefclkcounter_idata;
+	4'h8: r_wb32_sio_data <= wb32_spio_idata;
+	4'h9: r_wb32_sio_data <= wb32_version_idata;
 	default: r_wb32_sio_data <= wb32_version_idata;
 	endcase
 	assign	wb32_sio_idata = r_wb32_sio_data;
@@ -1313,28 +1333,33 @@ module	main(i_clk, i_reset,
 	assign	wb32_netlock_we  = wb32_sio_we;
 	assign	wb32_netlock_data= wb32_sio_data;
 	assign	wb32_netlock_sel = wb32_sio_sel;
+	assign	wb32_netreset_cyc = wb32_sio_cyc;
+	assign	wb32_netreset_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h4);  // 0x010
+	assign	wb32_netreset_we  = wb32_sio_we;
+	assign	wb32_netreset_data= wb32_sio_data;
+	assign	wb32_netreset_sel = wb32_sio_sel;
 	assign	wb32_siclk_cyc = wb32_sio_cyc;
-	assign	wb32_siclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h4);  // 0x010
+	assign	wb32_siclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h5);  // 0x014
 	assign	wb32_siclk_we  = wb32_sio_we;
 	assign	wb32_siclk_data= wb32_sio_data;
 	assign	wb32_siclk_sel = wb32_sio_sel;
 	assign	wb32_sirefclk_cyc = wb32_sio_cyc;
-	assign	wb32_sirefclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h5);  // 0x014
+	assign	wb32_sirefclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h6);  // 0x018
 	assign	wb32_sirefclk_we  = wb32_sio_we;
 	assign	wb32_sirefclk_data= wb32_sio_data;
 	assign	wb32_sirefclk_sel = wb32_sio_sel;
 	assign	wb32_sirefclkcounter_cyc = wb32_sio_cyc;
-	assign	wb32_sirefclkcounter_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h6);  // 0x018
+	assign	wb32_sirefclkcounter_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h7);  // 0x01c
 	assign	wb32_sirefclkcounter_we  = wb32_sio_we;
 	assign	wb32_sirefclkcounter_data= wb32_sio_data;
 	assign	wb32_sirefclkcounter_sel = wb32_sio_sel;
 	assign	wb32_spio_cyc = wb32_sio_cyc;
-	assign	wb32_spio_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h7);  // 0x01c
+	assign	wb32_spio_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h8);  // 0x020
 	assign	wb32_spio_we  = wb32_sio_we;
 	assign	wb32_spio_data= wb32_sio_data;
 	assign	wb32_spio_sel = wb32_sio_sel;
 	assign	wb32_version_cyc = wb32_sio_cyc;
-	assign	wb32_version_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h8);  // 0x020
+	assign	wb32_version_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h9);  // 0x024
 	assign	wb32_version_we  = wb32_sio_we;
 	assign	wb32_version_data= wb32_sio_data;
 	assign	wb32_version_sel = wb32_sio_sel;
@@ -1776,8 +1801,8 @@ module	main(i_clk, i_reset,
 	//
 	assign	alt_int_vector = {
 		1'b0,
-		netscope_int,
 		emmc_int,
+		netscope_int,
 		uartrx_int,
 		uarttx_int,
 		gpio_int,
@@ -2766,6 +2791,90 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// VIDPIPE_ACCESS
 
+`ifdef	NETSCOPE_SCOPC
+	// {{{
+	wbscopc #(
+		// {{{
+		.LGMEM(10),
+		.SYNCHRONOUS(1),
+		.DEFAULT_HOLDOFF(508)
+		// }}}
+	) netscopei(
+		// {{{
+		i_clk, 1'b1, net_debug[31], net_debug[30:0],
+		i_clk,
+		wb32_netscope_cyc, wb32_netscope_stb, wb32_netscope_we,
+			wb32_netscope_addr[1-1:0],
+			wb32_netscope_data, // 32 bits wide
+			wb32_netscope_sel,  // 32/8 bits wide
+		wb32_netscope_stall, wb32_netscope_ack, wb32_netscope_idata,
+		netscope_int
+		// }}}
+	);
+	// }}}
+`else	// NETSCOPE_SCOPC
+	// {{{
+	// Null bus slave
+	// {{{
+
+	//
+	// In the case that there is no wb32_netscope peripheral
+	// responding on the wb32 bus
+	assign	wb32_netscope_ack   = 1'b0;
+	assign	wb32_netscope_err   = (wb32_netscope_stb);
+	assign	wb32_netscope_stall = 0;
+	assign	wb32_netscope_idata = 0;
+
+	// }}}
+	// Null interrupt definitions
+	// {{{
+	assign	netscope_int = 1'b0;	// netscope.INT.NETSCOPE.WIRE
+	// }}}
+	// }}}
+`endif	// NETSCOPE_SCOPC
+
+`ifdef	EDID_ACCESS
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	// The EDID I2C Slave Controller
+	// {{{
+
+	wbi2cslave #(
+		.WB_READ_ONLY(1'b0),
+		.MEM_ADDR_BITS(8),
+		.I2C_READ_ONLY(1'b1)
+	) u_edid (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+		.i_wb_cyc(wb32_edids_cyc), .i_wb_stb(wb32_edids_stb), .i_wb_we(wb32_edids_we),
+			.i_wb_addr(wb32_edids_addr[6-1:0]),
+			.i_wb_data(wb32_edids_data), // 32 bits wide
+			.i_wb_sel(wb32_edids_sel),  // 32/8 bits wide
+		.o_wb_stall(wb32_edids_stall),.o_wb_ack(wb32_edids_ack), .o_wb_data(wb32_edids_idata),
+		//
+		.s_valid(edid_valid), .s_ready(edid_ready),
+			.s_data(edid_data), .s_last(edid_last),
+		//
+		.i_i2c_sda(i_edid_sda), .i_i2c_scl(i_edid_scl),
+		.o_i2c_sda(o_edid_sda), .o_i2c_scl(o_edid_scl),
+		//
+		.o_dbg(edid_debug)
+		// }}}
+	);
+
+	assign	edid_valid = i2c_valid && (i2c_id == 1);
+	assign	edid_data  = i2c_data;
+	assign	edid_last  = i2c_last;
+	// }}}
+	// }}}
+`else	// EDID_ACCESS
+	// {{{
+	assign	o_edid_scl = 1'b1;
+	assign	o_edid_sda = 1'b1;
+	// }}}
+`endif	// EDID_ACCESS
+
 `ifdef	EMMC_ACCESS
 	// {{{
 	////////////////////////////////////////////////////////////////////////
@@ -2964,6 +3073,28 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// DDR3_CONTROLLER_ACCESS
 
+`ifdef	NETRESET_ACCESS
+	// {{{
+	initial	r_netreset=0;
+	always @(posedge i_clk)
+	if (i_reset)
+		r_netreset <= 0;
+	else if (wb32_netreset_stb && wb32_netreset_we
+			&& (wb32_netreset_sel[0]))
+		r_netreset <= wb32_netreset_data[NETPORTS-1:0];
+
+	assign	wb32_netreset_stall=1'b0;
+	assign	wb32_netreset_ack=wb32_netreset_stb;
+	assign	wb32_netreset_idata={ {(32-NETPORTS){1'b0}}, r_netreset };
+	// }}}
+`else	// NETRESET_ACCESS
+	// {{{
+	initial	r_netreset=0;
+	always @(*)
+		r_netreset = {(NETPORTS){i_reset)};
+	// }}}
+`endif	// NETRESET_ACCESS
+
 `ifdef	ETH_ROUTER
 	// {{{
 	generate for(g_gnet=0; g_gnet<4; g_gnet=g_gnet+1)
@@ -3015,11 +3146,10 @@ module	main(i_clk, i_reset,
 	// {{{
 
 	routecore #(
+		.NETH(NETPORTS),
 `ifdef	CPUNET_ACCESS
-		.NETH(4+1),
 		.OPT_CPUNET(1'b1),
 `else
-		.NETH(4),
 		.OPT_CPUNET(1'b0),
 `endif
 		.DEF_BASEADDR(0),
@@ -3030,10 +3160,10 @@ module	main(i_clk, i_reset,
 	) u_router (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
-`ifdef	CPUNET_ACCESS
-		.ETH_RESET({(4+1){i_reset}}),
+`ifdef	NETRESET_ACCESS
+		.ETH_RESET(r_netreset),
 `else
-		.ETH_RESET({(4){i_reset}}),
+		.ETH_RESET({(NETPORTS){i_reset}}),
 `endif
 		// Incoming (RX) packet interface
 		// {{{
@@ -3212,90 +3342,6 @@ module	main(i_clk, i_reset,
 		{(8-NETDEVS){1'b0}}, netdbg_netleds[NETDEVS +: NETDEVS],
 		{(8-NETDEVS){1'b0}}, netdbg_netleds[0 +: NETDEVS],
 		{(8-$clog2(NETDEVS)){1'b0}}, netdbg_netdbg };
-
-`ifdef	EDID_ACCESS
-	// {{{
-	////////////////////////////////////////////////////////////////////////
-	//
-	// The EDID I2C Slave Controller
-	// {{{
-
-	wbi2cslave #(
-		.WB_READ_ONLY(1'b0),
-		.MEM_ADDR_BITS(8),
-		.I2C_READ_ONLY(1'b1)
-	) u_edid (
-		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
-		.i_wb_cyc(wb32_edids_cyc), .i_wb_stb(wb32_edids_stb), .i_wb_we(wb32_edids_we),
-			.i_wb_addr(wb32_edids_addr[6-1:0]),
-			.i_wb_data(wb32_edids_data), // 32 bits wide
-			.i_wb_sel(wb32_edids_sel),  // 32/8 bits wide
-		.o_wb_stall(wb32_edids_stall),.o_wb_ack(wb32_edids_ack), .o_wb_data(wb32_edids_idata),
-		//
-		.s_valid(edid_valid), .s_ready(edid_ready),
-			.s_data(edid_data), .s_last(edid_last),
-		//
-		.i_i2c_sda(i_edid_sda), .i_i2c_scl(i_edid_scl),
-		.o_i2c_sda(o_edid_sda), .o_i2c_scl(o_edid_scl),
-		//
-		.o_dbg(edid_debug)
-		// }}}
-	);
-
-	assign	edid_valid = i2c_valid && (i2c_id == 1);
-	assign	edid_data  = i2c_data;
-	assign	edid_last  = i2c_last;
-	// }}}
-	// }}}
-`else	// EDID_ACCESS
-	// {{{
-	assign	o_edid_scl = 1'b1;
-	assign	o_edid_sda = 1'b1;
-	// }}}
-`endif	// EDID_ACCESS
-
-`ifdef	NETSCOPE_SCOPC
-	// {{{
-	wbscopc #(
-		// {{{
-		.LGMEM(10),
-		.SYNCHRONOUS(1),
-		.DEFAULT_HOLDOFF(508)
-		// }}}
-	) netscopei(
-		// {{{
-		i_clk, 1'b1, net_debug[31], net_debug[30:0],
-		i_clk,
-		wb32_netscope_cyc, wb32_netscope_stb, wb32_netscope_we,
-			wb32_netscope_addr[1-1:0],
-			wb32_netscope_data, // 32 bits wide
-			wb32_netscope_sel,  // 32/8 bits wide
-		wb32_netscope_stall, wb32_netscope_ack, wb32_netscope_idata,
-		netscope_int
-		// }}}
-	);
-	// }}}
-`else	// NETSCOPE_SCOPC
-	// {{{
-	// Null bus slave
-	// {{{
-
-	//
-	// In the case that there is no wb32_netscope peripheral
-	// responding on the wb32 bus
-	assign	wb32_netscope_ack   = 1'b0;
-	assign	wb32_netscope_err   = (wb32_netscope_stb);
-	assign	wb32_netscope_stall = 0;
-	assign	wb32_netscope_idata = 0;
-
-	// }}}
-	// Null interrupt definitions
-	// {{{
-	assign	netscope_int = 1'b0;	// netscope.INT.NETSCOPE.WIRE
-	// }}}
-	// }}}
-`endif	// NETSCOPE_SCOPC
 
 	// }}}
 endmodule // main.v

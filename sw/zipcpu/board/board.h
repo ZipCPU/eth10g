@@ -293,42 +293,6 @@ typedef struct __attribute__((packed)) VIDPIPE_S {
 #endif // VIDPIPE_H
 
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// eMMC Card constants
-// {{{
-////////////////////////////////////////////////////////////////////////////////
-//
-//
-
-struct EMMC_S;
-// }}}
-
-
-#define	SYSPIC(A)	(1<<(A))
-
-
-#ifndef	CPUNET_H
-#define	CPUNET_H
-	////////////////////////////////////////////////////////////////////////
-	//
-	// CPU Net virtual packet FIFO structures
-	// {{{
-	////////////////////////////////////////////////////////////////////////
-	//
-	//
-typedef struct  CPUNET_S        {
-	volatile unsigned
-		net_rxbase, net_rxlen, net_rxwptr, net_rxrptr,
-		net_txbase, net_txlen, net_txwptr, net_txrptr;
-} CPUNET;
-
-#endif	// CPUNET_H
-	// }}}
-
-
-
-
 #ifndef	WBSCOPE_H
 #define	WBSCOPE_H
 
@@ -346,9 +310,82 @@ typedef	struct	WBSCOPE_S {
 #endif
 
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// eMMC Card constants
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+//
+//
+
+struct EMMC_S;
+// }}}
+
+
+#define	SYSPIC(A)	(1<<(A))
+
+
+
+typedef	struct	PKTVFIFO_S {
+	char		*v_base;
+	unsigned	v_memsize;
+	volatile char	*v_wrptr, *v_rdptr;
+} PKTVFIFO;
+
+struct	ROUTER_S {
+	PKTVFIFO	vfif[4];
+};
+
+
+
+#ifndef	CPUNET_H
+#define	CPUNET_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// CPU Net virtual packet FIFO structures
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+#define	CPUNET_PROMISCUOUS	1
+#define	CPUNET_EN		2
+#define	CPUNET_ERROR		4
+#define	CPUNET_RDRESET		8
+#define	CPUNET_TXRESET		8
+#define	CPUNET_WRRESET		16
+#define	CPUNET_RXRESET		16
+
+typedef struct  CPUNET_S        {
+	// Control registers
+	volatile unsigned	net_control;
+		unsigned	net_mac[2];
+		unsigned	net_ip[5];
+	volatile unsigned	net_rxdrops;
+	volatile unsigned	net_rxpkts;
+	volatile unsigned	net_txpkts;
+		unsigned	net_unused[5];
+	//
+	// RX side
+		char		*net_rxbase;
+		unsigned	net_rxlen;
+	volatile char		*net_rxwptr, *net_rxrptr;
+	//
+	// TX side
+		char		*net_txbase;
+		unsigned	net_txlen;
+	volatile char		*net_txwptr, *net_txrptr;
+} CPUNET;
+
+#endif	// CPUNET_H
+	// }}}
+
+
 #ifdef	REFCLKCOUNTER_ACCESS
 #define	_BOARD_HAS_REFCLKCOUNTER
-static volatile unsigned *const _sirefclkcounter = ((unsigned *)0x02000cd8);
+static volatile unsigned *const _sirefclkcounter = ((unsigned *)0x02000cdc);
 #endif	// REFCLKCOUNTER_ACCESS
 #ifdef	NETCLK_ACCESS
 #define	_BOARD_HAS_NETCLK
@@ -372,7 +409,7 @@ static volatile WBSCOPE *const _hdmiclrscope = ((WBSCOPE *)0x02000000);
 #endif	// HDMICLRSCOPE_SCOPE
 #ifdef	SPIO_ACCESS
 #define	_BOARD_HAS_SPIO
-static volatile unsigned *const _spio = ((unsigned *)0x02000cdc);
+static volatile unsigned *const _spio = ((unsigned *)0x02000ce0);
 #endif	// SPIO_ACCESS
 #ifdef	SDIO_ACCESS
 #define	_BOARD_HAS_SDIO
@@ -388,11 +425,11 @@ static volatile unsigned *const _icape = ((unsigned *)0x00000700);
 #endif	// CFG_ACCESS
 #ifdef	VERSION_ACCESS
 #define	_BOARD_HAS_VERSION
-static volatile unsigned *const _version = ((unsigned *)0x02000ce0);
+static volatile unsigned *const _version = ((unsigned *)0x02000ce4);
 #endif	// VERSION_ACCESS
 #ifdef	SIREFCLK_ACCESS
 #define	_BOARD_HAS_SIREFCLK
-static volatile unsigned *const _sirefclk = ((unsigned *)0x02000cd4);
+static volatile unsigned *const _sirefclk = ((unsigned *)0x02000cd8);
 #endif	// SIREFCLK_ACCESS
 #ifdef	DDR3_PHY_ACCESS
 #define	_BOARD_HAS_DDR3_PHY
@@ -400,7 +437,7 @@ static volatile DDR3_PHY *const _ddr3_phy = ((DDR3_PHY *)0x02000a00);
 #endif	// DDR3_PHY_ACCESS
 #ifdef	SICLK
 #define	_BOARD_HAS_SICLKCOUNTER
-static volatile unsigned *const _siclk = ((unsigned *)0x02000cd0);
+static volatile unsigned *const _siclk = ((unsigned *)0x02000cd4);
 #endif	// SICLK
 #define	_BOARD_HAS_BUILDTIME
 static volatile unsigned *const _buildtime = ((unsigned *)0x02000cc0);
@@ -412,6 +449,14 @@ static volatile CONSOLE *const _uart = ((CONSOLE *)0x02000200);
 #define	_BOARD_HAS_VIDPIPE
 static volatile VIDPIPE *const _hdmi = ((VIDPIPE *)0x02001000);
 #endif	// VIDPIPE_ACCESS
+#ifdef	NETSCOPE_SCOPC
+#define	_BOARD_HAS_NETSCOPE
+static volatile WBSCOPE *const _netscope = ((WBSCOPE *)0x02000100);
+#endif	// NETSCOPE_SCOPC
+#ifdef	EDID_ACCESS
+#define	_BOARD_HAS_EDID
+static volatile char *const _edid=((char *)0x02000d00);
+#endif	// EDID_ACCESS
 #ifdef	EMMC_ACCESS
 #define	_BOARD_HAS_EMMC
 static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x02000300);
@@ -424,18 +469,16 @@ extern char	_bkram[0x00080000];
 #define	_BOARD_HAS_DDR3_CONTROLLER
 extern char	_ddr3_controller[0x40000000];
 #endif	// DDR3_CONTROLLER_ACCESS
+#ifdef	NETRESET_ACCESS
+static volatile @(BDEF.IOTYPE) *const _netreset = ((unsigned *)0x02000cd0);
+#endif	// NETRESET_ACCESS
+#ifdef	ETH_ROUTER
+static @(BDEF.IOTYPE) *const struct ROUTER_S = ((unsigned *)0x02000600);
+#endif	// ETH_ROUTER
 #ifdef	CPUNET_ACCESS
 #define	_BOARD_HAS_CPUNET
 static volatile CPUNET *const _cpunet=((CPUNET *)0x02000800);
 #endif	// CPUNET_ACCESS
-#ifdef	EDID_ACCESS
-#define	_BOARD_HAS_EDID
-static volatile char *const _edid=((char *)0x02000d00);
-#endif	// EDID_ACCESS
-#ifdef	NETSCOPE_SCOPC
-#define	_BOARD_HAS_NETSCOPE
-static volatile WBSCOPE *const _netscope = ((WBSCOPE *)0x02000100);
-#endif	// NETSCOPE_SCOPC
 //
 // Interrupt assignments (2 PICs)
 //
@@ -452,8 +495,8 @@ static volatile WBSCOPE *const _netscope = ((WBSCOPE *)0x02000100);
 #define	ALTPIC_GPIO	ALTPIC(9)
 #define	ALTPIC_UARTTX	ALTPIC(10)
 #define	ALTPIC_UARTRX	ALTPIC(11)
-#define	ALTPIC_EMMC	ALTPIC(12)
-#define	ALTPIC_NETSCOPE	ALTPIC(13)
+#define	ALTPIC_NETSCOPE	ALTPIC(12)
+#define	ALTPIC_EMMC	ALTPIC(13)
 // PIC: syspic
 #define	SYSPIC_DMAC	SYSPIC(0)
 #define	SYSPIC_JIFFIES	SYSPIC(1)

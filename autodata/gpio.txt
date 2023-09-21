@@ -162,10 +162,10 @@
 #define	GPIO_ERROR_CLR		GPIO_CLR(GPIO_ERROR)
 #define	SET_TRACE		(*_@$(PREFIX)) = GPIO_TRACE_SET
 #define	CLR_TRACE		(*_@$(PREFIX)) = GPIO_TRACE_CLR
-@BDEF.IONAME=	i_@$(PREFIX)
+@BDEF.IONAME=	_@$(PREFIX)
 @BDEF.IOTYPE=	unsigned
 @BDEF.OSDEF=	_BOARD_HAS_@$(DEVID)
-@BDEF.OSVAL=	static volatile @$.BDEF.IOTYPE *const _@$(PREFIX) = ((@$.BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+@BDEF.OSVAL=	static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
 @RTL.MAKE.FILES=wbgpio.v
 @RTL.MAKE.GROUP=@$(DEVID)
 @SIM.CLOCK=clk

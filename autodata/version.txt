@@ -48,7 +48,7 @@
 @BDEF.IONAME=_@$(PREFIX)
 @BDEF.IOTYPE=unsigned
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
-@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
 ##
 ##
 ##
@@ -69,4 +69,4 @@
 @BDEF.IONAME=_@$(PREFIX)
 @BDEF.IOTYPE=unsigned
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
-@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$.BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));

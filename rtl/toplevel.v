@@ -79,6 +79,7 @@ i_sdcard_cd_n,
 		i_hdmirx_p, i_hdmirx_n,
 		o_hdmitx_clk_p, o_hdmitx_clk_n,
 		o_hdmitx_p, o_hdmitx_n,
+			io_hdmirx_scl, io_hdmirx_sda,
 		// eMMC Card
 
 
@@ -95,8 +96,7 @@ i_sdcard_cd_n,
 			o_gnet_linkup, o_gnet_activity,
 			o_gnet_p, o_gnet_n,
 			i_gnet_p, i_gnet_n,
-			i_clk_156mhz_p, i_clk_156mhz_n,
-			io_hdmirx_scl, io_hdmirx_sda);
+			i_clk_156mhz_p, i_clk_156mhz_n);
 	//
 	// Declaring any top level parameters.
 	//
@@ -168,7 +168,12 @@ i_sdcard_cd_n,
                     DDR3_CONTROLLERCMD_LEN = 4 + 3 + DDR3_CONTROLLERBA_BITS + DDR3_CONTROLLERROW_BITS;
 
 
-	localparam	NETDEVS = 4;
+	localparam	NETDEVS  = 4;
+`ifdef	CPUNET_ACCESS
+	localparam	NETPORTS = 4+1;
+`else
+	localparam	NETPORTS = 4;
+`endif
 	//
 	// Declaring our input and output ports.  We listed these above,
 	// now we are declaring them here.
@@ -218,6 +223,7 @@ i_sdcard_cd_n,
 	input	wire	[2:0]	i_hdmirx_p, i_hdmirx_n;
 	output	wire		o_hdmitx_clk_p, o_hdmitx_clk_n;
 	output	wire	[2:0]	o_hdmitx_p, o_hdmitx_n;
+	inout	wire	io_hdmirx_scl, io_hdmirx_sda;
 	// eMMC Card
 	// {{{
 
@@ -251,7 +257,6 @@ i_sdcard_cd_n,
 	output	wire	[4-1:0]	o_gnet_p, o_gnet_n;
 	input	wire	[4-1:0]	i_gnet_p, i_gnet_n;
 	input	wire			i_clk_156mhz_p, i_clk_156mhz_n;
-	inout	wire	io_hdmirx_scl, io_hdmirx_sda;
 
 
 	//
@@ -342,6 +347,11 @@ i_sdcard_cd_n,
 	wire		hdmirx_clk, hdmi_ck, hdmi_serdes_clk;
 	wire		pxrx_locked, pix_reset_n;
 	wire [15-1:0]	set_hdmi_delay, actual_hdmi_delay;
+	// I2CCPU definitions
+	// {{{
+	wire	i_edid_sda, i_edid_scl,
+		o_edid_sda, o_edid_scl;
+	// }}}
 	// eMMC Card definitions
 	// {{{
 	wire		w_emmc_cfg_ddr;
@@ -406,11 +416,6 @@ i_sdcard_cd_n,
 	wire	[32*4-1:0]	gnet_tx_data;
 	wire	[4-1:0]		gnet_phy_fault;
 	wire	[4:0]		gnet_locked;
-	// I2CCPU definitions
-	// {{{
-	wire	i_edid_sda, i_edid_scl,
-		o_edid_sda, o_edid_scl;
-	// }}}
 
 
 	//
@@ -494,6 +499,9 @@ i_sdcard_cd_n,
 		set_hdmi_delay, actual_hdmi_delay,
 		pix_reset_n, pxrx_locked,
 		w_pxclk_sel,
+		// I2CCPU
+		i_edid_sda, i_edid_scl,
+		o_edid_sda, o_edid_scl,
 		// eMMC Card
 		!i_emmc_cd_n,
 		//
@@ -539,10 +547,7 @@ i_sdcard_cd_n,
 		gnet_rx_clk, gnet_rx_data,
 		gnet_tx_clk, gnet_tx_data,
 		gnet_phy_fault, o_gnet_linkup, o_gnet_activity,
-		i_gnet_los, gnet_locked,
-		// I2CCPU
-		i_edid_sda, i_edid_scl,
-		o_edid_sda, o_edid_scl);
+		i_gnet_los, gnet_locked);
 
 
 	//
@@ -917,6 +922,38 @@ i_sdcard_cd_n,
 
 	// }}}
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// EDID I2C IO buffers
+	// {{{
+
+	// We need these in order to (properly) ensure the high impedance
+	// states (pull ups) of the I2C I/O lines.  Our goals are:
+	//
+	//	o_edid_X	io_edid_X		Derived:T
+	//	1'b0		1'b0			1'b0
+	//	1'b1		1'bz			1'b1
+	//
+	IOBUF edidsclp(
+		// {{{
+		.I(1'b0),
+		.T(o_edid_scl),
+		.O(i_edid_scl),
+		.IO(io_hdmirx_scl)
+		// }}}
+	);
+
+	IOBUF edidsdap(
+		// {{{
+		.I(1'b0),
+		.T(o_edid_sda),
+		.O(i_edid_sda),
+		.IO(io_hdmirx_sda)
+		// }}}
+	);
+
+	// }}}
+
 	sdfrontend #(
 		.OPT_SERDES(1'b0),
 		.OPT_DDR(1'b0),
@@ -1111,38 +1148,6 @@ i_sdcard_cd_n,
 		.o_tx_p(o_gnet_p), .o_tx_n(o_gnet_n)
 		// }}}
 	);
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// EDID I2C IO buffers
-	// {{{
-
-	// We need these in order to (properly) ensure the high impedance
-	// states (pull ups) of the I2C I/O lines.  Our goals are:
-	//
-	//	o_edid_X	io_edid_X		Derived:T
-	//	1'b0		1'b0			1'b0
-	//	1'b1		1'bz			1'b1
-	//
-	IOBUF edidsclp(
-		// {{{
-		.I(1'b0),
-		.T(o_edid_scl),
-		.O(i_edid_scl),
-		.IO(io_hdmirx_scl)
-		// }}}
-	);
-
-	IOBUF edidsdap(
-		// {{{
-		.I(1'b0),
-		.T(o_edid_sda),
-		.O(i_edid_sda),
-		.IO(io_hdmirx_sda)
-		// }}}
-	);
-
-	// }}}
 
 
 

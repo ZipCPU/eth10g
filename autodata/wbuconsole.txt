@@ -288,14 +288,14 @@
 		// }}}
 	);
 	// }}}
-@REGS.NOTE = // CONSOLE registers
-@REGS.N = 3
+@REGS.NOTE= // CONSOLE registers
+@REGS.N= 3
 ## This is unused @REGS.0 = 0 R_CONSOLE_SETUP	 USETUP
-@REGS.0 = 1 R_CONSOLE_FIFO	 UFIFO
-@REGS.1 = 2 R_CONSOLE_UARTRX	 RX
-@REGS.2 = 3 R_CONSOLE_UARTTX	 TX
+@REGS.0= 1 R_CONSOLE_FIFO	 UFIFO
+@REGS.1= 2 R_CONSOLE_UARTRX	 RX
+@REGS.2= 3 R_CONSOLE_UARTTX	 TX
 
-@BDEF.DEFN =
+@BDEF.DEFN=
 typedef struct  CONSOLE_S {
 	volatile unsigned	u_setup;
 	volatile unsigned	u_fifo;

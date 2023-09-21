@@ -1,0 +1,238 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Aug 23 02:08:09 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1744 957
+[pos] 3912 -757
+*-5.674843 200 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] p642pkt.
+[sst_width] 343
+[signals_width] 333
+[sst_expanded] 1
+[sst_vpaned_height] 273
+@28
+p642pkt.S_ARESETN
+p642pkt.RX_CLK
+@200
+-
+@28
+p642pkt.powering_up
+p642pkt.o_link_up
+p642pkt.o_local_fault
+p642pkt.o_remote_fault
+@200
+-
+@28
+[color] 3
+p642pkt.RX_VALID
+@c00022
+[color] 3
+p642pkt.RX_DATA[65:0]
+@28
+[color] 3
+(0)p642pkt.RX_DATA[65:0]
+[color] 3
+(1)p642pkt.RX_DATA[65:0]
+[color] 3
+(2)p642pkt.RX_DATA[65:0]
+[color] 3
+(3)p642pkt.RX_DATA[65:0]
+[color] 3
+(4)p642pkt.RX_DATA[65:0]
+[color] 3
+(5)p642pkt.RX_DATA[65:0]
+[color] 3
+(6)p642pkt.RX_DATA[65:0]
+[color] 3
+(7)p642pkt.RX_DATA[65:0]
+[color] 2
+(8)p642pkt.RX_DATA[65:0]
+[color] 2
+(9)p642pkt.RX_DATA[65:0]
+[color] 2
+(10)p642pkt.RX_DATA[65:0]
+[color] 2
+(11)p642pkt.RX_DATA[65:0]
+[color] 2
+(12)p642pkt.RX_DATA[65:0]
+[color] 2
+(13)p642pkt.RX_DATA[65:0]
+[color] 2
+(14)p642pkt.RX_DATA[65:0]
+[color] 2
+(15)p642pkt.RX_DATA[65:0]
+[color] 3
+(16)p642pkt.RX_DATA[65:0]
+[color] 3
+(17)p642pkt.RX_DATA[65:0]
+[color] 3
+(18)p642pkt.RX_DATA[65:0]
+[color] 3
+(19)p642pkt.RX_DATA[65:0]
+[color] 3
+(20)p642pkt.RX_DATA[65:0]
+[color] 3
+(21)p642pkt.RX_DATA[65:0]
+[color] 3
+(22)p642pkt.RX_DATA[65:0]
+[color] 3
+(23)p642pkt.RX_DATA[65:0]
+(24)p642pkt.RX_DATA[65:0]
+(25)p642pkt.RX_DATA[65:0]
+(26)p642pkt.RX_DATA[65:0]
+(27)p642pkt.RX_DATA[65:0]
+(28)p642pkt.RX_DATA[65:0]
+(29)p642pkt.RX_DATA[65:0]
+(30)p642pkt.RX_DATA[65:0]
+(31)p642pkt.RX_DATA[65:0]
+[color] 3
+(32)p642pkt.RX_DATA[65:0]
+[color] 3
+(33)p642pkt.RX_DATA[65:0]
+[color] 3
+(34)p642pkt.RX_DATA[65:0]
+[color] 3
+(35)p642pkt.RX_DATA[65:0]
+[color] 3
+(36)p642pkt.RX_DATA[65:0]
+[color] 3
+(37)p642pkt.RX_DATA[65:0]
+[color] 3
+(38)p642pkt.RX_DATA[65:0]
+[color] 3
+(39)p642pkt.RX_DATA[65:0]
+[color] 2
+(40)p642pkt.RX_DATA[65:0]
+[color] 2
+(41)p642pkt.RX_DATA[65:0]
+[color] 2
+(42)p642pkt.RX_DATA[65:0]
+[color] 2
+(43)p642pkt.RX_DATA[65:0]
+[color] 2
+(44)p642pkt.RX_DATA[65:0]
+[color] 2
+(45)p642pkt.RX_DATA[65:0]
+[color] 2
+(46)p642pkt.RX_DATA[65:0]
+[color] 2
+(47)p642pkt.RX_DATA[65:0]
+[color] 3
+(48)p642pkt.RX_DATA[65:0]
+[color] 3
+(49)p642pkt.RX_DATA[65:0]
+[color] 3
+(50)p642pkt.RX_DATA[65:0]
+[color] 3
+(51)p642pkt.RX_DATA[65:0]
+[color] 3
+(52)p642pkt.RX_DATA[65:0]
+[color] 3
+(53)p642pkt.RX_DATA[65:0]
+[color] 3
+(54)p642pkt.RX_DATA[65:0]
+[color] 3
+(55)p642pkt.RX_DATA[65:0]
+(56)p642pkt.RX_DATA[65:0]
+(57)p642pkt.RX_DATA[65:0]
+(58)p642pkt.RX_DATA[65:0]
+(59)p642pkt.RX_DATA[65:0]
+(60)p642pkt.RX_DATA[65:0]
+(61)p642pkt.RX_DATA[65:0]
+(62)p642pkt.RX_DATA[65:0]
+(63)p642pkt.RX_DATA[65:0]
+[color] 3
+(64)p642pkt.RX_DATA[65:0]
+[color] 3
+(65)p642pkt.RX_DATA[65:0]
+@1401200
+-group_end
+@800200
+-AXIN Output
+@28
+[color] 2
+p642pkt.M_VALID
+[color] 3
+p642pkt.M_READY
+@22
+[color] 2
+p642pkt.M_DATA[63:0]
+@28
+[color] 2
+p642pkt.M_BYTES[2:0]
+[color] 2
+p642pkt.M_LAST
+[color] 2
+p642pkt.M_ABORT
+@1000200
+-AXIN Output
+@28
+p642pkt.pstate
+p642pkt.phalf
+p642pkt.poffset
+@200
+-
+@28
+p642pkt.dly_valid
+@22
+p642pkt.dly_data[63:0]
+p642pkt.dly_bytes[3:0]
+p642pkt.dly_half[31:0]
+@28
+p642pkt.dly_last
+@200
+-
+@22
+p642pkt.frx_count[17:0]
+@28
+[color] 2
+p642pkt.r_fault
+p642pkt.r_fault_pipe[1:0]
+[color] 2
+p642pkt.r_local_fault
+p642pkt.stretch_fault
+@22
+p642pkt.stretch_local[3:0]
+@200
+-
+@22
+p642pkt.watchdog_counter[6:0]
+@28
+p642pkt.watchdog_timeout
+@200
+-
+@28
+p642pkt.fm_now
+@22
+p642pkt.fm_count[17:0]
+p642pkt.fm_byte[7:0]
+p642pkt.fm_word[12:0]
+@200
+-
+@28
+p642pkt.f_midpkt
+p642pkt.fc_check_pkt
+@22
+p642pkt.fc_data[7:0]
+p642pkt.fc_len[17:0]
+p642pkt.fc_posn[17:0]
+@200
+-
+@29
+p642pkt.f_midpkt
+@28
+p642pkt.frx_check[1:0]
+p642pkt.frx_check2[2:0]
+p642pkt.fc_check_pkt
+p642pkt.frx_now
+@22
+p642pkt.frx_byte[7:0]
+p642pkt.frx_count[17:0]
+p642pkt.frx_posn[17:0]
+p642pkt.frx_word[63:0]
+@28
+p642pkt.frx_shift[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

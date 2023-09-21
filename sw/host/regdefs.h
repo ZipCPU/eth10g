@@ -81,6 +81,7 @@
 #define	R_SDIO_FIFOA     	0x02000508	// 02000500, wbregs names: SDFIFOA, SDFIF0, SDFIFA
 #define	R_SDIO_FIFOB     	0x0200050c	// 02000500, wbregs names: SDFIFOB, SDFIF1, SDFIFB
 #define	R_SDIO_PHY       	0x02000510	// 02000500, wbregs names: SDPHY
+#define	R_ROUTER         	0x02000600	// 02000600, wbregs names: ROUTER
 // FPGA CONFIG REGISTERS: 0x4e0-0x4ff
 #define	R_CFG_CRC        	0x02000700	// 02000700, wbregs names: FPGACRC
 #define	R_CFG_FAR        	0x02000704	// 02000700, wbregs names: FPGAFAR
@@ -130,11 +131,12 @@
 #define	R_GPIO           	0x02000cc4	// 02000cc4, wbregs names: GPIO, GPI, GPO
 #define	R_NETDBG         	0x02000cc8	// 02000cc8, wbregs names: NETDBG
 #define	R_NETLOCK        	0x02000ccc	// 02000ccc, wbregs names: NETLOCK
-#define	R_SICLKFREQ      	0x02000cd0	// 02000cd0, wbregs names: SICLKFREQcreate_clock, -period, 5.2, -name, SIREF, -waveform, {0.0, 2.6, }, -add, [get_ports, i_clk_si_p]
-#define	R_SIREFCLK       	0x02000cd4	// 02000cd4, wbregs names: SIREFCLK
-#define	R_SIREFFREQ      	0x02000cd8	// 02000cd8, wbregs names: SIREFFREQ
-#define	R_SPIO           	0x02000cdc	// 02000cdc, wbregs names: SPIO
-#define	R_VERSION        	0x02000ce0	// 02000ce0, wbregs names: VERSION
+#define	R_NETRESET       	0x02000cd0	// 02000cd0, wbregs names: NETRESET
+#define	R_SICLKFREQ      	0x02000cd4	// 02000cd4, wbregs names: SICLKFREQcreate_clock, -period, 5.2, -name, SIREF, -waveform, {0.0, 2.6, }, -add, [get_ports, i_clk_si_p]
+#define	R_SIREFCLK       	0x02000cd8	// 02000cd8, wbregs names: SIREFCLK
+#define	R_SIREFFREQ      	0x02000cdc	// 02000cdc, wbregs names: SIREFFREQ
+#define	R_SPIO           	0x02000ce0	// 02000ce0, wbregs names: SPIO
+#define	R_VERSION        	0x02000ce4	// 02000ce4, wbregs names: VERSION
 // HDMI video processing pipe registers
 #define	R_VIDPIPE        	0x02001000	// 02001000, wbregs names: VIDPIPE, VIDCTRL
 #define	R_HDMIFREQ       	0x02001004	// 02001000, wbregs names: HDMIFREQ
