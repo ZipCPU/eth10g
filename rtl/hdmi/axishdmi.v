@@ -397,19 +397,43 @@ module	axishdmi #(
 	assign	o_blu = w_blu;
 `else
 	// Channel 0 = blue
-	tmdsencode #(.CHANNEL(2'b00)) hdmi_encoder_ch0(i_pixclk,
-			hdmi_type, sync_data,
-			hdmi_data[3:0], blu_pixel, o_blu);
+	tmdsencode #(
+		.CHANNEL(2'b00)
+	) hdmi_encoder_ch0(
+		// {{{
+		.i_clk(i_pixclk),
+		.i_dtype(hdmi_type), .i_ctl(sync_data),
+		.i_aux(hdmi_data[3:0]),
+		.i_data(blu_pixel),
+		.o_word(o_blu)
+		// }}}
+	);
 
 	// Channel 1 = green
-	tmdsencode #(.CHANNEL(2'b01)) hdmi_encoder_ch1(i_pixclk,
-			hdmi_type, hdmi_ctl[1:0],
-			hdmi_data[7:4], grn_pixel, o_grn);
+	tmdsencode #(
+		.CHANNEL(2'b01)
+	) hdmi_encoder_ch1(
+		// {{{
+		.i_clk(i_pixclk),
+		.i_dtype(hdmi_type), .i_ctl(hdmi_ctl[1:0]),
+		.i_aux(hdmi_data[7:4]),
+		.i_data(grn_pixel),
+		.o_word(o_grn)
+		// }}}
+	);
 
 	// Channel 2 = red
-	tmdsencode #(.CHANNEL(2'b10)) hdmi_encoder_ch2(i_pixclk,
-			hdmi_type, hdmi_ctl[3:2],
-			hdmi_data[11:8], red_pixel, o_red);
+	tmdsencode #(
+		.CHANNEL(2'b10)
+	) hdmi_encoder_ch2(
+		// {{{
+		.i_clk(i_pixclk),
+		.i_dtype(hdmi_type), .i_ctl(hdmi_ctl[3:2]),
+		.i_aux(hdmi_data[11:8]),
+		.i_data(red_pixel),
+		.o_word(o_red)
+		// }}}
+	);
 `endif
 	// }}}
 

@@ -2063,9 +2063,8 @@ module	axisvoverlay #(
 		assume(M_VID_TREADY);
 	end
 
-
-	always @(*)
-		assume(i_vpos == 0);
+	// always @(*)
+		// assume(i_vpos == 0);
 
 	always @(*)
 	if (!S_PRI_TVALID)

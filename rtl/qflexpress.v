@@ -335,7 +335,7 @@ module	qflexpress #(
 	//
 
 	generate if (OPT_ODDR)
-	begin
+	begin : CKSTB_ZERO // Flash clock == system clock speed
 		// {{{
 		always @(*)
 		begin
@@ -346,7 +346,7 @@ module	qflexpress #(
 		end
 		// }}}
 	end else if (OPT_CLKDIV == 1)
-	begin : CKSTB_ONE
+	begin : CKSTB_ONE // Flash clock can be generated logically, == sysclk/2
 		// {{{
 		reg	clk_counter;
 
@@ -423,6 +423,9 @@ module	qflexpress #(
 
 	generate if (OPT_STARTUP)
 	begin : GEN_STARTUP
+		// {{{
+		// Signal declarations
+		// {{{
 		localparam	M_WAITBIT=10;
 		localparam	M_LGADDR=5;
 `ifdef	FORMAL
@@ -439,7 +442,10 @@ module	qflexpress #(
 		reg			m_midcount;
 		reg	[3:0]		m_bitcount;
 		reg	[7:0]		m_byte;
+		// }}}
 
+		// Command ISA description:
+		// {{{
 		// Let's script our startup with a series of commands.
 		// These commands are specific to the Micron Serial NOR flash
 		// memory that was on the original Arty A7 board.  Switching
@@ -466,11 +472,12 @@ module	qflexpress #(
 		//	8'bit data	To be sent 1-bit at a time in NORMAL_SPI
 		//			mode, or 4-bits at a time in QUAD_WRITE
 		//			mode.  Ignored otherwis
-		//
+		// }}}
 		integer k;
 		initial if (OPT_STARTUP_FILE != 0)
 			$readmemh(OPT_STARTUP_FILE, m_cmd_word);
 		else begin
+		// {{{
 		for(k=0; k<(1<<M_LGADDR); k=k+1)
 			m_cmd_word[k] = -1;
 		// cmd_word= m_ctr_flag, m_mod[1:0],
@@ -545,6 +552,7 @@ module	qflexpress #(
 		m_cmd_word[5'h1e] = -1;
 		m_cmd_word[5'h1f] = -1;
 		// Then we are in business!
+		// }}}
 		end
 
 		reg	m_final;
@@ -553,7 +561,8 @@ module	qflexpress #(
 		assign	m_ce = (!m_midcount)&&(ckstb);
 		assign	new_word = (m_ce && m_bitcount == 0);
 
-		//
+		// m_cmd_index, maintenance (on/off)
+		// {{{
 		initial	maintenance = 1'b1;
 		initial	m_cmd_index = M_FIRSTIDX;
 		always @(posedge i_clk)
@@ -567,35 +576,45 @@ module	qflexpress #(
 			if (!(&m_cmd_index))
 				m_cmd_index <= m_cmd_index + 1'b1;
 		end
+		// }}}
 
+		// m_this_word -- current command
+		// {{{
 		initial	m_this_word = -1;
 		always @(posedge i_clk)
 		if (new_word)
 			m_this_word <= m_cmd_word[m_cmd_index];
+		// }}}
 
+		// m_final
+		// {{{
 		initial	m_final = 1'b0;
 		always @(posedge i_clk)
 		if (i_reset)
 			m_final <= 1'b0;
 		else if (new_word)
 			m_final <= (m_final || (&m_cmd_index));
+		// }}}
 
 		//
 		// m_midcount .. are we in the middle of a counter/pause?
-		//
+		// {{{
 		initial	m_midcount = 1;
 		initial	m_counter   = -1;
 		always @(posedge i_clk)
 		if (i_reset)
 		begin
+			// {{{
 			m_midcount <= 1'b1;
 `ifdef	FORMAL
 			m_counter <= 3;
 `else
 			m_counter <= -1;
 `endif
+			// }}}
 		end else if (new_word)
 		begin
+			// {{{
 			m_midcount <= m_this_word[M_WAITBIT]
 					&& (|m_this_word[M_WAITBIT-1:0]);
 			if (m_this_word[M_WAITBIT])
@@ -606,12 +625,18 @@ module	qflexpress #(
 					m_counter <= 3;
 `endif
 			end
+			// }}}
 		end else begin
+			// {{{
 			m_midcount <= (m_counter > 1);
 			if (m_counter > 0)
 				m_counter <= m_counter - 1'b1;
+			// }}}
 		end
+		// }}}
 
+		// m_cs_n, m_mod, m_bitcount
+		// {{{
 		initial	m_cs_n      = 1'b1;
 		initial	m_mod       = NORMAL_SPI;
 		always @(posedge i_clk)
@@ -642,12 +667,16 @@ module	qflexpress #(
 					m_bitcount <= (!OPT_ODDR && m_cs_n) ? 4'h8 : 4'h7;//i.e.7
 			end
 		end
+		// }}}
 
+		// m_dat, m_byte
+		// {{{
 		always @(posedge i_clk)
 		if (m_ce)
 		begin
 			if (m_bitcount == 0)
 			begin
+				// {{{
 				if (!OPT_ODDR && m_cs_n)
 				begin
 					m_dat <= {(4){m_this_word[7]}};
@@ -662,7 +691,9 @@ module	qflexpress #(
 						m_byte <= { m_this_word[6:0], 1'b0 };
 					end
 				end
+				// }}}
 			end else begin
+				// {{{
 				m_dat <= m_byte[7:4];
 				m_byte <= { m_byte[3:0], 4'h0 };
 				if (!m_mod[1])
@@ -673,15 +704,17 @@ module	qflexpress #(
 				end else begin
 					m_byte <= { m_byte[3:0], 4'b00 };
 				end
+				// }}}
 			end
 		end
+		// }}}
 
 		if (OPT_ODDR)
 		begin
 			always @(*)
 				m_clk = !m_cs_n;
 		end else begin
-
+			// {{{
 			always @(posedge i_clk)
 			if (i_reset)
 				m_clk <= 1'b1;
@@ -695,7 +728,9 @@ module	qflexpress #(
 				m_clk <= 1'b1;
 			else if (ckneg)
 				m_clk <= 1'b0;
+			// }}}
 		end
+		// }}}
 
 `ifdef	FORMAL
 		// {{{
@@ -788,7 +823,7 @@ module	qflexpress #(
 		// }}}
 `endif
 	end else begin : NO_STARTUP_OPT
-
+		// {{{
 		always @(*)
 		begin
 			maintenance = 0;
@@ -799,10 +834,11 @@ module	qflexpress #(
 		end
 
 		// verilator lint_off UNUSED
-		wire	[8:0] unused_maintenance;
-		assign	unused_maintenance = { maintenance,
+		wire	unused_maintenance;
+		assign	unused_maintenance = &{ 1'b0, maintenance,
 					m_mod, m_cs_n, m_clk, m_dat };
 		// verilator lint_on  UNUSED
+		// }}}
 	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -872,6 +908,7 @@ module	qflexpress #(
 	// {{{
 	generate if (OPT_PIPE)
 	begin : OPT_PIPE_BLOCK
+		// {{{
 		reg	r_pipe_req;
 		wire	w_pipe_condition;
 
@@ -896,6 +933,7 @@ module	qflexpress #(
 			r_pipe_req <= w_pipe_condition;
 
 		assign	pipe_req = r_pipe_req;
+		// }}}
 	end else begin
 		assign	pipe_req = 1'b0;
 	end endgenerate
