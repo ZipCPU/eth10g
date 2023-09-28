@@ -181,14 +181,14 @@ typedef struct  @$(DEVID)_S        {
 		unsigned	net_unused[5];
 	//
 	// RX side
-		char		*net_rxbase;
-		unsigned	net_rxlen;
-	volatile char		*net_rxwptr, *net_rxrptr;
-	//
-	// TX side
 		char		*net_txbase;
 		unsigned	net_txlen;
 	volatile char		*net_txwptr, *net_txrptr;
+	//
+	// TX side
+		char		*net_rxbase;
+		unsigned	net_rxlen;
+	volatile char		*net_rxwptr, *net_rxrptr;
 } @$(DEVID);
 
 #endif	// @$(DEVID)_H

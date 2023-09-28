@@ -269,9 +269,9 @@ struct	@$(DEVID)_S {
 	PKTVFIFO	vfif[@$(NDEV)];
 };
 
-@BDEF.IONAME=	struct @$(DEVID)_S
-@BDEF.IOTYPE=	unsigned
-@BDEF.OSVAL=	static @(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+@BDEF.IONAME=	_@$(PREFIX)
+@BDEF.IOTYPE=	struct @$(DEVID)_S
+@BDEF.OSVAL=	static @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
 ## {{{
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
@@ -358,4 +358,4 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 @REGS.0=0 R_@$(DEVID) @$(DEVID)
 @BDEF.IONAME=	_@$(PREFIX)
 @BDEF.IOTYPE=	unsigned
-@BDEF.OSVAL=	static volatile @(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+@BDEF.OSVAL=	static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
