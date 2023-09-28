@@ -369,14 +369,14 @@ typedef struct  CPUNET_S        {
 		unsigned	net_unused[5];
 	//
 	// RX side
-		char		*net_rxbase;
-		unsigned	net_rxlen;
-	volatile char		*net_rxwptr, *net_rxrptr;
-	//
-	// TX side
 		char		*net_txbase;
 		unsigned	net_txlen;
 	volatile char		*net_txwptr, *net_txrptr;
+	//
+	// TX side
+		char		*net_rxbase;
+		unsigned	net_rxlen;
+	volatile char		*net_rxwptr, *net_rxrptr;
 } CPUNET;
 
 #endif	// CPUNET_H
@@ -470,10 +470,10 @@ extern char	_bkram[0x00080000];
 extern char	_ddr3_controller[0x40000000];
 #endif	// DDR3_CONTROLLER_ACCESS
 #ifdef	NETRESET_ACCESS
-static volatile @(BDEF.IOTYPE) *const _netreset = ((unsigned *)0x02000cd0);
+static volatile unsigned *const _netreset = ((unsigned *)0x02000cd0);
 #endif	// NETRESET_ACCESS
 #ifdef	ETH_ROUTER
-static @(BDEF.IOTYPE) *const struct ROUTER_S = ((unsigned *)0x02000600);
+static struct ROUTER_S *const _gnet = ((struct ROUTER_S *)0x02000600);
 #endif	// ETH_ROUTER
 #ifdef	CPUNET_ACCESS
 #define	_BOARD_HAS_CPUNET

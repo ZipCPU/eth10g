@@ -5,6 +5,7 @@ deploy.sh
 emmcinfo
 hello
 memtest
+netcheck
 qkhdmi
 rdedid
 rdramcfg

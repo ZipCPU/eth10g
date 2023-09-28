@@ -32,7 +32,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck # contest
 all:	$(PROGRAMS)
 #
 #
@@ -157,6 +157,9 @@ rxhdmi: $(OBJDIR)/rxhdmi.o bkram.ld $(LIB)
 
 memtest: $(OBJDIR)/memtest.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
+
+netcheck: $(OBJDIR)/netcheck.o $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 define	mk-objdir
 	@bash -c "if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR)/; fi"
