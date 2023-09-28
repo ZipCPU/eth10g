@@ -228,8 +228,8 @@ module	cpunet #(
 		// Virtual packet FIFO configs
 		ADDR_RDBASE: begin
 			rd_baseaddr <= i_wb_data[BUSLSB +: AW];
-			reset_rdfifo <= 1;
-			end
+			rd_writeptr <= i_wb_data[BUSLSB + AW-1:2];
+			reset_rdfifo <= 1; end
 		ADDR_RDSIZE: begin
 			rd_memsize  <= i_wb_data[BUSLSB +: AW];
 			reset_rdfifo <= 1;
