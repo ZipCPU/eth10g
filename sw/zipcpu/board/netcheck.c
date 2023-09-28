@@ -212,18 +212,6 @@ int main(int argc, char **argv) {
 	my_ip[0] = 192; my_ip[1] = 168; my_ip[2] =   3; my_ip[3] = 210;
 	// }}}
 
-	//
-	// ssh fpga1@192.168.0.200
-	// export LANG=en_US.UTF-8
-	// export LANGUAGE=en_US
-	// fpga1@% ifconfig enp1s0 192.168.3.200 netmask 255.255.255.0
-	//
-	// ssh fpga2@192.168.0.201
-	// export LANG=en_US.UTF-8
-	// export LANGUAGE=en_US
-	// fpga1@% ifconfig enp1s0 192.168.3.201 netmask 255.255.255.0
-	//
-
 	// const	unsigned	ETH_SIZE = 6 + 6 + 2;
 	// const	unsigned	IPHDR_SIZE = 20;
 	char	*pkt = malloc(128);
