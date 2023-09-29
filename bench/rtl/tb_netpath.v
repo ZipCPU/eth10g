@@ -44,6 +44,7 @@ module tb_netpath;
 	// {{{
 	// Parameters
 	parameter RECEIVED_PACKET_CNT = 1;   // 10 packets
+	localparam	BFM_AW = 5;	// Address bits to a CPUNET
 
 	// clock and reset
 	wire	SRC_CLK, SNK_CLK;
@@ -103,6 +104,66 @@ module tb_netpath;
 	reg	wb_clk, phy_refclk, wb_reset, s_clk200;
 	wire	phy_fault, fpga_tx_clk, fpga_rx_clk;
 	wire	[31:0]	fpga_rx_data, fpga_tx_data;
+
+	localparam	LGMEMSZ = 20;
+	localparam	DW = 512, PKTDW=128;
+	// Allocate one more bit than we have memory, so we can have a NULL
+	// address space.  Remember, "AW" is the number of address bits
+	// necessary to access a word of memory--not the number of address bits
+	// necessary to access one octet of memory.
+	localparam	AW = LGMEMSZ+1 - $clog2(DW/8);
+
+	wire				led_link_up, led_activity;
+
+	wire				RX_VALID, RX_READY, RX_LAST, RX_ABORT;
+	wire	[PKTDW-1:0]		RX_DATA;
+	wire	[$clog2(PKTDW/8)-1:0]	RX_BYTES;
+
+	wire				TX_VALID, TX_READY, TX_LAST, TX_ABORT;
+	wire	[PKTDW-1:0]		TX_DATA;
+	wire	[$clog2(PKTDW/8)-1:0]	TX_BYTES;
+
+	// CPUNET control bus connections
+	// {{{
+	reg			bfm_cyc, bfm_stb, bfm_we;
+	reg	[BFM_AW-1:0]	bfm_addr;
+	reg	[31:0]		bfm_data;
+	reg	[3:0]		bfm_sel;
+	wire			bfm_stall, bfm_ack;
+	wire	[31:0]		bfm_idata;
+	// }}}
+
+	// CPUNET DMA bus connections
+	// {{{
+	wire			net_cyc, net_stb, net_we,
+				net_stall, net_ack;
+	wire	[AW-1:0]	net_addr;
+	wire	[DW-1:0]	net_data, net_idata;
+	wire	[DW/8-1:0]	net_sel;
+
+	wire			net_stall, net_ack;
+	wire	[31:0]		net_data;
+	// }}}
+
+	// Memory bus connections
+	// {{{
+	wire			mem_cyc, mem_stb, mem_we,
+				mem_stall, mem_ack, mem_err;
+	wire	[AW-1:0]	mem_addr;
+	wire	[DW-1:0]	mem_data, mem_idata;
+	wire	[DW/8-1:0]	mem_sel;
+	// }}}
+
+	reg	[31:0]	last_pointer, read_data;
+
+	// Clock period registers
+	// {{{
+	reg	[6:0]		tx_clk_count, rx_clk_count;
+	reg	[15:0]		rc_clk_count;
+	reg			tx_clk_trigger, rx_clk_trigger, rc_clk_trigger;
+	realtime	rx_clk_timestamp, tx_clk_timestamp, rc_clk_timestamp;
+	(* keep *) realtime	rx_clk_period, tx_clk_period, rc_clk_period;
+	// }}}
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -255,63 +316,8 @@ module tb_netpath;
 	// Logic under test
 	// {{{
 
-	localparam	LGMEMSZ = 20;
-	localparam	DW = 512, PKTDW=128;
-	// Allocate one more bit than we have memory, so we can have a NULL
-	// address space.  Remember, "AW" is the number of address bits
-	// necessary to access a word of memory--not the number of address bits
-	// necessary to access one octet of memory.
-	localparam	AW = LGMEMSZ+1 - $clog2(DW/8);
-
-	wire				led_link_up, led_activity;
-
-	wire				RX_VALID, RX_READY, RX_LAST, RX_ABORT;
-	wire	[PKTDW-1:0]		RX_DATA;
-	wire	[$clog2(PKTDW/8)-1:0]	RX_BYTES;
-
-	wire				TX_VALID, TX_READY, TX_LAST, TX_ABORT;
-	wire	[PKTDW-1:0]		TX_DATA;
-	wire	[$clog2(PKTDW/8)-1:0]	TX_BYTES;
-
-	reg			bfm_cyc, bfm_stb, bfm_we;
-	reg	[2:0]		bfm_addr;
-	reg	[31:0]		bfm_data;
-	reg	[3:0]		bfm_sel;
-	wire			bfm_stall, bfm_ack;
-	wire	[31:0]		bfm_idata;
-
-	wire			p2m_stall, p2m_ack, p2m_int;
-	wire	[31:0]		p2m_data;
-
-	wire			p2md_cyc, p2md_stb, p2md_we,
-				p2md_stall, p2md_ack;
-	wire	[AW-1:0]	p2md_addr;
-	wire	[DW-1:0]	p2md_data, p2md_idata;
-	wire	[DW/8-1:0]	p2md_sel;
-
-	wire			m2p_stall, m2p_ack;
-	wire	[31:0]		m2p_data;
-
-	wire			m2pd_cyc, m2pd_stb, m2pd_we,
-				m2pd_stall, m2pd_ack;
-	wire	[AW-1:0]	m2pd_addr;
-	wire	[DW-1:0]	m2pd_data, m2pd_idata;
-	wire	[DW/8-1:0]	m2pd_sel;
-
-	wire			mem_cyc, mem_stb, mem_we,
-				mem_stall, mem_ack, mem_err;
-	wire	[AW-1:0]	mem_addr;
-	wire	[DW-1:0]	mem_data, mem_idata;
-	wire	[DW/8-1:0]	mem_sel;
-
 	// Measure FPGA clock periods
 	// {{{
-	reg	[6:0]		tx_clk_count, rx_clk_count;
-	reg	[15:0]		rc_clk_count;
-	reg			tx_clk_trigger, rx_clk_trigger, rc_clk_trigger;
-	realtime	rx_clk_timestamp, tx_clk_timestamp, rc_clk_timestamp;
-	(* keep *) realtime	rx_clk_period, tx_clk_period, rc_clk_period;
-
 	initial	{ rx_clk_trigger, rx_clk_count } = 0;
 	always @(posedge fpga_rx_clk)
 		{ rx_clk_trigger, rx_clk_count } <= rx_clk_count + 1;
@@ -410,103 +416,58 @@ module tb_netpath;
 
 	// CPU based network packet FIFOs
 	// {{{
-	pkt2mem #(
-		.DW(DW), .AW(AW), .PKTDW(128)
-	) u_pkt2mem (
+	cpunet #(
+		.BUSDW(DW), .AW(AW), .PKTDW(128)
+	) u_cpunet (
 		// {{{
 		.i_clk(wb_clk), .i_reset(wb_reset),
 		// Control port
-		.i_wb_cyc(bfm_cyc), .i_wb_stb(bfm_stb && !bfm_addr[2]),
-			.i_wb_we(bfm_we), .i_wb_addr(bfm_addr[1:0]),
+		.i_wb_cyc(bfm_cyc), .i_wb_stb(bfm_stb), .i_wb_we(bfm_we),
+			.i_wb_addr(bfm_addr),
 			.i_wb_data(bfm_data), .i_wb_sel(bfm_sel),
 		.o_wb_stall(p2m_stall), .o_wb_ack(p2m_ack),
 			.o_wb_data(p2m_data),
 		// Incoming packets
-		.S_AXIN_VALID(RX_VALID),
-		.S_AXIN_READY(RX_READY),
-		.S_AXIN_DATA( RX_DATA),
-		.S_AXIN_BYTES(RX_BYTES),
-		.S_AXIN_LAST( RX_LAST),
-		.S_AXIN_ABORT(RX_ABORT),
-		// DMA interface
-		.o_dma_cyc(p2md_cyc), .o_dma_stb(p2md_stb), .o_dma_we(p2md_we),
-			.o_dma_addr(p2md_addr), .o_dma_data(p2md_data),
-			.o_dma_sel(p2md_sel),
-		.i_dma_stall(p2md_stall), .i_dma_ack(p2md_ack),
-			.i_dma_data(p2md_idata), .i_dma_err(p2md_err),
-		//
-		.o_int(p2m_int)
-		// }}}
-	);
-
-	mem2pkt #(
-		.DW(DW), .AW(AW), .PKTDW(128)
-	) u_mem2pkt (
-		// {{{
-		.i_clk(wb_clk), .i_reset(wb_reset),
-		// Control port
-		.i_wb_cyc(bfm_cyc), .i_wb_stb(bfm_stb && bfm_addr[2]),
-			.i_wb_we(bfm_we), .i_wb_addr(bfm_addr[1:0]),
-			.i_wb_data(bfm_data), .i_wb_sel(bfm_sel),
-		.o_wb_stall(m2p_stall), .o_wb_ack(m2p_ack),
-			.o_wb_data(m2p_data),
-		//
-		// DMA interface
-		.o_dma_cyc(m2pd_cyc), .o_dma_stb(m2pd_stb), .o_dma_we(m2pd_we),
-			.o_dma_addr(m2pd_addr), .o_dma_data(m2pd_data),
-			.o_dma_sel(m2pd_sel),
-		.i_dma_stall(m2pd_stall), .i_dma_ack(m2pd_ack),
-			.i_dma_data(m2pd_idata), .i_dma_err(m2pd_err),
-		//
+		.RX_VALID(RX_VALID),
+		.RX_READY(RX_READY),
+		.RX_DATA( RX_DATA),
+		.RX_BYTES(RX_BYTES),
+		.RX_LAST( RX_LAST),
+		.RX_ABORT(RX_ABORT),
 		// Outgoing packets
-		.M_AXIN_VALID(TX_VALID),
-		.M_AXIN_READY(TX_READY),
-		.M_AXIN_DATA( TX_DATA),
-		.M_AXIN_BYTES(TX_BYTES),
-		.M_AXIN_LAST( TX_LAST),
-		.M_AXIN_ABORT(TX_ABORT),
+		.TX_VALID(TX_VALID),
+		.TX_READY(TX_READY),
+		.TX_DATA( TX_DATA),
+		.TX_BYTES(TX_BYTES),
+		.TX_LAST( TX_LAST),
+		.TX_ABORT(TX_ABORT),
 		//
-		.o_int(m2p_int)
+		// DMA interface
+		.o_dma_cyc(net_cyc), .o_dma_stb(net_stb), .o_dma_we(net_we),
+			.o_dma_addr(net_addr), .o_dma_data(net_data),
+			.o_dma_sel(net_sel),
+		.i_dma_stall(net_stall), .i_dma_ack(net_ack),
+			.i_dma_data(net_idata), .i_dma_err(net_err),
+		//
+		.o_rx_int(p2m_int),
+		.o_tx_int(m2p_int)
 		// }}}
 	);
-
-	assign	bfm_stall = bfm_stb && ((!bfm_addr[2] && p2m_stall) || (bfm_addr[2] && m2p_stall));
-	assign	bfm_ack   = (p2m_ack || m2p_ack);
-	assign	bfm_idata = (p2m_ack ? p2m_data : 32'h0) | (m2p_ack ? m2p_data : 32'h0);
 	// }}}
 
-	// Wishbone arbiter, for shared multi-mastering
+	// No Wishbone arbiter required, already a part of cpunet
 	// {{{
-	wbmarbiter #(
-		.DW(DW), .AW(AW), .NIN(2)
-	) u_wbmarbiter (
-		// {{{
-		.i_clk(wb_clk), .i_reset(wb_reset),
-		//
-		.s_cyc({   m2pd_cyc,   p2md_cyc   }),
-		.s_stb({   m2pd_stb,   p2md_stb   }),
-		.s_we({    m2pd_we,    p2md_we    }),
-		.s_addr({  m2pd_addr,  p2md_addr  }),
-		.s_data({  m2pd_data,  p2md_data  }),
-		.s_sel({   m2pd_sel,   p2md_sel   }),
-		.s_stall({ m2pd_stall, p2md_stall }),
-		.s_ack({   m2pd_ack,   p2md_ack   }),
-		.s_idata({ m2pd_idata, p2md_idata }),
-		.s_err({   m2pd_err,   p2md_err   }),
-		//
-		//
-		.m_cyc(   mem_cyc   ),
-		.m_stb(   mem_stb   ),
-		.m_we(    mem_we    ),
-		.m_addr(  mem_addr  ),
-		.m_data(  mem_data  ),
-		.m_sel(   mem_sel   ),
-		.m_stall( mem_stall ),
-		.m_ack(   mem_ack   ),
-		.m_idata( mem_idata ),
-		.m_err(   mem_err   )
-		// }}}
-	);
+	assign	mem_cyc  = net_cyc;
+	assign	mem_stb  = net_stb;
+	assign	mem_we   = net_we;
+	assign	mem_addr = net_addr;
+	assign	mem_data = net_data;
+	assign	mem_sel  = net_sel;
+	//
+	assign	net_stall= mem_stall;
+	assign	net_ack  = mem_ack;
+	assign	net_data = mem_data;
+	assign	net_err  = mem_err;
 	// }}}
 
 	// The memory, required by the virtual packet FIFOs, and *SHARED*
@@ -525,12 +486,11 @@ module tb_netpath;
 	);
 
 	assign	mem_err = 1'b0;
-
 	// }}}
 
 	// A BFM to drive the WB and set up the virtual network FIFOs
 	// {{{
-	task	bfm_write(input [2:0] addr, input [31:0] data);
+	task	bfm_write(input [BFM_AW-1:0] addr, input [31:0] data);
 		// {{{
 		reg	ackd;
 	begin
@@ -573,7 +533,7 @@ module tb_netpath;
 	end endtask
 	// }}}
 
-	task	bfm_read(input [2:0] addr, output [31:0] data);
+	task	bfm_read(input [BFM_AW-1:0] addr, output [31:0] data);
 		// {{{
 		reg	ackd;
 	begin
@@ -622,7 +582,6 @@ module tb_netpath;
 	end endtask
 	// }}}
 
-	reg	[31:0]	last_pointer, read_data;
 	initial	begin
 		bfm_cyc  = 1'b0;
 		bfm_stb  = 1'b0;
@@ -634,21 +593,22 @@ module tb_netpath;
 		while(wb_reset)
 			@(posedge wb_clk);
 
-		bfm_write(3'h0, 32'h1 << LGMEMSZ);
-		bfm_write(3'h1, 32'h1 << LGMEMSZ);
+		bfm_write(5'h10, 32'h1 << LGMEMSZ);	// TX BASE
+		bfm_write(5'h11, 32'h1 << LGMEMSZ);	// TX MEMLEN
 
-		bfm_write(3'h4, 32'h1 << LGMEMSZ);
-		bfm_write(3'h5, 32'h1 << LGMEMSZ);
+		bfm_write(5'h14, 32'h1 << LGMEMSZ);	// RX BASE
+		bfm_write(5'h15, 32'h1 << LGMEMSZ);	// RX MEMLEN
 
-		last_pointer = 32'h0;
+		bfm_write(5'h00, 32'h7);		// Promiscuous mode
+		last_pointer = 32'h1 << LGMEMSZ;
 		forever begin
-			bfm_read(3'h2, read_data);
+			bfm_read(5'h16, read_data);
 			if (read_data != last_pointer)
 			begin
 				// A new packet has arrived.  Tell the
 				// MEM2PKT generator to forward it.
 				last_pointer = read_data;
-				bfm_write(3'h6, read_data);
+				bfm_write(5'h13, read_data);
 			end
 		end
 	end
@@ -665,6 +625,7 @@ module tb_netpath;
 
 	scoreboard
 	score (
+		// {{{
 		.S_AXI_ACLK(SNK_CLK),
 		.S_AXI_ARESETN(SNK_RESETN),
 		// model channel
@@ -685,6 +646,7 @@ module tb_netpath;
 		.is_passed(is_passed),
 		.crc_packets_rcvd(CRC_PKT_CNT),
 		.model_packets_rcvd(MODEL_PKT_CNT)
+		// }}}
 	);
 
 	// }}}
