@@ -182,6 +182,8 @@ int main(int argc, char **argv) {
 	_cpunet->net_rxlen  = VFIFOSZ;
 	_cpunet->net_txbase = vfifo_tx;
 	_cpunet->net_txlen  = VFIFOSZ;
+
+	_cpunet->net_control= 7;
 	// }}}
 
 	// Set up some addresses to use
@@ -275,6 +277,13 @@ int main(int argc, char **argv) {
 				for(int k=0; k<pktln; k++)
 					printf("%02x ", rxpktb[k]);
 				printf("\n");
+			} else {
+				unsigned check = _cpunet->net_control;
+
+				if (check & 4) {
+					printf("CPUNET BUS ERROR!!\n");
+					zip_halt();
+				}
 			}
 		}
 
