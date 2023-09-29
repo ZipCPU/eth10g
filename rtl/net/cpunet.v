@@ -116,12 +116,12 @@ module	cpunet #(
 				ADDR_TXPKTS = 5'h0a,	// Transmitted pkt count
 				//
 				// Virtual packet FIFO configs
-				ADDR_RDBASE = 5'h10,
-				ADDR_RDSIZE = 5'h11,
+				ADDR_RDBASE = 5'h10,	// TX BASE
+				ADDR_RDSIZE = 5'h11,	// TX MEMLEN
 				ADDR_RDWPTR = 5'h12,
 				ADDR_RDRPTR = 5'h13,
-				ADDR_WRBASE = 5'h14,
-				ADDR_WRSIZE = 5'h15,
+				ADDR_WRBASE = 5'h14,	// RX BASE
+				ADDR_WRSIZE = 5'h15,	// RX MEMLEN
 				ADDR_WRWPTR = 5'h16,
 				ADDR_WRRPTR = 5'h17;
 				// Verilator lint_on UNUSED
@@ -226,6 +226,8 @@ module	cpunet #(
 		// ADDR_MYMAC2:
 		// ADDR_MYIP    = 5'h03,
 		// Virtual packet FIFO configs
+		// TX config (Read = read memory to network)
+		// {{{
 		ADDR_RDBASE: begin
 			rd_baseaddr <= i_wb_data[BUSLSB +: AW];
 			rd_writeptr <= i_wb_data[BUSLSB + AW-1:2];
@@ -236,6 +238,9 @@ module	cpunet #(
 			end
 		ADDR_RDWPTR: rd_writeptr <= i_wb_data[BUSLSB + AW-1:2];
 		// ADDR_RDRPTR: rd_readptr <= i_wb_data[BUSLSB + AW-1:2];
+		// }}}
+		// RX config (Write = network to write memory)
+		// {{{
 		ADDR_WRBASE: begin
 			wr_baseaddr <= i_wb_data[BUSLSB +: AW];
 			wr_readptr  <= i_wb_data[BUSLSB + AW-1:2];
@@ -247,6 +252,7 @@ module	cpunet #(
 			end
 		// ADDR_WRWPTR: wr_writeptr;
 		ADDR_WRRPTR: wr_readptr  <= i_wb_data[BUSLSB + AW-1:2];
+		// }}}
 		default: begin end
 		endcase
 
@@ -286,11 +292,16 @@ module	cpunet #(
 		o_wb_data <= 0;
 		case(i_wb_addr)
 		ADDR_CONTROL: begin
+			// The first 3 of these bits are really required
 			o_wb_data[0] <= r_promiscuous;
 			o_wb_data[1] <= r_en;
 			o_wb_data[2] <= mem_err;
-			o_wb_data[3] <= reset_rdfifo;
-			o_wb_data[4] <= reset_wrfifo;
+			// The rest of these?  Not so much
+			o_wb_data[3] <= reset_rdfifo;	// TX reset
+			o_wb_data[4] <= reset_wrfifo;	// RX reset
+			o_wb_data[5] <= o_tx_int;
+			o_wb_data[6] <= o_rx_int;
+			// And we've still got (32-7=) 25 unused/unassigned bits
 			end
 		ADDR_MYMAC1: o_wb_data[15:0] <= CPU_MAC[47:32];
 		ADDR_MYMAC2: o_wb_data <= CPU_MAC[31:0];
