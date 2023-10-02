@@ -350,11 +350,11 @@ int main(int argc, char **argv) {
 				valid = true;
 #endif
 
-#ifdef	SDRAM_ACCESS
+#ifdef	DDR3_CONTROLLER_ACCESS
 			// Or SDRAM
-			if ((secp->m_start >= RAMBASE)
-				&&(secp->m_start+secp->m_len
-						<= RAMBASE+RAMLEN))
+			if ((secp->m_start >= DDR3_CONTROLLERBASE)
+				&&((unsigned)secp->m_start+(unsigned)secp->m_len
+						<= (unsigned)DDR3_CONTROLLERBASE+(unsigned)DDR3_CONTROLLERLEN))
 				valid = true;
 #endif
 			if (!valid) {
@@ -367,10 +367,10 @@ int main(int argc, char **argv) {
 		for(int i=0; secpp[i]->m_len; i++) {
 			secp = secpp[i];
 
-#ifdef	SDRAM_ACCESS
-			if ((secp->m_start >= RAMBASE)
-				&&(secp->m_start+secp->m_len
-						<= RAMBASE+RAMLEN)) {
+#ifdef	DDR3_CONTROLLER_ACCESS
+			if ((secp->m_start >= DDR3_CONTROLLERBASE)
+				&&((unsigned)secp->m_start+(unsigned)secp->m_len
+						<= (unsigned)DDR3_CONTROLLERBASE+(unsigned)DDR3_CONTROLLERLEN)) {
 				if (verbose)
 					printf("Writing to MEM: %08x-%08x\n",
 						secp->m_start,
