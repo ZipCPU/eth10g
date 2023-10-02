@@ -56,9 +56,9 @@ This project is released under the Apache 2 license.
 
 ## Status
 
-As of 15 August, 2023:
+As of 2 October, 2023:
 
-- The PCB for this project has been built, and is currently under test.  Several issues have been found, which will likely be fixed in a next revision.
+- The initial PCB for this project has been built and testing has completed.  Several issues have been found, which are now scheduled to be fixed in the next revision.
 
 - The project RTL is mostly assembled.  The only significant component not yet integrated is the SATA.
 
@@ -104,20 +104,18 @@ As of 15 August, 2023:
 
   - [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v).  The receiver now accepts video from the RPi and forwards it downstream.  Either this video, or a blank screen, can then be forwarded to an overlay module.  The result has now been display (successfully) via the HDMI transmitter.
 
+  - The 10Gb Ethernet component.  All four connections are up and running in our test setup.  The next step will be to verify the router components operation.
+
+  - This open source [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller).  While I haven't (yet) measured its performance, I'm expecting this controller to a 2x lower latency when compared with Xilinx's MIG controller.
+
 - Components assembled, attached, and currently under test include:
 
-  - The 10Gb Ethernet component is currently connected and undergoing test.  At present, I still receive a remote fault condition from one of the four connections.  The other three connections appear to be up and running without fault, but need more testing.
-
-  - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are integrated, but need further testing.
-
-  - This design uses an open source [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller).  Integration has been fairly seamless.  While I haven't (yet) measured its performance, I'm expecting close to a 2x speed improvement over the MIG.
+  - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are integrated, but not yet tested.
 
 
 - Components not yet integrated include:
 
   - [The SATA Controller](https://github.com/ZipCPU/wbsata).  This component needs some more development time at present.
-
-  - While all of the network functionality exists and has been properly integrated, further software development work remains before the switch can be fully demonstrated.
 
 To track the project's status at a glance, you can check either the [bus blocks
 testing stoplight chart](doc/eth10g-busblocks.png), or the [10Gb Ethernet
@@ -131,6 +129,8 @@ status of the 10Gb Ethernet components, but doesn't show the status of the
 rest of the design.  Together, both will provide insight into the current
 state of the design.
 
-Be sure to checkout the [dev branch of this
-project](https://github.com/ZipCPU/eth10g/tree/dev) for the most recent status
-updates.
+Ideally, the [dev branch of this
+project](https://github.com/ZipCPU/eth10g/tree/dev) would have the most recent
+status.  In practice, the [master
+branch](https://github.com/ZipCPU/eth10g/tree/master) has tended to have the
+most recent updates.
