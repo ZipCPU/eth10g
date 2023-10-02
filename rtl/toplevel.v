@@ -1127,7 +1127,7 @@ i_sdcard_cd_n,
 		assign o_ddr3_a[ddr3_controllergen_index] = 0;
 	end endgenerate
 
-	assign	o_gnettx_disable = 0;
+	assign	o_gnettx_disable = -1;
 
 	xgtxphy #(
 		.NDEV(4)
