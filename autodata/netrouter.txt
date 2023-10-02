@@ -65,7 +65,7 @@
 	wire	[@$(NDEV)-1:0]		gnet_phy_fault;
 	wire	[@$(NDEV):0]		gnet_locked;
 @TOP.INSERT=
-	assign	o_gnettx_disable = 0;
+	assign	o_gnettx_disable = -1;
 
 	xgtxphy #(
 		.NDEV(@$(NDEV))
