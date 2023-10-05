@@ -102,6 +102,7 @@ module	pktcount #(
 	end else if (M_READY)
 		M_VALID <= 0;
 
+	initial	M_DATA = 0;
 	always @(posedge i_clk)
 	if((!M_VALID || M_READY)&&((S_ABORT && active) || (S_VALID && S_LAST)))
 	begin

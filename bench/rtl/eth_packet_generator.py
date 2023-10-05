@@ -174,7 +174,7 @@ filename = "ethernet_packet.bin"
 with open("ethernet_packet.bin", "wb") as dosya:
     pass
 
-for i in range(0,1):
+for i in range(0,40):
     write_idle_to_file(filename)
     payload_length = random.randint(16*4, (16*4)+32)   # generate random variable length
     payload = os.urandom(payload_length)    # generate random payload

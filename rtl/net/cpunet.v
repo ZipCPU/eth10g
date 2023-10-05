@@ -440,7 +440,7 @@ module	cpunet #(
 	//
 
 	axinwidth #(
-		.IW(PKTDW), .OW(BUSDW)
+		.IW(PKTDW), .OW(BUSDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_inwidth (
 		.ACLK(i_clk), .ARESETN(!i_reset && !reset_wrfifo),
 		//
@@ -608,7 +608,7 @@ module	cpunet #(
 		.BW(BUSDW+$clog2(BUSDW/8)+1), .LGFLEN(LGPIPE)
 	) u_ackfifo (
 		// {{{
-		.i_clk(i_clk), .i_reset(!i_reset),
+		.i_clk(i_clk), .i_reset(i_reset),
 		//
 		.i_wr(mem_valid), .i_data({ mem_last, mem_bytes, mem_data }),
 			.o_full(ign_mem_full), .o_fill(ign_mem_fill),
@@ -635,7 +635,7 @@ module	cpunet #(
 		TX_ABORT <= 1'b0;
 
 	axinwidth #(
-		.IW(BUSDW), .OW(PKTDW)
+		.IW(BUSDW), .OW(PKTDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_outwidth (
 		// {{{
 		.ACLK(i_clk), .ARESETN(!i_reset && !reset_rdfifo),

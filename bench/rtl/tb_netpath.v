@@ -37,6 +37,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
+`default_nettype none
 `timescale 1 ns/1 fs
 // }}}
 module tb_netpath;
@@ -90,7 +91,7 @@ module tb_netpath;
 	wire	[5:0]	MODEL_PKT_CNT;
 
 	// others
-	wire		net_to_fpga, fpga_to_net;
+	wire		net_to_fpga, fpga_to_net, ign_fpga_to_net;
 	wire		is_passed;
 	wire		generator_complete;
 
@@ -141,8 +142,7 @@ module tb_netpath;
 	wire	[DW-1:0]	net_data, net_idata;
 	wire	[DW/8-1:0]	net_sel;
 
-	wire			net_stall, net_ack;
-	wire	[31:0]		net_data;
+	wire			net_stall, net_ack, net_err;
 	// }}}
 
 	// Memory bus connections
@@ -164,6 +164,8 @@ module tb_netpath;
 	realtime	rx_clk_timestamp, tx_clk_timestamp, rc_clk_timestamp;
 	(* keep *) realtime	rx_clk_period, tx_clk_period, rc_clk_period;
 	// }}}
+
+	wire		p2m_int, m2p_int;
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -425,8 +427,8 @@ module tb_netpath;
 		.i_wb_cyc(bfm_cyc), .i_wb_stb(bfm_stb), .i_wb_we(bfm_we),
 			.i_wb_addr(bfm_addr),
 			.i_wb_data(bfm_data), .i_wb_sel(bfm_sel),
-		.o_wb_stall(p2m_stall), .o_wb_ack(p2m_ack),
-			.o_wb_data(p2m_data),
+		.o_wb_stall(bfm_stall), .o_wb_ack(bfm_ack),
+			.o_wb_data(bfm_idata),
 		// Incoming packets
 		.RX_VALID(RX_VALID),
 		.RX_READY(RX_READY),
@@ -466,7 +468,7 @@ module tb_netpath;
 	//
 	assign	net_stall= mem_stall;
 	assign	net_ack  = mem_ack;
-	assign	net_data = mem_data;
+	assign	net_idata= mem_idata;
 	assign	net_err  = mem_err;
 	// }}}
 
@@ -608,7 +610,7 @@ module tb_netpath;
 				// A new packet has arrived.  Tell the
 				// MEM2PKT generator to forward it.
 				last_pointer = read_data;
-				bfm_write(5'h13, read_data);
+				bfm_write(5'h12, read_data);
 			end
 		end
 	end

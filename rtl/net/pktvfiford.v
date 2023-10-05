@@ -760,17 +760,18 @@ module	pktvfiford #(
 		// {{{
 		always @(posedge i_clk)
 		if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE
-								|| !i_wb_ack)
+						|| !i_wb_ack || !lastack)
 			// Wrong time to flush, so ... don't
 			r_false_ack <= 0;
-		else if (!lastack || (rd_state == RD_PACKET || !o_wb_stb)
-				|| o_wb_addr != r_endptr[WBLSB-2 +: AW])
-			// Can't flush yet, we're not done
-			r_false_ack <= 0;
+ 		// else if (!lastack || (rd_state == RD_PACKET && !o_wb_stb))
+		//	// Can't flush yet, we're not done
+		//	r_false_ack <= 0;
 		else
-			// NOW.  Flush is there's more data to return.
-			r_false_ack <= (next_return_len != 0)
-					&& (next_return_len < BUSDW/8);
+			// NOW.  Flush if there's more data to return.
+			// r_false_ack <= (return_len != 0)
+			//		&& (return_len < BUSDW/8);
+			r_false_ack <= (return_len > BUSDW/8)
+					&& (return_len < 2*BUSDW/8);
 
 		assign	false_ack = r_false_ack;
 		// }}}
@@ -780,20 +781,20 @@ module	pktvfiford #(
 		always @(posedge i_clk)
 		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE
 							|| rd_state == RD_SIZE)
-			{ M_DATA, sreg } <= 0;
+			{ M_DATA, sreg } <= { sreg, {(BUSDW){1'b0}} };
 		else if (i_wb_ack)
 		begin
 			if (r_readptr[WBLSB-3:0] == 0)
 				{ sreg, M_DATA } <= { {(BUSDW){1'b0}}, i_wb_data };
 			else if (OPT_LITTLE_ENDIAN)
 				{ sreg, M_DATA }
-					<= ({ {(BUSDW){1'b0}}, i_wb_data }
-						<< (32*r_readptr[WBLSB-3:0]))
+					<= ({ i_wb_data, {(BUSDW){1'b0}} }
+						>> (32*r_readptr[WBLSB-3:0]))
 					| { {(BUSDW){1'b0}}, sreg };
 			else // if (!OPT_LITTLE_ENDIAN)
 				{ M_DATA, sreg }
-					<= ({ i_wb_data, {(BUSDW){1'b0}} }
-						>> (32*r_readptr[WBLSB-3:0]))
+					<= ({ {(BUSDW){1'b0}}, i_wb_data }
+						<< (32*r_readptr[WBLSB-3:0]))
 					| { sreg, {(BUSDW){1'b0}} };
 
 			if (!full_return && OPT_LOWPOWER)
@@ -847,7 +848,7 @@ module	pktvfiford #(
 		return_len <= 0;
 	else if (o_wb_cyc && i_wb_ack && rd_state == RD_SIZE)
 		return_len <= next_rdlen[AW+WBLSB-1:0];
-	else if (o_wb_cyc && i_wb_ack)
+	else if (o_wb_cyc && i_wb_ack && full_return)
 		return_len <= next_return_len;
 `ifdef	FORMAL
 	// {{{
@@ -925,7 +926,7 @@ module	pktvfiford #(
 `endif
 	// }}}
 
-	// M_BYTE
+	// M_BYTES
 	// {{{
 	always @(posedge i_clk)
 	if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE)

@@ -66,7 +66,7 @@ module	p642pkt (
 
 	localparam	[65:0]	R_PREAMBLE = { 32'h5d55_5555, 32'h5555_551e,
 							SYNC_CONTROL },
-			R_HALF_PREAMBLE1= { 24'h5555_55,4'h0,28'h0000_00, 8'h33,
+			R_HALF_PREAMBLE1= { 24'h5555_55,4'h0,28'h0000_00, 8'hcc,
 							SYNC_CONTROL },
 			R_HALF_PREAMBLE2= { 24'h5555_55,4'h0,28'h0000_00, 8'h66,
 							SYNC_CONTROL },
@@ -231,7 +231,7 @@ module	p642pkt (
 			dly_valid <= pstate;
 		else if (RX_DATA[1:0] != SYNC_CONTROL)
 			dly_valid <= 1'b0;
-		else if (RX_DATA[9:2] == 8'h87)
+		else if (RX_DATA[9:2] == 8'hE1)
 			// Unless this is a completely control frame,
 			// we're valid
 			dly_valid <= poffset;
@@ -265,11 +265,11 @@ module	p642pkt (
 		if (RX_DATA[1:0] == SYNC_CONTROL)
 		case(RX_DATA[9:2])
 		// 8'h99:
-		// 8'haa:
-		// 8'hb4:
-		// 8'hcc:
-		8'hd2: dly_half <= { 24'h0, RX_DATA[49:42] };
-		8'he1: dly_half <= { 16'h0, RX_DATA[57:42] };
+		// 8'h55:
+		// 8'h2d:
+		// 8'h33:
+		8'h4b: dly_half <= { 24'h0, RX_DATA[49:42] };
+		8'h87: dly_half <= { 16'h0, RX_DATA[57:42] };
 		8'hff: dly_half <= {  8'h0, RX_DATA[65:42] };
 		default: dly_half <= 32'h0;
 		endcase
@@ -291,14 +291,14 @@ module	p642pkt (
 			if (RX_DATA[1:0] == SYNC_CONTROL)
 			case(RX_DATA[9:2])
 			8'h99: dly_data[63:32] <= { 24'h0, RX_DATA[17:10] };
-			8'haa: dly_data[63:32] <= { 16'h0, RX_DATA[25:10] };
-			8'hb4: dly_data[63:32] <= {  8'h0, RX_DATA[33:10] };
-			8'hcc: dly_data[63:32] <= {        RX_DATA[41:10] };
+			8'h55: dly_data[63:32] <= { 16'h0, RX_DATA[25:10] };
+			8'h2d: dly_data[63:32] <= {  8'h0, RX_DATA[33:10] };
+			8'h33: dly_data[63:32] <= {        RX_DATA[41:10] };
 			// The rest of these have more than 32bits defined,
 			// but we only need 32 of the incoming bits.  The other
 			// 32bits will be in dly_half for the next clock cycle.
-			8'hd2: dly_data[63:32] <= {        RX_DATA[41:10] };
-			8'he1: dly_data[63:32] <= {        RX_DATA[41:10] };
+			8'h4b: dly_data[63:32] <= {        RX_DATA[41:10] };
+			8'h87: dly_data[63:32] <= {        RX_DATA[41:10] };
 			8'hff: dly_data[63:32] <= {        RX_DATA[41:10] };
 			default: dly_data[63:32] <= 32'h0;
 			endcase
@@ -309,11 +309,11 @@ module	p642pkt (
 			if (RX_DATA[1:0] == SYNC_CONTROL)
 			case(RX_DATA[9:2])
 			8'h99: dly_data <= { 56'h0, RX_DATA[17:10] };
-			8'haa: dly_data <= { 48'h0, RX_DATA[25:10] };
-			8'hb4: dly_data <= { 40'h0, RX_DATA[33:10] };
-			8'hcc: dly_data <= { 32'h0, RX_DATA[41:10] };
-			8'hd2: dly_data <= { 24'h0, RX_DATA[49:10] };
-			8'he1: dly_data <= { 16'h0, RX_DATA[57:10] };
+			8'h55: dly_data <= { 48'h0, RX_DATA[25:10] };
+			8'h2d: dly_data <= { 40'h0, RX_DATA[33:10] };
+			8'h33: dly_data <= { 32'h0, RX_DATA[41:10] };
+			8'h4b: dly_data <= { 24'h0, RX_DATA[49:10] };
+			8'h87: dly_data <= { 16'h0, RX_DATA[57:10] };
 			8'hff: dly_data <= {  8'h0, RX_DATA[65:10] };
 			default: begin end
 			endcase
@@ -348,11 +348,11 @@ module	p642pkt (
 			if (RX_DATA[1:0] == SYNC_CONTROL)
 			case(RX_DATA[9:2])
 			8'h99: dly_bytes <= 4'd4 + 4'd1;
-			8'haa: dly_bytes <= 4'd4 + 4'd2;
-			8'hb4: dly_bytes <= 4'd4 + 4'd3;
-			8'hcc: dly_bytes <= 4'd4 + 4'd4;
-			8'hd2: dly_bytes <= 4'd4 + 4'd5;
-			8'he1: dly_bytes <= 4'd4 + 4'd6;
+			8'h55: dly_bytes <= 4'd4 + 4'd2;
+			8'h2d: dly_bytes <= 4'd4 + 4'd3;
+			8'h33: dly_bytes <= 4'd4 + 4'd4;
+			8'h4b: dly_bytes <= 4'd4 + 4'd5;
+			8'h87: dly_bytes <= 4'd4 + 4'd6;
 			8'hff: dly_bytes <= 4'd4 + 4'd7;
 			default: begin end
 			endcase
@@ -366,11 +366,11 @@ module	p642pkt (
 			if (RX_DATA[1:0] == SYNC_CONTROL)
 			case(RX_DATA[9:2])
 			8'h99: dly_bytes <= 4'd1;
-			8'haa: dly_bytes <= 4'd2;
-			8'hb4: dly_bytes <= 4'd3;
-			8'hcc: dly_bytes <= 4'd4;
-			8'hd2: dly_bytes <= 4'd5;
-			8'he1: dly_bytes <= 4'd6;
+			8'h55: dly_bytes <= 4'd2;
+			8'h2d: dly_bytes <= 4'd3;
+			8'h33: dly_bytes <= 4'd4;
+			8'h4b: dly_bytes <= 4'd5;
+			8'h78: dly_bytes <= 4'd6;
 			8'hff: dly_bytes <= 4'd7;
 			default: begin end
 			endcase
@@ -440,13 +440,13 @@ module	p642pkt (
 		// 8'h55: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
 		// 8'h78: r_local_fault <= 1'b0;
 		// 8'h4b: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		8'h87: past_stop <= 1'b1;
-		8'h99: past_stop <= 1'b1;
-		8'haa: past_stop <= 1'b1;
-		8'hb4: past_stop <= 1'b1;
-		8'hcc: past_stop <= 1'b1;
-		8'hd2: past_stop <= 1'b1;
 		8'he1: past_stop <= 1'b1;
+		8'h99: past_stop <= 1'b1;
+		8'h55: past_stop <= 1'b1;
+		8'h2d: past_stop <= 1'b1;
+		8'h33: past_stop <= 1'b1;
+		8'h4b: past_stop <= 1'b1;
+		8'h87: past_stop <= 1'b1;
 		8'hff: past_stop <= 1'b1;
 		default: past_stop <= 1'b0;
 		endcase
@@ -461,11 +461,11 @@ module	p642pkt (
 	end else if (RX_VALID)
 	begin
 		case(RX_DATA[9:2])
-		8'h2d: o_remote_fault <= (RX_DATA[65:42] == REMOTE_FAULT);
+		8'hb4: o_remote_fault <= (RX_DATA[65:42] == REMOTE_FAULT);
 		// 8'h66: // The fault must've been cleared by data start,
 		//   or data wouldn't be starting
-		8'h55: o_remote_fault <= (RX_DATA[65:42] == REMOTE_FAULT);
-		8'h4b: o_remote_fault <= (RX_DATA[33:10] == REMOTE_FAULT);
+		8'haa: o_remote_fault <= (RX_DATA[65:42] == REMOTE_FAULT);
+		8'hd2: o_remote_fault <= (RX_DATA[33:10] == REMOTE_FAULT);
 		default: o_remote_fault <= 1'b0;
 		endcase
 
@@ -473,20 +473,20 @@ module	p642pkt (
 			o_remote_fault <= 1'b0;
 
 		case(RX_DATA[9:2])
-		8'h1e: r_local_fault <= 1'b0;
-		8'h2d: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
-		8'h33: r_local_fault <= 1'b0;
-		8'h66: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		8'h55: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
 		8'h78: r_local_fault <= 1'b0;
-		8'h4b: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		8'h87: r_local_fault <= past_stop;
-		8'h99: r_local_fault <= past_stop;
-		8'haa: r_local_fault <= past_stop;
-		8'hb4: r_local_fault <= past_stop;
-		8'hcc: r_local_fault <= past_stop;
-		8'hd2: r_local_fault <= past_stop;
+		8'hb4: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		8'hcc: r_local_fault <= 1'b0;
+		8'h66: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
+		8'haa: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		8'h1e: r_local_fault <= 1'b0;
+		8'hd2: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
 		8'he1: r_local_fault <= past_stop;
+		8'h99: r_local_fault <= past_stop;
+		8'h55: r_local_fault <= past_stop;
+		8'h2d: r_local_fault <= past_stop;
+		8'h33: r_local_fault <= past_stop;
+		8'h4b: r_local_fault <= past_stop;
+		8'h87: r_local_fault <= past_stop;
 		8'hff: r_local_fault <= past_stop;
 		default: r_local_fault <= 1'b1;
 		endcase
@@ -637,13 +637,13 @@ module	p642pkt (
 		else if (RX_VALID && RX_DATA[1:0] == SYNC_CONTROL)
 		begin
 			case(RX_DATA[9:2])
-			8'h87: begin end
-			8'h99: begin end
-			8'haa: begin end
-			8'hb4: begin end
-			8'hcc: begin end
-			8'hd2: begin end
 			8'he1: begin end
+			8'h99: begin end
+			8'h55: begin end
+			8'h2d: begin end
+			8'h33: begin end
+			8'h4b: begin end
+			8'h87: begin end
 			8'hff: begin end
 			default: M_ABORT <= 1'b1;
 			endcase

@@ -789,6 +789,7 @@ module	netpath #(
 		end
 	end
 
+	initial	stat_data = 0;
 	always @(posedge i_fast_clk)
 	if (!stat_valid || !stat_fifo_full)
 	begin

@@ -220,8 +220,7 @@ module	pktvfifowr #(
 	always @(*)
 	begin
 		wide_words = (S_BYTES + 3) >> 2;
-		wide_shift = -wide_words;
-		wide_shift[$clog2(BUSDW/8)-1:0] = 0;
+		wide_shift = (BUSDW/32)-wide_words;
 	end
 
 	// next_wbaddr
@@ -230,10 +229,11 @@ module	pktvfifowr #(
 	always @(*)
 	begin
 		next_wbaddr = { wr_wb_addr, 2'b00 } + (BUSDW/8);
-		if (next_wbaddr[WBLSB +: AW] >= (i_cfg_baseaddr+i_cfg_memsize))
+		if ({ 1'b0, next_wbaddr[WBLSB +: AW] } >= wide_end_of_memory[WBLSB +: AW+1])
 			next_wbaddr = { wr_wb_addr, 2'b00 }
 						+ (BUSDW/8) - wide_memsize;
-		next_wbaddr[WBLSB-1:0] = { wr_wb_addr[WBLSB-3:0], 2'b00 };
+		if (WBLSB > 2)
+			next_wbaddr[WBLSB-1:0] = {wr_wb_addr[WBLSB-3:0], 2'b00};
 	end
 	// }}}
 

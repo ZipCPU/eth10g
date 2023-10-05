@@ -52,9 +52,9 @@
 module	axinwidth #(
 		// {{{
 		parameter	IW = 64,    // Incoming data path width
-		parameter	OW = 32	    // Outgoing data path width
+		parameter	OW = 32,	    // Outgoing data path width
 		// Reminder: come back and add these parameters in later
-		// parameter [0:0] OPT_LITTLE_ENDIAN
+		parameter [0:0] OPT_LITTLE_ENDIAN=1'b1
 		// parameter [0:0] OPT_LOWPOWER
 		// }}}
 	) (
@@ -101,7 +101,6 @@ module	axinwidth #(
 	wire	[LGMX-1:0] f_s_stream_word, f_m_stream_word;
 	wire	[12-1:0]   f_s_packets_rcvd, f_m_packets_rcvd;
 `endif
-
 	generate if (IW == OW)
 	begin : EQUAL
 		// {{{
@@ -137,6 +136,11 @@ module	axinwidth #(
 		reg [LGWIDE_COUNT-1:0] wide_counter;
 		reg		mid_packet;
 
+		wire	[IW-1:0]	s_data;
+
+		assign	s_data = ISWAP_ENDIANNESS(S_AXIN_DATA);
+
+
 		initial	mid_packet = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
@@ -161,7 +165,7 @@ module	axinwidth #(
 
 		// M_AXIN_DATA, S_AXIN_READY
 		assign S_AXIN_READY = !M_AXIN_VALID || M_AXIN_READY || S_AXIN_ABORT;
-		assign M_AXIN_DATA  = data_concat;
+		assign M_AXIN_DATA  = OSWAP_ENDIANNESS(data_concat);
 
 		// M_AXIN_VALID
 		initial M_AXIN_VALID = 0;
@@ -210,7 +214,7 @@ module	axinwidth #(
 					if (wide_counter == i)
 						// Verilator lint_on  WIDTH
 						data_concat[i*IW +: IW]
-							<= S_AXIN_DATA;
+							<= s_data;
 				end
 
 				if (!S_AXIN_LAST)
@@ -300,6 +304,10 @@ module	axinwidth #(
 		reg	[$clog2(IW/8):0] remaining_bytes;
 		reg			remaining_last, mid_packet;
 		reg	[OW-1:0]	mdata;
+		wire	[IW-1:0]	s_data;
+
+		assign	s_data = ISWAP_ENDIANNESS(S_AXIN_DATA);
+
 
 		initial mid_packet = 0;
 		always @(posedge ACLK)
@@ -338,11 +346,11 @@ module	axinwidth #(
 		if (!ARESETN)
 			mdata <= 0;
 		else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT)
-			mdata <= S_AXIN_DATA[0 +: OW];
+			mdata <= s_data[0 +: OW];
 		else if (M_AXIN_VALID && M_AXIN_READY && !M_AXIN_ABORT)
 			mdata <= data_parse[0 +: OW];
 
-		assign M_AXIN_DATA = mdata;
+		assign M_AXIN_DATA = OSWAP_ENDIANNESS(mdata);
 
 		// M_AXIN_VALID
 		initial M_AXIN_VALID = 0;
@@ -377,7 +385,7 @@ module	axinwidth #(
 			M_AXIN_LAST     <= S_AXIN_LAST && (S_AXIN_BYTES <= FULL_OUTWORD);
 			remaining_last  <= (S_AXIN_LAST && S_AXIN_BYTES > FULL_OUTWORD);
 			// Verilator lint_on  WIDTH
-			data_parse      <= S_AXIN_DATA[IW-1 : OW];
+			data_parse      <= s_data[IW-1 : OW];
 		end else if (M_AXIN_ABORT && (!M_AXIN_VALID || M_AXIN_READY))
 		begin
 			remaining_bytes <= 0;
@@ -487,6 +495,32 @@ module	axinwidth #(
 		// }}}
 		// }}}
 	end endgenerate
+
+	function [IW-1:0] ISWAP_ENDIANNESS(input [IW-1:0] in);
+		// {{{
+		integer	b;
+	begin
+		if (OPT_LITTLE_ENDIAN)
+			ISWAP_ENDIANNESS = in;
+		else begin
+			for(b=0; b<IW/8; b=b+1)
+				ISWAP_ENDIANNESS[b*8 +: 8]= in[IW-8*(b+1) +: 8];
+		end
+	end endfunction
+	// }}}
+
+	function [OW-1:0] OSWAP_ENDIANNESS(input [OW-1:0] in);
+		// {{{
+		integer	b;
+	begin
+		if (OPT_LITTLE_ENDIAN)
+			OSWAP_ENDIANNESS = in;
+		else begin
+			for(b=0; b<OW/8; b=b+1)
+				OSWAP_ENDIANNESS[b*8 +: 8]= in[OW-8*(b+1) +: 8];
+		end
+	end endfunction
+	// }}}
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
