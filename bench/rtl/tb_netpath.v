@@ -44,7 +44,7 @@ module tb_netpath;
 	// Local declarations
 	// {{{
 	// Parameters
-	parameter RECEIVED_PACKET_CNT = 1;   // 10 packets
+	parameter RECEIVED_PACKET_CNT = 40;   // 40 packets
 	localparam	BFM_AW = 5;	// Address bits to a CPUNET
 
 	// clock and reset
@@ -92,7 +92,7 @@ module tb_netpath;
 
 	// others
 	wire		net_to_fpga, fpga_to_net, ign_fpga_to_net;
-	wire		is_passed;
+	wire		is_passed, pkt_fail;
 	wire		generator_complete;
 
 	// The baud rate is given by 10GHz * 66/64, for a period of about 97ps.
@@ -645,7 +645,7 @@ module tb_netpath;
 		.CRC_AXIN_LAST(CDC_TO_SCORE_LAST && CDC_TO_SCORE_VALID),
 		.CRC_AXIN_ABORT(CDC_TO_SCORE_ABORT),
 		//
-		.is_passed(is_passed),
+		.is_passed(is_passed), .pkt_fail(pkt_fail),
 		.crc_packets_rcvd(CRC_PKT_CNT),
 		.model_packets_rcvd(MODEL_PKT_CNT)
 		// }}}
@@ -684,4 +684,6 @@ module tb_netpath;
 		$finish;
 	end
 
+	always @(posedge pkt_fail)
+		$display("ERR: PACKET MISMATCH!");
 endmodule

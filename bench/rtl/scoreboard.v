@@ -55,7 +55,7 @@ module scoreboard (
 		input	wire		CRC_AXIN_LAST,
 		input	wire		CRC_AXIN_ABORT,
 		//
-		output	reg		is_passed,
+		output	reg		is_passed, pkt_fail,
 		output	reg	[5:0]	crc_packets_rcvd,
 		output	reg	[5:0]	model_packets_rcvd
 		// }}}
@@ -70,19 +70,20 @@ module scoreboard (
 	wire		CRC_FIFO_LAST;
 	wire		CRC_FIFO_ABORT;
 
-	reg	[2:0]	last_bytes;
 	reg	[10:0]	model_stream_word;
 	// crc_calculator word and packet count
 	reg	[10:0]	crc_stream_word;
 
 	// check if data are matched or not
 	reg	is_first_data;
+	reg	beat_match;
+	reg	[63:0]	match_mask;
 	// }}}
 
 	// Instantiate the FIFO
 	netfifo #(
 		// {{{
-		.BW(64),
+		.BW(64 + 3),
 		.LGFLEN(6),
 		.OPT_ASYNC_READ(1'b1),
 		.OPT_WRITE_ON_FULL(1'b1),
@@ -95,30 +96,17 @@ module scoreboard (
 		//
 		.S_AXIN_VALID(CRC_AXIN_VALID),
 		.S_AXIN_READY(CRC_AXIN_READY),
-		.S_AXIN_DATA(CRC_AXIN_DATA),
+		.S_AXIN_DATA({ CRC_AXIN_BYTES, CRC_AXIN_DATA }),
 		.S_AXIN_LAST(CRC_AXIN_LAST),
 		.S_AXIN_ABORT(CRC_AXIN_ABORT),
 		//
 		.M_AXIN_VALID(CRC_FIFO_VALID),
 		.M_AXIN_READY(CRC_FIFO_READY),
-		.M_AXIN_DATA(CRC_FIFO_DATA),
+		.M_AXIN_DATA({ CRC_FIFO_BYTES, CRC_FIFO_DATA }),
 		.M_AXIN_LAST(CRC_FIFO_LAST),
 		.M_AXIN_ABORT(CRC_FIFO_ABORT)
 		// }}}
 	);
-
-	// BYTES
-	assign CRC_FIFO_BYTES = CRC_FIFO_LAST ? last_bytes : 3'b000;
-
-	// last_bytes
-	// {{{
-	initial last_bytes = 0;
-	always @(posedge S_AXI_ACLK)
-	if (!S_AXI_ARESETN || is_first_data)
-		last_bytes <= 0;
-	else if (CRC_AXIN_VALID && CRC_AXIN_READY && CRC_AXIN_LAST)
-		last_bytes <= CRC_AXIN_BYTES;
-	// }}}
 
 	// model word and packet count
 	assign MODEL_AXIN_READY = 1'b1;
@@ -163,29 +151,54 @@ module scoreboard (
 	else if (CRC_FIFO_VALID && CRC_FIFO_READY && CRC_FIFO_LAST)
 		crc_packets_rcvd <= crc_packets_rcvd + 1;
 
+	always @(*)
+	begin
+		if (CRC_FIFO_BYTES == 0)
+			match_mask = -1;
+		else
+			match_mask = {(64){1'b1}} >> (8*(8-CRC_FIFO_BYTES));
+
+		beat_match = (CRC_FIFO_VALID && MODEL_AXIN_VALID);
+		if (CRC_FIFO_LAST != MODEL_AXIN_LAST)
+			beat_match = 1'b0;
+		if (MODEL_AXIN_BYTES != CRC_FIFO_BYTES)
+			beat_match = 1'b0;
+		if (0 != (match_mask & (CRC_FIFO_DATA ^ MODEL_AXIN_DATA)))
+			beat_match = 1'b0;
+	end
+
 	initial is_first_data = 1;
 	initial is_passed = 0;
+	initial	pkt_fail  = 0;
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN || CRC_FIFO_ABORT || MODEL_AXIN_ABORT)
 	begin
 		is_first_data <= 1;
 		is_passed <= 0;
+		pkt_fail  <= 0;
 	end else if (CRC_FIFO_VALID && MODEL_AXIN_VALID)
 	begin
+		if (!beat_match)
+			is_passed <= 1'b0;
+		else if (is_first_data)
+			is_passed <= 1'b1;
+
+		pkt_fail <= !beat_match ||(!is_first_data && !is_passed);
+
 		if (CRC_FIFO_LAST && MODEL_AXIN_LAST)
 		begin
 			is_first_data <= 1;
 			if (MODEL_AXIN_BYTES != CRC_FIFO_BYTES)
+			begin
 				$display("WARNING: Bytes values of last data aren't matched");
+			end
 		end else
 			is_first_data <= 0;
 
-		if ((CRC_FIFO_DATA == MODEL_AXIN_DATA) && (is_first_data || is_passed))
-			is_passed <= 1;
-		else
-			is_passed <= 0;
-	end 
-	else if (!CRC_FIFO_VALID && !MODEL_AXIN_VALID)
-		is_passed <= !is_first_data;
-		
+	end else if (is_first_data && (!CRC_FIFO_VALID || !MODEL_AXIN_VALID))
+	begin
+		is_passed <= 1'b0;
+		pkt_fail  <= 1'b0;
+	end
+
 endmodule

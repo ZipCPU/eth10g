@@ -199,7 +199,7 @@ module	pktgate #(
 		if (r_empty && (!s_midpacket
 			||(S_AXIN_VALID && S_AXIN_READY && S_AXIN_LAST)))
 			output_active <= 1'b0;
-		if (!r_empty && M_AXIN_VALID && M_AXIN_LAST)
+		if (!r_empty && M_AXIN_VALID && M_AXIN_READY && M_AXIN_LAST)
 			output_active <= 1'b0;
 	end else begin // if (!output_active)
 		if (r_full || pktcount > 0)

@@ -90,23 +90,23 @@ module	tbenet (
 	localparam	[1:0]	SYNC_CONTROL = 2'b01,
 				SYNC_DATA    = 2'b10;
 	localparam [65:0]	PKTPREFIX= { 8'h5d, {(6){8'h55}},
-							8'h1e, SYNC_CONTROL },
+						CW(8'h78), SYNC_CONTROL },
 				PKTHALFPREFIX = {
 					24'h55_55_55, 4'b00,
 					{(4){IDL}},
-					8'hcc, SYNC_CONTROL },
+					CW(8'h33), SYNC_CONTROL },
 				PKTFAULTSTART = { 24'h55_55_55, 4'h0,
-					{(4){IDL}}, 8'h66, SYNC_CONTROL },
+					{(4){IDL}}, CW(8'h66), SYNC_CONTROL },
 	//
 				PKTFAULT={ 24'h020000, 8'h00,
-					24'h020000, 8'haa, SYNC_CONTROL },
+					24'h020000, CW(8'h55), SYNC_CONTROL },
 				PKTFAULTLFT={ 24'h020000, 4'h0,
-					{(4){IDL}}, 8'hb4, SYNC_CONTROL },
+					{(4){IDL}}, CW(8'h2d), SYNC_CONTROL },
 				PKTFAULTRHT={ {(4){IDL}}, 4'h0,
-					24'h020000, 8'hd2, SYNC_CONTROL },
+					24'h020000, CW(8'h4b), SYNC_CONTROL },
 	//
-				PKTEOP  ={ {(8){IDL}},8'he1, SYNC_CONTROL },
-				PKTIDLE  ={ {(8){IDL}},8'h78, SYNC_CONTROL };
+				PKTEOP  ={ {(8){IDL}},CW(8'h87), SYNC_CONTROL },
+				PKTIDLE  ={ {(8){IDL}},CW(8'h1e), SYNC_CONTROL };
 	localparam	[31:0]	PKT_SOP = 32'h5d_55_55_55;
 
 `ifdef	VERILATOR
@@ -349,26 +349,26 @@ module	tbenet (
 		// If rxword[2] == rxword[1], then we have a 66b/64b coding
 		// violation.
 		rxmatch = 1'b0;
-	else if (rxword[2:1] == 2'b10)
+	else if (rxword[2:1] == SYNC_CONTROL)
 	begin
 		// Look for valid codewords.  If it's not a valid codeword,
 		// it can't be a valid match.
 		case(prerxpay[9:2])
-		8'h78: rxmatch = 1'b1;
-		8'hb4: rxmatch = 1'b1;
-		8'hcc: rxmatch = 1'b1;
-		8'h66: rxmatch = 1'b1;
-		8'haa: rxmatch = 1'b1;
-		8'h1e: rxmatch = 1'b1;
-		8'hd2: rxmatch = 1'b1;
-		8'he1: rxmatch = 1'b1;
-		8'h99: rxmatch = 1'b1;
-		8'h55: rxmatch = 1'b1;
-		8'h2d: rxmatch = 1'b1;
-		8'h33: rxmatch = 1'b1;
-		8'h4b: rxmatch = 1'b1;
-		8'h87: rxmatch = 1'b1;
-		8'hff: rxmatch = 1'b1;
+		CW(8'h1e): rxmatch = 1'b1;
+		CW(8'h2d): rxmatch = 1'b1;
+		CW(8'h33): rxmatch = 1'b1;
+		CW(8'h66): rxmatch = 1'b1;
+		CW(8'h55): rxmatch = 1'b1;
+		CW(8'h78): rxmatch = 1'b1;
+		CW(8'h4b): rxmatch = 1'b1;
+		CW(8'h87): rxmatch = 1'b1;
+		CW(8'h99): rxmatch = 1'b1;
+		CW(8'haa): rxmatch = 1'b1;
+		CW(8'hb4): rxmatch = 1'b1;
+		CW(8'hcc): rxmatch = 1'b1;
+		CW(8'hd2): rxmatch = 1'b1;
+		CW(8'he1): rxmatch = 1'b1;
+		CW(8'hff): rxmatch = 1'b1;
 		default: rxmatch = 1'b0;
 		endcase
 	end else
@@ -539,7 +539,7 @@ module	tbenet (
 			end
 			// }}}
 		end else case(rxpay[9:2])	// Decode the control codes
-		8'h78: begin	// C0-C7
+		CW(8'h1e): begin	// C0-C7
 			// {{{
 			pl_started <= 0;
 			// pl_mem   <= 0;
@@ -547,7 +547,7 @@ module	tbenet (
 			// pl_bytes <= 0;
 			end
 			// }}}
-		8'hb4: begin	// C0-C3, FAULT
+		CW(8'h2d): begin	// C0-C3, FAULT
 			// {{{
 			pl_started <= 0;
 			pl_mem   <= 0;
@@ -557,7 +557,7 @@ module	tbenet (
 			pl_fault <= 1;
 			end
 			// }}}
-		8'hcc: begin	// C0-C3, START
+		CW(8'h33): begin	// C0-C3, START
 			// {{{
 			pl_started <= 1;
 			pl_mem   <= 0;
@@ -565,7 +565,7 @@ module	tbenet (
 			// pl_bytes <= 0;
 			end
 			// }}}
-		8'h66: begin	// FAULT, START
+		CW(8'h66): begin	// FAULT, START
 			// {{{
 			pl_started <= 1;
 			pl_mem   <= 0;
@@ -573,7 +573,7 @@ module	tbenet (
 			pl_bytes <= 0;
 			end
 			// }}}
-		8'haa: begin	// FAULT, FAULT
+		CW(8'h55): begin	// FAULT, FAULT
 			// {{{
 			pl_started <= 0;
 			pl_mem   <= 0;
@@ -583,7 +583,7 @@ module	tbenet (
 			pl_fault <= !pl_half;
 			end
 			// }}}
-		8'h1e: begin	// START
+		CW(8'h78): begin	// START
 			// {{{
 			pl_started <= 1;
 			pl_mem   <= 0;
@@ -592,7 +592,7 @@ module	tbenet (
 			pl_last  <= 0;
 			end
 			// }}}
-		8'hd2: begin	// FAULT, C4-C7
+		CW(8'h4b): begin	// FAULT, C4-C7
 			// {{{
 			pl_started <= 0;
 			pl_mem   <= 0;
@@ -601,7 +601,7 @@ module	tbenet (
 			pl_last  <= 0;
 			end
 			// }}}
-		8'he1: begin	// T0, C0-C7
+		CW(8'h87): begin	// T0, C0-C7
 			// {{{
 			pl_started <= 0;
 			if (pl_half)
@@ -614,7 +614,7 @@ module	tbenet (
 			pl_bytes <= pl_bytes;
 			end
 			// }}}
-		8'h99: begin	// D0, T1, C2-C7
+		CW(8'h99): begin	// D0, T1, C2-C7
 			// {{{
 			pl_started <= 1;
 			pl_mem   <= 0;
@@ -628,7 +628,7 @@ module	tbenet (
 			pl_last  <= 1'b1;
 			end
 			// }}}
-		8'h55: begin	// D0-D1, T2, C3-C7
+		CW(8'haa): begin	// D0-D1, T2, C3-C7
 			// {{{
 			if (pl_half)
 				{ pl_data, pl_mem } <= { 48'h0, rxpay[25:10], pl_data[63:32] };
@@ -639,7 +639,7 @@ module	tbenet (
 			pl_last  <= 1'b1;
 			end
 			// }}}
-		8'h2d: begin	// D0-D2, T3, C4-C7
+		CW(8'hb4): begin	// D0-D2, T3, C4-C7
 			// {{{
 			if (pl_half)
 				{ pl_data, pl_mem } <= { 40'h0, rxpay[33:10], pl_data[63:32] };
@@ -649,7 +649,7 @@ module	tbenet (
 			pl_last  <= 1'b1;
 			end
 			// }}}
-		8'h33: begin	// D0-D3, T4, C5-C7
+		CW(8'hcc): begin	// D0-D3, T4, C5-C7
 			// {{{
 			if (pl_half)
 				{ pl_data, pl_mem } <= { 32'h0, rxpay[41:10], pl_data[63:32] };
@@ -659,7 +659,7 @@ module	tbenet (
 			pl_last  <= 1'b1;
 			end
 			// }}}
-		8'h4b: begin	// D0-D4, T5, C6-C7
+		CW(8'hd2): begin	// D0-D4, T5, C6-C7
 			// {{{
 			if (pl_half)
 				{ pl_data, pl_mem } <= { 24'h0, rxpay[49:10], pl_data[63:32] };
@@ -669,7 +669,7 @@ module	tbenet (
 			pl_last  <= !pl_half;
 			end
 			// }}}
-		8'h87: begin	// D0-D5, T6, C7
+		CW(8'he1): begin	// D0-D5, T6, C7
 			// {{{
 			if (pl_half)
 				{ pl_data, pl_mem } <= { 16'h0, rxpay[57:10], pl_data[63:32] };
@@ -679,7 +679,7 @@ module	tbenet (
 			pl_last  <= !pl_half;
 			end
 			// }}}
-		8'hff: begin	// D0-D6, T7
+		CW(8'hff): begin	// D0-D6, T7
 			// {{{
 			if (pl_half)
 				{ pl_data, pl_mem } <= { 8'h0, rxpay[65:10], pl_data[63:32] };
@@ -734,7 +734,7 @@ module	tbenet (
 	end else if (rxw_valid)
 	begin
 		M_LAST  <= (pl_last && pl_bytes <= 4'h8)
-				|| (!pl_half && rxpay[9:0] == { 8'he1, 2'b10 });
+				|| (!pl_half && rxpay[9:0] == { CW(8'h87), SYNC_CONTROL });
 		M_BYTES <= (pl_last && pl_bytes <= 4'h8) ? pl_bytes[2:0] : 3'h0;
 	end
 	// }}}
@@ -882,13 +882,13 @@ module	tbenet (
 				txpay={ S_DATA,spkt_data, SYNC_DATA };
 				pending_eop = 1;		// == S_LAST
 				end
-			1:txpay={{(6){IDL}},6'h0,spkt_data[ 7:0],8'h99, SYNC_CONTROL };
-			2:txpay={{(5){IDL}},5'h0,spkt_data[15:0],8'h55, SYNC_CONTROL };
-			3:txpay={{(4){IDL}},4'h0,spkt_data[23:0],8'h2d, SYNC_CONTROL };
-			4:txpay={{(3){IDL}},3'h0,spkt_data[31:0],8'h33, SYNC_CONTROL };
-			5:txpay={{(2){IDL}},2'b00, S_DATA[ 7:0], spkt_data, 8'h4b, SYNC_CONTROL };
-			6:txpay={IDL,1'b0,S_DATA[15:0],spkt_data,8'h87, SYNC_CONTROL };
-			7:txpay={       S_DATA[23:0], spkt_data, 8'hff, SYNC_CONTROL };
+			1:txpay={{(6){IDL}},6'h0,spkt_data[ 7:0],CW(8'h99), SYNC_CONTROL };
+			2:txpay={{(5){IDL}},5'h0,spkt_data[15:0],CW(8'haa), SYNC_CONTROL };
+			3:txpay={{(4){IDL}},4'h0,spkt_data[23:0],CW(8'hb4), SYNC_CONTROL };
+			4:txpay={{(3){IDL}},3'h0,spkt_data[31:0],CW(8'hcc), SYNC_CONTROL };
+			5:txpay={{(2){IDL}},2'b00, S_DATA[ 7:0], spkt_data, CW(8'hd2), SYNC_CONTROL };
+			6:txpay={IDL,1'b0,S_DATA[15:0],spkt_data,CW(8'he1), SYNC_CONTROL };
+			7:txpay={       S_DATA[23:0], spkt_data, CW(8'hff), SYNC_CONTROL };
 			endcase
 			// }}}
 		end else if (S_VALID || S_FAULT) // && !eop && S_FAULT
@@ -987,6 +987,15 @@ module	tbenet (
 		end
 
 		DESCRAMBLE = out;
+	end endfunction
+	// }}}
+
+	function automatic [7:0] CW(input [7:0] in);
+		// {{{
+		integer	cwik;
+	begin
+		for(cwik=0; cwik<8; cwik=cwik+1)
+			CW[cwik] = in[7-cwik];
 	end endfunction
 	// }}}
 

@@ -302,8 +302,8 @@ module	pktvfifowr #(
 					= {(BUSDW/8){1'b1}} >> (4*wide_shift);
 			next_dblwide_sel = next_dblwide_sel << (dshift * 4);
 
-			next_dblwide_data[BUSDW-1:0]
-				= next_dblwide_data[BUSDW-1:0]	| next_wr_data;
+			next_dblwide_data = next_dblwide_data
+				| { {(BUSDW){1'b0}}, next_wr_data };
 
 			next_dblwide_sel[BUSDW/8-1:0]
 				= next_dblwide_sel[BUSDW/8-1:0]	| next_wr_sel;
@@ -324,8 +324,8 @@ module	pktvfifowr #(
 					= {(BUSDW/8){1'b1}} << (4*wide_shift);
 			next_dblwide_sel = next_dblwide_sel >> (dshift * 4);
 
-			next_dblwide_data[BUSDW-1:0]
-				= next_dblwide_data[BUSDW-1:0]	| next_wr_data;
+			next_dblwide_data = next_dblwide_data
+					| { next_wr_data, {(BUSDW){1'b0}} };
 
 			next_dblwide_sel[2*BUSDW/8-1:BUSDW/8]
 				= next_dblwide_sel[2*BUSDW/8-1:BUSDW/8]	| next_wr_sel;

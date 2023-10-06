@@ -75,13 +75,16 @@ module	pkt2p64b (
 	localparam [1:0]	SYNC_CONTROL = 2'b01,
 				SYNC_DATA    = 2'b10;
 
-	localparam	[65:0]	P_IDLE  = { {(8){7'h00}}, 8'h1e, SYNC_CONTROL },
+	localparam	[65:0]	P_IDLE  = { {(8){7'h07}},
+						CW(8'h1e), SYNC_CONTROL },
 			// Indicate a remote fault
-			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0, 8'h55,
-								SYNC_CONTROL },
+			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0,
+						CW(8'h55), SYNC_CONTROL },
 			// Start a packet--always on a 64b boundary
-			P_START = { 8'hab, {(6){8'haa}}, 8'h78, SYNC_CONTROL },
-			P_LAST  = { {(8){7'h00}}, 8'h87, SYNC_CONTROL };
+			P_START = { 8'h5d, {(6){8'h55}},
+						CW(8'h78), SYNC_CONTROL },
+			P_LAST  = { {(8){7'h00}},
+						CW(8'h87), SYNC_CONTROL };
 	//
 	// "They [idles] shall not be added while data is being received.  When
 	// deleting /I/s, the first four characters after a /T/ shall not be
@@ -224,19 +227,19 @@ module	pkt2p64b (
 				case(S_BYTES)
 				3'h0: state <= TX_LAST;
 				3'h1: TXDATA <= { 48'h0000_0000_0000,
-					S_DATA[7:0], 8'h99, SYNC_CONTROL };
+					S_DATA[7:0], CW(8'h99), SYNC_CONTROL };
 				3'h2: TXDATA <= { 40'h0000_0000_00,
-					S_DATA[15:0], 8'haa, SYNC_CONTROL };
+					S_DATA[15:0], CW(8'haa), SYNC_CONTROL };
 				3'h3: TXDATA <= { 32'h0000_0000, S_DATA[23:0],
-							8'hb4, SYNC_CONTROL };
+						CW(8'hb4), SYNC_CONTROL };
 				3'h4: TXDATA <= { 24'h0000_00,
-					S_DATA[31:0], 8'hcc, SYNC_CONTROL };
+					S_DATA[31:0], CW(8'hcc), SYNC_CONTROL };
 				3'h5: TXDATA <= { 16'h0000,
-					S_DATA[39:0], 8'hd2, SYNC_CONTROL };
+					S_DATA[39:0], CW(8'hd2), SYNC_CONTROL };
 				3'h6: TXDATA <= { 8'h00,
-					S_DATA[47:0], 8'he1, SYNC_CONTROL };
+					S_DATA[47:0], CW(8'he1), SYNC_CONTROL };
 				3'h7: TXDATA <= {
-					S_DATA[55:0], 8'hff, SYNC_CONTROL};
+					S_DATA[55:0], CW(8'hff), SYNC_CONTROL};
 				// No default needed
 				endcase
 			end
@@ -267,6 +270,15 @@ module	pkt2p64b (
 	endcase
 
 	assign	S_READY = r_ready && (TXREADY || flushing);
+
+	function automatic [7:0] CW(input [7:0] in);
+		// {{{
+		integer	cwik;
+	begin
+		for(cwik=0; cwik<8; cwik=cwik+1)
+			CW[cwik] = in[7-cwik];
+	end endfunction
+	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -346,18 +358,18 @@ module	pkt2p64b (
 		if (TXDATA[1:0] == SYNC_CONTROL)
 		begin
 			case(TXDATA[9:2])
-			8'h1e: assert(TXDATA == P_IDLE);
-			8'h55: assert(TXDATA == P_FAULT);
-			8'h78: assert(TXDATA == P_START);
-			8'h87: assert(TXDATA == P_LAST);
+			CW(8'h1e): assert(TXDATA == P_IDLE);
+			CW(8'h55): assert(TXDATA == P_FAULT);
+			CW(8'h78): assert(TXDATA == P_START);
+			CW(8'h87): assert(TXDATA == P_LAST);
 			//
-			8'h99: assert(TXDATA[65:18] == 0);
-			8'haa: assert(TXDATA[65:26] == 0);
-			8'hb4: assert(TXDATA[65:34] == 0);
-			8'hcc: assert(TXDATA[65:42] == 0);
-			8'hd2: assert(TXDATA[65:50] == 0);
-			8'he1: assert(TXDATA[65:58] == 0);
-			8'hff: begin end
+			CW(8'h99): assert(TXDATA[65:18] == 0);
+			CW(8'haa): assert(TXDATA[65:26] == 0);
+			CW(8'hb4): assert(TXDATA[65:34] == 0);
+			CW(8'hcc): assert(TXDATA[65:42] == 0);
+			CW(8'hd2): assert(TXDATA[65:50] == 0);
+			CW(8'he1): assert(TXDATA[65:58] == 0);
+			CW(8'hff): begin end
 			default: assert(0);
 			endcase
 		end
@@ -444,13 +456,13 @@ module	pkt2p64b (
 	if (TXDATA[1:0] != SYNC_CONTROL)
 		f_eop = 1'b0;
 	else case(TXDATA[9:2])
-		8'h99: f_eop = 1'b1;
-		8'haa: f_eop = 1'b1;
-		8'hb4: f_eop = 1'b1;
-		8'hcc: f_eop = 1'b1;
-		8'hd2: f_eop = 1'b1;
-		8'he1: f_eop = 1'b1;
-		8'hff: f_eop = 1'b1;
+		CW(8'h99): f_eop = 1'b1;
+		CW(8'haa): f_eop = 1'b1;
+		CW(8'hb4): f_eop = 1'b1;
+		CW(8'hcc): f_eop = 1'b1;
+		CW(8'hd2): f_eop = 1'b1;
+		CW(8'he1): f_eop = 1'b1;
+		CW(8'hff): f_eop = 1'b1;
 		P_LAST[9:2]: f_eop = 1'b1;
 		default: f_eop = 1'b0;
 	endcase
@@ -498,13 +510,13 @@ module	pkt2p64b (
 		begin
 			assert(fc_last && fc_bytes != 0);
 			case(TXDATA[9:2])
-			8'h99: assert(TXDATA[17:10] == fc_data[7:0]);
-			8'haa: assert(TXDATA[25:10] == fc_data[15:0]);
-			8'hb4: assert(TXDATA[33:10] == fc_data[23:0]);
-			8'hcc: assert(TXDATA[41:10] == fc_data[31:0]);
-			8'hd2: assert(TXDATA[49:10] == fc_data[39:0]);
-			8'he1: assert(TXDATA[57:10] == fc_data[47:0]);
-			8'hff: assert(TXDATA[65:10] == fc_data[55:0]);
+			CW(8'h99): assert(TXDATA[17:10] == fc_data[7:0]);
+			CW(8'haa): assert(TXDATA[25:10] == fc_data[15:0]);
+			CW(8'hb4): assert(TXDATA[33:10] == fc_data[23:0]);
+			CW(8'hcc): assert(TXDATA[41:10] == fc_data[31:0]);
+			CW(8'hd2): assert(TXDATA[49:10] == fc_data[39:0]);
+			CW(8'he1): assert(TXDATA[57:10] == fc_data[47:0]);
+			CW(8'hff): assert(TXDATA[65:10] == fc_data[55:0]);
 			default: begin end
 			endcase
 		end else if (fc_last)
@@ -555,18 +567,18 @@ module	pkt2p64b (
 	if (S_ARESETN && $past(S_ARESETN) && TXDATA[1:0] == SYNC_CONTROL)
 	begin
 		case(TXDATA[9:2])
-		8'h1e: cover(1);
-		8'h55: cover(1);
-		8'h78: cover(1);
-		8'h87: cover(1);
+		CW(8'h1e): cover(1);
+		CW(8'h55): cover(1);
+		CW(8'h78): cover(1);
+		CW(8'h87): cover(1);
 		//
-		8'h99: cover(1);
-		8'haa: cover(1);
-		8'hb4: cover(1);
-		8'hcc: cover(1);
-		8'hd2: cover(1);
-		8'he1: cover(1);
-		8'hff: cover(1);
+		CW(8'h99): cover(1);
+		CW(8'haa): cover(1);
+		CW(8'hb4): cover(1);
+		CW(8'hcc): cover(1);
+		CW(8'hd2): cover(1);
+		CW(8'he1): cover(1);
+		CW(8'hff): cover(1);
 		endcase
 	end
 
