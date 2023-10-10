@@ -70,7 +70,7 @@ module	vid_mux #(
 	reg				M_VID_HLAST, M_VID_VLAST;
 	wire	[NIN-1:0]		S_VID_HLAST, S_VID_VLAST, S_VID_SOF;
 	wire	[NIN-1:0]		eof;
-	reg	[NIN-1:0]		new_frame;
+	wire	[NIN-1:0]		new_frame;
 	genvar				gk;
 	integer				ik;
 	// }}}
@@ -139,6 +139,8 @@ module	vid_mux #(
 	// {{{
 	generate for(gk=0; gk<NIN; gk=gk+1)
 	begin : GEN_PER_INPUT
+		reg	r_new_frame;
+
 		if (OPT_TUSER_IS_SOF)
 		begin : GEN_SOF
 			// {{{
@@ -185,14 +187,16 @@ module	vid_mux #(
 			// }}}
 		end
 
-		initial	new_frame[gk] = 1'b1;
+		initial	r_new_frame = 1'b1;
 		always @(posedge S_AXI_ACLK)
 		if (!S_AXI_ARESETN)
-			new_frame[gk] <= 1'b1;
+			r_new_frame <= 1'b1;
 		else if (S_VID_VALID[gk] && S_VID_READY[gk])
-			new_frame[gk] <= S_VID_HLAST[gk] && S_VID_VLAST[gk];
+			r_new_frame <= S_VID_HLAST[gk] && S_VID_VLAST[gk];
 		else if (S_VID_VALID[gk] && OPT_TUSER_IS_SOF)
-			new_frame[gk] <= S_VID_SOF[gk];
+			r_new_frame <= S_VID_SOF[gk];
+
+		assign	new_frame[gk] = r_new_frame;
 
 		always @(*)
 		if (adjust_select)
@@ -200,7 +204,7 @@ module	vid_mux #(
 		else if (r_framesel == gk)
 			S_VID_READY[gk] = !M_VID_VALID || M_VID_READY;
 		else
-			S_VID_READY[gk] = !new_frame[gk];
+			S_VID_READY[gk] = !r_new_frame;
 
 	end endgenerate
 	// }}}
