@@ -806,19 +806,28 @@ module	pktvfiford #(
 `ifdef	FORMAL
 		// {{{
 		reg	[BUSDW-1:0]	f_chkzero;
+		(* keep *) reg	[WBLSB:0]	f_chkshift;
 
 		always @(*)
-		if (OPT_LITTLE_ENDIAN)
+			f_chkshift = BUSDW-32*r_readptr[WBLSB-3:0];
+
+		always @(*)
+		if (r_readptr[WBLSB-3:0] == 0)
 		begin
-			f_chkzero = (sreg >> (32*r_readptr[WBLSB-3:0]));
+			f_chkzero = 0;
+		end else if (OPT_LITTLE_ENDIAN)
+		begin
+			f_chkzero = (sreg >> (BUSDW-32*r_readptr[WBLSB-3:0]));
 		end else begin
-			f_chkzero = (sreg << (32*r_readptr[WBLSB-3:0]));
+			f_chkzero = (sreg << (BUSDW-32*r_readptr[WBLSB-3:0]));
 		end
 
 		always @(*)
 		if (!i_reset && (rd_state == RD_PACKET
 						|| rd_state == RD_CLEARBUS))
 		begin
+			if (r_readptr[WBLSB-3:0] == 0)
+				assert(sreg == 0);
 			assert(0 == f_chkzero);
 		end else if (!i_reset && rd_state == RD_SIZE)
 			assert(sreg == 0);
@@ -1284,7 +1293,7 @@ module	pktvfiford #(
 		fwb_total = fwb_bytes_returned // + fwb_bytes_outstanding
 			+ return_len;
 		if (!f_read_aligned && full_return)
-			fwb_total = fwb_total - f_startptr[WBLSB-1:0] - 4;
+			fwb_total = fwb_total - BUSDW/8 + f_startptr[WBLSB-1:0] + 4;
 	end
 
 	always @(*)
