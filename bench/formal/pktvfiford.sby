@@ -18,10 +18,10 @@ read -formal pktvfiford.v
 read -formal faxin_master.v
 read -formal fwb_master.v
 --pycode-begin--
-cmd  = "hierarchy -top pktvfiford"
+cmd  = "hierarchy -top pktvfiford -chparam MAXLEN 65520"
 cmd += " -chparam MINLEN 64"
 if ("bus32" in tags):
-	cmd += " -chparam BUSDW 32 -chparam MINLEN 7"
+	cmd += " -chparam BUSDW  32 -chparam MINLEN  7"
 elif ("bus128" in tags):
 	cmd += " -chparam BUSDW 128 -chparam MINLEN 31"
 elif ("bus256" in tags):
@@ -29,7 +29,7 @@ elif ("bus256" in tags):
 elif ("bus512" in tags):
 	cmd += " -chparam BUSDW 512 -chparam MINLEN 64"
 else:
-	cmd += " -chparam BUSDW 64 -chparam MINLEN 15"
+	cmd += " -chparam BUSDW  64 -chparam MINLEN 15"
 output(cmd)
 --pycode-end--
 prep -top pktvfiford
