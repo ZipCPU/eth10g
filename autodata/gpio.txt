@@ -87,7 +87,7 @@
 @MAIN.IODECL=
 	localparam	NGPI = @$(NGPI), NGPO=@$(NGPO);
 	// @$(DEVID) ports
-	input		[(NGPI-1):0]	i_@$(PREFIX);
+	input	wire	[(NGPI-1):0]	i_@$(PREFIX);
 	output	wire	[(NGPO-1):0]	o_@$(PREFIX);
 @MAIN.DEFNS=
 @MAIN.INSERT=

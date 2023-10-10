@@ -387,7 +387,7 @@ module	main(i_clk, i_reset,
 	// }}}
 	localparam	NGPI = 16, NGPO=8;
 	// GPIO ports
-	input		[(NGPI-1):0]	i_gpio;
+	input	wire	[(NGPI-1):0]	i_gpio;
 	output	wire	[(NGPO-1):0]	o_gpio;
 	input	wire		i_wbu_uart_rx;
 	output	wire		o_wbu_uart_tx;
