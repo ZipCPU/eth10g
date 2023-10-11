@@ -806,7 +806,7 @@ module	pktvfiford #(
 `ifdef	FORMAL
 		// {{{
 		reg	[BUSDW-1:0]	f_chkzero;
-		(* keep *) reg	[WBLSB:0]	f_chkshift;
+		reg	[WBLSB+2:0]	f_chkshift;
 
 		always @(*)
 			f_chkshift = BUSDW-32*r_readptr[WBLSB-3:0];
@@ -817,9 +817,9 @@ module	pktvfiford #(
 			f_chkzero = 0;
 		end else if (OPT_LITTLE_ENDIAN)
 		begin
-			f_chkzero = (sreg >> (BUSDW-32*r_readptr[WBLSB-3:0]));
+			f_chkzero = (sreg >> f_chkshift);
 		end else begin
-			f_chkzero = (sreg << (BUSDW-32*r_readptr[WBLSB-3:0]));
+			f_chkzero = (sreg << f_chkshift);
 		end
 
 		always @(*)

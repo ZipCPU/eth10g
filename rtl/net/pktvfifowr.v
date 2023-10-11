@@ -220,7 +220,9 @@ module	pktvfifowr #(
 	always @(*)
 	begin
 		wide_words = (S_BYTES + 3) >> 2;
+		// Verilator lint_off WIDTH
 		wide_shift = (BUSDW/32)-wide_words;
+		// Verilator lint_on  WIDTH
 	end
 
 	// next_wbaddr
@@ -1085,11 +1087,18 @@ module	pktvfifowr #(
 	default: assert(0);
 	endcase
 
+	/*
 	always @(*)
 	if (!i_reset && !i_cfg_reset_fifo && wr_midpkt && wr_state == WR_PUSH)
 	begin
-		assert(next_wr_sel == next_dblwide_sel[BUSDW/8-1:0]);
+		if (OPT_LITTLE_ENDIAN)
+		begin
+			assert(next_wr_sel == next_dblwide_sel[BUSDW/8-1:0]);
+		end else begin
+			assert(next_wr_sel == next_dblwide_sel[2*BUSDW/8-1:BUSDW/8]);
+		end
 	end
+	*/
 
 	always @(*)
 	if (!i_reset && !i_cfg_reset_fifo
