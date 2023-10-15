@@ -32,8 +32,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 `timescale 1 ns/1 ps
+`default_nettype none
 // }}}
-module packet_generator(
+module packet_generator #(
+		parameter PKTFILE = "ethernet_packet.bin"
+	) (
 		// {{{
 		// clk, reset
 		input	wire		S_AXI_ACLK,
@@ -89,7 +92,16 @@ module packet_generator(
 	assign M_BYTES = (M_LAST) ? (packet_length-(file_offset-4)):0;
 	assign M_FAULT = err_bit;
 
-	initial	begin
+	initial	if (PKTFILE == 0)
+	begin
+		M_VALID = 1'b0;
+		// M_DATA,
+		// M_BYTES,
+		// M_LAST,
+		M_ABORT = 1'b0;
+		M_FAULT = 1'b0;
+		o_complete = 1'b1;
+	end else begin
         	// Give initial values to inputs
         	header = 0;
         	pkt_bit = 0;
@@ -111,7 +123,7 @@ module packet_generator(
 
 		// File reading operation
 		$display("INFO: File operation is begun");
-		file_handle = $fopen("ethernet_packet.bin", "rb");
+		file_handle = $fopen(PKTFILE, "rb");
 		if (file_handle == 0) begin
 			$display("ERROR: File could not be opened");
 			$finish;
@@ -216,7 +228,7 @@ module packet_generator(
 		// $display("%d-)Packets are trasferred", channel_id);
 		$fclose(file_handle);
 		@(posedge S_AXI_ACLK)
-			o_complete = 1'b1;
+			o_complete <= 1'b1;
 	end
 
 	// verilog gets little endian so we need swap endianness

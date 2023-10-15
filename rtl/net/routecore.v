@@ -458,14 +458,14 @@ module routecore #(
 		always @(*)
 		for(iport=0; iport<NETH; iport=iport+1)
 		begin
-			prearb_valid[iport] = txx_valid[geth * NETH+iport];
-			txx_ready[geth*NETH+iport] = prearb_ready[iport];
+			prearb_valid[iport] = txx_valid[iport * NETH+geth];
+			txx_ready[iport*NETH+geth] = prearb_ready[iport];
 			prearb_data[iport * PKTDW +: PKTDW]
-				 = txx_data[(geth*NETH+iport)*PKTDW +: PKTDW];
+				 = txx_data[(iport*NETH+geth)*PKTDW +: PKTDW];
 			prearb_bytes[iport * PKTBYW +: PKTBYW]
-				 = txx_bytes[(geth*NETH+iport)*PKTBYW +: PKTBYW];
-			prearb_last[iport]  = txx_last[geth*NETH+iport];
-			prearb_abort[iport] = txx_abort[geth*NETH+iport];
+				 = txx_bytes[(iport*NETH+geth)*PKTBYW +:PKTBYW];
+			prearb_last[iport]  = txx_last[iport*NETH+geth];
+			prearb_abort[iport] = txx_abort[iport*NETH+geth];
 		end
 
 		axinarbiter #(

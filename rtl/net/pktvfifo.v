@@ -248,10 +248,10 @@ module	pktvfifo #(
 	else if (i_ctrl_stb && i_ctrl_we && (i_ctrl_addr == ADR_BASEADDR
 					|| i_ctrl_addr == ADR_SIZE))
 		reset_fifo <= 1;
-	else if ((r_memsize == 0) || (r_baseaddr + r_memsize >= (1<<AW)))
+	else if ((r_memsize == 0) || (r_baseaddr + r_memsize > (1<<AW)))
 		reset_fifo <= 1;
 	else if (!M_VALID || M_READY)
-		reset_fifo <= !mem_err;
+		reset_fifo <= mem_err;
 	// }}}
 
 	// mem_err
@@ -353,7 +353,7 @@ module	pktvfifo #(
 	//
 
 	axinwidth #(
-		.IW(PKTDW), .OW(BUSDW)
+		.IW(PKTDW), .OW(BUSDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_inwidth (
 		// {{{
 		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo),
@@ -593,7 +593,7 @@ module	pktvfifo #(
 		M_ABORT <= 1'b1;
 
 	axinwidth #(
-		.IW(BUSDW), .OW(PKTDW)
+		.IW(BUSDW), .OW(PKTDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_outwidth (
 		// {{{
 		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo),

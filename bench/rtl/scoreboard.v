@@ -34,6 +34,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 `timescale 1 ns/1 ps
+`default_nettype none
 // }}}
 module scoreboard (
 		// {{{
@@ -190,7 +191,7 @@ module scoreboard (
 			is_first_data <= 1;
 			if (MODEL_AXIN_BYTES != CRC_FIFO_BYTES)
 			begin
-				$display("WARNING: Bytes values of last data aren't matched");
+				$display("WARNING: Byte count of last beat doesn\'t match.  %2d != %2d (DUT)", CRC_FIFO_BYTES, MODEL_AXIN_BYTES);
 			end
 		end else
 			is_first_data <= 0;
