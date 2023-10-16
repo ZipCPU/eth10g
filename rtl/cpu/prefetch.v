@@ -294,7 +294,6 @@ module	prefetch #(
 		// }}}
 
 		assign	r_valid = rg_valid;
-;
 		assign	r_insn  = rg_insn;
 		if (OPT_LITTLE_ENDIAN)
 		begin : GEN_LIL_ENDIAN_SHIFT

@@ -197,7 +197,7 @@ module	xgtxphy #(
 				tx_mmcm_locked,
 				ign_comfinish,
 				rx_cdr_lock;
-		wire	[1:0]	rx_buf_status;
+		wire	[2:0]	rx_buf_status;
 		wire	[1:0]	ign_txbufstatus;
 		wire		rxbuf_reset, rx_mmcm_locked, rx_user_clk;
 		wire	[7:0]	ign_monitor;

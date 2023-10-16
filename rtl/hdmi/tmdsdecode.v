@@ -84,8 +84,9 @@ module	tmdsdecode(
 	// {{{
 	genvar	k;
 	generate for(k=0; k<10; k=k+1)
+	begin : GEN_BIT_REVERSE
 		assign brev_word[k] = i_word[9-k];
-	endgenerate
+	end endgenerate
 	// }}}
 
 	// AUX and control channel decoding

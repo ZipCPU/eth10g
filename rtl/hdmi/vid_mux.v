@@ -212,7 +212,7 @@ module	vid_mux #(
 	// Keep Verilator happy
 	// {{{
 	// Verilator lint_off UNUSED
-	wire	unused;;
+	wire	unused;
 	assign	unused = &{ 1'b0, M_VID_HLAST, M_VID_VLAST };
 	// Verilator lint_on  UNUSED
 	// }}}

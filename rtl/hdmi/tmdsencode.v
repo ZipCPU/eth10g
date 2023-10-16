@@ -232,8 +232,9 @@ module	tmdsencode (
 
 	genvar	gk;
 	generate for(gk=0; gk<10; gk=gk+1)
+	begin : GEN_BIT_REVERSE
 		assign	o_word[gk] = brv_word[9-gk];
-	endgenerate
+	end endgenerate
 
 `ifdef	FORMAL
 	initial	assert(CHANNEL < 2'b11);
