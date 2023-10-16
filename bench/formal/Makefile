@@ -35,14 +35,14 @@
 ################################################################################
 ##
 ## }}}
-TESTS := axinarbiter axinbroadcast axinwidth dropshort wbi2cdma cecbridge
-TESTS += pktvfifowr pktvfiford rxgears txgears p642pkt pkt2p64b crc_eqn
-# wbmarbiter
-# pktvfiford
+TESTS := axinarbiter axinbroadcast axinwidth cecbridge crc_axin crc_eqn
+TESTS += dropshort p642pkt p66brxgears p66btxgears pkt264b pktvfifowr pktvfiford
+TESTS += routetbl wbi2cdma
+# wbmarbiter sync2stream
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
 .PHONY: $(TESTS)
 all: $(TESTS)
-full: all wbmarbiter pktvfiford
+full: all wbmarbiter sync2stream
 RTL := ../../rtl
 RTLNET := ../../rtl/net
 
@@ -67,6 +67,7 @@ SDCMD  := sdcmd
 SDWB   := sdwb
 SDTX   := sdtxframe
 SDRX   := sdrxframe
+RTBL   := routetbl
 ## }}}
 
 ## Interfaces
@@ -96,6 +97,15 @@ $(BCAST)_prflp/PASS: $(BCAST).sby $(RTLNET)/$(BCAST).v $(FAXIN)
 	sby -f $(BCAST).sby prflp
 $(BCAST)_cvr/PASS: $(BCAST).sby   $(RTLNET)/$(BCAST).v $(FAXIN)
 	sby -f $(BCAST).sby cvr
+## }}}
+
+.PHONY: crc_axin
+## {{{
+crc_axin := crc_axin_prf/PASS crc_axin_cvr/PASS
+crc_axin_prf/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v
+	sby -f crc_axin.sby prf
+crc_axin_cvr/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v
+	sby -f crc_axin.sby cvr
 ## }}}
 
 .PHONY: $(CRCEQ)
@@ -192,6 +202,15 @@ $(WBMARB)_prf/PASS: $(WBMARB).sby $(RTL)/$(WBMARB).v $(RTL)/sfifo.v $(RTLNET)/pk
 	sby -f $(WBMARB).sby prf
 $(WBMARB)_cvr/PASS: $(WBMARB).sby $(RTL)/$(WBMARB).v $(RTL)/sfifo.v $(RTLNET)/pktarbiter.v $(WB)
 	sby -f $(WBMARB).sby cvr
+## }}}
+
+.PHONY: $(RTBL)
+## {{{
+$(RTBL): $(RTBL)_prf/PASS    $(RTBL)_cvr/PASS
+$(RTBL)_prf/PASS: $(RTBL).sby   $(RTLNET)/$(RTBL).v $(RTLNET)/pktarbiter.v
+	sby -f $(RTBL).sby prf
+$(RTBL)_cvr/PASS: $(RTBL).sby   $(RTLNET)/$(RTBL).v $(RTLNET)/pktarbiter.v
+	sby -f $(RTBL).sby cvr
 ## }}}
 
 .PHONY: $(PKTVRD)

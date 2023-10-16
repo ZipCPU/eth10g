@@ -47,7 +47,7 @@ module routetbl #(
 		parameter  [NETH-1:0]	DEFAULT_PORT = BROADCAST_PORT,
 		parameter	LGTBL = 6,	// Log_2(NTBL entries)
 		parameter	MACW = 48,	// Bits in a MAC address
-		parameter	LGTIMEOUT = 64-MACW-1,
+		parameter	LGTIMEOUT = 24,
 		parameter [0:0]	OPT_LOWPOWER = 1'b0,
 		localparam	NTBL = (1<<LGTBL) // Number of table entries
 		// }}}
@@ -72,6 +72,7 @@ module routetbl #(
 
 	// Local declarations
 	// {{{
+	localparam	LGETH = $clog2(NETH);
 	integer	ik;
 	genvar	gk, galt;
 
@@ -79,15 +80,18 @@ module routetbl #(
 	wire			rxarb_valid;
 	wire			rxarb_ready;
 	reg	[MACW-1:0]	rxarb_srcmac;
-	reg [$clog2(NETH)-1:0]	rxarb_port;
+	reg	[LGETH-1:0]	rxarb_port;
 
 	reg	[NTBL-1:0]		tbl_valid;
 	reg	[NTBL-1:0]		prematch, oldest;
 	wire	[NTBL-1:0]		tbl_write;
 	reg	[LGTIMEOUT-1:0]		tbl_age		[NTBL-1:0];
-	reg	[$clog2(NETH)-1:0]	tbl_port	[NTBL-1:0];
+	reg	[LGETH-1:0]		tbl_port	[NTBL-1:0];
 	reg	[MACW-1:0]		tbl_mac		[NTBL-1:0];
 	wire				tbl_full;
+`ifdef	FORMAL
+	wire	[NTBL-1:0]		tbl_older	[NTBL-1:0];
+`endif
 
 	wire	[NTBL-1:0]	lkup_tblmatch;
 	reg	[NETH-1:0]	lkup_port;
@@ -115,7 +119,7 @@ module routetbl #(
 		rxarb_port = 0;
 		for(ik=0; ik<NETH; ik=ik+1)
 		if (rxgrant[ik])
-			rxarb_port = rxarb_port | (1<<ik);
+			rxarb_port = rxarb_port | ik;
 	end
 
 	always @(*)
@@ -124,7 +128,7 @@ module routetbl #(
 		for(ik=0; ik<NETH; ik=ik+1)
 		if (rxgrant[ik])
 			rxarb_srcmac = rxarb_srcmac
-					| RX_SRCMAC[rxgrant * MACW +: MACW];
+					| RX_SRCMAC[ik * MACW +: MACW];
 	end
 
 	// }}}
@@ -135,7 +139,7 @@ module routetbl #(
 
 	assign	tbl_full = (&tbl_valid);
 	generate for(gk=0; gk<NTBL; gk=gk+1)
-	begin
+	begin : GEN_PER_TBLENTRY
 		wire			first_invalid;
 		wire	[NTBL-1:0]	is_older;
 
@@ -148,7 +152,7 @@ module routetbl #(
 			assign	first_invalid = !tbl_valid[gk];
 		end else begin : ACC_INVALID
 			assign	first_invalid = !tbl_valid[gk]
-					&& (&tbl_valid[gk]-1);
+					&& (&tbl_valid[gk-1:0]);
 		end
 
 		// Find what's older
@@ -160,15 +164,28 @@ module routetbl #(
 			end else begin : GEN_ISOLDER
 				reg	r_is_older;
 
+				// r_is_older == alt is older than me
+				//	or equiv tbl_age[galt] < tbl_age[gk]
+				//
 				always @(posedge i_clk)
 				if (i_reset)
 					r_is_older <= 1'b0;
+				else if (tbl_write[galt])
+					r_is_older <= 1'b0; // !tbl_valid[gk];
 				else if (tbl_write[gk])
 					r_is_older <= tbl_valid[galt];
-				else if (tbl_write[galt])
-					r_is_older <= 1'b0;
 
 				assign	is_older[galt] = r_is_older;
+`ifdef	FORMAL
+				always @(*)
+				if (!i_reset)
+				begin
+					if (tbl_valid[galt] && tbl_valid[gk])
+						assert(r_is_older == (tbl_age[galt] < tbl_age[gk]));
+					// if (!tbl_valid[galt] && !tbl_valid[gk])
+					//	assert(!r_is_older);
+				end
+`endif
 			end
 		end
 
@@ -205,7 +222,12 @@ module routetbl #(
 			tbl_mac[gk]  <= rxarb_srcmac;
 			tbl_port[gk] <= rxarb_port;
 		end
-
+`ifdef	FORMAL
+		assign	tbl_older[gk] = is_older;
+		always @(*)
+		if (!i_reset)
+			assert(tbl_valid[gk] == (tbl_age[gk] != 0));
+`endif
 	end endgenerate
 
 	// }}}
@@ -242,6 +264,7 @@ module routetbl #(
 			TX_PORT <= lkup_port;
 	end
 
+	initial	TX_ACK = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset)
 		TX_ACK <= 1'b0;
@@ -256,4 +279,230 @@ module routetbl #(
 	assign	unused = &{ 1'b0 };
 	// Verilator lint_on  UNUSED
 	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+	reg	f_past_valid;
+	(* anyconst *)	reg	[LGETH-1:0]	fc_one, fc_two;
+	(* anyconst *)	reg	[MACW-1:0]	fc_mac, fnvr_mac;
+	(* anyconst *)	reg	[LGETH-1:0]	fc_port;
+	wire			f_one_valid, f_two_valid;
+	wire	[MACW-1:0]	f_one_mac,  f_two_mac;
+	wire	[LGETH-1:0]	f_one_port, f_two_port;
+	wire	[LGTIMEOUT-1:0]	f_one_age,  f_two_age;
+	wire	[1:0]		f_oldest, f_prematch, f_write, f_match;
+	reg	[NETH-1:0]	f_mask;
+	wire	[NTBL-1:0]	f_one_older, f_two_older;
+
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	always @(*)
+	if (!f_past_valid)
+		assume(i_reset);
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// RX stream source properties
+	// {{{
+	genvar	gfrx;
+
+	generate for (gfrx=0; gfrx < NETH; gfrx = gfrx+1)
+	begin : F_RXCHECK
+		wire	[MACW-1:0]	port_mac;
+
+		assign	port_mac = RX_SRCMAC[gfrx * MACW +: MACW];
+
+		always @(posedge i_clk)
+		if (!f_past_valid || $past(i_reset))
+			assume(!RX_VALID[gfrx]);
+		else if ($past(RX_VALID[gfrx] && !RX_READY[gfrx]))
+		begin
+			assume(RX_VALID[gfrx]);
+			assume($stable(port_mac));
+		end
+
+		always @(*)
+		if (RX_VALID[gfrx] && gfrx != fc_port)
+			assume(port_mac != fc_mac);
+
+		always @(*)
+		if (RX_VALID[gfrx])
+			assume(port_mac != fnvr_mac);
+	end endgenerate
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Table lookup request properties
+	// {{{
+	always @(posedge i_clk)
+	if (!f_past_valid || $past(i_reset))
+	begin
+		assume(!TX_VALID);
+		assert(!TX_ACK);
+	end else if ($past(TX_VALID) && !$past(TX_ACK))
+	begin
+		assume(TX_VALID);
+		assume($stable(TX_DSTMAC));
+	end
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Contract
+	// {{{
+
+	// 1. No two table entries have the same MAC
+	// 2. If two entries are valid, the most recent will not be marked
+	//	as oldest
+	// 3. Only one entry written to at a time
+	// 4. If an entry is valid and not oldest, it will not be replaced
+	// 5. Valid entries must have port numbers < NETH
+	// 6. No two entries have the same age
+
+
+	always @(*)
+	begin
+		assume(fc_one < fc_two);
+		assume(fc_two < NETH);
+
+		f_mask = (1<<fc_one) | (1<<fc_two);
+	end
+
+	assign	f_one_valid = tbl_valid[fc_one];
+	assign	f_two_valid = tbl_valid[fc_two];
+
+	assign	f_one_age   = tbl_age[fc_one];
+	assign	f_two_age   = tbl_age[fc_two];
+
+	assign	f_one_port  = tbl_port[fc_one];
+	assign	f_two_port  = tbl_port[fc_two];
+
+	assign	f_one_mac   = tbl_mac[fc_one];
+	assign	f_two_mac   = tbl_mac[fc_two];
+
+	assign	f_oldest   = { oldest[fc_two],    oldest[fc_one] };
+	assign	f_prematch = { prematch[fc_two],  prematch[fc_one] };
+	assign	f_write    = { tbl_write[fc_two], tbl_write[fc_one] };
+	assign	f_match    = { lkup_tblmatch[fc_two], lkup_tblmatch[fc_one] };
+
+	assign	f_one_older = tbl_older[fc_one];
+	assign	f_two_older = tbl_older[fc_two];
+
+	always @(*)
+	if (f_past_valid)
+	begin
+		if (tbl_full)
+			assert(f_one_valid && f_two_valid);
+		if (f_one_valid && f_two_valid)
+		begin
+			assert(f_one_age != f_two_age);
+			assert(f_one_mac != f_two_mac);
+
+			if (f_one_age < f_two_age)
+			begin
+				assert(f_one_older[fc_two] == 1'b0);
+				assert(f_two_older[fc_one] == 1'b1);
+			end else begin
+				assert(f_one_older[fc_two] == 1'b1);
+				assert(f_two_older[fc_one] == 1'b0);
+			end
+		end
+
+		if (f_one_valid && f_one_mac == fc_mac)
+			assert(f_one_port == fc_port);
+		if (f_one_valid)
+			assert(f_one_mac != fnvr_mac);
+
+		if (f_two_valid && f_two_mac == fc_mac)
+			assert(f_two_port == fc_port);
+		if (f_two_valid)
+			assert(f_two_mac != fnvr_mac);
+
+		// assert($onehot(oldest));
+		// assert($onehot0(prematch));
+		// assert($onehot0(tbl_write));
+
+		assert($onehot0(f_prematch));
+		assert($onehot0(f_write));
+		assert(!f_oldest[1] || !f_oldest[0]);
+		assert(!f_match[1]  || !f_match[0]);
+
+		if (|f_write)
+			assume((tbl_write & ~f_mask) == 0);
+		else
+			assume($onehot0(tbl_write));
+
+		if (|f_oldest)
+			assume((oldest & ~f_mask) == 0);
+		else
+			assume($onehot(oldest & ~f_mask));
+
+		if (|f_prematch)
+			assume((prematch & ~f_mask) == 0);
+		else
+			assume($onehot0(prematch));
+
+		if (|f_match)
+		begin
+			assume((lkup_tblmatch & ~f_mask) == 0);
+		end else begin
+			assume($onehot0(lkup_tblmatch));
+			if (TX_DSTMAC == fnvr_mac)
+				assume((lkup_tblmatch & ~f_mask) == 0);
+		end
+	end
+
+	always @(posedge i_clk)
+	if (f_past_valid && !i_reset)
+	begin
+		if (rxarb_srcmac == fnvr_mac);
+		begin
+			assume((prematch & ~f_mask) == 0);
+		end
+
+		if(TX_VALID && TX_ACK)
+		begin
+			if (TX_DSTMAC == fnvr_mac)
+				assert(TX_PORT == DEFAULT_PORT);
+
+			if ($past(f_one_valid) && TX_DSTMAC == $past(f_one_mac)
+							&& !(&TX_DSTMAC))
+				assert(TX_PORT == (1<<$past(f_one_port)));
+
+			if ($past(f_two_valid) && TX_DSTMAC == $past(f_two_mac)
+							&& !(&TX_DSTMAC))
+				assert(TX_PORT == (1<<$past(f_two_port)));
+		end
+	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Cover checks
+	// {{{
+	always @(posedge i_clk)
+	if (!i_reset && $past(tbl_full))
+	begin
+		cover(tbl_full && TX_ACK);
+		cover(tbl_full && TX_ACK && TX_PORT == 1);
+		cover(TX_ACK && TX_PORT == DEFAULT_PORT);
+		cover(TX_ACK && TX_PORT == {1'b1, {(NETH-1){1'b0}}});
+		cover(TX_ACK && TX_PORT == BROADCAST_PORT);
+		cover(TX_ACK && (&TX_DSTMAC));
+	end
+
+	always @(*)
+	if (!i_reset)
+		cover(TX_ACK && tbl_valid == 0 && TX_PORT == BROADCAST_PORT);
+	// }}}
+`endif
+// }}}
 endmodule

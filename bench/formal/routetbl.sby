@@ -1,0 +1,25 @@
+[tasks]
+prf
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+prf: depth 5
+
+[engines]
+smtbmc
+
+[script]
+read -formal routetbl.v
+read -formal pktarbiter.v
+--pycode-begin--
+cmd = "hierarchy -top routetbl"
+cmd += " -chparam LGTBL 3"
+output(cmd)
+--pycode-end--
+prep -top routetbl
+
+[files]
+../../rtl/net/routetbl.v
+../../rtl/net/pktarbiter.v
