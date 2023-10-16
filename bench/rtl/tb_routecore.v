@@ -71,8 +71,8 @@ module tb_routecore;
 	genvar	geth;
 
 	// clock and reset
-	wire	SRC_CLK, SNK_CLK;
-	wire	SRC_RESETN, SNK_RESETN;
+	wire	[NETH-1:0]	SRC_CLK, SNK_CLK;
+	wire	[NETH-1:0]	SRC_RESETN, SNK_RESETN;
 
 
 	// script to (eth_model and crc_checker)
@@ -258,8 +258,8 @@ module tb_routecore;
 			.S_ABORT(CRC_TO_CDC_ABORT[geth]),
 			.S_LAST(CRC_TO_CDC_LAST[geth]),
 			//
-			.M_CLK(SNK_CLK[geth]),
-			.M_ARESETN(SNK_RESETN[geth]),
+			.M_CLK(SNK_CLK[(geth == 0) ? 3 : geth]),
+			.M_ARESETN(SNK_RESETN[(geth == 0) ? 3 : geth]),
 			.M_VALID(MDL_TO_SCORE_VALID[geth]),
 			.M_READY(MDL_TO_SCORE_READY[geth]),
 			.M_DATA(MDL_TO_SCORE_DATA[64*geth +: 64]),
@@ -582,8 +582,8 @@ module tb_routecore;
 	scoreboard
 	score (
 		// {{{
-		.S_AXI_ACLK(SNK_CLK),
-		.S_AXI_ARESETN(SNK_RESETN),
+		.S_AXI_ACLK(SNK_CLK[NETH-1]),
+		.S_AXI_ARESETN(SNK_RESETN[NETH-1]),
 		// DUT channel, coming through the simulated FPGA components
 		.MODEL_AXIN_VALID(DUT_TO_SCORE_VALID[NETH-1]),
 		.MODEL_AXIN_READY(score_board_ready_model),
@@ -618,11 +618,11 @@ module tb_routecore;
 	// }}}
 
 	always @(*)
-	if (SRC_RESETN && SCRIPT_M_VALID
-			&& MODEL_TO_SCRIPT_READY && !CRC_TO_SCRIPT_READY)
+	if (|(SRC_RESETN & SCRIPT_M_VALID
+			& MODEL_TO_SCRIPT_READY & ~CRC_TO_SCRIPT_READY))
 	begin
-		assert(!SCRIPT_M_VALID || !MODEL_TO_SCRIPT_READY
-						&& CRC_TO_SCRIPT_READY);
+		assert(~SCRIPT_M_VALID | ~MODEL_TO_SCRIPT_READY
+						& CRC_TO_SCRIPT_READY);
 		$display("ERROR: CRC module is not ready.");
 		$finish;
 	end
