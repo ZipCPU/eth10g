@@ -92,12 +92,10 @@ module tb_routecore;
 	wire	[NETH*64-1:0]	DUT_TO_SCORE_DATA;
 
 	// crc_calculator to cdc
-	wire		CRC_TO_CDC_READY;
-	wire		CRC_TO_CDC_VALID;
-	wire		CRC_TO_CDC_LAST;
-	wire		CRC_TO_CDC_ABORT;
-	wire	[2:0]	CRC_TO_CDC_BYTES;
-	wire	[63:0]	CRC_TO_CDC_DATA;
+	wire	[NETH-1:0]	CRC_TO_CDC_READY, CRC_TO_CDC_VALID,
+				CRC_TO_CDC_LAST, CRC_TO_CDC_ABORT;
+	wire	[NETH*3-1:0]	CRC_TO_CDC_BYTES;
+	wire	[NETH*64-1:0]	CRC_TO_CDC_DATA;
 
 	// cdc to scoreboard
 	wire	[NETH-1:0]	MDL_TO_SCORE_VALID, MDL_TO_SCORE_READY,
@@ -140,12 +138,10 @@ module tb_routecore;
 	// Packet Virtual FIFO bus connection(s)
 	// {{{
 	wire			net_cyc, net_stb, net_we,
-				net_stall, net_ack;
+				net_stall, net_ack, net_err;
 	wire	[AW-1:0]	net_addr;
 	wire	[DW-1:0]	net_data, net_idata;
 	wire	[DW/8-1:0]	net_sel;
-
-	wire			net_stall, net_ack, net_err;
 	// }}}
 
 	// Memory bus connections
