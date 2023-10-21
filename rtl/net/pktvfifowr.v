@@ -1026,20 +1026,23 @@ module	pktvfifowr #(
 						>> (dshift[WBLSB-3:0]*4);
 	end endgenerate
 
-	always @(*)
-	if (!i_reset)
-	begin
-		if (&r_writeptr[WBLSB-3:0])
-			assert(next_wr_sel == 0);
-		else if (wr_midpkt && wr_state == WR_PUSH && fs_word > 1)
-			assert(next_wr_sel == full_sel);	// !!!
-	end
+	generate if (BUSDW > 32)
+	begin : F_WIDEBUS
+		always @(*)
+		if (!i_reset)
+		begin
+			if (BUSDW > 32 && (&r_writeptr[WBLSB-3:0]))
+				assert(next_wr_sel == 0);
+			else if (wr_midpkt && wr_state == WR_PUSH && fs_word > 1)
+				assert(next_wr_sel == full_sel);
+		end
+	end endgenerate
 
 	always @(posedge i_clk)
 	if (!i_reset && !i_cfg_reset_fifo
 				&& (o_wb_stb || wr_state != WR_CLEARPTR))
 	begin
-		assert(o_wb_addr >= i_cfg_baseaddr);		// !!!
+		assert(o_wb_addr >= i_cfg_baseaddr);
 		assert(o_wb_addr < (i_cfg_baseaddr + i_cfg_memsize));
 	end
 
