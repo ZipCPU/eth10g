@@ -33,10 +33,11 @@
 // }}}
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "board.h"
 #include <zipsys.h>
 
-#ifndef	CPUNET_H
+#ifndef	CPUNET_ACCESS
 int	main(int argc, char **argv) {
 	printf("ERR: This design requires both the CPUNET and the ROUTER\n");
 }
@@ -68,26 +69,59 @@ void	pkt_send(char *pkt, unsigned ln) {
 	// {{{
 	char	*base  = _cpunet->net_txbase;
 	unsigned mlen = _cpunet->net_txlen;
-	char	*wptr = (char *)_cpunet->net_txwptr, *endp = base + mlen, *pktp = pkt;
-	unsigned	hln;
+	char	*wptr = (char *)_cpunet->net_txwptr+4,
+			*rptr = (char *)_cpunet->net_txrptr,
+			*endp = base + mlen,
+			*pktp = pkt;
+	unsigned	hln, space;
+
+	if (wptr >= endp)
+		wptr = base;
 
 	// Is there room in the virtual FIFO?
-	////************ MISSING CHECK
+	// {{{
+	space = rptr - wptr;
+	if (wptr >= rptr)
+		space += mlen;
+	if (space < ln + 8)
+		return;	// NO ROOM
+	// }}}
 
 	// Copy the packet to the virtual FIFO
+	// {{{
 	// Before any wrap
 	hln = ln;
 	if (hln + wptr > endp)
 		hln = endp - wptr;
-	for(int k=0; k<hln; k++)
-		*wptr++ = *pktp++;
+	memcpy(wptr, pktp, hln);
 	if (hln != ln) {
 		// After any potential wrap
+		pktp += hln;
 		hln = ln - hln;
 		wptr = base;
-		for(int k=0; k<hln; k++)
-			*wptr++ = *pktp++;
+		memcpy(base, pktp, hln);
 	}
+	// }}}
+
+	// Zero the end pointer
+	// {{{
+	wptr = (char *)_cpunet->net_txwptr + ln + 7;
+	wptr &= ~3;
+	*((unsigned *)wptr) = 0;
+	// }}}
+
+	// Update the FIFOs write pointer
+	// {{{
+	// Now go back and fill in the packet length
+	wptr = (char *)_cpunet->net_txwptr;
+	wptr &= ~3;
+	*((unsigned *)wptr) = ln;
+
+	// Now we can update the write pointer
+	wptr = (char *)_cpunet->net_txwptr + ln + 7;
+	wptr &= ~3;
+	_cpunet->net_txwptr = wptr;
+	// }}}
 }
 // }}}
 
@@ -108,41 +142,72 @@ unsigned	pkt_recv(char *pkt, unsigned maxln) {
 		printf("ERROR !!  JUMBO packet too big at %d bytes\n", ln);
 		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
 		return 0;
-	} else {
-		char	*base = _cpunet->net_rxbase;
-		unsigned mlen = _cpunet->net_rxlen, hln;
-		char	*rptr = (char *)_cpunet->net_rxrptr,
-			*endp = base + mlen,
-			*pktp = pkt;
-
-		hln = ln;
-		if (hln + rptr > endp)
-			hln = endp - rptr;
-		for(int k=0; k<hln; k++)
-			*pktp++ = *rptr++;
-		if (hln != ln) {
-			// After any potential wrap
-			hln = ln - hln;
-			rptr = base;
-			for(int k=0; k<hln; k++)
-				*pktp++ = *rptr++;
-		}
-
-		return ln;
 	}
+	char	*base = _cpunet->net_rxbase;
+	unsigned mlen = _cpunet->net_rxlen, hln, vln;
+	char	*wptr = (char *)_cpunet->net_rxwptr,
+		*rptr = (char *)_cpunet->net_rxrptr,
+		*endp = base + mlen,
+		*pktp = pkt;
+
+	// SANITY CHECK: Does this packet fit in the virtual FIFO?
+	vln = wptr - rptr;
+	if (wptr < rptr)
+		vln += mlen;
+	if (vln < hln + 4) {
+		// Reset the FIFO, drop any would-be packets
+		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
+		return 0;	// NO ROOM
+	}
+
+	// Potential wrap due to the pointer being at the end of memory
+	rptr += 4;
+	if (rptr >= endp)
+		rptr = base;
+
+	// Copy our packet out.  First, the packet between here and the endptr
+	hln = ln;
+	if (hln + rptr > endp)
+		hln = endp - rptr;
+	memcpy(pktp, rptr, hln);
+	// for(int k=0; k<hln; k++) *pktp++ = *rptr++;
+
+	// Then the packet following any potential wraparound
+	if (hln != ln) {
+		// After any potential wrap
+		pktp += hln;
+		hln = ln - hln;
+		memcpy(pktp, base, hln);
+	}
+
+	// Update the pointer
+	rptr += ln + 3;
+	rptr &= ~3;
+	if (rptr >= endp)
+		rptr = base;
+	_cpunet->net_rxrptr = rptr;
+
+	// Return the size of the packet we just read
+	return ln;
 }
 // }}}
 
 const unsigned	VFIFOSZ = (1<<20);
 int main(int argc, char **argv) {
+	// Reset our virtual packet FIFOs
+	// {{{
 #ifdef	NETRESET_ACCESS
-	(*_netreset) = 31;
-	__asm__("NOOP");
-	__asm__("NOOP");
-	__asm__("NOOP");
-	__asm__("NOOP");
+	// Can't reset everything--we still need to set the addresses, and
+	// holding things in reset prevents them from interacting w/ the bus
+	// (*_netreset) = 16 | 3;	// 5'b1_0011
+	// __asm__("NOOP");
+	// __asm__("NOOP");
+	// __asm__("NOOP");
+	// __asm__("NOOP");
 	(*_netreset) = 3;
 #endif
+	// }}}
+
 	char	*vfifo_base[4], *ptr;
 	char	*vfifo_rx, *vfifo_tx;
 	unsigned	start_jiffies, bus_mask, bus_size;
@@ -150,16 +215,18 @@ int main(int argc, char **argv) {
 	// Set up the virtual FIFOs
 	// {{{
 	// Get the bus size
-	_gnet->vfif[0].v_memsize = 0;
-	_gnet->vfif[0].v_base = (char *)-1;
-	bus_mask = (unsigned)_gnet->vfif[0].v_base;
+	_gnet->vfif[0].v_memsize = 0;		// Shut the FIFO down
+	_gnet->vfif[0].v_base = (char *)-1;	// Set all usable bits
+	bus_mask = (unsigned)_gnet->vfif[0].v_base;	// Read the mask back
 	bus_mask |= ~(VFIFOSZ-1);
 	bus_size = -bus_mask;
 
+	// Assign VFIFOSZ bytes of memory to each network interface
+	// {{{
 	for(int k=0; k<4; k++) {
 		ptr = (char *)malloc(VFIFOSZ + bus_size);
 		// Round up to the next aligned address
-		ptr = (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
+		ptr= (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
 		vfifo_base[k] = ptr;
 		// Set this address as our base address
 		_gnet->vfif[k].v_base    = ptr;
@@ -167,7 +234,10 @@ int main(int argc, char **argv) {
 
 		// No other registers to set
 	}
+	// }}}
 
+	// Now do it again for the CPU's two FIFOs: one for TX and one for RX
+	// {{{
 	ptr = (char *)malloc(VFIFOSZ + bus_size);
 	// Round up to the next aligned address
 	ptr = (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
@@ -183,10 +253,14 @@ int main(int argc, char **argv) {
 	_cpunet->net_txbase = vfifo_tx;
 	_cpunet->net_txlen  = VFIFOSZ;
 
+	// [0]:	Turn on promiscuous mode
+	// [1]:	Enable the FIFO
+	// [2]: Clear any errors that may be pending
 	_cpunet->net_control= 7;
 	// }}}
+	// }}}
 
-	// Set up some addresses to use
+	// Set up some network addresses to use
 	// {{{
 	char	my_mac[6], fpga1_mac[6], fpga2_mac[6];
 	char	my_ip[4], fpga1_ip[4], fpga2_ip[4];
@@ -214,8 +288,9 @@ int main(int argc, char **argv) {
 	my_ip[0] = 192; my_ip[1] = 168; my_ip[2] =   3; my_ip[3] = 210;
 	// }}}
 
-	// const	unsigned	ETH_SIZE = 6 + 6 + 2;
-	// const	unsigned	IPHDR_SIZE = 20;
+	// const	unsigned	ETH_SIZE    = 6 + 6 + 2;
+	// const	unsigned	IPHDR_SIZE  = 20;
+	// const	unsigned	UDPHDR_SIZE = 8;
 	char	*pkt = malloc(128);
 	char	*rxpktb;
 	const	unsigned	ONE_US = 100;
@@ -224,7 +299,7 @@ int main(int argc, char **argv) {
 	unsigned	crc;
 	const	unsigned	MAX_PKTSZ = 65536;
 
-	// Destination MAC
+	// Destination MAC = BROADCAST
 	for(int k=0; k<6; k++)
 		pkt[k] = 0x0ff;
 	// Source MAC
@@ -233,6 +308,8 @@ int main(int argc, char **argv) {
 	// EtherType = 0x0806
 	pkt[12] = 0x08;
 	pkt[13] = 0x06;
+
+	// ARP header:
 	pkt[14] = 0x00;	// HTYPE = 1 / Ethernet
 	pkt[15] = 0x01;
 	pkt[16] = 0x08;	// PTYPE = 0x800 -> IPv4
@@ -248,7 +325,7 @@ int main(int argc, char **argv) {
 	for(int k=0; k<6; k++)
 		pkt[32+k] = 0xff;	// Target's hardware address (unknown)
 	for(int k=0; k<4; k++)
-		pkt[38+k] = fpga1_ip[k]; // Target's protocol address (unknown)
+		pkt[38+k] = fpga1_ip[k]; // Target's protocol (IP) address
 	for(int k=0; k<40; k++)
 		pkt[42+k] = 0;		// Packet padding
 	crc = calc_crc(60, pkt);
@@ -271,12 +348,69 @@ int main(int argc, char **argv) {
 		pkt_send(pkt, 60);
 		// Now let's wait a second and see what comes back ...
 		while(0 == _zip->z_pic & SYSINT_JIFFIES) {
+			unsigned char *epay = (unsigned char *)&rxpktb[14],
+					*ipay;
+			unsigned	ethtype;
+
 			pktln = pkt_recv(rxpktb, MAX_PKTSZ);
 			if (pktln > 0) {
 				printf("RX PKT (%d bytes):\n", pktln);
 				for(int k=0; k<pktln; k++)
 					printf("%02x ", rxpktb[k]);
 				printf("\n");
+				printf("Dst MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					rxpktb[0], rxpktb[1], rxpktb[2],
+					rxpktb[3], rxpktb[4], rxpktb[5]);
+				printf("Src MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					rxpktb[6], rxpktb[ 7], rxpktb[ 8],
+					rxpktb[9], rxpktb[10], rxpktb[11]);
+				printf("EthType: %02x%02x\n",
+					rxpktb[12], rxpktb[13]);
+				ethtype = (((unsigned char)rxpktb[12]) << 8)
+					| ((unsigned char)rxpktb[13]);
+
+				switch(ethtype) {
+				case 0x0806:	// ARP
+					printf("ARP\n");
+					printf("  Operation: %02x%02x\n",
+						rxpktb[20], rxpktb[21]);
+					printf("  Source IP: %d.%d.%d.%d\n",
+						rxpktb[28], rxpktb[29],
+						rxpktb[30], rxpktb[31]);
+					break;
+				case 0x0800:	// IP
+					printf("IP\n");
+					printf("  Source IP: %d.%d.%d.%d\n",
+						epay[ 8], epay[ 9],
+						epay[10], epay[11]);
+					printf("  Destin IP: %d.%d.%d.%d\n",
+						epay[12], epay[13],
+						epay[14], epay[15]);
+					printf("  PktLength: %d\n",
+						(epay[2] << 8) | epay[3]);
+					printf("  SubProto : %d\n",
+						epay[8]);
+					ipay = epay + ((epay[0] & 0x0f)*4);
+					switch(epay[8]) {
+					case  0: printf("    IP (?)\n");   break;
+					case  1: if(ipay[0] == 0)
+						  printf("    ICMP - PING\n");
+						else if (ipay[0] == 8)
+						  printf("    ICMP - REPLY\n");
+						break;
+					case  6: printf("    TCP\n");  break;
+					case 17:
+						printf("    UDP : %5d->%5d"
+							", %5d bytes\n",
+							(ipay[0] << 8)|ipay[1],
+							(ipay[2] << 8)|ipay[3],
+							(ipay[4] << 8)|ipay[5]);
+						break;
+					} break;
+				default:
+					break;
+				}
+				printf("--------------------------\n");
 			} else {
 				unsigned check = _cpunet->net_control;
 
@@ -291,7 +425,6 @@ int main(int argc, char **argv) {
 		// Clear our interrupt
 		_zip->z_pic = SYSINT_JIFFIES;
 		_zip->z_jiffies = start_jiffies;
-
 	}
 }
 #endif	// CPUNET_H
