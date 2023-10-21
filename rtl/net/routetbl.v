@@ -119,7 +119,7 @@ module routetbl #(
 		rxarb_port = 0;
 		for(ik=0; ik<NETH; ik=ik+1)
 		if (rxgrant[ik])
-			rxarb_port = rxarb_port | ik;
+			rxarb_port = rxarb_port | ik[LGETH-1:0];
 	end
 
 	always @(*)

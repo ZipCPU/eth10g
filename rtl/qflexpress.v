@@ -710,10 +710,10 @@ module	qflexpress #(
 		// }}}
 
 		if (OPT_ODDR)
-		begin
+		begin : M_CLK_DDR
 			always @(*)
 				m_clk = !m_cs_n;
-		end else begin
+		end else begin : GEN_M_CLK_LOGIC
 			// {{{
 			always @(posedge i_clk)
 			if (i_reset)
@@ -934,7 +934,7 @@ module	qflexpress #(
 
 		assign	pipe_req = r_pipe_req;
 		// }}}
-	end else begin
+	end else begin : NO_PIPE
 		assign	pipe_req = 1'b0;
 	end endgenerate
 	// }}}
@@ -1145,7 +1145,7 @@ module	qflexpress #(
 		initial	ack_pipe = 0;
 		initial	stall_pipe = -1;
 		if (RDDELAY > 1)
-		begin
+		begin : GEN_READDLY
 			always @(posedge i_clk)
 			if (i_reset)
 				sck_pipe <= 0;
@@ -1165,7 +1165,7 @@ module	qflexpress #(
 				stall_pipe <= { stall_pipe[RDDELAY-2:0], not_done };
 
 
-		end else begin
+		end else begin : GEN_RDDLY_ONE
 			always @(posedge i_clk)
 			if (i_reset)
 				sck_pipe <= 0;
