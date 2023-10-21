@@ -155,7 +155,7 @@ module wbupsz #(
 			end
 			r_shift  <= w_shift;
 			// }}}
-		end else if (!i_wstall)
+		end else if (o_wstb && !i_wstall)
 			r_stb <= 1'b0;
 
 		assign	o_wcyc  = r_cyc;
