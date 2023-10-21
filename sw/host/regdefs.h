@@ -191,9 +191,9 @@
 #define	R_ZIPU7          	0x800000dc	// 80000000, wbregs names: UR7
 #define	R_ZIPU8          	0x800000e0	// 80000000, wbregs names: UR8
 #define	R_ZIPU9          	0x800000e4	// 80000000, wbregs names: UR9
-#define	R_ZIPU10         	0x800000e8	// 80000000, wbregs names: SR10
-#define	R_ZIPU11         	0x800000ec	// 80000000, wbregs names: SR11
-#define	R_ZIPU12         	0x800000f0	// 80000000, wbregs names: SR12
+#define	R_ZIPU10         	0x800000e8	// 80000000, wbregs names: UR10
+#define	R_ZIPU11         	0x800000ec	// 80000000, wbregs names: UR11
+#define	R_ZIPU12         	0x800000f0	// 80000000, wbregs names: UR12, UFP
 #define	R_ZIPUSP         	0x800000f4	// 80000000, wbregs names: USP, UR13
 #define	R_ZIPUCC         	0x800000f8	// 80000000, wbregs names: ZIPUCC, UCC
 #define	R_ZIPUPC         	0x800000fc	// 80000000, wbregs names: ZIPUPC, UPC
