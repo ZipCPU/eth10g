@@ -133,8 +133,8 @@ int main(int argc, char **argv) {
 			printf("uR%-2d: 0x%08x ", i, r[i+16]);
 			if ((i&3)==3)
 				printf("\n");
-		} printf("uCC : 0x%08x ", r[14]);
-		printf("uPC : 0x%08x ", r[15]);
+		} printf("uCC : 0x%08x ", r[30]);
+		printf("uPC : 0x%08x ", r[31]);
 		printf("\n\n"); 
 	}
 
