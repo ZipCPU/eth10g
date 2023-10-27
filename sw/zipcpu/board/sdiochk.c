@@ -57,6 +57,7 @@ typedef	struct SDIO_S {
 #define	TRIGGER
 #endif
 
+#ifdef	_BOARD_HAS_SDIO
 void	wait_while_busy(void) {
 	unsigned	v;
 
@@ -64,6 +65,7 @@ void	wait_while_busy(void) {
 		v = _sdio->sd_cmd;
 	} while(v & 0x104800);
 }
+#endif
 
 int main(int argc, char **argv) {
 #ifndef	_BOARD_HAS_SDIO

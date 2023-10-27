@@ -47,15 +47,16 @@ BASE    := global.txt wbdown.txt icape.txt
 AUX     := version.txt			# pwrcount.txt rtccount.txt buserr.txt
 IO      := gpio.txt spio.txt
 DBGBUS  := wbuconsole.txt		# smibus.txt
-MEMORY  := bkram.txt ddr3.txt # flash.txt	# sdram.txt # bkrom.txt
-DISKDR  := sdio.txt emmc.txt		# sata.txt
-CPU     := zipmaster.txt # smiconsole.txt		# pic.txt
+MEMORY  := bkram.txt ddr3.txt # flash.txt bkrom.txt
+DISKDR  := # sdio.txt emmc.txt		# sata.txt
+CPU     := zipmaster.txt # smiconsole.txt
+## NETWORK := netled.txt		# No network, just network LED testing
 ## NETWORK := netduplex.txt		# Pass through test, no routing
 NETWORK := netrouter.txt cpunet.txt	# Full router, virtual FIFOs, CPU FIFO
-GFX     := hdmi.txt cec.txt edid.txt
-SCOPES  := netscope.txt hdmiclrscope.txt # rxedidscope.txt smiscope.txt flashscope.txt fanscope.txt cfgscope.txt sdioscope.txt emmcscope.txt i2cscope.txt
+GFX     := # hdmi.txt cec.txt edid.txt
+SCOPES  := # netscope.txt hdmiclrscope.txt rxedidscope.txt smiscope.txt flashscope.txt fanscope.txt cfgscope.txt sdioscope.txt emmcscope.txt i2cscope.txt
 LDSCRIPT:= mem_bkram_only.txt mem_full.txt # mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
-OTHER   := i2ccpu.txt fan.txt netclk.txt sirefclkcounter.txt # netled.txt
+OTHER   := i2ccpu.txt fan.txt # netclk.txt sirefclkcounter.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\
 	$(SCOPES) $(LDSCRIPT) $(OTHER)

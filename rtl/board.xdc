@@ -178,14 +178,14 @@ set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
 
 ## uSD
 ## {{{
-set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n]
-set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk]
+#set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n]
+#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk]
 
-set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
-set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
-set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
-set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[2]]
-set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
+#set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
+#set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
+#set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
+#set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[2]]
+#set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
 ## }}}
 
 ## Flash
@@ -204,17 +204,17 @@ set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_d
 ## {{{
 ## The eMMC clock is on CCLK, so no package pin declaration is appropriate
 ## set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
-set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
 
-set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
-set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
-set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
-set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
-set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
-set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
-set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
-set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
-set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
+#set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
+#set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
+#set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
+#set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
+#set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
+#set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
+#set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
+#set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
+#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 ## }}}
 
 ## SATA
@@ -393,31 +393,31 @@ set_property -dict {PACKAGE_PIN Y1  IOSTANDARD SSTL15 SLEW FAST VCCAUX_IO HIGH} 
 
 ## HDMI
 ## {{{
-set_property -dict {PACKAGE_PIN N23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_cec]
+#set_property -dict {PACKAGE_PIN N23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_cec]
 set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVCMOS33} [get_ports o_hdmirx_hpd_n]
-set_property -dict {PACKAGE_PIN P23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_scl]
-set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_sda]
+#set_property -dict {PACKAGE_PIN P23 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_scl]
+#set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports io_hdmirx_sda]
 
-set_property -dict {PACKAGE_PIN P24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[0]]
-set_property -dict {PACKAGE_PIN N24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[0]]
-set_property -dict {PACKAGE_PIN R26 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[1]]
-set_property -dict {PACKAGE_PIN P26 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[1]]
-set_property -dict {PACKAGE_PIN R25 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[2]]
-set_property -dict {PACKAGE_PIN P25 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[2]]
-set_property -dict {PACKAGE_PIN M24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_clk_p]
-set_property -dict {PACKAGE_PIN L24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_clk_n]
+#set_property -dict {PACKAGE_PIN P24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[0]]
+#set_property -dict {PACKAGE_PIN N24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[0]]
+#set_property -dict {PACKAGE_PIN R26 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[1]]
+#set_property -dict {PACKAGE_PIN P26 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[1]]
+#set_property -dict {PACKAGE_PIN R25 IOSTANDARD TMDS_33} [get_ports i_hdmirx_p[2]]
+#set_property -dict {PACKAGE_PIN P25 IOSTANDARD TMDS_33} [get_ports i_hdmirx_n[2]]
+#set_property -dict {PACKAGE_PIN M24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_clk_p]
+#set_property -dict {PACKAGE_PIN L24 IOSTANDARD TMDS_33} [get_ports i_hdmirx_clk_n]
 
-set_property -dict {PACKAGE_PIN N26 IOSTANDARD LVCMOS33} [get_ports io_hdmitx_cec]
+#set_property -dict {PACKAGE_PIN N26 IOSTANDARD LVCMOS33} [get_ports io_hdmitx_cec]
 set_property -dict {PACKAGE_PIN M26 IOSTANDARD LVCMOS33} [get_ports i_hdmitx_hpd_n]
 
-set_property -dict {PACKAGE_PIN P19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[0]]
-set_property -dict {PACKAGE_PIN P20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[0]]
-set_property -dict {PACKAGE_PIN K25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[1]]
-set_property -dict {PACKAGE_PIN K26 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[1]]
-set_property -dict {PACKAGE_PIN M25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[2]]
-set_property -dict {PACKAGE_PIN L25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[2]]
-set_property -dict {PACKAGE_PIN N19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_p]
-set_property -dict {PACKAGE_PIN M20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_n]
+#set_property -dict {PACKAGE_PIN P19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[0]]
+#set_property -dict {PACKAGE_PIN P20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[0]]
+#set_property -dict {PACKAGE_PIN K25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[1]]
+#set_property -dict {PACKAGE_PIN K26 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[1]]
+#set_property -dict {PACKAGE_PIN M25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_p[2]]
+#set_property -dict {PACKAGE_PIN L25 IOSTANDARD TMDS_33} [get_ports o_hdmitx_n[2]]
+#set_property -dict {PACKAGE_PIN N19 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_p]
+#set_property -dict {PACKAGE_PIN M20 IOSTANDARD TMDS_33} [get_ports o_hdmitx_clk_n]
 ## }}}
 
 ## PCIe
@@ -460,101 +460,8 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 
 ## Adding in any XDC_INSERT tags
 
-## From sirefclkcounter
-## From netclk
-set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/avgs_reg*}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/q_v*}]
-set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pins thedesign/u_txnetclk/q_v_reg/D]
-## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in i2c
-## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in mem_bkram_only
-## From hdmiclrscope
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/waddr_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/this_addr_r*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_stopped*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/br_config_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/GEN_ASYNC.q_iflags*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/ASYNC_STATUS.q_oflags*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/ASYNC_STATUS.q_oflags*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/ASYNC_STATUS.q_oflags*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/o_pixdebug_r*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/o_bus_data_r*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/GEN_ASYNC.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/hdmiclrscopei/GEN_ASYNC.q_reset_complete*}] 5
-## No XDC.INSERT tag in zip_alt_mic
-## No XDC.INSERT tag in wbu_arbiter
-## No XDC.INSERT tag in spio
-## From sdio
-set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
-## No XDC.INSERT tag in gpio
-## From cfg
-## No XDC.INSERT tag in wbu
-## No XDC.INSERT tag in zip_alt_uic
-## No XDC.INSERT tag in clk200
-## No XDC.INSERT tag in prebus
-## No XDC.INSERT tag in version
-## No XDC.INSERT tag in zip_alt_mpc
-## No XDC.INSERT tag in clk
-## No XDC.INSERT tag in XDC
-## No XDC.INSERT tag in zip
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in ddr3_phy
-## No XDC.INSERT tag in netlock
-## No XDC.INSERT tag in cec
-## No XDC.INSERT tag in wbdown
-## No XDC.INSERT tag in wb32
-## From siclk
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
-set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
-## No XDC.INSERT tag in buildtime
-## No XDC.INSERT tag in REGDEFS
-## No XDC.INSERT tag in zip_alt_mtc
-## No XDC.INSERT tag in uart
-## No XDC.INSERT tag in altpic
-## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in SIM
-## From hdmi
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
-set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_xpxclk/prepx/u_bufg/S0]
-set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_xpxclk/lclpx/u_bufg/S0]
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/b_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/b_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/a_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/o_b_data*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_px2sys/a_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/wgray_cross*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.pxfifo/rgray_cross*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_r*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.r_pix_reset*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_mem2pix/cmap*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_mem2pix/cmap*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/pixloc/*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/sync_valid*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/all_locked*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/avgs*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_pixclk_counter/q_v*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/b_last*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_new_frame/a_pipe*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_hdmirx_*/the_deserdes/delay*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
-## No XDC.INSERT tag in zip_alt_moc
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in clk150
-## No XDC.INSERT tag in zip_tmb
-## No XDC.INSERT tag in zip_tmc
-## No XDC.INSERT tag in netscope
-## No XDC.INSERT tag in edid
-## No XDC.INSERT tag in REGISTER
-## No XDC.INSERT tag in zip_dmac
-## From emmc
-set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
-## No XDC.INSERT tag in zip_jiffies
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in zip_alt_uoc
-## No XDC.INSERT tag in zip_alt_upc
-## No XDC.INSERT tag in TMA
-## No XDC.INSERT tag in bkram
-## No XDC.INSERT tag in ddr3_controller
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in netreset
+## No XDC.INSERT tag in cpunet
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
 create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
@@ -589,8 +496,54 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_addr*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
-## No XDC.INSERT tag in KEYS
+## No XDC.INSERT tag in netreset
+## No XDC.INSERT tag in ddr3_controller
+## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in zip_alt_uoc
+## No XDC.INSERT tag in syspic
+## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in TMA
+## No XDC.INSERT tag in zip_dmac
+## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in zip_tmb
+## No XDC.INSERT tag in zip_alt_utc
+## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in REGISTER
+## No XDC.INSERT tag in i2c
+## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in altpic
+## No XDC.INSERT tag in SIM
+## No XDC.INSERT tag in zip_alt_mtc
+## No XDC.INSERT tag in REGDEFS
+## No XDC.INSERT tag in clk150
+## No XDC.INSERT tag in buildtime
+## From siclk
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
+set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
+## No XDC.INSERT tag in wb32
+## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in uart
+## No XDC.INSERT tag in i2cdma
+## No XDC.INSERT tag in ddr3_phy
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in RESET_ADDRESS
 ## No XDC.INSERT tag in wb
-## No XDC.INSERT tag in cpunet
-## From netdbg
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
+## No XDC.INSERT tag in KEYS
+## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in XDC
+## No XDC.INSERT tag in zip_alt_mpc
+## No XDC.INSERT tag in version
+## No XDC.INSERT tag in prebus
+## No XDC.INSERT tag in clk200
+## No XDC.INSERT tag in wbu
+## No XDC.INSERT tag in mem_full
+## No XDC.INSERT tag in clk
+## From cfg
+## No XDC.INSERT tag in gpio
+## No XDC.INSERT tag in spio
+## No XDC.INSERT tag in zip_alt_uic
+## No XDC.INSERT tag in wbu_arbiter
+## No XDC.INSERT tag in zip_alt_mic

@@ -38,9 +38,17 @@
 
 #include "edid.c"
 
-int main(int argc, char **argv) {
 #ifndef	_BOARD_HAS_I2CCPU
-	printf("ERR: This software requires the I2C controller\n");
+#define	NO_ACCESS
+#else
+#ifndef	EDID_ACCESS
+#define	NO_ACCESS
+#endif
+#endif
+
+int main(int argc, char **argv) {
+#ifdef	NO_ACCESS
+	printf("ERR: This software requires both the I2C and EDID controllers\n");
 #else
 	unsigned	c = 0;
 	printf("\n\n"

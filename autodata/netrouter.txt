@@ -106,44 +106,44 @@
 @MAIN.IODECL=
 	// 10Gb Ethernet
 	// {{{
-	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_rx_clk;
-	input	wire [32*@$(NDEV)-1:0]	i_@$(PREFIX)_rx_data;
-	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_tx_clk;
-	output	wire [32*@$(NDEV)-1:0]	o_@$(PREFIX)_tx_data;
-	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_phy_fault;
-	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_linkup;
-	output	wire [@$(NDEV)-1:0]	o_@$(PREFIX)_activity;
+	input	wire	[NETDEVS-1:0]	i_@$(PREFIX)_rx_clk;
+	input	wire [32*NETDEVS-1:0]	i_@$(PREFIX)_rx_data;
+	input	wire	[NETDEVS-1:0]	i_@$(PREFIX)_tx_clk;
+	output	wire [32*NETDEVS-1:0]	o_@$(PREFIX)_tx_data;
+	input	wire	[NETDEVS-1:0]	i_@$(PREFIX)_phy_fault;
+	output	wire [NETDEVS-1:0]	o_@$(PREFIX)_linkup;
+	output	wire [NETDEVS-1:0]	o_@$(PREFIX)_activity;
 	// Verilator lint_off UNUSED
-	input	wire	[@$(NDEV)-1:0]	i_@$(PREFIX)_los;
-	input	wire	[@$(NDEV):0]	i_@$(PREFIX)_phy_locked;
+	input	wire	[NETDEVS-1:0]	i_@$(PREFIX)_los;
+	input	wire	[NETDEVS:0]	i_@$(PREFIX)_phy_locked;
 	// Verilator lint_on  UNUSED
 	// }}}
 @MAIN.DEFNS=
 	// Incoming 10Gb packet signaling
 	// {{{
-	wire	[@$(NDEV)-1:0]		@$(PREFIX)_rx_valid,
+	wire	[NETDEVS-1:0]		@$(PREFIX)_rx_valid,
 					@$(PREFIX)_rx_ready,
 					@$(PREFIX)_rx_last,
 					@$(PREFIX)_rx_abort;
-	wire	[128*@$(NDEV)-1:0]	@$(PREFIX)_rx_data;
-	wire	[4*@$(NDEV)-1:0]	@$(PREFIX)_rx_bytes;
+	wire	[128*NETDEVS-1:0]	@$(PREFIX)_rx_data;
+	wire	[4*NETDEVS-1:0]	@$(PREFIX)_rx_bytes;
 	// }}}
 	// Outoging 10Gb packet signaling
 	// {{{
-	wire	[@$(NDEV)-1:0]		@$(PREFIX)_tx_valid,
+	wire	[NETDEVS-1:0]		@$(PREFIX)_tx_valid,
 					@$(PREFIX)_tx_ready,
 					@$(PREFIX)_tx_last,
 					@$(PREFIX)_tx_abort;
-	wire	[128*@$(NDEV)-1:0]	@$(PREFIX)_tx_data;
-	wire	[4*@$(NDEV)-1:0]	@$(PREFIX)_tx_bytes;
+	wire	[128*NETDEVS-1:0]	@$(PREFIX)_tx_data;
+	wire	[4*NETDEVS-1:0]	@$(PREFIX)_tx_bytes;
 	// }}}
 	genvar	g_@$(PREFIX);
 	// Verilator lint_off UNUSED
-	wire	[32*@$(NDEV)-1:0]	@$(PREFIX)_net_debug;
+	wire	[32*NETDEVS-1:0]	@$(PREFIX)_net_debug;
 	// Verilator lint_on  UNUSED
 @GENDCD=GEN_ETHERNET_DECODE
 @MAIN.INSERT=
-	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+1)
+	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<NETDEVS; g_@$(PREFIX)=g_@$(PREFIX)+1)
 	begin : @$(GENDCD)
 		netpath
 		u_netpath (
@@ -202,7 +202,7 @@
 		.DEF_MEMSIZE(0),
 		.BUSDW(@$(MASTER.BUS.WIDTH)),
 		.AW(@$(MASTER.BUS.AWID)),
-		.OPT_VFIFO(1'b0)
+		.OPT_VFIFO(1'b1)
 	) u_router (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
@@ -289,7 +289,6 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_p
 ##
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray_cross*}] 5.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
 ##
 ##
 ##
@@ -309,8 +308,6 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_stat_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/o_debug*}] 8.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_txcdc/u_afifo/wgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_txcdc/u_afifo/wgray_cros*}] 10.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_txcdc/u_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_txcdc/u_afifo/rgray_cros*}] 10.0
-##
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
 ##
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_cross*}] 3.0

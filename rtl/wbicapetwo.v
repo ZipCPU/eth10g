@@ -94,19 +94,20 @@
 `default_nettype none
 // }}}
 module	wbicapetwo #(
-		parameter	LGDIV = 3	/// Log of the clock divide
+		localparam	DW = 32,
+		parameter	LGDIV = 3 /// Log of the clock divide
 	) (
 		// {{{
 		input	wire		i_clk,
 		// Wishbone inputs
 		input	wire		i_wb_cyc, i_wb_stb, i_wb_we,
 		input	wire	[4:0]	i_wb_addr,
-		input	wire	[31:0]	i_wb_data,
-		input	wire	[3:0]	i_wb_sel,
+		input	wire [DW-1:0]	i_wb_data,
+		input	wire [DW/8-1:0]	i_wb_sel,
 		// Wishbone outputs
 		output	wire		o_wb_stall,
 		output	reg		o_wb_ack,
-		output	reg	[31:0]	o_wb_data,
+		output	reg [DW-1:0]	o_wb_data,
 		//
 		output	wire	[31:0]	o_dbg
 		// }}}
@@ -158,6 +159,7 @@ module	wbicapetwo #(
 	begin : DDRCK
 		// {{{
 		reg		r_slow_clk;
+
 		always @(posedge i_clk)
 		begin
 			r_slow_clk  <= (slow_clk + 1'b1);
@@ -195,6 +197,7 @@ module	wbicapetwo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
 	initial	state = MBOOT_IDLE;
 	initial	cfg_cs_n  = 1'b1;
 	initial	cfg_rdwrn = 1'b1;
@@ -227,7 +230,10 @@ module	wbicapetwo #(
 				state <= MBOOT_IDLE;
 				pre_stall <= 1'b0;
 
-				o_wb_ack <= 1'b0;
+				// Return a zero immediately if this isn't
+				// a word write for an entire word.
+				o_wb_ack  <= (i_wb_stb && !(&i_wb_sel));
+				o_wb_data <= 0;
 
 				r_addr <= i_wb_addr;
 				r_data <= i_wb_data;

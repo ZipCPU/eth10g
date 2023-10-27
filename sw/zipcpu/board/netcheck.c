@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "board.h"
+#include <zipcpu.h>
 #include <zipsys.h>
 
 #ifndef	CPUNET_ACCESS
@@ -75,6 +76,11 @@ void	pkt_send(char *pkt, unsigned ln) {
 			*pktp = pkt;
 	unsigned	hln, space;
 
+	if (0 == base || 0 == mlen) {
+		printf("ERR: PKT-SEND TX FIFO is not configured\n");
+		return;
+	}
+
 	if (wptr >= endp)
 		wptr = base;
 
@@ -106,7 +112,7 @@ void	pkt_send(char *pkt, unsigned ln) {
 	// Zero the end pointer
 	// {{{
 	wptr = (char *)_cpunet->net_txwptr + ln + 7;
-	wptr &= ~3;
+	wptr = (char *)(((unsigned)wptr) & ~3);
 	*((unsigned *)wptr) = 0;
 	// }}}
 
@@ -114,12 +120,12 @@ void	pkt_send(char *pkt, unsigned ln) {
 	// {{{
 	// Now go back and fill in the packet length
 	wptr = (char *)_cpunet->net_txwptr;
-	wptr &= ~3;
+	wptr = (char *)(((unsigned)wptr) & ~3);
 	*((unsigned *)wptr) = ln;
 
 	// Now we can update the write pointer
 	wptr = (char *)_cpunet->net_txwptr + ln + 7;
-	wptr &= ~3;
+	wptr = (char *)(((unsigned)wptr) & ~3);
 	_cpunet->net_txwptr = wptr;
 	// }}}
 }
@@ -127,28 +133,32 @@ void	pkt_send(char *pkt, unsigned ln) {
 
 unsigned	pkt_recv(char *pkt, unsigned maxln) {
 	// {{{
+	char	*base = _cpunet->net_rxbase;
+	unsigned mlen = _cpunet->net_rxlen, hln, vln;
+	char	*wptr = (char *)_cpunet->net_rxwptr,
+		*rptr = (char *)_cpunet->net_rxrptr;
+	char	*endp = base + mlen,
+		*pktp = pkt;
 	unsigned	ln;
 
-	if (_cpunet->net_rxwptr == _cpunet->net_rxrptr)
+	if (0 == base || mlen == 0)
+		// FIFO is not configured
+		return 0;
+
+	if (wptr == rptr)
 		// FIFO is empty
 		return 0;
 
-	ln = *((unsigned *)_cpunet->net_rxrptr);
+	ln = *((unsigned *)rptr);
 	if (ln == 0) {
 		printf("HW ERR!!  Net length = %d\n", ln);
-		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
+		_cpunet->net_rxrptr = wptr;
 		return 0;
 	} else if (ln > maxln) {
 		printf("ERROR !!  JUMBO packet too big at %d bytes\n", ln);
 		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
 		return 0;
 	}
-	char	*base = _cpunet->net_rxbase;
-	unsigned mlen = _cpunet->net_rxlen, hln, vln;
-	char	*wptr = (char *)_cpunet->net_rxwptr,
-		*rptr = (char *)_cpunet->net_rxrptr,
-		*endp = base + mlen,
-		*pktp = pkt;
 
 	// SANITY CHECK: Does this packet fit in the virtual FIFO?
 	vln = wptr - rptr;
@@ -182,7 +192,7 @@ unsigned	pkt_recv(char *pkt, unsigned maxln) {
 
 	// Update the pointer
 	rptr += ln + 3;
-	rptr &= ~3;
+	rptr = (char *)(((unsigned)rptr) & ~3);
 	if (rptr >= endp)
 		rptr = base;
 	_cpunet->net_rxrptr = rptr;
@@ -196,6 +206,7 @@ const unsigned	VFIFOSZ = (1<<20);
 int main(int argc, char **argv) {
 	// Reset our virtual packet FIFOs
 	// {{{
+	printf("NETCHECK -- Starting up\n");
 #ifdef	NETRESET_ACCESS
 	// Can't reset everything--we still need to set the addresses, and
 	// holding things in reset prevents them from interacting w/ the bus
@@ -206,6 +217,7 @@ int main(int argc, char **argv) {
 	// __asm__("NOOP");
 	(*_netreset) = 3;
 #endif
+	printf("NETCHECK -- Holding two channels in reset\n");
 	// }}}
 
 	char	*vfifo_base[4], *ptr;
@@ -214,12 +226,25 @@ int main(int argc, char **argv) {
 
 	// Set up the virtual FIFOs
 	// {{{
+	printf("NETCHECK -- Setting up Virtual FIFOs\n");
 	// Get the bus size
 	_gnet->vfif[0].v_memsize = 0;		// Shut the FIFO down
-	_gnet->vfif[0].v_base = (char *)-1;	// Set all usable bits
-	bus_mask = (unsigned)_gnet->vfif[0].v_base;	// Read the mask back
+	{
+		volatile unsigned	*base;
+
+		base = (volatile unsigned *)&_gnet->vfif[0].v_base;
+		*base = -1;
+		bus_mask = *base;
+	}
+	// _gnet->vfif[0].v_base = (char *)-1;	// Set all usable bits
+	// bus_mask = (volatile unsigned)_gnet->vfif[0].v_base;	// Read the mask back
+	if (bus_mask == 0)
+		printf("WARNING: No NETFIFOs present!\n");
+	printf("NETCHECK -- Bus mask = %08x\n", bus_mask);
 	bus_mask |= ~(VFIFOSZ-1);
+	printf("NETCHECK -- Bus mask = %08x\n", bus_mask);
 	bus_size = -bus_mask;
+	printf("NETCHECK -- Bus size = %08x\n", bus_size);
 
 	// Assign VFIFOSZ bytes of memory to each network interface
 	// {{{
@@ -229,6 +254,8 @@ int main(int argc, char **argv) {
 		ptr= (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
 		vfifo_base[k] = ptr;
 		// Set this address as our base address
+		printf("VFIFO[%d] assigned to %08x -> %08x\n",
+			k, ptr, ptr+VFIFOSZ-1);
 		_gnet->vfif[k].v_base    = ptr;
 		_gnet->vfif[k].v_memsize = VFIFOSZ;
 
@@ -248,6 +275,10 @@ int main(int argc, char **argv) {
 	ptr = (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
 	vfifo_tx = ptr;
 
+	printf("CPU-RX    assigned to %08x -> %08x\n",
+			vfifo_rx, ptr+VFIFOSZ-1);
+	printf("CPU-TX    assigned to %08x -> %08x\n",
+			vfifo_tx, ptr+VFIFOSZ-1);
 	_cpunet->net_rxbase = vfifo_rx;
 	_cpunet->net_rxlen  = VFIFOSZ;
 	_cpunet->net_txbase = vfifo_tx;
@@ -262,6 +293,7 @@ int main(int argc, char **argv) {
 
 	// Set up some network addresses to use
 	// {{{
+	printf("NETCHECK -- Selecting addresses of interest\n");
 	char	my_mac[6], fpga1_mac[6], fpga2_mac[6];
 	char	my_ip[4], fpga1_ip[4], fpga2_ip[4];
 
@@ -288,6 +320,9 @@ int main(int argc, char **argv) {
 	my_ip[0] = 192; my_ip[1] = 168; my_ip[2] =   3; my_ip[3] = 210;
 	// }}}
 
+	// Build an ARP request packet
+	// {{{
+	printf("NETCHECK -- Building an ARP request\n");
 	// const	unsigned	ETH_SIZE    = 6 + 6 + 2;
 	// const	unsigned	IPHDR_SIZE  = 20;
 	// const	unsigned	UDPHDR_SIZE = 8;
@@ -333,6 +368,7 @@ int main(int argc, char **argv) {
 	pkt[61] = (crc & 0x0ff) ^ 0x0ff; crc >>= 8;
 	pkt[62] = (crc & 0x0ff) ^ 0x0ff; crc >>= 8;
 	pkt[63] = (crc & 0x0ff) ^ 0x0ff; crc >>= 8;
+	// }}}
 
 	rxpktb = (void *)malloc(MAX_PKTSZ);
 
@@ -341,11 +377,12 @@ int main(int argc, char **argv) {
 	_zip->z_pic = EINT(SYSINT_JIFFIES);
 	_zip->z_jiffies = ONE_SECOND;
 
+	printf("NETCHECK -- Setup *COMPLETE*\n");
 	while(1) {
 		unsigned	pktln;
 
 		// Let's create a ARP request packet, and send it to FPGA #1
-		pkt_send(pkt, 60);
+		// pkt_send(pkt, 60);
 		// Now let's wait a second and see what comes back ...
 		while(0 == _zip->z_pic & SYSINT_JIFFIES) {
 			unsigned char *epay = (unsigned char *)&rxpktb[14],
@@ -425,6 +462,7 @@ int main(int argc, char **argv) {
 		// Clear our interrupt
 		_zip->z_pic = SYSINT_JIFFIES;
 		_zip->z_jiffies = start_jiffies;
+		// printf("NETCHECK -- Loop\n");
 	}
 }
 #endif	// CPUNET_H

@@ -72,7 +72,11 @@
 	//	will be '1' when an HDMI is detected, the PLL lock signals
 	//	will be '1' when not locked, etc.
 	assign	i_@$(PREFIX) = { 10'h0,
+`ifdef	VIDPIPE_ACCESS
 		!pxrx_locked,
+`else
+		1'b1,
+`endif
 		!i_hdmitx_hpd_n,
 		i_si5324_int,!sysclk_locked,!i_pi_reset_n,i_soft_reset };
 	assign	o_tp = o_gpio[3:0];
