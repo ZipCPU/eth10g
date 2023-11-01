@@ -46,7 +46,8 @@ OBJDUMP := zip-objdump
 SUBMAKE:= $(MAKE) --no-print-directory -C
 #
 #
-SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c clkcheck.c memtest.c # contest.c
+# SOURCES := hello.c cputest.c ssddemo.c qkhdmi.c rdramcfg.c rdsfp.c rdedid.c sisetup.c clkcheck.c memtest.c netcheck.c # contest.c
+SOURCES := $(wildcard *.c)
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all

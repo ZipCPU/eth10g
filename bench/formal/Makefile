@@ -45,6 +45,7 @@ all: $(TESTS)
 full: all wbmarbiter sync2stream
 RTL := ../../rtl
 RTLNET := ../../rtl/net
+SBYFLAGS := -j2 -f
 
 ## Proofs
 ## {{{
@@ -81,38 +82,38 @@ SKID  := $(RTL)/wb2axip/skidbuffer.v
 ## {{{
 $(NARB): $(NARB)_prf/PASS $(NARB)_prflp/PASS $(NARB)_cvr/PASS
 $(NARB)_prf/PASS: $(NARB).sby $(RTLNET)/$(NARB).v $(RTLNET)/pktarbiter.v $(FAXIN)
-	sby -f $(NARB).sby prf
+	sby $(SBYFLAGS) $(NARB).sby prf
 $(NARB)_prflp/PASS: $(NARB).sby $(RTLNET)/$(NARB).v $(RTLNET)/pktarbiter.v $(FAXIN)
-	sby -f $(NARB).sby prflp
+	sby $(SBYFLAGS) $(NARB).sby prflp
 $(NARB)_cvr/PASS: $(NARB).sby $(RTLNET)/$(NARB).v $(RTLNET)/pktarbiter.v $(FAXIN)
-	sby -f $(NARB).sby cvr
+	sby $(SBYFLAGS) $(NARB).sby cvr
 ## }}}
 
 .PHONY: $(BCAST)
 ## {{{
 $(BCAST): $(BCAST)_prf/PASS $(BCAST)_prflp/PASS $(BCAST)_cvr/PASS
 $(BCAST)_prf/PASS: $(BCAST).sby   $(RTLNET)/$(BCAST).v $(FAXIN)
-	sby -f $(BCAST).sby prf
+	sby $(SBYFLAGS) $(BCAST).sby prf
 $(BCAST)_prflp/PASS: $(BCAST).sby $(RTLNET)/$(BCAST).v $(FAXIN)
-	sby -f $(BCAST).sby prflp
+	sby $(SBYFLAGS) $(BCAST).sby prflp
 $(BCAST)_cvr/PASS: $(BCAST).sby   $(RTLNET)/$(BCAST).v $(FAXIN)
-	sby -f $(BCAST).sby cvr
+	sby $(SBYFLAGS) $(BCAST).sby cvr
 ## }}}
 
 .PHONY: crc_axin
 ## {{{
 crc_axin := crc_axin_prf/PASS crc_axin_cvr/PASS
 crc_axin_prf/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v
-	sby -f crc_axin.sby prf
+	sby $(SBYFLAGS) crc_axin.sby prf
 crc_axin_cvr/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v
-	sby -f crc_axin.sby cvr
+	sby $(SBYFLAGS) crc_axin.sby cvr
 ## }}}
 
 .PHONY: $(CRCEQ)
 ## {{{
 $(CRCEQ): $(CRCEQ)_prf/PASS
 $(CRCEQ)_prf/PASS: $(CRCEQ).sby   $(RTLNET)/$(CRCEQ).v
-	sby -f $(CRCEQ).sby prf
+	sby $(SBYFLAGS) $(CRCEQ).sby prf
 ## }}}
 
 .PHONY: $(NWIDTH)
@@ -123,38 +124,38 @@ $(NWIDTH): $(NWIDTH)_prvx64x128/PASS $(NWIDTH)_prvx128x512/PASS
 $(NWIDTH): $(NWIDTH)_prvx32x8/PASS   $(NWIDTH)_prvx64x32/PASS
 $(NWIDTH): $(NWIDTH)_prvx128x64/PASS $(NWIDTH)_prvx512x128/PASS
 $(NWIDTH)_prv/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prv
+	sby $(SBYFLAGS) $(NWIDTH).sby prv
 $(NWIDTH)_prvx8x32/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx8x32
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx8x32
 $(NWIDTH)_prvx32x64/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx32x64
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx32x64
 $(NWIDTH)_prvx64x128/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx64x128
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx64x128
 $(NWIDTH)_prvx128x512/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx128x512
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx128x512
 #
 $(NWIDTH)_prvx32x8/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx32x8
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx32x8
 $(NWIDTH)_prvx64x32/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx64x32
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx64x32
 $(NWIDTH)_prvx128x64/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx128x64
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx128x64
 $(NWIDTH)_prvx512x128/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby prvx512x128
+	sby $(SBYFLAGS) $(NWIDTH).sby prvx512x128
 #
 $(NWIDTH)_cvr/PASS: $(NWIDTH).sby $(RTLNET)/$(NWIDTH).v $(FAXIN)
-	sby -f $(NWIDTH).sby cvr
+	sby $(SBYFLAGS) $(NWIDTH).sby cvr
 ## }}}
 
 .PHONY: $(DSHORT)
 ## {{{
 $(DSHORT): $(DSHORT)_prf/PASS $(DSHORT)_prflp/PASS $(DSHORT)_cvr/PASS
 $(DSHORT)_prf/PASS: $(DSHORT).sby   $(RTLNET)/$(DSHORT).v $(FAXIN)
-	sby -f $(DSHORT).sby prf
+	sby $(SBYFLAGS) $(DSHORT).sby prf
 $(DSHORT)_prflp/PASS: $(DSHORT).sby $(RTLNET)/$(DSHORT).v $(FAXIN)
-	sby -f $(DSHORT).sby prflp
+	sby $(SBYFLAGS) $(DSHORT).sby prflp
 $(DSHORT)_cvr/PASS: $(DSHORT).sby   $(RTLNET)/$(DSHORT).v $(FAXIN)
-	sby -f $(DSHORT).sby cvr
+	sby $(SBYFLAGS) $(DSHORT).sby cvr
 ## }}}
 
 .PHONY: $(RXGEARS) rxgears
@@ -162,9 +163,9 @@ $(DSHORT)_cvr/PASS: $(DSHORT).sby   $(RTLNET)/$(DSHORT).v $(FAXIN)
 rxgears: $(RXGEARS)
 $(RXGEARS): $(RXGEARS)_prf/PASS $(RXGEARS)_cvr/PASS
 $(RXGEARS)_prf/PASS: $(RXGEARS).sby   $(RTLNET)/$(RXGEARS).v
-	sby -f $(RXGEARS).sby prf
+	sby $(SBYFLAGS) $(RXGEARS).sby prf
 $(RXGEARS)_cvr/PASS: $(RXGEARS).sby   $(RTLNET)/$(RXGEARS).v
-	sby -f $(RXGEARS).sby cvr
+	sby $(SBYFLAGS) $(RXGEARS).sby cvr
 ## }}}
 
 .PHONY: $(TXGEARS) txgears
@@ -172,45 +173,45 @@ $(RXGEARS)_cvr/PASS: $(RXGEARS).sby   $(RTLNET)/$(RXGEARS).v
 txgears: $(TXGEARS)
 $(TXGEARS): $(TXGEARS)_prf/PASS $(TXGEARS)_cvr/PASS
 $(TXGEARS)_prf/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
-	sby -f $(TXGEARS).sby prf
+	sby $(SBYFLAGS) $(TXGEARS).sby prf
 $(TXGEARS)_cvr/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
-	sby -f $(TXGEARS).sby cvr
+	sby $(SBYFLAGS) $(TXGEARS).sby cvr
 ## }}}
 
 .PHONY: $(P642PKT)
 ## {{{
 $(P642PKT): $(P642PKT)_prf/PASS # $(P642PKT)_cvr/PASS
 $(P642PKT)_prf/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
-	sby -f $(P642PKT).sby prf
+	sby $(SBYFLAGS) $(P642PKT).sby prf
 $(P642PKT)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
-	sby -f $(P642PKT).sby cvr
+	sby $(SBYFLAGS) $(P642PKT).sby cvr
 ## }}}
 
 .PHONY: $(PKT2P64B)
 ## {{{
 $(PKT2P64B): $(PKT2P64B)_prf/PASS $(PKT2P64B)_cvr/PASS
 $(PKT2P64B)_prf/PASS: $(PKT2P64B).sby   $(RTLNET)/$(PKT2P64B).v $(FAXIN)
-	sby -f $(PKT2P64B).sby prf
+	sby $(SBYFLAGS) $(PKT2P64B).sby prf
 $(PKT2P64B)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(PKT2P64B).v $(FAXIN)
-	sby -f $(PKT2P64B).sby cvr
+	sby $(SBYFLAGS) $(PKT2P64B).sby cvr
 ## }}}
 
 .PHONY: $(WBMARB)
 ## {{{
 $(WBMARB): $(WBMARB)_prf/PASS $(WBMARB)_cvr/PASS
 $(WBMARB)_prf/PASS: $(WBMARB).sby $(RTL)/$(WBMARB).v $(RTL)/sfifo.v $(RTLNET)/pktarbiter.v $(WB)
-	sby -f $(WBMARB).sby prf
+	sby $(SBYFLAGS) $(WBMARB).sby prf
 $(WBMARB)_cvr/PASS: $(WBMARB).sby $(RTL)/$(WBMARB).v $(RTL)/sfifo.v $(RTLNET)/pktarbiter.v $(WB)
-	sby -f $(WBMARB).sby cvr
+	sby $(SBYFLAGS) $(WBMARB).sby cvr
 ## }}}
 
 .PHONY: $(RTBL)
 ## {{{
 $(RTBL): $(RTBL)_prf/PASS    $(RTBL)_cvr/PASS
 $(RTBL)_prf/PASS: $(RTBL).sby   $(RTLNET)/$(RTBL).v $(RTLNET)/pktarbiter.v
-	sby -f $(RTBL).sby prf
+	sby $(SBYFLAGS) $(RTBL).sby prf
 $(RTBL)_cvr/PASS: $(RTBL).sby   $(RTLNET)/$(RTBL).v $(RTLNET)/pktarbiter.v
-	sby -f $(RTBL).sby cvr
+	sby $(SBYFLAGS) $(RTBL).sby cvr
 ## }}}
 
 .PHONY: $(PKTVRD)
@@ -218,13 +219,13 @@ $(RTBL)_cvr/PASS: $(RTBL).sby   $(RTLNET)/$(RTBL).v $(RTLNET)/pktarbiter.v
 $(PKTVRD): $(PKTVRD)_prf/PASS    $(PKTVRD)_cvr/PASS
 $(PKTVRD): $(PKTVRD)_prf512/PASS $(PKTVRD)_prf32/PASS
 $(PKTVRD)_prf/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
-	sby -f $(PKTVRD).sby prf
+	sby $(SBYFLAGS) $(PKTVRD).sby prf
 $(PKTVRD)_prf32/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
-	sby -f $(PKTVRD).sby prf32
+	sby $(SBYFLAGS) $(PKTVRD).sby prf32
 $(PKTVRD)_prf512/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
-	sby -f $(PKTVRD).sby prf512
+	sby $(SBYFLAGS) $(PKTVRD).sby prf512
 $(PKTVRD)_cvr/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN)
-	sby -f $(PKTVRD).sby cvr
+	sby $(SBYFLAGS) $(PKTVRD).sby cvr
 ## }}}
 
 .PHONY: $(PKTVWR)
@@ -232,40 +233,40 @@ $(PKTVRD)_cvr/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN)
 $(PKTVWR): $(PKTVWR)_prf/PASS    $(PKTVWR)_cvr/PASS
 $(PKTVWR): $(PKTVWR)_prf512/PASS $(PKTVWR)_prf32/PASS
 $(PKTVWR)_prf/PASS: $(PKTVWR).sby    $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
-	sby -f $(PKTVWR).sby prf
+	sby $(SBYFLAGS) $(PKTVWR).sby prf
 $(PKTVWR)_prf32/PASS: $(PKTVWR).sby  $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
-	sby -f $(PKTVWR).sby prf32
+	sby $(SBYFLAGS) $(PKTVWR).sby prf32
 $(PKTVWR)_prf512/PASS: $(PKTVWR).sby $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
-	sby -f $(PKTVWR).sby prf512
+	sby $(SBYFLAGS) $(PKTVWR).sby prf512
 $(PKTVWR)_cvr/PASS: $(PKTVWR).sby    $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
-	sby -f $(PKTVWR).sby cvr
+	sby $(SBYFLAGS) $(PKTVWR).sby cvr
 ## }}}
 
 .PHONY: $(CEC)
 ## {{{
 $(CEC): $(CEC)_prf/PASS
 $(CEC)_prf/PASS: $(CEC).sby  $(RTL)/hdmi/cecbridge.v
-	sby -f $(CEC).sby prf
+	sby $(SBYFLAGS) $(CEC).sby prf
 ## }}}
 
 .PHONY: $(I2CDMA)
 ## {{{
 $(I2CDMA): $(I2CDMA)_prf/PASS $(I2CDMA)_cvr/PASS
 $(I2CDMA)_prf/PASS: $(I2CDMA).sby  $(RTL)/wbi2c/$(I2CDMA).v $(WB) $(SKID)
-	sby -f $(I2CDMA).sby prf
+	sby $(SBYFLAGS) $(I2CDMA).sby prf
 $(I2CDMA)_cvr/PASS: $(I2CDMA).sby  $(RTL)/wbi2c/$(I2CDMA).v $(WB) $(SKID)
-	sby -f $(I2CDMA).sby cvr
+	sby $(SBYFLAGS) $(I2CDMA).sby cvr
 ## }}}
 
 .PHONY: $(SDCMD)
 ## {{{
 $(SDCMD): $(SDCMD)_prf/PASS $(SDCMD)_prfds/PASS # $(SDCMD)_cvr/PASS
 $(SDCMD)_prf/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
-	sby -f $(SDCMD).sby prf
+	sby $(SBYFLAGS) $(SDCMD).sby prf
 $(SDCMD)_prfds/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
-	sby -f $(SDCMD).sby prfds
+	sby $(SBYFLAGS) $(SDCMD).sby prfds
 $(SDCMD)_cvr/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
-	sby -f $(SDCMD).sby cvr
+	sby $(SBYFLAGS) $(SDCMD).sby cvr
 ## }}}
 
 .PHONY: $(SDWB)
@@ -273,42 +274,42 @@ $(SDCMD)_cvr/PASS: $(SDCMD).sby  $(RTL)/sdspi/$(SDCMD).v
 $(SDWB): $(SDWB)_prf/PASS # $(SDCMD)_cvr/PASS
 $(SDWB): $(SDWB)_prfds/PASS $(SDWB)_prfdr/PASS
 $(SDWB)_prf/PASS: $(SDWB).sby  $(RTL)/sdspi/$(SDWB).v $(WB) fwb_register.v
-	sby -f $(SDWB).sby prf
+	sby $(SBYFLAGS) $(SDWB).sby prf
 $(SDWB)_prfds/PASS: $(RTL)/sdspi/$(SDWB).v $(SDWB).sby fwb_slave.v fwb_register.v
-	sby -f $(SDWB).sby prfds
+	sby $(SBYFLAGS) $(SDWB).sby prfds
 $(SDWB)_prfdr/PASS: $(RTL)/sdspi/$(SDWB).v $(SDWB).sby fwb_slave.v fwb_register.v
-	sby -f $(SDWB).sby prfdr
+	sby $(SBYFLAGS) $(SDWB).sby prfdr
 $(SDWB)_cvr/PASS: $(SDWB).sby  $(RTL)/sdspi/$(SDWB).v $(WB) fwb_register.v
-	sby -f $(SDWB).sby cvr
+	sby $(SBYFLAGS) $(SDWB).sby cvr
 ## }}}
 
 .PHONY: $(SDCK)
 ## {{{
 $(SDCK): $(SDCK)_prf/PASS # $(SDCK)_cvr/PASS
 $(SDCK)_prf/PASS: $(SDCK).sby  $(RTL)/sdspi/$(SDCK).v
-	sby -f $(SDCK).sby prf
+	sby $(SBYFLAGS) $(SDCK).sby prf
 $(SDCK)_cvr/PASS: $(SDCK).sby  $(RTL)/sdspi/$(SDCK).v
-	sby -f $(SDCK).sby cvr
+	sby $(SBYFLAGS) $(SDCK).sby cvr
 ## }}}
 
 .PHONY: $(SDTX)
 ## {{{
 $(SDTX): $(SDTX)_prf/PASS $(SDTX)_cvr/PASS
 $(SDTX)_prf/PASS: $(SDTX).sby  $(RTL)/sdspi/$(SDTX).v
-	sby -f $(SDTX).sby prf
+	sby $(SBYFLAGS) $(SDTX).sby prf
 $(SDTX)_cvr/PASS: $(SDTX).sby  $(RTL)/sdspi/$(SDTX).v
-	sby -f $(SDTX).sby cvr
+	sby $(SBYFLAGS) $(SDTX).sby cvr
 ## }}}
 
 .PHONY: $(SDRX)
 ## {{{
 $(SDRX): $(SDRX)_prf/PASS $(SDRX)_prfs/PASS $(SDRX)_cvr/PASS
 $(SDRX)_prf/PASS: $(SDRX).sby  $(RTL)/sdspi/$(SDRX).v
-	sby -f $(SDRX).sby prf
+	sby $(SBYFLAGS) $(SDRX).sby prf
 $(SDRX)_prfs/PASS: $(SDRX).sby  $(RTL)/sdspi/$(SDRX).v
-	sby -f $(SDRX).sby prfs
+	sby $(SBYFLAGS) $(SDRX).sby prfs
 $(SDRX)_cvr/PASS: $(SDRX).sby  $(RTL)/sdspi/$(SDRX).v
-	sby -f $(SDRX).sby cvr
+	sby $(SBYFLAGS) $(SDRX).sby cvr
 ## }}}
 
 SDRX   := sdrxframe

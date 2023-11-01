@@ -37,7 +37,7 @@ all:
 ## {{{
 CXX := g++
 OBJDIR := obj-pc
-SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope
+SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope cpunetscope
 RTLD := ../../rtl
 ZIPSUPPORT := zipload zipstate zipdbg
 BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp devbus.cpp
@@ -58,37 +58,13 @@ $(OBJDIR)/%.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@
 ## }}}
 
+%scope: $(OBJDIR)/%scope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -o $@
+
 netuart: $(OBJDIR)/netuart.o
 	$(CXX) $(CFLAGS) $^ -o $@
 
 wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-cfgscope: $(OBJDIR)/cfgscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-fanscope: $(OBJDIR)/fanscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-i2cscope: $(OBJDIR)/i2cscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-sdioscope: $(OBJDIR)/sdioscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-emmcscope: $(OBJDIR)/emmcscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-flashscope: $(OBJDIR)/flashscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-smiscope: $(OBJDIR)/smiscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-netscope: $(OBJDIR)/netscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ -o $@
-
-rxedidscope: $(OBJDIR)/rxedidscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@
 
 zipdbg: $(OBJDIR)/zipdbg.o $(OBJDIR)/twoc.o $(OBJDIR)/zopcodes.o $(BUSOBJS)

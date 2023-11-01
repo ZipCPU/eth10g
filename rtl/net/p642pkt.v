@@ -76,7 +76,7 @@ module	p642pkt (
 			//				SYNC_CONTROL },
 			// R_LPIDLE = { 32'h06060606, 32'h0606061e,
 			//				SYNC_CONTROL };
-	localparam	[23:0]	REMOTE_FAULT = { 8'h02, 8'h00, 8'h00 };
+	localparam	[23:0]	REMOTE_FAULT = { 8'h00, 8'h00, 8'h02 };
 	localparam		LNKMSB = 26;
 
 	reg		pstate, phalf, poffset;
@@ -231,7 +231,7 @@ module	p642pkt (
 			dly_valid <= pstate;
 		else if (RX_DATA[1:0] != SYNC_CONTROL)
 			dly_valid <= 1'b0;
-		else if (RX_DATA[9:2] == 8'hE1)
+		else if (RX_DATA[9:2] == CW(8'h87))
 			// Unless this is a completely control frame,
 			// we're valid
 			dly_valid <= poffset;
@@ -347,7 +347,7 @@ module	p642pkt (
 			dly_bytes <= 12;	// dly_half + dly_data
 			if (RX_DATA[1:0] == SYNC_CONTROL)
 			case(RX_DATA[9:2])
-			8'he1: dly_bytes <= 4'd4 + 4'd0;
+			CW(8'h87): dly_bytes <= 4'd4 + 4'd0;
 			CW(8'h99): dly_bytes <= 4'd4 + 4'd1;
 			CW(8'haa): dly_bytes <= 4'd4 + 4'd2;
 			CW(8'hb4): dly_bytes <= 4'd4 + 4'd3;
@@ -758,9 +758,9 @@ module	p642pkt (
 		CW(8'h2d): assume(!f_midpkt && RX_DATA[57:42] == 16'h0);
 		CW(8'h33): assume(!f_midpkt && RX_DATA[65:42] == 24'habaaaa);
 		CW(8'h66): assume(!f_midpkt && RX_DATA[65:42] == 24'habaaaa);
-		CW(8'h55): assume(!f_midpkt && RX_DATA[57:42] == 16'h0 && RX_DATA[25:10] == 16'h0);
+		CW(8'h55): assume(!f_midpkt && RX_DATA[65:50] == 16'h0 && RX_DATA[33:18] == 16'h0);
 		CW(8'h78): assume(!f_midpkt);
-		CW(8'h4b): assume(!f_midpkt && RX_DATA[25:10] == 16'h0);
+		CW(8'h4b): assume(!f_midpkt && RX_DATA[33:18] == 16'h0);
 		//
 		CW(8'h87): assume( f_midpkt);
 		CW(8'h99): assume( f_midpkt);

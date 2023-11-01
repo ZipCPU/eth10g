@@ -130,8 +130,8 @@ module	pktvfifo #(
 		parameter	PKTBYW = $clog2(PKTDW/8),
 		parameter	BUSDW = 512,
 		parameter	AW = 30-$clog2(BUSDW/8),
-		parameter	DEF_BASEADDR = 0,
-		parameter	DEF_MEMSIZE  = 0,
+		parameter [AW-1:0] DEF_BASEADDR = {(AW){1'b0}},
+		parameter [AW-1:0] DEF_MEMSIZE  = {(AW){1'b0}},
 		parameter	LGPIPE = 6,
 		parameter	LGFIFO = 5,
 		parameter [0:0]	OPT_LOWPOWER = 1,
@@ -141,6 +141,7 @@ module	pktvfifo #(
 		// {{{
 		input	wire		i_clk,
 		input	wire		i_reset,
+		input	wire		i_net_reset,
 		// WB Control port
 		// {{{
 		input	wire		i_ctrl_cyc, i_ctrl_stb, i_ctrl_we,
@@ -241,7 +242,7 @@ module	pktvfifo #(
 	// reset_fifo
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset)
+	if (i_reset || i_net_reset)
 		reset_fifo <= 0;
 	else if ((o_wb_cyc && i_wb_err) || (rd_fifo_err) || mem_err)
 		reset_fifo <= 1;
@@ -257,7 +258,7 @@ module	pktvfifo #(
 	// mem_err
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset)
+	if (i_reset || i_net_reset)
 		mem_err <= 0;
 	else if (o_wb_cyc && i_wb_err)
 		mem_err <= 1;
@@ -271,7 +272,7 @@ module	pktvfifo #(
 	always @(*)
 	begin
 		new_baseaddr = 0;
-		new_baseaddr[AW+WBLSB-1:WBLSB] = r_baseaddr;
+		new_baseaddr[WBLSB +: AW] = r_baseaddr;
 		if (i_ctrl_sel[0])
 			new_baseaddr[ 7: 0] = i_ctrl_data[ 7: 0];
 		if (i_ctrl_sel[1])
@@ -282,12 +283,12 @@ module	pktvfifo #(
 			new_baseaddr[31:24] = i_ctrl_data[31:24];
 
 		new_baseaddr[WBLSB-1:0] = 0;
-		new_baseaddr[31:AW] = 0;
+		new_baseaddr[31:AW+WBLSB] = 0;
 	end
 
 	always @(posedge i_clk)
 	if (i_reset)
-		r_baseaddr <= DEF_BASEADDR[WBLSB +: AW];
+		r_baseaddr <= DEF_BASEADDR;
 	else if (i_ctrl_stb&& i_ctrl_we && i_ctrl_addr == ADR_BASEADDR)
 	begin
 		r_baseaddr <= new_baseaddr[WBLSB +: AW];
@@ -299,7 +300,7 @@ module	pktvfifo #(
 	always @(*)
 	begin
 		new_memsize = 0;
-		new_memsize[AW+WBLSB-1:WBLSB] = r_memsize;
+		new_memsize[WBLSB +: AW] = r_memsize;
 
 		if (i_ctrl_sel[0])
 			new_memsize[ 7: 0] = i_ctrl_data[ 7: 0];
@@ -311,7 +312,7 @@ module	pktvfifo #(
 			new_memsize[31:24] = i_ctrl_data[31:24];
 
 		new_memsize[WBLSB-1:0] = 0;
-		new_memsize[31:AW]   = 0;
+		new_memsize[31:AW+WBLSB]   = 0;
 	end
 
 	always @(posedge i_clk)
@@ -337,9 +338,12 @@ module	pktvfifo #(
 		o_ctrl_data <= 0;
 		case(i_ctrl_addr)
 		ADR_BASEADDR:	o_ctrl_data[WBLSB +: AW] <= r_baseaddr;
-		ADR_SIZE:	o_ctrl_data[WBLSB +: AW] <= r_memsize;
-		ADR_WRITEPTR:	o_ctrl_data[AW+WBLSB-1:2] <= w_writeptr;
-		ADR_READPTR:	o_ctrl_data[AW+WBLSB-1:2] <= w_readptr;
+		ADR_SIZE:	if (!i_net_reset)
+					o_ctrl_data[WBLSB +: AW] <= r_memsize;
+		ADR_WRITEPTR:	if (!i_net_reset)
+					o_ctrl_data[AW+WBLSB-1:2] <= w_writeptr;
+		ADR_READPTR:	if (!i_net_reset)
+					o_ctrl_data[AW+WBLSB-1:2] <= w_readptr;
 		endcase
 	end
 	// }}}
@@ -356,7 +360,7 @@ module	pktvfifo #(
 		.IW(PKTDW), .OW(BUSDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_inwidth (
 		// {{{
-		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo),
+		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo && !i_net_reset),
 		//
 		.S_AXIN_VALID(S_VALID),
 		.S_AXIN_READY(S_READY),
@@ -390,7 +394,7 @@ module	pktvfifo #(
 			.BW(BUSDW + WBLSB), .LGFLEN(LGFIFO)
 		) u_prefifo (
 			// {{{
-			.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset),
+			.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset && !i_net_reset),
 			//
 			.S_AXIN_VALID(ipkt_valid),
 			.S_AXIN_READY(ipkt_ready),
@@ -432,7 +436,7 @@ module	pktvfifo #(
 		// }}}
 	) vfifo_wr (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
+		.i_clk(i_clk), .i_reset(i_reset || i_net_reset),
 		//
 		.i_cfg_reset_fifo(reset_fifo), .i_cfg_mem_err(mem_err),
 		.i_cfg_baseaddr(r_baseaddr), .i_cfg_memsize(r_memsize),
@@ -485,7 +489,7 @@ module	pktvfifo #(
 		// }}}
 	) vfifo_rd (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
+		.i_clk(i_clk), .i_reset(i_reset || i_net_reset),
 		//
 		.i_cfg_reset_fifo(reset_fifo), // .i_cfg_mem_err(mem_err),
 		.i_cfg_baseaddr(r_baseaddr), .i_cfg_memsize(r_memsize),
@@ -519,7 +523,7 @@ module	pktvfifo #(
 		.DW(BUSDW), .AW(AW), .NIN(2), .LGFIFO(LGFIFO)
 	) u_bus_arbiter (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
+		.i_clk(i_clk), .i_reset(i_reset || i_net_reset),
 		//
 		.s_cyc( { wr_wb_cyc,    rd_wb_cyc }),
 		.s_stb( { wr_wb_stb,    rd_wb_stb }),
@@ -566,7 +570,7 @@ module	pktvfifo #(
 		.BW(BUSDW + $clog2(BUSDW/8) + 1), .LGFLEN(LGFIFO)
 	) u_ackfifo (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
+		.i_clk(i_clk), .i_reset(i_reset || i_net_reset),
 		.i_wr(ack_valid), .i_data({ ack_last, ack_bytes, ack_data }),
 			.o_full(ign_ackfifo_full), .o_fill(ign_ackfifo_fill),
 		.i_rd(ackfifo_rd),
@@ -587,16 +591,18 @@ module	pktvfifo #(
 	wire	ign_bytes;
 
 	always @(posedge i_clk)
-	if (i_reset)
+	if (i_reset || i_net_reset)
 		M_ABORT <= 1'b0;
 	else if (reset_fifo)
 		M_ABORT <= 1'b1;
+	else if (!M_VALID || M_READY)
+		M_ABORT <= 1'b0;
 
 	axinwidth #(
 		.IW(BUSDW), .OW(PKTDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_outwidth (
 		// {{{
-		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo),
+		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo && !i_net_reset),
 		//
 		.S_AXIN_VALID(!ackfifo_empty),
 		.S_AXIN_READY(ackfifo_read),

@@ -461,6 +461,7 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## Adding in any XDC_INSERT tags
 
 ## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in cpunetscope
 ## No XDC.INSERT tag in cpunet
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
@@ -474,7 +475,6 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_p
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.rx_fault_pipe*}] 3.2
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/r_fault_pipe*}] 3.2
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray_cross*}] 5.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/rgray_cross*}] 5.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wr_addr*}] 5.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray*}] 5.0
@@ -489,7 +489,6 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_stat_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/o_debug*}] 8.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/wgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/wgray_cros*}] 10.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/rgray_cros*}] 10.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_cross*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/wgray_cross*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_pktgate/wr_addr*}] 3.0

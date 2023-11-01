@@ -379,7 +379,7 @@ module tb_routecore;
 	) u_routecore (
 		// {{{
 		.i_clk(wb_clk), .i_reset(wb_reset),
-		.ETH_RESET({(NETH){1'b0}}),
+		.ETH_RESET(4'b0110),
 		// Incoming packets from the PHY
 		// {{{
 		.RX_VALID(RX_VALID),
@@ -559,6 +559,54 @@ module tb_routecore;
 		bfm_addr = 3'b0;
 		bfm_data = 32'b0;
 		bfm_sel  = 4'hf;
+
+		#2_000;
+
+		bfm_write( 1,32'h0000000);	// Clear MemSize
+		bfm_write( 5,32'h0000000);	// Clear MemSize
+		bfm_write( 9,32'h0000000);	// Clear MemSize
+		bfm_write(13,32'h0000000);	// Clear MemSize
+		bfm_write( 0,32'hfffffff);	// Clear MemSize
+		bfm_read( 0,read_data); $display("TBNET  0: 0x%08x",read_data);
+
+		#14_000;
+
+		bfm_write( 0,32'h0180000);	// Base
+		bfm_write( 1,32'h0040000);	// MemSize
+
+		bfm_write( 4,32'h0100000);	// Base
+		bfm_write( 5,32'h0040000);	// MemSize
+
+		bfm_write( 8,32'h01c0000);	// Base
+		bfm_write( 9,32'h0040000);	// MemSize
+
+		bfm_write(12,32'h0140000);	// Base
+		bfm_write(13,32'h0040000);	// MemSize
+
+		#2_000;
+
+		bfm_read( 0,read_data); $display("TBNET  0: 0x%08x",read_data);
+		bfm_read( 1,read_data); $display("TBNET  1: 0x%08x",read_data);
+		bfm_read( 2,read_data); $display("TBNET  2: 0x%08x",read_data);
+		bfm_read( 3,read_data); $display("TBNET  3: 0x%08x",read_data);
+
+		bfm_read( 4,read_data); $display("TBNET  4: 0x%08x",read_data);
+		bfm_read( 5,read_data); $display("TBNET  5: 0x%08x",read_data);
+		bfm_read( 6,read_data); $display("TBNET  6: 0x%08x",read_data);
+		bfm_read( 7,read_data); $display("TBNET  7: 0x%08x",read_data);
+
+		bfm_read( 8,read_data); $display("TBNET  8: 0x%08x",read_data);
+		bfm_read( 9,read_data); $display("TBNET  9: 0x%08x",read_data);
+		bfm_read(10,read_data); $display("TBNET 10: 0x%08x",read_data);
+		bfm_read(11,read_data); $display("TBNET 11: 0x%08x",read_data);
+
+		bfm_read(12,read_data); $display("TBNET 12: 0x%08x",read_data);
+		bfm_read(13,read_data); $display("TBNET 13: 0x%08x",read_data);
+		bfm_read(14,read_data); $display("TBNET 14: 0x%08x",read_data);
+		bfm_read(15,read_data); $display("TBNET 15: 0x%08x",read_data);
+
+		// #2000;
+		// $finish;
 	end
 	// }}}
 	////////////////////////////////////////////////////////////////////////

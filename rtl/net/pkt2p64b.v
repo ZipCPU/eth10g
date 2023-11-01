@@ -78,7 +78,7 @@ module	pkt2p64b (
 	localparam	[65:0]	P_IDLE  = { {(8){7'h07}},
 						CW(8'h1e), SYNC_CONTROL },
 			// Indicate a remote fault
-			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0,
+			P_FAULT = { 16'h0, 8'h02, 8'h0, 16'h0, 8'h02,
 						CW(8'h55), SYNC_CONTROL },
 			// Start a packet--always on a 64b boundary
 			P_START = { 8'h5d, {(6){8'h55}},

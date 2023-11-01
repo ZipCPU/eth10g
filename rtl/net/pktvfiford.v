@@ -203,7 +203,7 @@ module	pktvfiford #(
 	reg			dly_check, dly_fifo_err;
 	reg	[AW+WBLSB-1:0]	mem_fill;
 
-	wire			full_return, false_ack;
+	wire			full_return, false_ack, full_stb;
 	reg	[AW+WBLSB-1:0]	return_len, next_return_len;
 	wire	[BUSDW/8-1:0]	ptrsel;
 
@@ -363,7 +363,7 @@ module	pktvfiford #(
 
 	initial	{ o_wb_cyc, o_wb_stb } = 2'b0;
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || o_fifo_err || (o_wb_cyc && i_wb_err))
+	if (i_reset || i_cfg_reset_fifo || (o_wb_cyc && i_wb_err))
 	begin
 		// {{{
 		o_wb_cyc  <= 0;
@@ -371,6 +371,17 @@ module	pktvfiford #(
 		rd_wb_addr <= 0;
 		o_wb_sel  <= 0;
 		r_readptr <= { i_cfg_baseaddr, {(WBLSB-2){1'b0}} };
+		rd_state  <= RD_IDLE;
+		rd_pktlen <= 0;
+		// }}}
+	end else if (o_fifo_err)
+	begin
+		// {{{
+		o_wb_cyc  <= 0;
+		o_wb_stb  <= 0;
+		rd_wb_addr <= 0;
+		o_wb_sel  <= 0;
+		r_readptr <= i_writeptr;
 		rd_state  <= RD_IDLE;
 		rd_pktlen <= 0;
 		// }}}
@@ -534,15 +545,9 @@ module	pktvfiford #(
 
 	// fifo_space
 	// {{{
-	generate if (BUSDW == 32)
-	begin : NO_LAST_COMMIT
-		assign	fifo_commit = (o_wb_stb && !i_wb_stall)
-			&&(rd_state == RD_PACKET || rd_state == RD_CLEARBUS);
-	end else begin : GEN_LAST_COMMIT
-		assign	fifo_commit = (o_wb_stb && !i_wb_stall)
-			&&((rd_state == RD_CLEARBUS&& r_readptr[WBLSB-3:0] != 0)
-				||(rd_state == RD_PACKET));
-	end endgenerate
+	assign	fifo_commit = ((o_wb_stb && !i_wb_stall) && full_stb
+			&&(rd_state == RD_PACKET || rd_state == RD_CLEARBUS))
+		|| false_ack;
 
 	initial	fifo_space = 1<<LGFIFO;
 	always @(posedge i_clk)
@@ -705,6 +710,7 @@ module	pktvfiford #(
 	generate if (BUSDW == 32)
 	begin : NO_REALIGNMENT
 		assign	full_return = 1'b1;	// All returns are full
+		assign	full_stb    = 1'b1;	// All requests go to FIFO
 		assign	false_ack   = 1'b0;	// No flushing returns
 
 		// M_DATA (and sreg)
@@ -731,8 +737,23 @@ module	pktvfiford #(
 		assign	f_read_lsb = 2'b00;
 `endif
 	end else begin: GEN_REALIGNMENT
-		reg			r_full_return, r_false_ack;
+		reg			r_full_return, r_false_ack, r_full_stb;
 		reg	[BUSDW-1:0]	sreg;
+
+		// full_stb
+		// {{{
+		always @(posedge i_clk)
+		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE)
+			r_full_stb <= 1'b0;
+		else if (rd_state == RD_SIZE)
+			r_full_stb <= (&r_readptr[WBLSB-3:0]);
+		else if (o_wb_stb && !i_wb_stall)
+			// After the first, all strobe requests are for
+			// a full bus size of data
+			r_full_stb <= 1'b1;
+
+		assign	full_stb = r_full_stb;
+		// }}}
 
 		// full_return: Should an ACK trigger a full DW/8 output?
 		// {{{
@@ -1149,6 +1170,13 @@ module	pktvfiford #(
 	always @(*)
 	if (!i_reset && o_wb_stb)
 		assert(rd_outstanding <= (1<<LGPIPE));
+
+	always @(*)
+	if (!i_reset && !o_fifo_err && !i_cfg_reset_fifo) // rd_state != RD_IDLE)
+	begin
+		assert(wide_readptr >= wide_baseaddr);
+		assert(wide_readptr <  end_of_memory);
+	end
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

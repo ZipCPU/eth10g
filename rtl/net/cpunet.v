@@ -41,11 +41,11 @@ module	cpunet #(
 		parameter	BUSDW = 512, AW = 30-$clog2(BUSDW/8),
 		parameter	PKTDW = 128,
 		parameter [47:0]	CPU_MAC = 48'h1434_afa8_1234,
-		// parameter [31:0] CPU_IP  ={ 8'd192, 8'd168, 8'd15, 8'd1 },
+		parameter [31:0] CPU_IP  ={ 8'd192, 8'd168, 8'd15, 8'd1 },
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter [0:0]	OPT_LOWPOWER = 1'b0,
 		parameter	LGPIPE = 6,
-		parameter	LGIFIFO = 5
+		parameter	LGIFIFO = 5, LGOFIFO = 5
 		// }}}
 	) (
 		// {{{
@@ -89,7 +89,8 @@ module	cpunet #(
 		input	wire [BUSDW-1:0]	i_dma_data,
 		input	wire			i_dma_err,
 		// }}}
-		output	reg			o_rx_int, o_tx_int
+		output	reg			o_rx_int, o_tx_int,
+		output	wire	[31:0]		o_debug
 		// }}}
 	);
 
@@ -178,7 +179,7 @@ module	cpunet #(
 
 	wire			clear_counters, rd_fifo_err;
 	wire			ign_mem_full;
-	wire	[LGPIPE:0]	ign_mem_fill;
+	wire	[LGOFIFO:0]	ign_mem_fill;
 
 	wire	ign_mbytes_lsb, ign_outw_abort;
 	// }}}
@@ -215,6 +216,7 @@ module	cpunet #(
 			reset_wrfifo <= 1'b0;
 		end
 
+		if (i_wb_stb && i_wb_we && !o_wb_stall && (&i_wb_sel))
 		case(i_wb_addr)
 		ADDR_CONTROL: begin
 			r_promiscuous <= i_wb_data[0];
@@ -301,11 +303,12 @@ module	cpunet #(
 			o_wb_data[4] <= reset_wrfifo;	// RX reset
 			o_wb_data[5] <= o_tx_int;
 			o_wb_data[6] <= o_rx_int;
-			// And we've still got (32-7=) 25 unused/unassigned bits
+			o_wb_data[7] <= rd_fifo_err;
+			// And we've still got (32-8=) 24 unused/unassigned bits
 			end
 		ADDR_MYMAC1: o_wb_data[15:0] <= CPU_MAC[47:32];
 		ADDR_MYMAC2: o_wb_data <= CPU_MAC[31:0];
-		// ADDR_MYIP:
+		ADDR_MYIP:   o_wb_data <= CPU_IP;
 		// ADDR_MYIPV61:
 		// ADDR_MYIPV62:
 		// ADDR_MYIPV63:
@@ -313,14 +316,42 @@ module	cpunet #(
 		ADDR_RXDROPS: o_wb_data <= pkt_rxdrops;
 		ADDR_RXPKTS:  o_wb_data <= pkt_rxcount;
 		ADDR_TXPKTS:  o_wb_data <= pkt_txcount;
+		// 5'h0b
+		// 5'h0c
+		// 5'h0d
+		// 5'h0e
+		// 5'h0f
 		ADDR_RDBASE:  o_wb_data[BUSLSB +: AW] <= rd_baseaddr;
 		ADDR_RDSIZE:  o_wb_data[BUSLSB +: AW] <= rd_memsize;
-		ADDR_RDWPTR:  o_wb_data[AW+BUSLSB-1:2]<= rd_readptr;
-		ADDR_RDRPTR:  o_wb_data[AW+BUSLSB-1:2]<= rd_writeptr;
+		ADDR_RDWPTR:  o_wb_data[AW+BUSLSB-1:2]<= rd_writeptr;
+		ADDR_RDRPTR:  o_wb_data[AW+BUSLSB-1:2]<= rd_readptr;
 		ADDR_WRBASE:  o_wb_data[BUSLSB +: AW] <= wr_baseaddr;
 		ADDR_WRSIZE:  o_wb_data[BUSLSB +: AW] <= wr_memsize;
 		ADDR_WRWPTR:  o_wb_data[AW+BUSLSB-1:2]<= wr_writeptr;
 		ADDR_WRRPTR:  o_wb_data[AW+BUSLSB-1:2]<= wr_readptr;
+		5'h18: o_wb_data <= {
+				4'h0,
+				1'b0, vfifo_wr.wr_outstanding,	// 8b
+				1'b0, vfifo_wr.wr_state,	// 4b
+				RX_VALID, RX_READY, RX_LAST,  RX_ABORT,
+				my_valid, my_ready, my_last, my_abort,
+				ipkt_valid, ipkt_ready, ipkt_last, ipkt_abort,
+				wide_valid, wide_ready, wide_last,  wide_abort
+			};
+		5'h19: o_wb_data <= {
+				4'h0,
+				rd_wb_cyc, rd_wb_stb, rd_wb_ack, rd_wb_err,
+				1'b0, vfifo_rd.rd_outstanding,	// 8b
+				2'h0, vfifo_rd.rd_state,	// 4b
+				TX_VALID, TX_READY, TX_LAST, ign_outw_abort,
+				memfifo_valid, memfifo_ready, ign_mem_full, o_tx_int,
+				mem_valid, memfifo_rd, mem_last,
+					(rd_writeptr != rd_readptr)
+			};
+		5'h1a: o_wb_data <= { 16'h0,
+				2'b0, ign_mem_fill,		// 8b
+				2'b0, vfifo_rd.fifo_space };	// 8b
+		5'h1b: o_wb_data[AW+$clog2(BUSDW/8)-1:0] <= vfifo_rd.return_len;
 		default: o_wb_data <= 0;
 		endcase
 	end
@@ -345,7 +376,7 @@ module	cpunet #(
 	always @(posedge i_clk)
 	if (i_reset)
 		pkt_rxdrops <= 0;
-	else if (clear_counters || (i_wb_stb && i_wb_we
+	else if (clear_counters || (i_wb_stb && i_wb_we && !o_wb_stall
 				&& i_wb_addr == ADDR_RXDROPS && (&i_wb_sel)))
 		pkt_rxdrops <= 0;
 	else if (mid_rxpkt && (!my_valid || my_ready) && my_abort)
@@ -354,7 +385,7 @@ module	cpunet #(
 	always @(posedge i_clk)
 	if (i_reset)
 		pkt_rxcount <= 0;
-	else if (clear_counters || (i_wb_stb && i_wb_we
+	else if (clear_counters || (i_wb_stb && i_wb_we && !o_wb_stall
 				&& i_wb_addr == ADDR_RXPKTS && (&i_wb_sel)))
 		pkt_rxcount <= 0;
 	else if (wide_valid && wide_ready && wide_last && !wide_abort)
@@ -363,7 +394,7 @@ module	cpunet #(
 	always @(posedge i_clk)
 	if (i_reset)
 		pkt_txcount <= 0;
-	else if (clear_counters || (i_wb_stb && i_wb_we
+	else if (clear_counters || (i_wb_stb && i_wb_we && !o_wb_stall
 				&& i_wb_addr == ADDR_TXPKTS && (&i_wb_sel)))
 		pkt_txcount <= 0;
 	else if (TX_VALID && TX_READY && TX_LAST)
@@ -598,6 +629,18 @@ module	cpunet #(
 		// }}}
 	);
 
+	assign	o_debug= {
+				(rd_wb_cyc || wr_wb_cyc),
+				4'h0,
+				vfifo_wr.wr_state,
+				vfifo_rd.rd_state,
+				o_dma_cyc, o_dma_stb, o_dma_we,
+					i_dma_stall, i_dma_ack, i_dma_err,
+				2'b0, wr_wb_cyc, wr_wb_stb, wr_wb_we,
+					wr_wb_stall, wr_wb_ack, wr_wb_err,
+				2'b0, rd_wb_cyc, rd_wb_stb, rd_wb_we,
+					rd_wb_stall, rd_wb_ack, rd_wb_err
+			};
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -605,10 +648,10 @@ module	cpunet #(
 	// {{{
 
 	sfifo #(
-		.BW(BUSDW+$clog2(BUSDW/8)+1), .LGFLEN(LGPIPE)
+		.BW(BUSDW+$clog2(BUSDW/8)+1), .LGFLEN(LGOFIFO)
 	) u_ackfifo (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
+		.i_clk(i_clk), .i_reset(i_reset || reset_rdfifo),
 		//
 		.i_wr(mem_valid), .i_data({ mem_last, mem_bytes, mem_data }),
 			.o_full(ign_mem_full), .o_fill(ign_mem_fill),

@@ -67,7 +67,7 @@
 @REGS.N=1
 @REGS.0=0 R_NETLOCK NETLOCK
 @XDC.INSERT=
-autodata/netrouter.txt:set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
 ##
 ##
 @PREFIX=netdbg

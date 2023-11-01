@@ -267,7 +267,8 @@ module routecore #(
 
 		if (OPT_VFIFO)
 		begin : GEN_VFIFO
-
+			localparam [AW-1:0]	DEF_SUBADDR = DEF_BASEADDR
+							+ geth*DEF_SUBSIZE;
 			pktvfifo #(
 				// {{{
 				.AW(AW),		// Bus address width
@@ -280,7 +281,7 @@ module routecore #(
 				// Both addresses are *WORD* addresses, so need
 				// to be shifted by $clog2(BUSDW/8) to get
 				// their proper bus address location.
-				.DEF_BASEADDR(DEF_BASEADDR + geth*DEF_SUBSIZE),
+				.DEF_BASEADDR(DEF_SUBADDR),
 				.DEF_MEMSIZE(DEF_SUBSIZE),
 				.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN),
 				.OPT_LOWPOWER(OPT_LOWPOWER)
@@ -288,7 +289,8 @@ module routecore #(
 			) u_pktvfifo (
 				// {{{
 				.i_clk(i_clk),
-				.i_reset(i_reset || ETH_RESET[geth]),
+				.i_reset(i_reset),
+				.i_net_reset(ETH_RESET[geth]),
 				// Bus control port
 				// {{{
 				.i_ctrl_cyc(i_ctrl_cyc), .i_ctrl_stb(i_ctrl_stb

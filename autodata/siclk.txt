@@ -76,9 +76,9 @@
 @CLOCK.FREQUENCY=148500000
 @REGS.N=1
 @REGS.0=0 R_SICLKFREQ SICLKFREQ
-create_clock -period 5.2 -name SIREF -waveform {0.0 2.6 } -add [get_ports i_clk_si_p]
 @BDEF.OSDEF=_BOARD_HAS_SICLKCOUNTER
 @BDEF.OSVAL= static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
+## create_clock -period 5.2 -name SIREF -waveform {0.0 2.6 } -add [get_ports i_clk_si_p]
 set_false_path -from [get_pins {thedesign/u_@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins {thedesign/u_@$(PREFIX)/q_v_reg/D}]

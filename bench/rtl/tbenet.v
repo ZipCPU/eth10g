@@ -98,12 +98,12 @@ module	tbenet (
 				PKTFAULTSTART = { 24'h55_55_55, 4'h0,
 					{(4){IDL}}, CW(8'h66), SYNC_CONTROL },
 	//
-				PKTFAULT={ 24'h020000, 8'h00,
-					24'h020000, CW(8'h55), SYNC_CONTROL },
-				PKTFAULTLFT={ 24'h020000, 4'h0,
+				PKTFAULT={ 24'h0000_02, 8'h00,
+					24'h0000_02, CW(8'h55), SYNC_CONTROL },
+				PKTFAULTLFT={ 24'h0000_02, 4'h0,
 					{(4){IDL}}, CW(8'h2d), SYNC_CONTROL },
 				PKTFAULTRHT={ {(4){IDL}}, 4'h0,
-					24'h020000, CW(8'h4b), SYNC_CONTROL },
+					24'h0000_02, CW(8'h4b), SYNC_CONTROL },
 	//
 				PKTEOP  ={ {(8){IDL}},CW(8'h87), SYNC_CONTROL },
 				PKTIDLE  ={ {(8){IDL}},CW(8'h1e), SYNC_CONTROL };

@@ -86,9 +86,13 @@ void	pkt_send(char *pkt, unsigned ln) {
 
 	// Is there room in the virtual FIFO?
 	// {{{
-	space = rptr - wptr;
-	if (wptr >= rptr)
-		space += mlen;
+	printf("RPTR= 0x%08x\nWPTR= 0x%08x\nDIFF= 0x%08x\n",
+		rptr, wptr, wptr-rptr);
+	space = mlen - (wptr-rptr);
+	if (rptr > wptr)	// WRAP
+		space -= mlen;
+	printf("0x%08x - 0x%08x = %8d bytes of space in write pointer, need %d bytes\n",
+		rptr, wptr, space, ln+8);
 	if (space < ln + 8)
 		return;	// NO ROOM
 	// }}}
@@ -149,6 +153,8 @@ unsigned	pkt_recv(char *pkt, unsigned maxln) {
 		// FIFO is empty
 		return 0;
 
+printf("RX PKT!\n");
+
 	ln = *((unsigned *)rptr);
 	if (ln == 0) {
 		printf("HW ERR!!  Net length = %d\n", ln);
@@ -202,6 +208,13 @@ unsigned	pkt_recv(char *pkt, unsigned maxln) {
 }
 // }}}
 
+unsigned	read_volatile(unsigned *a) {
+	// {{{
+	unsigned volatile *p = (unsigned volatile *)a;
+	return *p;
+}
+// }}}
+
 const unsigned	VFIFOSZ = (1<<20);
 int main(int argc, char **argv) {
 	// Reset our virtual packet FIFOs
@@ -223,6 +236,7 @@ int main(int argc, char **argv) {
 	char	*vfifo_base[4], *ptr;
 	char	*vfifo_rx, *vfifo_tx;
 	unsigned	start_jiffies, bus_mask, bus_size;
+	unsigned	loopctr = 0;
 
 	// Set up the virtual FIFOs
 	// {{{
@@ -275,14 +289,19 @@ int main(int argc, char **argv) {
 	ptr = (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
 	vfifo_tx = ptr;
 
-	printf("CPU-RX    assigned to %08x -> %08x\n",
-			vfifo_rx, ptr+VFIFOSZ-1);
 	printf("CPU-TX    assigned to %08x -> %08x\n",
-			vfifo_tx, ptr+VFIFOSZ-1);
-	_cpunet->net_rxbase = vfifo_rx;
-	_cpunet->net_rxlen  = VFIFOSZ;
+			vfifo_tx, vfifo_tx+VFIFOSZ-1);
+	printf("CPU-RX    assigned to %08x -> %08x\n",
+			vfifo_rx, vfifo_rx+VFIFOSZ-1);
 	_cpunet->net_txbase = vfifo_tx;
 	_cpunet->net_txlen  = VFIFOSZ;
+	_cpunet->net_rxbase = vfifo_rx;
+	_cpunet->net_rxlen  = VFIFOSZ;
+
+	printf("%08x\n", read_volatile((unsigned int *)&(_cpunet->net_txbase)));
+	printf("%08x\n", read_volatile((unsigned int *)&(_cpunet->net_txlen)));
+	printf("%08x\n", read_volatile((unsigned int *)&(_cpunet->net_rxbase)));
+	printf("%08x\n", read_volatile((unsigned int *)&(_cpunet->net_rxlen)));
 
 	// [0]:	Turn on promiscuous mode
 	// [1]:	Enable the FIFO
@@ -382,15 +401,16 @@ int main(int argc, char **argv) {
 		unsigned	pktln;
 
 		// Let's create a ARP request packet, and send it to FPGA #1
-		// pkt_send(pkt, 60);
+		pkt_send(pkt, 64);
 		// Now let's wait a second and see what comes back ...
-		while(0 == _zip->z_pic & SYSINT_JIFFIES) {
+		while(0 == (_zip->z_pic & SYSINT_JIFFIES)) {
 			unsigned char *epay = (unsigned char *)&rxpktb[14],
 					*ipay;
 			unsigned	ethtype;
 
 			pktln = pkt_recv(rxpktb, MAX_PKTSZ);
 			if (pktln > 0) {
+				// {{{
 				printf("RX PKT (%d bytes):\n", pktln);
 				for(int k=0; k<pktln; k++)
 					printf("%02x ", rxpktb[k]);
@@ -448,6 +468,7 @@ int main(int argc, char **argv) {
 					break;
 				}
 				printf("--------------------------\n");
+				// }}}
 			} else {
 				unsigned check = _cpunet->net_control;
 
@@ -462,7 +483,10 @@ int main(int argc, char **argv) {
 		// Clear our interrupt
 		_zip->z_pic = SYSINT_JIFFIES;
 		_zip->z_jiffies = start_jiffies;
-		// printf("NETCHECK -- Loop\n");
+		if (loopctr++ >= 32) {
+			printf("NETCHECK -- Loop\n");
+			loopctr = 0;
+		}
 	}
 }
 #endif	// CPUNET_H
