@@ -87,10 +87,10 @@ module	tbenet (
 	// Verilator lint_on  WIDTH
 	localparam	BSMSB = 18;
 
-	localparam	[6:0]	IDL = 7'h07;
+	localparam	[6:0]	IDL = 7'h00;
 	localparam	[1:0]	SYNC_CONTROL = 2'b01,
 				SYNC_DATA    = 2'b10;
-	localparam [65:0]	PKTPREFIX= { 8'h5d, {(6){8'h55}},
+	localparam [65:0]	PKTPREFIX= { 8'hd5, {(6){8'h55}},
 						CW(8'h78), SYNC_CONTROL },
 				PKTHALFPREFIX = {
 					24'h55_55_55, 4'b00,
@@ -108,7 +108,7 @@ module	tbenet (
 	//
 				PKTEOP  ={ {(8){IDL}},CW(8'h87), SYNC_CONTROL },
 				PKTIDLE  ={ {(8){IDL}},CW(8'h1e), SYNC_CONTROL };
-	localparam	[31:0]	PKT_SOP = 32'h5d_55_55_55;
+	localparam	[31:0]	PKT_SOP = 32'hd5_55_55_55;
 
 `ifdef	VERILATOR
 	wire					txclk;
