@@ -34,11 +34,16 @@
 RTL := ../../rtl
 NET := ../../rtl/net
 
-RTLIP := $(NET)/axinwidth.v $(NET)/netfifo.v $(NET)/axincdc.v $(RTL)/afifo.v $(NET)/crc_axin.v
+RTLIP := $(NET)/axinwidth.v $(NET)/netfifo.v $(NET)/axincdc.v $(RTL)/afifo.v $(NET)/crc_axin.v $(NET)/crc_eqn.v $(NET)/dropshort.v
 TBIP := top.v scoreboard.v crc_calculator.v packet_generator.v tbenet.v
 
 top.vvp: $(TBIP) $(RTLIP)
 	iverilog -g2012 -o top.vvp $(TBIP) $(RTLIP) -s top
 
 test: top.vvp
-	vvp top.vvp
+
+tb_arpcrc.vvp: tb_arpcrc.v $(RTLIP)
+	iverilog -g2012 -o tb_arpcrc.vvp tb_arpcrc.v $(RTLIP) -s tb_arpcrc
+
+testcrc: tb_arpcrc.vvp
+	vvp tb_arpcrc.vvp
