@@ -460,9 +460,57 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 
 ## Adding in any XDC_INSERT tags
 
-## No XDC.INSERT tag in mem_bkram_only
-## No XDC.INSERT tag in cpunetscope
-## No XDC.INSERT tag in cpunet
+## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in wbu_arbiter
+## No XDC.INSERT tag in spio
+## No XDC.INSERT tag in gpio
+## From cfg
+## No XDC.INSERT tag in mem_full
+## No XDC.INSERT tag in wbu
+## No XDC.INSERT tag in zip_alt_uic
+## No XDC.INSERT tag in clk200
+## No XDC.INSERT tag in prebus
+## No XDC.INSERT tag in version
+## No XDC.INSERT tag in zip_alt_mpc
+## No XDC.INSERT tag in clk
+## No XDC.INSERT tag in XDC
+## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in RESET_ADDRESS
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in ddr3_phy
+## No XDC.INSERT tag in i2cdma
+## From netlock
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
+## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in wb32
+## From siclk
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
+set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
+## No XDC.INSERT tag in buildtime
+## No XDC.INSERT tag in REGDEFS
+## No XDC.INSERT tag in zip_alt_mtc
+## No XDC.INSERT tag in SIM
+## No XDC.INSERT tag in uart
+## No XDC.INSERT tag in altpic
+## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in i2c
+## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in zip_alt_utc
+## No XDC.INSERT tag in clk150
+## No XDC.INSERT tag in zip_tmb
+## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in REGISTER
+## No XDC.INSERT tag in zip_dmac
+## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in syspic
+## No XDC.INSERT tag in zip_alt_uoc
+## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in TMA
+## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in ddr3_controller
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in netreset
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
 create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
@@ -495,54 +543,11 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_addr*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
-## No XDC.INSERT tag in netreset
-## No XDC.INSERT tag in ddr3_controller
-## No XDC.INSERT tag in bkram
-## No XDC.INSERT tag in zip_alt_upc
-## No XDC.INSERT tag in zip_alt_uoc
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in zip_jiffies
-## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in TMA
-## No XDC.INSERT tag in zip_dmac
-## No XDC.INSERT tag in zip_tmc
-## No XDC.INSERT tag in zip_tmb
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in zip_alt_moc
-## No XDC.INSERT tag in REGISTER
-## No XDC.INSERT tag in i2c
-## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in altpic
-## No XDC.INSERT tag in SIM
-## No XDC.INSERT tag in zip_alt_mtc
-## No XDC.INSERT tag in REGDEFS
-## No XDC.INSERT tag in clk150
-## No XDC.INSERT tag in buildtime
-## From siclk
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
-set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
-## No XDC.INSERT tag in wb32
-## No XDC.INSERT tag in wbdown
-## No XDC.INSERT tag in uart
-## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in ddr3_phy
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in KEYS
-## No XDC.INSERT tag in zip
-## No XDC.INSERT tag in XDC
-## No XDC.INSERT tag in zip_alt_mpc
-## No XDC.INSERT tag in version
-## No XDC.INSERT tag in prebus
-## No XDC.INSERT tag in clk200
-## No XDC.INSERT tag in wbu
-## No XDC.INSERT tag in mem_full
-## No XDC.INSERT tag in clk
-## From cfg
-## No XDC.INSERT tag in gpio
-## No XDC.INSERT tag in spio
-## No XDC.INSERT tag in zip_alt_uic
-## No XDC.INSERT tag in wbu_arbiter
-## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in wb
+## No XDC.INSERT tag in cpunet
+## From netdbg
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
+## No XDC.INSERT tag in netscope
+## No XDC.INSERT tag in mem_bkram_only

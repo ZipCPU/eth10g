@@ -67,11 +67,10 @@
 		o_ddr3_ba, o_ddr3_a,
 		o_ddr3_odt, o_ddr3_dm,
 		io_ddr3_dqs_p, io_ddr3_dqs_n, io_ddr3_dq
-		
-		
+
 @TOP.PARAM=
     localparam real @$(DEVID)CONTROLLER_CLK_PERIOD = 10, //ns, period of clock input to this DDR3 controller module
-                    DDR3_CLK_PERIOD = 2.5; //ns, period of clock input to DDR3 RAM device 
+                    DDR3_CLK_PERIOD = 2.5; //ns, period of clock input to DDR3 RAM device
     localparam      @$(DEVID)ROW_BITS = 14,  // width of row address
                     @$(DEVID)COL_BITS = 10,  // width of column address
                     @$(DEVID)BA_BITS  =  3,  // width of bank address
@@ -98,8 +97,7 @@
 	inout	wire	[(@$(DEVID)DQ_BITS*@$(DEVID)LANES)/8-1:0]	io_ddr3_dqs_p, io_ddr3_dqs_n;
 	inout	wire	[(@$(DEVID)DQ_BITS*@$(DEVID)LANES)-1:0]	io_ddr3_dq;
 	// }}}
-	
-	
+
 @TOP.DEFNS=
 	// Wires connected to PHY interface of DDR3 controller
 	// {{{
@@ -147,11 +145,11 @@
 		.DQ_BITS(@$(DEVID)DQ_BITS),  //width of DQ
 		.LANES(@$(DEVID)LANES), //8 lanes of DQ
 		.CONTROLLER_CLK_PERIOD(@$(DEVID)CONTROLLER_CLK_PERIOD), //ns, period of clock input to this DDR3 controller module
-		.DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ns, period of clock input to DDR3 RAM device 
+		.DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ns, period of clock input to DDR3 RAM device
 		.ODELAY_SUPPORTED(1)
 	) ddr3_phy_inst (
             // clock and reset
-            .i_controller_clk(s_clk), 
+            .i_controller_clk(s_clk),
             .i_ddr3_clk(s_clk4x),
             .i_ref_clk(s_clk200),
             .i_ddr3_clk_90(0), //required only when ODELAY_SUPPORTED is zero
@@ -159,7 +157,7 @@
             // Controller Interface
             .i_controller_reset(@$(PREFIX)_reset),
             .i_controller_cmd(@$(PREFIX)_cmd),
-            .i_controller_dqs_tri_control(@$(PREFIX)_dqs_tri_control), 
+            .i_controller_dqs_tri_control(@$(PREFIX)_dqs_tri_control),
             .i_controller_dq_tri_control(@$(PREFIX)_dq_tri_control),
             .i_controller_toggle_dqs(@$(PREFIX)_toggle_dqs),
             .i_controller_data(@$(PREFIX)_data),
@@ -168,9 +166,9 @@
             .i_controller_odelay_dqs_cntvaluein(@$(PREFIX)_odelay_dqs_cntvaluein),
             .i_controller_idelay_data_cntvaluein(@$(PREFIX)_idelay_data_cntvaluein),
             .i_controller_idelay_dqs_cntvaluein(@$(PREFIX)_idelay_dqs_cntvaluein),
-            .i_controller_odelay_data_ld(@$(PREFIX)_odelay_data_ld), 
+            .i_controller_odelay_data_ld(@$(PREFIX)_odelay_data_ld),
             .i_controller_odelay_dqs_ld(@$(PREFIX)_odelay_dqs_ld),
-            .i_controller_idelay_data_ld(@$(PREFIX)_idelay_data_ld), 
+            .i_controller_idelay_data_ld(@$(PREFIX)_idelay_data_ld),
             .i_controller_idelay_dqs_ld(@$(PREFIX)_idelay_dqs_ld),
             .i_controller_bitslip(@$(PREFIX)_bitslip),
             .i_controller_write_leveling_calib(@$(PREFIX)_write_leveling_calib),
@@ -256,7 +254,7 @@
 	// {{{
 	ddr3_controller #(
             .CONTROLLER_CLK_PERIOD(@$(DEVID)CONTROLLER_CLK_PERIOD), //ns, period of clock input to this DDR3 controller module
-            .DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ns, period of clock input to DDR3 RAM device 
+            .DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ns, period of clock input to DDR3 RAM device
             .ROW_BITS(@$(DEVID)ROW_BITS), //width of row address
             .COL_BITS(@$(DEVID)COL_BITS), //width of column address
             .BA_BITS(@$(DEVID)BA_BITS), //width of bank address
@@ -268,7 +266,7 @@
             .OPT_LOWPOWER(1), //1 = low power, 0 = low logic
             .OPT_BUS_ABORT(1)  //1 = can abort bus, 0 = no abort (i_wb_cyc will be ignored, ideal for an AXI implementation which cannot abort transaction)
 	) ddr3_controller_inst (
-            .i_controller_clk(i_clk), //i_controller_clk has period of CONTROLLER_CLK_PERIOD 
+            .i_controller_clk(i_clk), //i_controller_clk has period of CONTROLLER_CLK_PERIOD
             .i_rst_n(!i_reset), //200MHz input clock
             // Wishbone 1 (Controller)
             @$(SLAVE.ANSIPORTLIST),
@@ -283,18 +281,18 @@
             .i_phy_iserdes_bitslip_reference(i_@$(PREFIX)_iserdes_bitslip_reference),
             .i_phy_idelayctrl_rdy(i_@$(PREFIX)_idelayctrl_rdy),
             .o_phy_cmd(o_@$(PREFIX)_cmd),
-            .o_phy_dqs_tri_control(o_@$(PREFIX)_dqs_tri_control), 
+            .o_phy_dqs_tri_control(o_@$(PREFIX)_dqs_tri_control),
             .o_phy_dq_tri_control(o_@$(PREFIX)_dq_tri_control),
             .o_phy_toggle_dqs(o_@$(PREFIX)_toggle_dqs),
             .o_phy_data(o_@$(PREFIX)_data),
             .o_phy_dm(o_@$(PREFIX)_dm),
             .o_phy_odelay_data_cntvaluein(o_@$(PREFIX)_odelay_data_cntvaluein),
             .o_phy_odelay_dqs_cntvaluein(o_@$(PREFIX)_odelay_dqs_cntvaluein),
-            .o_phy_idelay_data_cntvaluein(o_@$(PREFIX)_idelay_data_cntvaluein), 
+            .o_phy_idelay_data_cntvaluein(o_@$(PREFIX)_idelay_data_cntvaluein),
             .o_phy_idelay_dqs_cntvaluein(o_@$(PREFIX)_idelay_dqs_cntvaluein),
             .o_phy_odelay_data_ld(o_@$(PREFIX)_odelay_data_ld),
             .o_phy_odelay_dqs_ld(o_@$(PREFIX)_odelay_dqs_ld),
-            .o_phy_idelay_data_ld(o_@$(PREFIX)_idelay_data_ld), 
+            .o_phy_idelay_data_ld(o_@$(PREFIX)_idelay_data_ld),
             .o_phy_idelay_dqs_ld(o_@$(PREFIX)_idelay_dqs_ld),
             .o_phy_bitslip(o_@$(PREFIX)_bitslip),
             .o_phy_write_leveling_calib(o_@$(PREFIX)_leveling_calib),
