@@ -214,59 +214,76 @@ module	crc_axin #(
 	// M_AXIN_VALID
 	// {{{
 	initial M_AXIN_VALID = 0;
-	always @(posedge ACLK) begin
+	always @(posedge ACLK)
+	if (!ARESETN)
+		m_valid_reg <= 0;
+	else if (skd_valid && skd_ready && !skd_abort)
+		m_valid_reg <= 1;
+	else if (M_AXIN_READY)
+		m_valid_reg <= 0;
+
+	always @(posedge ACLK)
+	if (!ARESETN)
+		M_AXIN_VALID <= 1'b0;
+	else
 		M_AXIN_VALID <= m_valid_reg;
-		if (!ARESETN)
-			m_valid_reg <= 0;
-		else if (skd_valid && skd_ready && !skd_abort)
-			m_valid_reg <= 1;
-		else if (M_AXIN_READY)
-			m_valid_reg <= 0;
-	end
 	// }}}
 
 	// M_AXIN_DATA
 	// {{{
-	initial M_AXIN_DATA = 0;
-	always @(posedge ACLK) begin
-		M_AXIN_DATA <= m_data_reg;
-		if (!ARESETN)
+	always @(posedge ACLK)
+	if (!ARESETN)
+		m_data_reg <= 0;
+	else if (!m_valid_reg || M_AXIN_READY)
+	begin
+		m_data_reg <= SWAP_ENDIANNESS(skd_data);
+		if (OPT_LOWPOWER && (!skd_valid || skd_abort))
 			m_data_reg <= 0;
-		else if (!m_valid_reg || M_AXIN_READY)
-		begin
-			m_data_reg <= SWAP_ENDIANNESS(skd_data);
-			if (OPT_LOWPOWER && (!skd_valid || skd_abort))
-				m_data_reg <= 0;
-		end
 	end
+
+	initial M_AXIN_DATA = 0;
+	always @(posedge ACLK)
+	if (!ARESETN)
+		M_AXIN_DATA <= 0;
+	else
+		M_AXIN_DATA <= m_data_reg;
 	// }}}
 
 	// M_AXIN_LAST
 	// {{{
 	initial M_AXIN_LAST = 0;
-	always @(posedge ACLK) begin
+	always @(posedge ACLK)
+	if (!ARESETN)
+		m_last_reg <= 0;
+	else if (!m_valid_reg || M_AXIN_READY)
+		m_last_reg <= skd_valid && skd_last && skd_ready;
+
+	always @(posedge ACLK)
+	if (!ARESETN)
+		M_AXIN_LAST <= 1'b0;
+	else
 		M_AXIN_LAST <= m_last_reg;
-		if (!ARESETN)
-			m_last_reg <= 0;
-		else if (!m_valid_reg || M_AXIN_READY)
-			m_last_reg <= skd_valid && skd_last && skd_ready;
-	end
 	// }}}
 
 	// M_AXIN_BYTES
 	// {{{
 	initial M_AXIN_BYTES = 0;
-	always @(posedge ACLK) begin
-		M_AXIN_BYTES <= m_bytes_reg;
-		if (!ARESETN)
+	always @(posedge ACLK)
+	if (!ARESETN)
+		m_bytes_reg <= 0;
+	else if (!m_valid_reg || M_AXIN_READY)
+	begin
+		m_bytes_reg <= skd_bytes;
+		if (OPT_LOWPOWER && (!skd_valid || skd_abort))
 			m_bytes_reg <= 0;
-		else if (!m_valid_reg || M_AXIN_READY)
-		begin
-			m_bytes_reg <= skd_bytes;
-			if (OPT_LOWPOWER && (!skd_valid || skd_abort))
-				m_bytes_reg <= 0;
-		end
 	end
+
+	initial M_AXIN_BYTES = 0;
+	always @(posedge ACLK)
+	if (!ARESETN)
+		M_AXIN_BYTES <= 0;
+	else
+		M_AXIN_BYTES <= m_bytes_reg;
 	// }}}
 
 	generate for(gk=0; gk < DW/8; gk=gk+1)
@@ -292,7 +309,8 @@ module	crc_axin #(
 	assign	wide_word = { skd_data, last_axin_data };
 	assign crc_index = (skd_bytes - 1) + { 1'b0, INDEX_OFFSET[$clog2(DW/8)-1:0] };
 
-	always @(posedge ACLK) begin
+	always @(posedge ACLK)
+	begin
 		end_word <= wide_word >> ((skd_bytes + INDEX_OFFSET[$clog2(DW/8):0]) * 8);
 		i_cfg_en_reg <= i_cfg_en;
 		skd_last_reg <= skd_last;
@@ -300,30 +318,30 @@ module	crc_axin #(
 		skd_ready_reg <= skd_ready;
 	end
 
-	always @(posedge ACLK) begin
-		crc_value <= (skd_bytes <= CRC_BITS[$clog2(DW):$clog2(DW/8)]) ? 
-						crc32[crc_index[$clog2(DW/8)-1:0]] ^ XOR_OUT : 
-						next_crc_wide[crc_index[$clog2(DW/8)-1:0]*CRC_BITS +: CRC_BITS] ^ XOR_OUT;
-	end
+	always @(posedge ACLK)
+	if (skd_bytes <= CRC_BITS[$clog2(DW):$clog2(DW/8)])
+		crc_value <= crc32[crc_index[$clog2(DW/8)-1:0]] ^ XOR_OUT;
+	else
+		crc_value <= next_crc_wide[crc_index[$clog2(DW/8)-1:0]*CRC_BITS +: CRC_BITS] ^ XOR_OUT;
 
 	initial M_AXIN_ABORT = 0;
-	always @(posedge ACLK) begin
-		if (!ARESETN)  begin
-			M_AXIN_ABORT <= 0;
-		end else if (skd_abort && (!M_AXIN_VALID || !M_AXIN_LAST))
-		begin
-			// Abort if the incoming signal aborts
-			// This will likely happen if skd_abort drops mid-packet
-			// But ... don't abort the packet once
-			// M_AXIN_VALID && M_AXIN_LAST are set.
-			M_AXIN_ABORT <= 1'b1;
-		end else if (i_cfg_en_reg && skd_valid_reg && skd_ready_reg && !M_AXIN_ABORT)
-		begin
+	always @(posedge ACLK)
+	if (!ARESETN)
+		M_AXIN_ABORT <= 0;
+	else if (skd_abort && (!M_AXIN_VALID || !M_AXIN_LAST))
+	begin
+		// Abort if the incoming signal aborts
+		// This will likely happen if skd_abort drops mid-packet
+		// But ... don't abort the packet once
+		// M_AXIN_VALID && M_AXIN_LAST are set.
+		M_AXIN_ABORT <= 1'b1;
+	end else if (i_cfg_en_reg && skd_valid_reg && skd_ready_reg
+							&& !M_AXIN_ABORT)
+	begin
 		if (skd_last_reg)	// Should we check M_AXIN_LAST
 			M_AXIN_ABORT <= (crc_value != end_word[CRC_BITS-1:0]);
-		end else if (M_AXIN_READY || !m_valid_reg)
-			M_AXIN_ABORT <= 1'b0;
-	end
+	end else if (M_AXIN_READY || !m_valid_reg)
+		M_AXIN_ABORT <= 1'b0;
 	// }}}
 
 	// Keep Verilator -Wall happy
@@ -481,37 +499,44 @@ module	crc_axin #(
 	always @(posedge ACLK)
 	if (ARESETN)
 	begin
-		if (M_AXIN_VALID && M_AXIN_LAST) begin
-			for(i=0; i < DW/8; i=i+1) begin
+		if (M_AXIN_VALID && M_AXIN_LAST)
+		begin
+			for(i=0; i < DW/8; i=i+1)
+			begin
 				assert(crc32[i] == INIT);
 			end
 		end
 	end
 
-	always @(*) begin
-	if (f_never_abort_slave)
-		assert((M_AXIN_VALID && M_AXIN_LAST) || !M_AXIN_ABORT);
-	if (f_no_abort)
-		assert(!M_AXIN_ABORT);
+	always @(*)
+	begin
+		if (f_never_abort_slave)
+			assert((M_AXIN_VALID && M_AXIN_LAST) || !M_AXIN_ABORT);
+		if (f_no_abort)
+			assert(!M_AXIN_ABORT);
 	end
 
 	always @(*)
-	if (ARESETN) begin
+	if (ARESETN)
+	begin
 		if (f_s_stream_word == 0)
 			assert ((!M_AXIN_VALID && f_m_stream_word == 0) || (M_AXIN_VALID && M_AXIN_LAST) || M_AXIN_ABORT);
-		if (f_s_stream_word != 0 && !M_AXIN_ABORT) begin
+		if (f_s_stream_word != 0 && !M_AXIN_ABORT)
+		begin
 			assert(f_s_stream_word == f_m_stream_word + (M_AXIN_VALID ? 1 : 0));
 		end
 		if (M_AXIN_ABORT || M_AXIN_LAST)
 			assert((f_s_stream_word == 0) || S_AXIN_ABORT);
-		if (M_AXIN_VALID && M_AXIN_LAST) begin
+		if (M_AXIN_VALID && M_AXIN_LAST)
+		begin
 			assert(f_s_stream_word == 0);
 		end
 	end
 
 	// Cover
 	// {{{
-	always @(*) begin
+	always @(*)
+	begin
 		cover(f_never_abort_slave && M_AXIN_VALID && M_AXIN_LAST && !M_AXIN_ABORT);
 		cover(f_never_abort_slave && M_AXIN_VALID && M_AXIN_LAST && M_AXIN_ABORT);
 		cover(f_never_abort_slave && M_AXIN_VALID && M_AXIN_LAST && f_m_stream_word == 16);
