@@ -36,7 +36,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 `default_nettype none
 // }}}
-module	p642pkt (
+module	p642pkt #(
+		parameter [0:0]	OPT_REVERSE_CW = 1'b0
+	) (
 		// {{{
 		input	wire		RX_CLK, S_ARESETN,
 		//
@@ -76,7 +78,7 @@ module	p642pkt (
 			//				SYNC_CONTROL },
 			// R_LPIDLE = { 32'h06060606, 32'h0606061e,
 			//				SYNC_CONTROL };
-	localparam	[23:0]	REMOTE_FAULT = { 8'h00, 8'h00, 8'h02 };
+	localparam	[23:0]	REMOTE_FAULT = { 8'h02, 8'h00, 8'h00 };
 	localparam		LNKMSB = 26;
 
 	reg		pstate, phalf, poffset;
@@ -664,8 +666,12 @@ module	p642pkt (
 		// if necessary.
 		integer	cwik;
 	begin
-		for(cwik=0; cwik<8; cwik=cwik+1)
-			CW[cwik] = in[7-cwik];
+		if (OPT_REVERSE_CW)
+		begin
+			for(cwik=0; cwik<8; cwik=cwik+1)
+				CW[cwik] = in[7-cwik];
+		end else
+			CW = in;
 	end endfunction
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////

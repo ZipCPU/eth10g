@@ -44,7 +44,9 @@
 //
 `default_nettype none
 // }}}
-module	pkt2p64b (
+module	pkt2p64b #(
+		parameter [0:0]	OPT_REVERSE_CW = 1'b0
+	) (
 		// {{{
 		input	wire		TX_CLK, S_ARESETN,
 		//
@@ -78,7 +80,7 @@ module	pkt2p64b (
 	localparam	[65:0]	P_IDLE  = { {(8){7'h07}},
 						CW(8'h1e), SYNC_CONTROL },
 			// Indicate a remote fault
-			P_FAULT = { 16'h0, 8'h02, 8'h0, 16'h0, 8'h02,
+			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0,
 						CW(8'h55), SYNC_CONTROL },
 			// Start a packet--always on a 64b boundary
 			P_START = { 8'h5d, {(6){8'h55}},
@@ -275,8 +277,12 @@ module	pkt2p64b (
 		// {{{
 		integer	cwik;
 	begin
-		for(cwik=0; cwik<8; cwik=cwik+1)
-			CW[cwik] = in[7-cwik];
+		if (OPT_REVERSE_CW)
+		begin
+			for(cwik=0; cwik<8; cwik=cwik+1)
+				CW[cwik] = in[7-cwik];
+		end else
+			CW = in;
 	end endfunction
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////

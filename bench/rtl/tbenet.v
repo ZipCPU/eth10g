@@ -80,6 +80,7 @@ module	tbenet (
 
 	// Local declarations
 	// {{{
+	localparam [0:0]	OPT_REVERSE_CW = 1'b0;
 	localparam	OVERSAMPLE_RATIO = 8;
 	// Verilator lint_off WIDTH
 	localparam [$clog2(OVERSAMPLE_RATIO)-1:0] OVM1 = OVERSAMPLE_RATIO-1;
@@ -98,12 +99,12 @@ module	tbenet (
 				PKTFAULTSTART = { 24'h55_55_55, 4'h0,
 					{(4){IDL}}, CW(8'h66), SYNC_CONTROL },
 	//
-				PKTFAULT={ 24'h0000_02, 8'h00,
-					24'h0000_02, CW(8'h55), SYNC_CONTROL },
-				PKTFAULTLFT={ 24'h0000_02, 4'h0,
+				PKTFAULT={ 24'h02_0000, 8'h00,
+					24'h02_0000, CW(8'h55), SYNC_CONTROL },
+				PKTFAULTLFT={ 24'h02_0000, 4'h0,
 					{(4){IDL}}, CW(8'h2d), SYNC_CONTROL },
 				PKTFAULTRHT={ {(4){IDL}}, 4'h0,
-					24'h0000_02, CW(8'h4b), SYNC_CONTROL },
+					24'h02_0000, CW(8'h4b), SYNC_CONTROL },
 	//
 				PKTEOP  ={ {(8){IDL}},CW(8'h87), SYNC_CONTROL },
 				PKTIDLE  ={ {(8){IDL}},CW(8'h1e), SYNC_CONTROL };
@@ -994,8 +995,12 @@ module	tbenet (
 		// {{{
 		integer	cwik;
 	begin
-		for(cwik=0; cwik<8; cwik=cwik+1)
-			CW[cwik] = in[7-cwik];
+		if (OPT_REVERSE_CW)
+		begin
+			for(cwik=0; cwik<8; cwik=cwik+1)
+				CW[cwik] = in[7-cwik];
+		end else
+			CW = in;
 	end endfunction
 	// }}}
 
