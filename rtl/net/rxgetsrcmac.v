@@ -74,7 +74,7 @@ module rxgetsrcmac #(
 
 	// Local declarations
 	// {{{
-	localparam	MAXPOSN = (MACW+(DW-1))/DW;
+	localparam	MAXPOSN = (2*MACW+(DW-1))/DW;
 	localparam	LGPOSN = $clog2(MAXPOSN);
 
 	wire			skd_valid, skd_ready,
@@ -160,7 +160,7 @@ module rxgetsrcmac #(
 	else if (TBL_READY)
 		TBL_VALID <= 0;
 
-	generate if (MACW <= DW)
+	generate if (2*MACW <= DW)
 	begin : GEN_SMALL_MAC
 		// {{{
 		always @(posedge i_clk)
@@ -171,9 +171,9 @@ module rxgetsrcmac #(
 			if (skd_valid && skd_ready && pkt_posn == 0)
 			begin
 				if (OPT_LITTLE_ENDIAN)
-					TBL_SRCMAC <= skd_data[MACW-1:0];
+					TBL_SRCMAC <= skd_data[MACW +: MACW];
 				else
-					TBL_SRCMAC <= skd_data[DW-1:DW-MACW];
+					TBL_SRCMAC <= skd_data[DW-2*MACW +: MACW];
 			end
 		end
 		// }}}
