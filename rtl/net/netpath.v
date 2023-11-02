@@ -156,7 +156,7 @@ module	netpath #(
 
 	// Local declarations
 	// {{{
-	localparam [0:0]	OPT_DROPSHORT = 1'b0;
+	localparam [0:0]	OPT_DROPSHORT = 1'b1;
 	localparam [0:0]	OPT_CRC = 1'b1;
 
 	// The clock speed is nominally (10GHz * 66/64) / 64
@@ -234,7 +234,7 @@ module	netpath #(
 	reg			stat_sample, stat_valid;
 	reg	[1:0]		stat_sample_cnt;
 	wire	stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid;
-	wire	stat_gate_ready, stat_tx_ready, stat_crc_ready, stat_src_ready;
+	reg	stat_gate_ready, stat_tx_ready, stat_crc_ready, stat_src_ready;
 	wire	[LGPKTLN+1:0]	stat_gate_data, stat_tx_data,
 				stat_crc_data, stat_src_data;
 	wire			stat_fifo_empty, stat_fifo_full;
@@ -734,8 +734,15 @@ module	netpath #(
 
 	assign	stat_valid_vec = { stat_gate_valid, stat_tx_valid,
 				stat_crc_valid, stat_src_valid };
-	assign	{ stat_gate_ready, stat_tx_ready,
+	always @(*)
+	begin
+		{ stat_gate_ready, stat_tx_ready,
 				stat_crc_ready, stat_src_ready } = stat_grant;
+
+		if (stat_valid && stat_fifo_full)
+			{ stat_gate_ready, stat_tx_ready,
+				stat_crc_ready, stat_src_ready } = 4'h0;
+	end
 
 	initial	{ stat_sample, stat_sample_cnt } = 0;
 	always @(posedge i_fast_clk)
@@ -758,7 +765,7 @@ module	netpath #(
 	always @(posedge i_fast_clk)
 	if (!fast_reset_n)
 		stat_valid <= 0;
-	else if (!stat_fifo_full)
+	else if (!stat_valid || !stat_fifo_full)
 	begin
 		stat_valid <= |(stat_grant & stat_valid_vec);
 		if ((stat_grant == 0) && (stat_sample))
@@ -794,9 +801,9 @@ module	netpath #(
 	if (!stat_valid || !stat_fifo_full)
 	begin
 		stat_data <= 0;
-		stat_data[LGPKTLN+3:0] <= stat_pre_data;
+		stat_data[LGPKTLN+3:0] <= stat_pre_data;	// 20b
 		if ((stat_grant == 0) && (stat_sample))
-		begin
+		begin		// 1'b1, 15b, 10b
 			stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
 		end
 		// stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
