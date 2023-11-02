@@ -77,16 +77,16 @@ module	pkt2p64b #(
 	localparam [1:0]	SYNC_CONTROL = 2'b01,
 				SYNC_DATA    = 2'b10;
 
-	localparam	[65:0]	P_IDLE  = { {(8){7'h07}},
+	localparam	[6:0]	IDL  = 7'h00;
+	localparam	[65:0]	P_IDLE  = { {(8){IDL}},
 						CW(8'h1e), SYNC_CONTROL },
 			// Indicate a remote fault
 			P_FAULT = { 8'h02, 16'h0, 8'h0, 8'h02, 16'h0,
 						CW(8'h55), SYNC_CONTROL },
 			// Start a packet--always on a 64b boundary
-			P_START = { 8'h5d, {(6){8'h55}},
+			P_START = { 8'hd5, {(6){8'h55}},
 						CW(8'h78), SYNC_CONTROL },
-			P_LAST  = { {(8){7'h00}},
-						CW(8'h87), SYNC_CONTROL };
+			P_LAST  = { {(8){IDL}}, CW(8'h87), SYNC_CONTROL };
 	//
 	// "They [idles] shall not be added while data is being received.  When
 	// deleting /I/s, the first four characters after a /T/ shall not be

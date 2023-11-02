@@ -228,7 +228,9 @@ module	pktvfifo #(
 	wire	[BUSDW/8-1:0]	rd_wb_sel;
 	wire			rd_wb_stall, rd_wb_ack, rd_wb_err;
 
+	wire	ctrl_write;
 
+	assign	ctrl_write = i_ctrl_stb && i_ctrl_we && (&i_ctrl_sel) && !o_ctrl_stall;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -246,7 +248,7 @@ module	pktvfifo #(
 		reset_fifo <= 0;
 	else if ((o_wb_cyc && i_wb_err) || (rd_fifo_err) || mem_err)
 		reset_fifo <= 1;
-	else if (i_ctrl_stb && i_ctrl_we && (i_ctrl_addr == ADR_BASEADDR
+	else if (ctrl_write && (i_ctrl_addr == ADR_BASEADDR
 					|| i_ctrl_addr == ADR_SIZE))
 		reset_fifo <= 1;
 	else if ((r_memsize == 0) || (r_baseaddr + r_memsize > (1<<AW)))
@@ -262,7 +264,7 @@ module	pktvfifo #(
 		mem_err <= 0;
 	else if (o_wb_cyc && i_wb_err)
 		mem_err <= 1;
-	else if (i_ctrl_stb && i_ctrl_we && (i_ctrl_addr == ADR_BASEADDR
+	else if (ctrl_write && (i_ctrl_addr == ADR_BASEADDR
 					|| i_ctrl_addr == ADR_SIZE))
 		mem_err <= 0;
 	// }}}
@@ -289,7 +291,7 @@ module	pktvfifo #(
 	always @(posedge i_clk)
 	if (i_reset)
 		r_baseaddr <= DEF_BASEADDR;
-	else if (i_ctrl_stb&& i_ctrl_we && i_ctrl_addr == ADR_BASEADDR)
+	else if (ctrl_write && i_ctrl_addr == ADR_BASEADDR)
 	begin
 		r_baseaddr <= new_baseaddr[WBLSB +: AW];
 	end
@@ -318,7 +320,7 @@ module	pktvfifo #(
 	always @(posedge i_clk)
 	if (i_reset)
 		r_memsize <= DEF_MEMSIZE;
-	else if (i_ctrl_stb&& i_ctrl_we && i_ctrl_addr == ADR_SIZE)
+	else if (ctrl_write && i_ctrl_addr == ADR_SIZE)
 		r_memsize <= new_memsize[WBLSB +: AW];
 	// }}}
 

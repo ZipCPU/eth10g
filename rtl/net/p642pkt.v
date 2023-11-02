@@ -66,11 +66,13 @@ module	p642pkt #(
 	localparam		PRE_IDLE = 1'b0,
 				PRE_DATA = 1'b1;
 
-	localparam	[65:0]	R_PREAMBLE = { 32'h5d55_5555, 24'h5555_55,
+	localparam	[31:0]	P_SOP = 32'hd5_55_55_55; // Start of pkt
+	localparam	[23:0]	P_SOPHLF = 24'h55_55_55; // Start of pkt half
+	localparam	[65:0]	R_PREAMBLE = { P_SOP, P_SOPHLF,
 						CW(8'h78), SYNC_CONTROL },
-			R_HALF_PREAMBLE1= { 24'h5555_55,4'h0,28'h0000_00,
+			R_HALF_PREAMBLE1= { P_SOPHLF,4'h0,28'h0000_00,
 						CW(8'h33), SYNC_CONTROL },
-			R_HALF_PREAMBLE2= { 24'h5555_55,4'h0,28'h0000_00,
+			R_HALF_PREAMBLE2= { P_SOPHLF,4'h0,28'h0000_00,
 						CW(8'h66), SYNC_CONTROL },
 			R_HALF_MASK = { 24'hff_ffff, 4'h0, 28'h000_0000,
 						CW(8'hff), 2'b11 };
@@ -142,10 +144,10 @@ module	p642pkt #(
 		end
 		// }}}
 	PRE_DATA: begin
-		if (RX_DATA[1:0] == SYNC_DATA)
+		if (phalf && RX_DATA[33:2] != P_SOP)
+			pstate <= PRE_IDLE;
+		else if (RX_DATA[1:0] == SYNC_DATA)
 			pstate <= PRE_DATA;
-		// else if (RX_DATA == R_IDLE)
-		//	pstate <= PRE_DATA;
 		else
 			pstate <= PRE_IDLE;
 		end
@@ -430,31 +432,7 @@ module	p642pkt #(
 	if (!S_ARESETN)
 		past_stop <= 1'b0;
 	else if (RX_VALID)
-	begin
 		past_stop <= (RX_DATA[1:0] != SYNC_DATA);
-		/*
-		if (RX_DATA[1:0] != SYNC_CONTROL)
-			past_stop <= 1'b0;
-		else case(RX_DATA[9:2])
-		// 8'h1e: r_local_fault <= 1'b0;
-		// 8'h2d: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
-		// 8'h33: r_local_fault <= 1'b0;
-		// 8'h66: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		// 8'h55: r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
-		// 8'h78: r_local_fault <= 1'b0;
-		// 8'h4b: r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
-		CW(8'h87): past_stop <= 1'b1;
-		CW(8'h99): past_stop <= 1'b1;
-		CW(8'haa): past_stop <= 1'b1;
-		CW(8'hb4): past_stop <= 1'b1;
-		CW(8'hcc): past_stop <= 1'b1;
-		CW(8'hd2): past_stop <= 1'b1;
-		CW(8'he1): past_stop <= 1'b1;
-		CW(8'hff): past_stop <= 1'b1;
-		default: past_stop <= 1'b0;
-		endcase
-		*/
-	end
 
 	always @(posedge RX_CLK)
 	if (!S_ARESETN)
@@ -481,6 +459,7 @@ module	p642pkt #(
 		CW(8'h33): r_local_fault <= 1'b0;
 		CW(8'h66): r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
 		CW(8'h55): r_local_fault <= (RX_DATA[65:42] != REMOTE_FAULT);
+		// CW(8'h78): r_local_fault <= past_stop && RX_DATA[65:10] != R_PREAMBLE;
 		CW(8'h78): r_local_fault <= 1'b0;
 		CW(8'h4b): r_local_fault <= (RX_DATA[33:10] != REMOTE_FAULT);
 		CW(8'h87): r_local_fault <= past_stop;

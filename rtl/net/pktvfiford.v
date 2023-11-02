@@ -742,12 +742,58 @@ module	pktvfiford #(
 
 		// full_stb
 		// {{{
+		/*
+		always @(*)
+		begin
+			// rdlen_words = the total number of WB words we need
+			//   to read.  This may be one more than the total
+			//   number of words in the packet.
+			rdlen_words = { 1'b0, next_rdlen[WBLSB-1:0] };
+			if (!(&r_readptr[WBLSB-3:0]))
+			begin
+				rdlen_words = rdlen_words
+				  +(((BUSDW-32)/32 - r_readptr[WBLSB-3:0])<<2);
+			end
+			rdlen_words = rdlen_words + (BUSDW/8-1);
+			rdlen_words = rdlen_words >> WBLSB;
+
+			// Let's see if we can simplify this for the Synthesizer
+			rdlen_words = ({1'b0,next_rdlen[WBLSB-1:0]}
+					+(~{ 1'b0,r_readptr[WBLSB-3:0], 2'b11 })
+					+ { 1'b0, {(WBLSB){1'b1}} }
+					>= (BUSDW/8)
+					) ? 1 : 0;
+
+			// fflen_words = the number of words we'll write to the
+			//   FIFO.  This should be *exactly* the total number of
+			//   words in the packet.
+			// fflen_words = { 1'b0, next_rdlen[WBLSB-1:0] }
+			//			+ (BUSDW/8-1);
+			// fflen_words = fflen_words >> WBLSB;
+
+			fflen_words = (next_rdlen[WBLSB-1:0] == 0) ? 0 : 1;
+
+			first_stb = (rdlen_words == fflen_words);
+
+
+			// Can't this be rewritten as something like ...
+			// first_stb = next_rdlen[WBLSB-1:0]
+			//	>= ((BUSDW-32)/32)-r_readptr[WBLSB-3:0], 2'b00 }) ?
+		end
+		*/
+
 		always @(posedge i_clk)
 		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE)
 			r_full_stb <= 1'b0;
 		else if (rd_state == RD_SIZE)
+		begin
 			r_full_stb <= (&r_readptr[WBLSB-3:0]);
-		else if (o_wb_stb && !i_wb_stall)
+			/*
+			if (i_wb_ack)
+				r_full_stb <= 1'b0;
+				r_full_stb <= (rdlen_words == nextrdlen[AW+WBLSB-3:0])
+			*/
+		end else if (o_wb_stb && !i_wb_stall)
 			// After the first, all strobe requests are for
 			// a full bus size of data
 			r_full_stb <= 1'b1;
