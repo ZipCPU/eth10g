@@ -36,9 +36,9 @@
 @ACCESS=ETH_ROUTER
 @$NDEV=4
 @SLAVE.BUS=wb32
-@SLAVE.TYPE=other
+@SLAVE.TYPE=OTHER
 @SLAVE.ANSPREFIX=ctrl_
-@NADDR=16
+@NADDR=64
 @MASTER.BUS=wbwide
 @MASTER.TYPE=dma
 @MASTER.ANSPREFIX=vfifo_
@@ -140,6 +140,7 @@
 	genvar	g_@$(PREFIX);
 	// Verilator lint_off UNUSED
 	wire	[32*NETDEVS-1:0]	@$(PREFIX)_net_debug;
+	wire	[32-1:0]		@$(PREFIX)_route_debug;
 	// Verilator lint_on  UNUSED
 @GENDCD=GEN_ETHERNET_DECODE
 @MAIN.INSERT=
@@ -241,22 +242,73 @@
 		.TX_DATA({  cpunet_rx_data,  @$(PREFIX)_tx_data  }),
 		.TX_BYTES({ cpunet_rx_bytes, @$(PREFIX)_tx_bytes }),
 		.TX_LAST({  cpunet_rx_last,  @$(PREFIX)_tx_last  }),
-		.TX_ABORT({ cpunet_rx_abort, @$(PREFIX)_tx_abort })
+		.TX_ABORT({ cpunet_rx_abort, @$(PREFIX)_tx_abort }),
 `else
 		.TX_VALID(@$(PREFIX)_tx_valid),
 		.TX_READY(@$(PREFIX)_tx_ready),
 		.TX_DATA( @$(PREFIX)_tx_data),
 		.TX_BYTES(@$(PREFIX)_tx_bytes),
 		.TX_LAST( @$(PREFIX)_tx_last),
-		.TX_ABORT(@$(PREFIX)_tx_abort)
+		.TX_ABORT(@$(PREFIX)_tx_abort),
 `endif
 		// }}}
+		.o_debug(@$(PREFIX)_route_debug)
 		// }}}
 	);
 
 	// }}}
-@REGS.N=1
-@REGS.0=0 R_@$(DEVID) @$(DEVID)
+@REGS.N=49
+@REGS.0=0   R_@$(DEVID) @$(DEVID)
+@REGS.1=0   R_@$(DEVID)0	@$(DEVID)0
+@REGS.2=1   R_@$(DEVID)SZ0	@$(DEVID)SZ0
+@REGS.3=2   R_@$(DEVID)WR0	@$(DEVID)WR0
+@REGS.4=3   R_@$(DEVID)RD0	@$(DEVID)RD0
+@REGS.5=4   R_@$(DEVID)1	@$(DEVID)1
+@REGS.6=5   R_@$(DEVID)SZ1	@$(DEVID)SZ1
+@REGS.7=6   R_@$(DEVID)WR1	@$(DEVID)WR1
+@REGS.8=7   R_@$(DEVID)RD1	@$(DEVID)RD1
+@REGS.9=8   R_@$(DEVID)2	@$(DEVID)2
+@REGS.10=9  R_@$(DEVID)SZ2	@$(DEVID)SZ2
+@REGS.11=10 R_@$(DEVID)WR2	@$(DEVID)WR2
+@REGS.12=11 R_@$(DEVID)RD2	@$(DEVID)RD2
+@REGS.13=12 R_@$(DEVID)3	@$(DEVID)3
+@REGS.14=13 R_@$(DEVID)SZ3	@$(DEVID)SZ3
+@REGS.15=14 R_@$(DEVID)WR3	@$(DEVID)WR3
+@REGS.16=15 R_@$(DEVID)RD3	@$(DEVID)RD3
+##
+@REGS.17=16 R_@$(DEVID)PK0	@$(DEVID)PK0
+@REGS.18=17 R_@$(DEVID)BY0	@$(DEVID)BY0
+@REGS.19=18 R_@$(DEVID)FP0	@$(DEVID)FP0
+@REGS.20=19 R_@$(DEVID)FB0	@$(DEVID)FB0
+@REGS.21=20 R_@$(DEVID)PK1	@$(DEVID)PK1
+@REGS.22=21 R_@$(DEVID)BY1	@$(DEVID)BY1
+@REGS.23=22 R_@$(DEVID)FP1	@$(DEVID)FP1
+@REGS.24=23 R_@$(DEVID)FB1	@$(DEVID)FB1
+@REGS.25=24 R_@$(DEVID)PK2	@$(DEVID)PK2
+@REGS.26=25 R_@$(DEVID)BY2	@$(DEVID)BY2
+@REGS.27=26 R_@$(DEVID)FP2	@$(DEVID)FP2
+@REGS.28=27 R_@$(DEVID)FB2	@$(DEVID)FB2
+@REGS.29=28 R_@$(DEVID)PK3	@$(DEVID)PK3
+@REGS.30=29 R_@$(DEVID)BY3	@$(DEVID)BY3
+@REGS.31=30 R_@$(DEVID)FP3	@$(DEVID)FP3
+@REGS.32=31 R_@$(DEVID)FB3	@$(DEVID)FB3
+##
+@REGS.33=16 R_@$(DEVID)NWH0	@$(DEVID)NWH0
+@REGS.34=17 R_@$(DEVID)NWL0	@$(DEVID)NWL0
+@REGS.35=18 R_@$(DEVID)LKH0	@$(DEVID)LKH0
+@REGS.36=19 R_@$(DEVID)LKL0	@$(DEVID)LKL0
+@REGS.37=20 R_@$(DEVID)NWH1	@$(DEVID)NWH1
+@REGS.38=21 R_@$(DEVID)NWL1	@$(DEVID)NWL1
+@REGS.39=22 R_@$(DEVID)LKH1	@$(DEVID)LKH1
+@REGS.40=23 R_@$(DEVID)LKL1	@$(DEVID)LKL1
+@REGS.41=24 R_@$(DEVID)NWH2	@$(DEVID)NWH2
+@REGS.42=25 R_@$(DEVID)NWL2	@$(DEVID)NWL2
+@REGS.43=26 R_@$(DEVID)LKH2	@$(DEVID)LKH2
+@REGS.44=27 R_@$(DEVID)LKL2	@$(DEVID)LKL2
+@REGS.45=28 R_@$(DEVID)NWH3	@$(DEVID)NWH3
+@REGS.46=29 R_@$(DEVID)NWL3	@$(DEVID)NWL3
+@REGS.47=46 R_@$(DEVID)LKH3	@$(DEVID)LKH3
+@REGS.48=47 R_@$(DEVID)LKL3	@$(DEVID)LKL3
 @BDEF.DEFN=
 
 typedef	struct	PKTVFIFO_S {
@@ -265,8 +317,20 @@ typedef	struct	PKTVFIFO_S {
 	volatile char	*v_wrptr, *v_rdptr;
 } PKTVFIFO;
 
+typedef	struct	PKTVFIFODBG_S {
+	volatile unsigned	vdbg_pktcount, vdbg_bytecount,
+				vdbg_fifopkts, vdbg_fifobytes;
+} PKTVFIFODBG;
+
+typedef	struct	ROUTETBLDBG_S {
+	volatile unsigned	vtbl_lookup[2];
+	volatile unsigned	vtbl_request[2];
+} ROUTETBLDBG;
+
 struct	@$(DEVID)_S {
 	PKTVFIFO	vfif[@$(NDEV)];
+	PKTVFIFODBG	vdbg[@$(NDEV)];
+	ROUTETBLDBG	vtbl[@$(NDEV)];
 };
 
 @BDEF.IONAME=	_@$(PREFIX)
