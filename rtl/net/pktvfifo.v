@@ -145,7 +145,7 @@ module	pktvfifo #(
 		// WB Control port
 		// {{{
 		input	wire		i_ctrl_cyc, i_ctrl_stb, i_ctrl_we,
-		input	wire	[1:0]	i_ctrl_addr,
+		input	wire	[2:0]	i_ctrl_addr,
 		input	wire	[31:0]	i_ctrl_data,
 		input	wire	[3:0]	i_ctrl_sel,
 		output	wire		o_ctrl_stall,
@@ -190,16 +190,26 @@ module	pktvfifo #(
 	// {{{
 	localparam	WBLSB = $clog2(BUSDW/8);
 
-	localparam	[1:0]	ADR_BASEADDR = 2'b00,
-				ADR_SIZE     = 2'b01,
-				ADR_WRITEPTR = 2'b10,
-				ADR_READPTR  = 2'b11;
+	localparam	[2:0]	ADR_BASEADDR = 3'b000,
+				ADR_SIZE     = 3'b001,
+				ADR_WRITEPTR = 3'b010,
+				ADR_READPTR  = 3'b011,
+				ADR_PKTCOUNT = 3'b100,
+				ADR_BYTECOUNT= 3'b101,
+				ADR_FIFOPKTS = 3'b110,
+				ADR_FIFOBYTES= 3'b111;
 	// }}}
 
 	reg	[AW-1:0]	r_baseaddr,
 				r_memsize;
 	reg	[31:0]		new_baseaddr;
 	reg	[31:0]		new_memsize;
+
+	reg	[26:0]	txpkt_count;
+	reg	[32:0]	txbyte_count;
+	reg	[31:0]	w_tx_debug, w_rx_debug, pkts_in_fifo, bytes_in_fifo;
+	reg		r_dbg_vfifo, mid_txpkt;
+
 
 	wire	[AW+(WBLSB-2)-1:0]	w_writeptr, w_readptr;
 
@@ -230,7 +240,22 @@ module	pktvfifo #(
 
 	wire	ctrl_write;
 
+
+	wire				ack_valid, ack_last;
+	wire	[BUSDW-1:0]		ack_data;
+	wire [$clog2(BUSDW/8)-1:0]	ack_bytes;
+	wire				ackfifo_read, ackfifo_rd;
+
+	wire			ign_ackfifo_full, ackfifo_empty, ackfifo_last;
+	wire	[LGFIFO:0]	ign_ackfifo_fill;
+	wire	[BUSDW-1:0]	ackfifo_data;
+	wire	[$clog2(BUSDW/8)-1:0]	ackfifo_bytes;
+
+	wire	msb_bytes;
+
 	assign	ctrl_write = i_ctrl_stb && i_ctrl_we && (&i_ctrl_sel) && !o_ctrl_stall;
+	wire	rd_fifo_err;
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -239,7 +264,6 @@ module	pktvfifo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	wire	rd_fifo_err;
 
 	// reset_fifo
 	// {{{
@@ -331,6 +355,15 @@ module	pktvfifo #(
 	else
 		o_ctrl_ack <= i_ctrl_stb;
 
+	// r_dbg_vfifo
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset)
+		r_dbg_vfifo <= 1'b0;
+	else if (ctrl_write && i_ctrl_addr == ADR_PKTCOUNT)
+		r_dbg_vfifo <= i_ctrl_data[31];
+	// }}}
+
 	// o_ctrl_data
 	// {{{
 	always @(posedge i_clk)
@@ -346,7 +379,83 @@ module	pktvfifo #(
 					o_ctrl_data[AW+WBLSB-1:2] <= w_writeptr;
 		ADR_READPTR:	if (!i_net_reset)
 					o_ctrl_data[AW+WBLSB-1:2] <= w_readptr;
+		ADR_PKTCOUNT: if (r_dbg_vfifo)
+				o_ctrl_data <= w_tx_debug;
+			else if (txpkt_count[26])
+				o_ctrl_data <= 32'hffff_ffff;
+			else
+				o_ctrl_data[25:0] <= txpkt_count[25:0];
+		ADR_BYTECOUNT: if (r_dbg_vfifo)
+				o_ctrl_data <= w_rx_debug;
+			else if (txbyte_count[32])
+				o_ctrl_data <= 32'hffff_ffff;
+			else
+				o_ctrl_data <= txbyte_count[31:0];
+		ADR_FIFOPKTS:
+			o_ctrl_data <= pkts_in_fifo;
+		ADR_FIFOBYTES:
+			o_ctrl_data <= bytes_in_fifo;
 		endcase
+	end
+
+	always @(posedge i_clk)
+	if (i_reset || i_net_reset)
+		txpkt_count <= 0;
+	else if (M_VALID && M_READY && M_LAST && !txpkt_count[26])
+		txpkt_count <= txpkt_count + 1;
+
+	always @(posedge i_clk)
+	if (i_reset || i_net_reset)
+		txbyte_count <= 0;
+	else if (M_VALID && M_READY && !txbyte_count[32])
+		txbyte_count <= txbyte_count + { {(32-PKTBYW){1'b0}},
+							msb_bytes, M_BYTES };
+
+	always @(posedge i_clk)
+	if (i_reset || i_net_reset)
+		mid_txpkt <= 1'b0;
+	else if (M_ABORT && (!M_VALID || M_READY))
+		mid_txpkt <= 1'b0;
+	else if (M_VALID && M_READY)
+		mid_txpkt <= !M_LAST;
+
+	always @(posedge i_clk)
+	if (i_reset || i_net_reset || reset_fifo)
+		pkts_in_fifo <= 0;
+	else case({ (S_VALID && S_READY && S_LAST),
+				(M_VALID && M_READY && M_LAST)})
+	2'b01: pkts_in_fifo <= pkts_in_fifo - 1;
+	2'b10: pkts_in_fifo <= pkts_in_fifo + 1;
+	default: begin end
+	endcase
+
+	always @(posedge i_clk)
+	if (i_reset || i_net_reset || reset_fifo)
+		bytes_in_fifo <= 0;
+	else case({ (S_VALID && S_READY), (M_VALID && M_READY)})
+	2'b00: begin end
+	2'b01: bytes_in_fifo <= bytes_in_fifo
+			- { {(31-PKTBYW){1'b0}}, msb_bytes, M_BYTES };
+	2'b10: bytes_in_fifo <= bytes_in_fifo
+			+ { {(31-PKTBYW){1'b0}}, (S_BYTES==0), S_BYTES };
+	2'b11: bytes_in_fifo <= bytes_in_fifo
+			+ { {(31-PKTBYW){1'b0}}, (S_BYTES==0), S_BYTES }
+			- { {(31-PKTBYW){1'b0}}, msb_bytes, M_BYTES };
+	endcase
+
+	always @(*)
+	begin
+		w_tx_debug = {
+			(vfifo_rd.return_len[AW+WBLSB-1:20] != 0) ? 20'hfffff
+				: vfifo_rd.return_len[19:0],
+			vfifo_rd.rd_state[1:0], rd_wb_cyc, rd_wb_stb,	// 4b
+			mid_txpkt, vfifo_rd.rd_outstanding[LGPIPE:0] };		// 8b
+
+		w_rx_debug = {
+			(vfifo_wr.wr_pktlen[AW+WBLSB-1:20] != 0) ? 20'hfffff
+				: vfifo_wr.wr_pktlen[19:0],
+			vfifo_wr.wr_state[2:0], wr_wb_cyc,		// 4b
+			wr_wb_stb, vfifo_wr.wr_outstanding[LGPIPE:0] };		// 8b
 	end
 	// }}}
 	// }}}
@@ -478,10 +587,6 @@ module	pktvfifo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	wire				ack_valid, ack_last;
-	wire	[BUSDW-1:0]		ack_data;
-	wire [$clog2(BUSDW/8)-1:0]	ack_bytes;
-	wire				ackfifo_read, ackfifo_rd;
 
 	pktvfiford #(
 		// {{{
@@ -560,11 +665,6 @@ module	pktvfifo #(
 	//
 	//
 
-	wire			ign_ackfifo_full, ackfifo_empty, ackfifo_last;
-	wire	[LGFIFO:0]	ign_ackfifo_fill;
-	wire	[BUSDW-1:0]	ackfifo_data;
-	wire	[$clog2(BUSDW/8)-1:0]	ackfifo_bytes;
-
 	// We can't skip on the ACK FIFO.  We need it to handle backpressure.
 	// The FIFO helps us guarantee that we don't overload this in back
 	// pressure.
@@ -590,8 +690,6 @@ module	pktvfifo #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	wire	ign_bytes;
-
 	always @(posedge i_clk)
 	if (i_reset || i_net_reset)
 		M_ABORT <= 1'b0;
@@ -616,7 +714,7 @@ module	pktvfifo #(
 		.M_AXIN_VALID(M_VALID),
 		.M_AXIN_READY(M_READY),
 		.M_AXIN_DATA(M_DATA),
-		.M_AXIN_BYTES({ ign_bytes, M_BYTES }),
+		.M_AXIN_BYTES({ msb_bytes, M_BYTES }),
 		.M_AXIN_LAST(M_LAST),
 		.M_AXIN_ABORT(ign_outw_abort)
 		// }}}
@@ -628,7 +726,7 @@ module	pktvfifo #(
 	// {{{
 	// Verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0, ign_bytes, new_memsize, new_baseaddr,
+	assign	unused = &{ 1'b0, new_memsize, new_baseaddr,
 				ipkt_bytes[$clog2(BUSDW/8)],
 				ign_ackfifo_full, ign_ackfifo_fill,
 				wr_wb_idata, ign_outw_abort, rd_wb_data };

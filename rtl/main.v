@@ -467,6 +467,7 @@ module	main(i_clk, i_reset,
 	genvar	g_gnet;
 	// Verilator lint_off UNUSED
 	wire	[32*NETDEVS-1:0]	gnet_net_debug;
+	wire	[32-1:0]		gnet_route_debug;
 	// Verilator lint_on  UNUSED
 	// CPUNet Controller
 	// {{{
@@ -2395,7 +2396,7 @@ module	main(i_clk, i_reset,
 		// }}}
 		// VFIFO control interface
 		.i_ctrl_cyc(wb32_gnet_cyc), .i_ctrl_stb(wb32_gnet_stb), .i_ctrl_we(wb32_gnet_we),
-			.i_ctrl_addr(wb32_gnet_addr[4-1:0]),
+			.i_ctrl_addr(wb32_gnet_addr[6-1:0]),
 			.i_ctrl_data(wb32_gnet_data), // 32 bits wide
 			.i_ctrl_sel(wb32_gnet_sel),  // 32/8 bits wide
 		.o_ctrl_stall(wb32_gnet_stall),.o_ctrl_ack(wb32_gnet_ack), .o_ctrl_data(wb32_gnet_idata),
@@ -2413,16 +2414,17 @@ module	main(i_clk, i_reset,
 		.TX_DATA({  cpunet_rx_data,  gnet_tx_data  }),
 		.TX_BYTES({ cpunet_rx_bytes, gnet_tx_bytes }),
 		.TX_LAST({  cpunet_rx_last,  gnet_tx_last  }),
-		.TX_ABORT({ cpunet_rx_abort, gnet_tx_abort })
+		.TX_ABORT({ cpunet_rx_abort, gnet_tx_abort }),
 `else
 		.TX_VALID(gnet_tx_valid),
 		.TX_READY(gnet_tx_ready),
 		.TX_DATA( gnet_tx_data),
 		.TX_BYTES(gnet_tx_bytes),
 		.TX_LAST( gnet_tx_last),
-		.TX_ABORT(gnet_tx_abort)
+		.TX_ABORT(gnet_tx_abort),
 `endif
 		// }}}
+		.o_debug(gnet_route_debug)
 		// }}}
 	);
 

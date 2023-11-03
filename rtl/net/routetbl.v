@@ -34,6 +34,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
+`timescale 1ns/1ps
 `default_nettype none
 // }}}
 module routetbl #(
@@ -65,7 +66,15 @@ module routetbl #(
 		input	wire				TX_VALID,
 		output	reg				TX_ACK,
 		input	wire	[MACW-1:0]		TX_DSTMAC,
-		output	reg	[NETH-1:0]		TX_PORT
+		output	reg	[NETH-1:0]		TX_PORT,
+		// }}}
+		// A quick and dirty debugging interface
+		// {{{
+		output	reg	[$clog2(NETH)-1:0]	o_dbg_insert_port,
+		output	reg	[MACW-1:0]		o_dbg_insert_srcmac,
+		output	reg	[NETH-1:0]		o_dbg_lookup_port,
+		output	reg	[MACW-1:0]		o_dbg_lookup_dstmac,
+		output	reg	[LGTBL:0]		o_dbg_fill
 		// }}}
 		// }}}
 	);
@@ -270,6 +279,51 @@ module routetbl #(
 		TX_ACK <= 1'b0;
 	else
 		TX_ACK <= TX_VALID && (!TX_ACK);
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Generate some debug data
+	// {{{
+
+	always @(posedge i_clk)
+	if (i_reset)
+	begin
+		o_dbg_insert_port   <= 0;
+		o_dbg_insert_srcmac <= 0;
+	end else if (|rxgrant)
+	begin
+		o_dbg_insert_port   <= rxarb_port;
+		o_dbg_insert_srcmac <= rxarb_srcmac;
+	end
+
+	always @(posedge i_clk)
+	if (i_reset)
+	begin
+		o_dbg_lookup_port   <= 0;
+		o_dbg_lookup_dstmac <= 0;
+	end else if (TX_VALID && TX_ACK)
+	begin
+		o_dbg_lookup_dstmac <= TX_DSTMAC;
+		o_dbg_lookup_port   <= TX_PORT;
+	end
+
+	always @(posedge i_clk)
+		o_dbg_fill <= COUNTONES(tbl_valid);
+
+	function [LGTBL:0] COUNTONES(input [NTBL-1:0] ivalid);
+		// {{{
+		// Verilator lint_off BLKSEQ
+		integer			ci;
+		reg	[LGTBL:0]	count;
+		// Verilator lint_on  BLKSEQ
+	begin
+		count = 0;
+		for(ci=0; ci<NTBL; ci=ci+1)
+		if (ivalid[ci])
+			count = count+1;
+		COUNTONES = count[LGTBL:0];
+	end endfunction
+	// }}}
 	// }}}
 
 	// Keep Verilator happy
@@ -494,7 +548,7 @@ module routetbl #(
 		cover(tbl_full && TX_ACK);
 		cover(tbl_full && TX_ACK && TX_PORT == 1);
 		cover(TX_ACK && TX_PORT == DEFAULT_PORT);
-		cover(TX_ACK && TX_PORT == {1'b1, {(NETH-1){1'b0}}});
+		cover(TX_ACK && TX_PORT == {1'b1, {(NETH-1){1'b0}} });
 		cover(TX_ACK && TX_PORT == BROADCAST_PORT);
 		cover(TX_ACK && (&TX_DSTMAC));
 	end

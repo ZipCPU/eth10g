@@ -98,7 +98,7 @@ module routecore #(
 		// VFIFO control interface
 		// {{{
 		input	wire		i_ctrl_cyc, i_ctrl_stb, i_ctrl_we,
-		input	wire	[$clog2(NETH-(OPT_CPUNET ? 1:0))+2-1:0]
+		input	wire	[1+$clog2(NETH-(OPT_CPUNET ? 1:0))+3-1:0]
 					i_ctrl_addr,
 		input	wire	[31:0]			i_ctrl_data,
 		input	wire	[3:0]			i_ctrl_sel,
@@ -124,8 +124,9 @@ module routecore #(
 		output	wire	[NETH*PKTDW-1:0]	TX_DATA,
 		output	wire	[NETH*PKTBYW-1:0]	TX_BYTES,
 		output	wire	[NETH-1:0]		TX_LAST,
-		output	wire	[NETH-1:0]		TX_ABORT
+		output	wire	[NETH-1:0]		TX_ABORT,
 		// }}}
+		output	wire	[31:0]	o_debug
 		// }}}
 	);
 
@@ -166,12 +167,22 @@ module routecore #(
 	integer		wbport;
 	reg		pre_ctrl_ack;
 	reg	[31:0]	pre_ctrl_data;
+
+	wire	[$clog2(NETH)*NETH-1:0]	tbl_insert_port;
+	wire	[MACW*NETH-1:0]		tbl_insert_mac, tbl_lookup_mac;
+	wire	[NETH*NETH-1:0]		tbl_lookup_port;
+	wire [(LGROUTETBL+1)*NETH-1:0]	tbl_fill;
+
+	wire	[31:0]		cpu_debug;
+	wire	[NETH-1:0]	dbg_watchdog, mid_tx;
+
+	reg	[31:0]	dbg_wb_data;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Per-port processing
 	// {{{
-	generate for (geth=0; geth < NETH-(OPT_CPUNET ? 1:0); geth = geth+1)
+	generate for (geth=0; geth < NMEM; geth = geth+1)
 	begin : GEN_INTERFACES
 		// Per-port declarations
 		// {{{
@@ -263,6 +274,7 @@ module routecore #(
 		// All packets go to memory: tomem -> (dma_wb) -> mmout
 		// {{{
 		assign	ctrl_stb[geth] = i_ctrl_stb
+				&& i_ctrl_addr[5:$clog2(NMEM)+3] == 0
 				&& i_ctrl_addr[2 +: $clog2(NMEM)] == geth;
 
 		if (OPT_VFIFO)
@@ -293,9 +305,11 @@ module routecore #(
 				.i_net_reset(ETH_RESET[geth]),
 				// Bus control port
 				// {{{
-				.i_ctrl_cyc(i_ctrl_cyc), .i_ctrl_stb(i_ctrl_stb
-					&& i_ctrl_addr[2 +: $clog2(NMEM)] == geth),
-				.i_ctrl_we(i_ctrl_we), .i_ctrl_addr(i_ctrl_addr[1:0]),
+				.i_ctrl_cyc(i_ctrl_cyc),
+					.i_ctrl_stb(ctrl_stb[geth]),
+				.i_ctrl_we(i_ctrl_we),
+				.i_ctrl_addr({ i_ctrl_addr[$clog2(NMEM)+2],
+						i_ctrl_addr[1:0] }),
 				.i_ctrl_data(i_ctrl_data), .i_ctrl_sel(i_ctrl_sel),
 				.o_ctrl_stall(ctrl_stall[geth]),
 				.o_ctrl_ack(  ctrl_ack[  geth]),
@@ -381,8 +395,7 @@ module routecore #(
 			if (i_reset || !i_ctrl_cyc)
 				r_ctrl_ack <= 1'b0;
 			else
-				r_ctrl_ack <= i_ctrl_stb
-					&& i_ctrl_addr[2 +: $clog2(NMEM)]==geth;
+				r_ctrl_ack <= ctrl_stb;
 
 			assign	ctrl_stall[geth] = 1'b0;
 			assign	ctrl_ack[geth]   = r_ctrl_ack;
@@ -533,7 +546,12 @@ module routecore #(
 			.TX_VALID( lkup_request),
 			.TX_ACK(   lkup_valid),
 			.TX_DSTMAC(lkup_dstmac),
-			.TX_PORT(  lkup_port)
+			.TX_PORT(  lkup_port),
+			.o_dbg_insert_port(tbl_insert_port[$clog2(NETH)*geth +: $clog2(NETH)]),
+			.o_dbg_insert_srcmac(tbl_insert_mac[MACW*geth +: MACW]),
+			.o_dbg_lookup_port(tbl_lookup_port[NETH*geth +: NETH]),
+			.o_dbg_lookup_dstmac(tbl_lookup_mac[MACW*geth +: MACW]),
+			.o_dbg_fill(tbl_fill[(LGROUTETBL+1)*geth +: (LGROUTETBL+1)])
 			// }}}
 		);
 
@@ -779,7 +797,13 @@ module routecore #(
 			.TX_VALID( lkup_request),
 			.TX_ACK(   lkup_valid),
 			.TX_DSTMAC(lkup_dstmac),
-			.TX_PORT(  lkup_port)
+			.TX_PORT(  lkup_port),
+			//
+			.o_dbg_insert_port(tbl_insert_port[$clog2(NETH)*NMEM +: $clog2(NETH)]),
+			.o_dbg_insert_srcmac(tbl_insert_mac[MACW*NMEM +: MACW]),
+			.o_dbg_lookup_port(tbl_lookup_port[NETH*NMEM +: NETH]),
+			.o_dbg_lookup_dstmac(tbl_lookup_mac[MACW*NMEM +: MACW]),
+			.o_dbg_fill(tbl_fill[(LGROUTETBL+1)*NMEM +: (LGROUTETBL+1)])
 			// }}}
 		);
 
@@ -811,6 +835,8 @@ module routecore #(
 		for(wbport=0; wbport < NMEM; wbport = wbport+1)
 		if (ctrl_ack[wbport])
 			pre_ctrl_data = pre_ctrl_data | ctrl_data[wbport*32 +: 32];
+		if (ctrl_ack==0)
+			pre_ctrl_data = dbg_wb_data;
 	end
 
 	always @(posedge i_clk)
@@ -844,6 +870,150 @@ module routecore #(
 		// }}}
 	);
 
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Debug handling
+	// {{{
+	always @(posedge i_clk)
+	begin
+		dbg_wb_data <= 32'h0;
+		case(i_ctrl_addr)
+		//
+		6'b100_000: begin
+			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*0 +32 +: 16];
+			dbg_wb_data[16 +: $clog2(NETH)]
+				<=tbl_insert_port[$clog2(NETH)*0+:$clog2(NETH)];
+			end
+		6'b100_001: dbg_wb_data <= tbl_insert_mac[MACW*0 +: 32];
+		6'b100_010: begin
+			dbg_wb_data[15:0]<= tbl_lookup_mac[MACW*0 +32 +: 16];
+			dbg_wb_data[16+:NETH]<= tbl_lookup_port[NETH*0 +: NETH];
+			dbg_wb_data[24 +: (LGROUTETBL+1)] <= tbl_fill[
+				(LGROUTETBL+1)*0 +: (LGROUTETBL+1)];
+			end
+		6'b100_011: dbg_wb_data <= tbl_lookup_mac[MACW*0 +: 32];
+		//
+		//
+		6'b100_100: begin
+			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*1 +32 +: 16];
+			dbg_wb_data[16 +: $clog2(NETH)]
+				<=tbl_insert_port[$clog2(NETH)*1+:$clog2(NETH)];
+			end
+		6'b100_101: dbg_wb_data <= tbl_insert_mac[MACW*1 +: 32];
+		6'b100_110: begin
+			dbg_wb_data[15:0]<= tbl_lookup_mac[MACW*1 +32 +: 16];
+			dbg_wb_data[16+:NETH]<= tbl_lookup_port[NETH*1 +: NETH];
+			dbg_wb_data[24 +: (LGROUTETBL+1)] <= tbl_fill[
+				(LGROUTETBL+1)*1 +: (LGROUTETBL+1)];
+			end
+		6'b100_111: dbg_wb_data <= tbl_lookup_mac[MACW*1 +: 32];
+		//
+		//
+		6'b101_000: begin
+			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*2 +32 +: 16];
+			dbg_wb_data[16 +: $clog2(NETH)]
+				<=tbl_insert_port[$clog2(NETH)*2+:$clog2(NETH)];
+			end
+		6'b101_001: dbg_wb_data <= tbl_insert_mac[MACW*2 +: 32];
+		6'b101_010: begin
+			dbg_wb_data[15:0]<= tbl_lookup_mac[MACW*2 +32 +: 16];
+			dbg_wb_data[16+:NETH]<= tbl_lookup_port[NETH*2 +: NETH];
+			dbg_wb_data[24 +: (LGROUTETBL+1)] <= tbl_fill[
+				(LGROUTETBL+1)*2 +: (LGROUTETBL+1)];
+			end
+		6'b101_011: dbg_wb_data <= tbl_lookup_mac[MACW*2 +: 32];
+		//
+		//
+		6'b101_100: begin
+			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*3 +32 +: 16];
+			dbg_wb_data[16 +: $clog2(NETH)]
+				<=tbl_insert_port[$clog2(NETH)*3+:$clog2(NETH)];
+			end
+		6'b101_101: dbg_wb_data <= tbl_insert_mac[MACW*3 +: 32];
+		6'b101_110: begin
+			dbg_wb_data[15:0]<= tbl_lookup_mac[MACW*3 +32 +: 16];
+			dbg_wb_data[16+:NETH]<= tbl_lookup_port[NETH*3 +: NETH];
+			dbg_wb_data[24 +: (LGROUTETBL+1)] <= tbl_fill[
+				(LGROUTETBL+1)*3 +: (LGROUTETBL+1)];
+			end
+		6'b101_111: dbg_wb_data <= tbl_lookup_mac[MACW*3 +: 32];
+		//
+		//
+		6'b110_000: begin
+			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*4 +32 +: 16];
+			dbg_wb_data[16 +: $clog2(NETH)]
+				<=tbl_insert_port[$clog2(NETH)*4+:$clog2(NETH)];
+			end
+		6'b110_001: dbg_wb_data <= tbl_insert_mac[MACW*4 +: 32];
+		6'b110_010: begin
+			dbg_wb_data[15:0]<= tbl_lookup_mac[MACW*4 +32 +: 16];
+			dbg_wb_data[16+:NETH]<= tbl_lookup_port[NETH*4 +: NETH];
+			dbg_wb_data[24 +: (LGROUTETBL+1)] <= tbl_fill[
+				(LGROUTETBL+1)*4 +: (LGROUTETBL+1)];
+			end
+		6'b110_011: dbg_wb_data <= tbl_lookup_mac[MACW*4 +: 32];
+		default: begin end
+		endcase
+	end
+
+	generate for (geth=0; geth < NETH; geth = geth+1)
+	begin : GEN_WATCHDOG
+		localparam	LGWATCHDOG = 27;	// About 1s at 100MHz
+		reg	[LGWATCHDOG:0]	r_watchdog;
+		reg			r_mid_tx;
+
+		always @(posedge i_clk)
+		if (i_reset)
+			r_watchdog <= 0;
+		else if (TX_VALID[geth] && TX_READY[geth])
+			r_watchdog <= 0;
+		else if ((mid_tx[geth] || TX_VALID[geth]) && !r_watchdog[LGWATCHDOG])
+			r_watchdog <= r_watchdog + 1;
+
+		assign	dbg_watchdog[geth] = r_watchdog[LGWATCHDOG];
+
+		always @(posedge i_clk)
+		if (i_reset)
+			r_mid_tx <= 0;
+		else if (TX_VALID[geth] && TX_READY[geth]
+						&& TX_LAST[geth])
+			r_mid_tx <= 1'b0;
+		else if (TX_ABORT[geth] && (!TX_VALID[geth] || TX_READY[geth]))
+			r_mid_tx <= 1'b0;
+		else if (TX_VALID[geth])
+			r_mid_tx <= 1'b1;
+
+		assign	mid_tx[geth] = r_mid_tx;
+	end if (OPT_CPUNET)
+	begin : GEN_CPUNET_DBG
+		assign	cpu_debug = { 2'b0, RX_VALID[NETH-1],RX_READY[NETH-1],
+					28'h0 };
+
+		// Verilator lint_off UNUSED
+		wire	unused_mid_tx;
+		assign	unused_mid_tx = &{ 1'b0, mid_tx[NETH-1] };
+		// Verilator lint_on  UNUSED
+	end else begin : NO_CPUNET_DEBUG
+		assign	cpu_debug = 32'h0;
+	end endgenerate
+
+	always @(*)
+	begin
+		o_debug = 32'h0;
+		o_debug[30] = |dbg_watchdog;
+		o_debug[24 +: NMEM] = RX_VALID[NMEM-1:0];
+		o_debug[20 +: NMEM] = RX_READY[NMEM-1:0];
+		o_debug[16 +: NMEM] = RX_LAST[ NMEM-1:0];
+		o_debug[12 +: NMEM] = RX_ABORT[NMEM-1:0];
+		o_debug[ 8 +: NMEM] = TX_VALID[NMEM-1:0];
+		o_debug[ 4 +: NMEM] = TX_READY[NMEM-1:0];
+		o_debug[ 0 +: NMEM] = mid_tx[NMEM-1:0];
+
+		o_debug = o_debug | cpu_debug;
+
+		o_debug[31] = |dbg_watchdog;
+	end
 	// }}}
 
 	// Keep Verilator happy
