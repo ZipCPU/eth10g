@@ -203,7 +203,11 @@
 		.DEF_MEMSIZE(0),
 		.BUSDW(@$(MASTER.BUS.WIDTH)),
 		.AW(@$(MASTER.BUS.AWID)),
-		.OPT_VFIFO(1'b1)
+		.OPT_VFIFO(4'b1100)
+`ifdef	CPUNET_ACCESS
+		, .OPT_NEVER({ 5'h10, 5'h19, 5'h16, 5'h0b, 5'h07 }),
+		.OPT_ALWAYS({ 5'h00, 5'h02, 5'h01, 5'h10, 5'h10 })
+`endif
 	) u_router (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
@@ -293,20 +297,20 @@
 @REGS.31=30 R_@$(DEVID)FP3	@$(DEVID)FP3
 @REGS.32=31 R_@$(DEVID)FB3	@$(DEVID)FB3
 ##
-@REGS.33=16 R_@$(DEVID)NWH0	@$(DEVID)NWH0
-@REGS.34=17 R_@$(DEVID)NWL0	@$(DEVID)NWL0
-@REGS.35=18 R_@$(DEVID)LKH0	@$(DEVID)LKH0
-@REGS.36=19 R_@$(DEVID)LKL0	@$(DEVID)LKL0
-@REGS.37=20 R_@$(DEVID)NWH1	@$(DEVID)NWH1
-@REGS.38=21 R_@$(DEVID)NWL1	@$(DEVID)NWL1
-@REGS.39=22 R_@$(DEVID)LKH1	@$(DEVID)LKH1
-@REGS.40=23 R_@$(DEVID)LKL1	@$(DEVID)LKL1
-@REGS.41=24 R_@$(DEVID)NWH2	@$(DEVID)NWH2
-@REGS.42=25 R_@$(DEVID)NWL2	@$(DEVID)NWL2
-@REGS.43=26 R_@$(DEVID)LKH2	@$(DEVID)LKH2
-@REGS.44=27 R_@$(DEVID)LKL2	@$(DEVID)LKL2
-@REGS.45=28 R_@$(DEVID)NWH3	@$(DEVID)NWH3
-@REGS.46=29 R_@$(DEVID)NWL3	@$(DEVID)NWL3
+@REGS.33=32 R_@$(DEVID)NWH0	@$(DEVID)NWH0
+@REGS.34=33 R_@$(DEVID)NWL0	@$(DEVID)NWL0
+@REGS.35=34 R_@$(DEVID)LKH0	@$(DEVID)LKH0
+@REGS.36=35 R_@$(DEVID)LKL0	@$(DEVID)LKL0
+@REGS.37=36 R_@$(DEVID)NWH1	@$(DEVID)NWH1
+@REGS.38=37 R_@$(DEVID)NWL1	@$(DEVID)NWL1
+@REGS.39=38 R_@$(DEVID)LKH1	@$(DEVID)LKH1
+@REGS.40=39 R_@$(DEVID)LKL1	@$(DEVID)LKL1
+@REGS.41=40 R_@$(DEVID)NWH2	@$(DEVID)NWH2
+@REGS.42=41 R_@$(DEVID)NWL2	@$(DEVID)NWL2
+@REGS.43=42 R_@$(DEVID)LKH2	@$(DEVID)LKH2
+@REGS.44=43 R_@$(DEVID)LKL2	@$(DEVID)LKL2
+@REGS.45=44 R_@$(DEVID)NWH3	@$(DEVID)NWH3
+@REGS.46=45 R_@$(DEVID)NWL3	@$(DEVID)NWL3
 @REGS.47=46 R_@$(DEVID)LKH3	@$(DEVID)LKH3
 @REGS.48=47 R_@$(DEVID)LKL3	@$(DEVID)LKL3
 @BDEF.DEFN=
@@ -350,6 +354,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] 3.2
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.rx_fault_pipe*}] 3.2
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_p642pkt/r_fault_pipe*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_gendebug/phy_fault_pipe*}] 3.2
 ##
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/u_rxcdc/u_afifo/wgray_cross*}] 5.0

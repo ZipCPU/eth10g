@@ -230,17 +230,9 @@ module	netpath #(
 	wire	[63:0]	tx_fast_data;
 	wire	[63:0]	tx64b_data;
 
-	wire	[3:0]		stat_valid_vec, stat_grant;
-	reg			stat_sample, stat_valid;
-	reg	[1:0]		stat_sample_cnt;
 	wire	stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid;
-	reg	stat_gate_ready, stat_tx_ready, stat_crc_ready, stat_src_ready;
 	wire	[LGPKTLN+1:0]	stat_gate_data, stat_tx_data,
 				stat_crc_data, stat_src_data;
-	wire			stat_fifo_empty, stat_fifo_full;
-	wire	[29:0]		stat_fifo_data;
-	reg	[29:0]		stat_data;
-	reg	[LGPKTLN+4-1:0]	stat_pre_data;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -355,7 +347,7 @@ module	netpath #(
 		.S_BYTES(SRC_BYTES), .S_LAST(SRC_LAST), .S_ABORT(SRC_ABORT),
 		//
 		.M_VALID(stat_src_valid),
-		.M_READY(stat_src_ready),
+		.M_READY(1'b1),
 		.M_DATA(stat_src_data)
 		// }}}
 	);
@@ -448,7 +440,7 @@ module	netpath #(
 		.S_BYTES(CRC_BYTES), .S_LAST(CRC_LAST), .S_ABORT(CRC_ABORT),
 		//
 		.M_VALID(stat_crc_valid),
-		.M_READY(stat_crc_ready),
+		.M_READY(1'b1),
 		.M_DATA(stat_crc_data)
 		// }}}
 	);
@@ -584,7 +576,7 @@ module	netpath #(
 		.S_BYTES(TXWD_BYTES), .S_LAST(TXWD_LAST), .S_ABORT(TXWD_ABORT),
 		//
 		.M_VALID(stat_tx_valid),
-		.M_READY(stat_tx_ready),
+		.M_READY(1'b1),
 		.M_DATA(stat_tx_data)
 		// }}}
 	);
@@ -623,7 +615,7 @@ module	netpath #(
 		.S_BYTES(FULL_BYTES), .S_LAST(FULL_LAST), .S_ABORT(FULL_ABORT),
 		//
 		.M_VALID(stat_gate_valid),
-		.M_READY(stat_gate_ready),
+		.M_READY(1'b1),
 		.M_DATA(stat_gate_data)
 		// }}}
 	);
@@ -729,106 +721,48 @@ module	netpath #(
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Statistics
+	// Debug output
 	// {{{
+	wire		fast_dbg_valid, fast_dbgfifo_full, dbgfifo_empty;
+	wire	[30:0]	fast_dbg_data;
+	wire	[30:0]	dbgfifo_data;
 
-	assign	stat_valid_vec = { stat_gate_valid, stat_tx_valid,
-				stat_crc_valid, stat_src_valid };
-	always @(*)
-	begin
-		{ stat_gate_ready, stat_tx_ready,
-				stat_crc_ready, stat_src_ready } = stat_grant;
-
-		if (stat_valid && stat_fifo_full)
-			{ stat_gate_ready, stat_tx_ready,
-				stat_crc_ready, stat_src_ready } = 4'h0;
-	end
-
-	initial	{ stat_sample, stat_sample_cnt } = 0;
-	always @(posedge i_fast_clk)
-	if (stat_grant != 0)
-	begin
-		stat_sample <= 1'b1;
-		stat_sample_cnt <= 0;
-	end else
-		{ stat_sample, stat_sample_cnt } <= stat_sample_cnt + 1;
-
-	pktarbiter #(
-		.W(4)
-	) u_stat_arbiter (
-		.i_clk(i_fast_clk), .i_reset_n(fast_reset_n),
-		.i_req({ stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid }),
-		.i_stall(stat_fifo_full && stat_valid),
-		.o_grant(stat_grant)
+	netdbggen
+	u_gendebug (
+		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
+		.i_phy_fault(i_phy_fault),
+		.i_remote_fault(remote_fault), .i_local_fault(local_fault),
+		//
+		.i_p66b_valid(rx_valid && rx_ready),
+		.i_p66b_data(rx_data),
+		//
+		.i_rx_packet(stat_src_valid), .i_rx_pktlen(stat_src_data),
+		.i_crc_packet(stat_crc_valid), .i_crc_pktlen(stat_crc_data),
+		.i_tx_packet(stat_tx_valid),
+			.i_tx_pktlen(stat_tx_data),
+		.i_txgate_packet(stat_gate_valid),
+			.i_txgate_pktlen(stat_gate_data),
+		//
+		.o_dbg_valid(fast_dbg_valid),
+		.i_dbg_ready(!fast_dbgfifo_full),
+		.o_dbg_data(fast_dbg_data)
 	);
 
-	always @(posedge i_fast_clk)
-	if (!fast_reset_n)
-		stat_valid <= 0;
-	else if (!stat_valid || !stat_fifo_full)
-	begin
-		stat_valid <= |(stat_grant & stat_valid_vec);
-		if ((stat_grant == 0) && (stat_sample))
-			stat_valid <= 1;
-	end
-
-	always @(*)
-	begin
-		stat_pre_data = 0;
-		if (stat_grant[3])
-		begin
-			stat_pre_data = stat_pre_data | { 2'b11, stat_gate_data };
-		end
-		
-		if (stat_grant[2])
-		begin
-			stat_pre_data = stat_pre_data | { 2'b10, stat_tx_data };
-		end
-		
-		if (stat_grant[1])
-		begin
-			stat_pre_data = stat_pre_data | { 2'b01, stat_crc_data };
-		end
-		
-		if (stat_grant[0])
-		begin
-			stat_pre_data = stat_pre_data | { 2'b00, stat_src_data };
-		end
-	end
-
-	initial	stat_data = 0;
-	always @(posedge i_fast_clk)
-	if (!stat_valid || !stat_fifo_full)
-	begin
-		stat_data <= 0;
-		stat_data[LGPKTLN+3:0] <= stat_pre_data;	// 20b
-		if ((stat_grant == 0) && (stat_sample))
-		begin		// 1'b1, 15b, 10b
-			stat_data[25:0] <= { 1'b1, rx_data[40:26], rx_data[9:0] };
-		end
-		// stat_data[29:26] <= { remote_fault, local_fault, rx_fast_valid, rx_valid };
-		stat_data[29:26] <= { remote_fault, local_fault, SRC_VALID, SRC_LAST };
-		// stat_data[29:26] <= { remote_fault, local_fault, 2'b00 };
-		// stat_data[29:28] <= { remote_fault, local_fault };
-	end
-
 	afifo #(
-		.LGFIFO(5), .WIDTH(30), .OPT_REGISTER_READS(1'b0)
+		.LGFIFO(5), .WIDTH(31), .OPT_REGISTER_READS(1'b0)
 	) u_stat_afifo (
 		.i_wclk(i_fast_clk), .i_wr_reset_n(fast_reset_n),
-		.i_wr(stat_valid), .i_wr_data(stat_data),
-			.o_wr_full(stat_fifo_full),
+		.i_wr(fast_dbg_valid), .i_wr_data(fast_dbg_data),
+			.o_wr_full(fast_dbgfifo_full),
+		//
 		.i_rclk(i_sys_clk), .i_rd_reset_n(i_reset_n),
-		.i_rd(1'b1), .o_rd_data(stat_fifo_data),
-			.o_rd_empty(stat_fifo_empty)
+		.i_rd(1'b1), .o_rd_data(dbgfifo_data),
+			.o_rd_empty(dbgfifo_empty)
 	);
 
 	always @(posedge i_sys_clk)
-	if (!stat_fifo_empty)
-		o_debug <= { !stat_fifo_data[27],
-			1'b0, stat_fifo_data[29:0] };
-	else
-		o_debug[31] <= 1'b0;
+	if (!dbgfifo_empty)
+		o_debug <= { 1'b1, dbgfifo_data };
 	// }}}
 
 	assign	o_link_up = rx_link_up && tx_link_up;

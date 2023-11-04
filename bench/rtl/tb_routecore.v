@@ -43,7 +43,7 @@ module tb_routecore;
 	// {{{
 	parameter RECEIVED_PACKET_CNT = 40;   // 40 packets
 	parameter	NETH = 4;	// Number of ethernet connections
-	localparam	BFM_AW = $clog2(NETH)+2; // Addr bits per route subcore
+	localparam	BFM_AW = 1+2+$clog2(NETH)+2; // Addr bits per route subcore
 
 	parameter	realtime	WB_CLK_PERIOD = 10;
 	parameter	realtime	PHY_REFCLK_PERIOD = 6.4;
@@ -373,6 +373,7 @@ module tb_routecore;
 	routecore #(
 		// {{{
 		.NETH(NETH), .PKTDW(PKTDW), .BUSDW(DW),
+		.OPT_VFIFO({(NETH){1'b1}}),
 		.DEF_BASEADDR({ 1'b1, {(LGMEMSZ-$clog2(DW/8)){1'b0}} }),
 		.DEF_MEMSIZE( { 1'b1, {(LGMEMSZ-$clog2(DW/8)){1'b0}} })
 		// }}}

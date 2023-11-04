@@ -44,6 +44,9 @@ module routecore #(
 		// parameter [0:0]	OPT_DEFBROADCAST = 1'b0
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Number of incoming eth ports
+		// Routing table overrides
+		parameter [NETH*NETH-1:0]	OPT_ALWAYS= {(NETH*NETH){1'b0}},
+		parameter [NETH*NETH-1:0]	OPT_NEVER = {(NETH*NETH){1'b0}},
 		// PKTDW is the # of bits per clock cycle or beat of both the
 		// {{{
 		// incoming and outgoing packet data.  In order to properly
@@ -69,8 +72,8 @@ module routecore #(
 		parameter	LGROUTETBL = 3,
 		parameter	LGROUTE_TIMEOUT = 20,
 		parameter	AW = 30-$clog2(BUSDW/8),
-		parameter [0:0]	OPT_VFIFO = 1,
 		parameter [0:0]	OPT_CPUNET = 0,
+		parameter [NETH-(OPT_CPUNET ? 1:0)-1:0]	OPT_VFIFO = -1,
 		// We need a VFIFO to be successful.
 		parameter [AW-1:0]	DEF_BASEADDR = 0,
 		parameter [AW-1:0]	DEF_MEMSIZE  = 0
@@ -126,7 +129,7 @@ module routecore #(
 		output	wire	[NETH-1:0]		TX_LAST,
 		output	wire	[NETH-1:0]		TX_ABORT,
 		// }}}
-		output	wire	[31:0]	o_debug
+		output	reg	[31:0]	o_debug
 		// }}}
 	);
 
@@ -155,11 +158,14 @@ module routecore #(
 	wire [NETH*NETH*PKTBYW-1:0]	txx_bytes;
 	wire	[NETH*NETH-1:0]		txx_last, txx_abort;
 
+	// Verilator lint_off UNUSED
+	// Whether or not these will be used is determined by OPT_VFIFO
 	wire	[NMEM-1:0]		vfifo_cyc, vfifo_stb, vfifo_we,
 					vfifo_stall, vfifo_ack, vfifo_err;
 	wire	[NMEM*AW-1:0]		vfifo_addr;
 	wire	[NMEM*BUSDW-1:0]		vfifo_data, vfifo_idata;
 	wire	[NMEM*BUSDW/8-1:0]	vfifo_sel;
+	// Verilator lint_on  UNUSED
 
 	wire	[NMEM-1:0]		ctrl_stb, ctrl_ack, ctrl_stall;
 	wire	[NMEM*32-1:0]		ctrl_data;
@@ -186,6 +192,10 @@ module routecore #(
 	begin : GEN_INTERFACES
 		// Per-port declarations
 		// {{{
+		localparam [NETH-1:0]	THIS_ALWAYS = OPT_ALWAYS[geth*NETH +: NETH];
+		// From this, never go there
+		localparam [NETH-1:0]	THIS_NEVER = OPT_NEVER[geth*NETH +: NETH];
+		localparam [NETH-1:0]	THERE_NEVER=CALC_NEVER(geth);
 		localparam [NETH-1:0]	THIS_PORT = (1<<geth);
 		localparam [NETH-1:0]	EVERYONE_ELSE = ~THIS_PORT;
 
@@ -197,7 +207,7 @@ module routecore #(
 		wire	[PKTDW-1:0]	mmout_data;
 		wire [PKTBYW-1:0]	mmout_bytes;
 
-		integer			iport;
+		integer			iport_pre, iport_re;
 		reg	[NETH-1:0]	remap_valid;
 		wire	[NETH-1:0]	remap_ready;
 		reg	[NETH*MACW-1:0]	remap_data;
@@ -265,7 +275,8 @@ module routecore #(
 			.S_AXIS_TDATA(smac_data),
 			//
 			.M_AXIS_TVALID(rxtbl_valid[geth * NETH +: NETH]),
-			.M_AXIS_TREADY(rxtbl_ready[geth * NETH +: NETH] | ETH_RESET),
+			.M_AXIS_TREADY(rxtbl_ready[geth * NETH +: NETH]
+				| ETH_RESET | THERE_NEVER),
 			.M_AXIS_TDATA(rxtbl_data[geth * MACW * NETH +: MACW * NETH])
 			// }}}
 		);
@@ -277,7 +288,7 @@ module routecore #(
 				&& i_ctrl_addr[5:$clog2(NMEM)+3] == 0
 				&& i_ctrl_addr[2 +: $clog2(NMEM)] == geth;
 
-		if (OPT_VFIFO)
+		if (OPT_VFIFO[geth])
 		begin : GEN_VFIFO
 			localparam [AW-1:0]	DEF_SUBADDR = DEF_BASEADDR
 							+ geth*DEF_SUBSIZE;
@@ -395,7 +406,7 @@ module routecore #(
 			if (i_reset || !i_ctrl_cyc)
 				r_ctrl_ack <= 1'b0;
 			else
-				r_ctrl_ack <= ctrl_stb;
+				r_ctrl_ack <= ctrl_stb[geth];
 
 			assign	ctrl_stall[geth] = 1'b0;
 			assign	ctrl_ack[geth]   = r_ctrl_ack;
@@ -421,7 +432,8 @@ module routecore #(
 			//
 			//
 			.TBL_REQUEST(lkup_request), .TBL_VALID(lkup_valid),
-			.TBL_MAC(lkup_dstmac),.TBL_PORT(lkup_port & ~THIS_PORT),
+			.TBL_MAC(lkup_dstmac),
+				.TBL_PORT((lkup_port & ~THIS_PORT)|THIS_ALWAYS),
 			//
 			.M_VALID(rtd_valid), .M_READY(rtd_ready),
 			.M_DATA(rtd_data), .M_BYTES(rtd_bytes),
@@ -471,16 +483,16 @@ module routecore #(
 		// Arbitrate from among packets from other ports
 		// {{{
 		always @(*)
-		for(iport=0; iport<NETH; iport=iport+1)
+		for(iport_pre=0; iport_pre<NETH; iport_pre=iport_pre+1)
 		begin
-			prearb_valid[iport] = txx_valid[iport * NETH+geth];
-			txx_ready[iport*NETH+geth] = prearb_ready[iport];
-			prearb_data[iport * PKTDW +: PKTDW]
-				 = txx_data[(iport*NETH+geth)*PKTDW +: PKTDW];
-			prearb_bytes[iport * PKTBYW +: PKTBYW]
-				 = txx_bytes[(iport*NETH+geth)*PKTBYW +:PKTBYW];
-			prearb_last[iport]  = txx_last[iport*NETH+geth];
-			prearb_abort[iport] = txx_abort[iport*NETH+geth];
+			prearb_valid[iport_pre] = txx_valid[iport_pre * NETH+geth];
+			txx_ready[iport_pre*NETH+geth] = prearb_ready[iport_pre];
+			prearb_data[iport_pre * PKTDW +: PKTDW]
+				 = txx_data[(iport_pre*NETH+geth)*PKTDW +: PKTDW];
+			prearb_bytes[iport_pre * PKTBYW +: PKTBYW]
+				 = txx_bytes[(iport_pre*NETH+geth)*PKTBYW +:PKTBYW];
+			prearb_last[iport_pre]  = txx_last[iport_pre*NETH+geth];
+			prearb_abort[iport_pre] = txx_abort[iport_pre*NETH+geth];
 		end
 
 		axinarbiter #(
@@ -517,18 +529,24 @@ module routecore #(
 		////////////////////////////////////////////////////////////////
 
 		always @(*)
-		for(iport=0; iport<NETH; iport=iport+1)
+		for(iport_re=0; iport_re<NETH; iport_re=iport_re+1)
 		begin
-			remap_valid[iport] = rxtbl_valid[geth * NETH+iport];
-			rxtbl_ready[geth*NETH+iport] = remap_ready[iport];
-			remap_data[iport * MACW +: MACW]
-				 = rxtbl_data[(geth*NETH+iport)*MACW +: MACW];
+			// Routing *from* geth *to* iport_re
+			//	Once done,x in MAP[x] will be where this is from
+			remap_valid[iport_re] = rxtbl_valid[iport_re * NETH+geth]
+					&& !THIS_NEVER[iport_re];
+			rxtbl_ready[iport_re*NETH+geth] = remap_ready[iport_re]
+					|| THIS_NEVER[iport_re];
+			remap_data[iport_re * MACW +: MACW]
+				 = rxtbl_data[(iport_re*NETH+geth)*MACW +: MACW];
 		end
 
 		routetbl #(
 			// {{{
 			.NETH(NETH),
-			.BROADCAST_PORT(EVERYONE_ELSE),
+			.OPT_ALWAYS(THIS_ALWAYS),
+			.OPT_NEVER(THIS_NEVER),	// Never go from here to there
+			.BROADCAST_PORT(EVERYONE_ELSE & ~THIS_NEVER),
 			// .DEFAULT_PORT(NETH),
 			.LGTBL(LGROUTETBL),
 			.LGTIMEOUT(LGROUTE_TIMEOUT),
@@ -539,7 +557,7 @@ module routecore #(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
-			.RX_VALID(remap_valid),
+			.RX_VALID(remap_valid & ~THIS_NEVER),
 			.RX_READY(remap_ready),
 			.RX_SRCMAC(remap_data),
 
@@ -557,6 +575,18 @@ module routecore #(
 
 		// }}}
 	end endgenerate
+
+	function [NETH-1:0]	CALC_NEVER(integer here);
+		// {{{
+		integer	there;
+	begin
+		CALC_NEVER = 0;
+		for(there=0; there<NETH; there=there+1)
+		begin
+			CALC_NEVER[there] = OPT_NEVER[here*NETH + there];
+		end
+	end endfunction
+	// }}}
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -570,6 +600,11 @@ module routecore #(
 		localparam [NETH-1:0]	THIS_PORT = (1<<(NETH-1));
 		localparam [NETH-1:0]	EVERYONE_ELSE = ~THIS_PORT;
 
+		localparam [NETH-1:0]	THIS_ALWAYS = OPT_ALWAYS[NMEM*NETH +: NETH];
+		// From this, never go there
+		localparam [NETH-1:0]	THIS_NEVER = OPT_NEVER[NMEM*NETH +: NETH];
+		localparam [NETH-1:0]	THERE_NEVER=CALC_NEVER(NMEM);
+
 		wire			smac_valid, smac_ready;
 		wire	[MACW-1:0]	smac_data;
 
@@ -578,7 +613,7 @@ module routecore #(
 		wire	[PKTDW-1:0]	mmout_data;
 		wire [PKTBYW-1:0]	mmout_bytes;
 
-		integer			iport;
+		integer			iport_pre, iport_re;
 		reg	[NETH-1:0]	remap_valid;
 		wire	[NETH-1:0]	remap_ready;
 		reg	[NETH*MACW-1:0]	remap_data;
@@ -646,7 +681,8 @@ module routecore #(
 			.S_AXIS_TDATA(smac_data),
 			//
 			.M_AXIS_TVALID(rxtbl_valid[(NETH-1) * NETH +: NETH]),
-			.M_AXIS_TREADY(rxtbl_ready[(NETH-1) * NETH +: NETH]),
+			.M_AXIS_TREADY(rxtbl_ready[(NETH-1) * NETH +: NETH]
+				| ETH_RESET | THERE_NEVER),
 			.M_AXIS_TDATA(rxtbl_data[(NETH-1) * MACW * NETH +: MACW * NETH])
 			// }}}
 		);
@@ -672,7 +708,8 @@ module routecore #(
 			//
 			//
 			.TBL_REQUEST(lkup_request), .TBL_VALID(lkup_valid),
-			.TBL_MAC(lkup_dstmac),.TBL_PORT(lkup_port & ~THIS_PORT),
+			.TBL_MAC(lkup_dstmac),
+				.TBL_PORT((lkup_port & ~THIS_PORT) | THIS_ALWAYS),
 			//
 			.M_VALID(rtd_valid), .M_READY(rtd_ready),
 			.M_DATA(rtd_data), .M_BYTES(rtd_bytes),
@@ -722,16 +759,16 @@ module routecore #(
 		// Arbitrate from among packets from other ports
 		// {{{
 		always @(*)
-		for(iport=0; iport<NETH; iport=iport+1)
+		for(iport_pre=0; iport_pre<NETH; iport_pre=iport_pre+1)
 		begin
-			prearb_valid[iport] = txx_valid[iport * NETH+(NETH-1)];
-			txx_ready[iport*NETH+(NETH-1)] = prearb_ready[iport];
-			prearb_data[iport * PKTDW +: PKTDW]
-				 = txx_data[(iport*NETH+(NETH-1))*PKTDW +: PKTDW];
-			prearb_bytes[iport * PKTBYW +: PKTBYW]
-				 = txx_bytes[(iport*NETH+(NETH-1))*PKTBYW +: PKTBYW];
-			prearb_last[iport]  = txx_last[iport*NETH+(NETH-1)];
-			prearb_abort[iport] = txx_abort[iport*NETH+(NETH-1)];
+			prearb_valid[iport_pre] = txx_valid[iport_pre * NETH+(NETH-1)];
+			txx_ready[iport_pre*NETH+(NETH-1)] = prearb_ready[iport_pre];
+			prearb_data[iport_pre * PKTDW +: PKTDW]
+				 = txx_data[(iport_pre*NETH+(NETH-1))*PKTDW +: PKTDW];
+			prearb_bytes[iport_pre * PKTBYW +: PKTBYW]
+				 = txx_bytes[(iport_pre*NETH+(NETH-1))*PKTBYW +: PKTBYW];
+			prearb_last[iport_pre]  = txx_last[iport_pre*NETH+(NETH-1)];
+			prearb_abort[iport_pre] = txx_abort[iport_pre*NETH+(NETH-1)];
 		end
 
 		axinarbiter #(
@@ -768,18 +805,22 @@ module routecore #(
 		////////////////////////////////////////////////////////////////
 
 		always @(*)
-		for(iport=0; iport<NETH; iport=iport+1)
+		for(iport_re=0; iport_re<NETH; iport_re=iport_re+1)
 		begin
-			remap_valid[iport] = rxtbl_valid[(NETH-1) * NETH+iport];
-			rxtbl_ready[(NETH-1)*NETH+iport] = remap_ready[iport];
-			remap_data[iport * MACW +: MACW]
-				 = rxtbl_data[((NETH-1)*NETH+iport)*MACW +: MACW];
+			remap_valid[iport_re] = rxtbl_valid[iport_re * NETH+NMEM]
+				&& !THIS_NEVER[iport_re];
+			rxtbl_ready[iport_re*NETH+NMEM] = remap_ready[iport_re]
+				|| THIS_NEVER[iport_re];
+			remap_data[iport_re * MACW +: MACW]
+				 = rxtbl_data[(iport_re*NETH+NMEM)*MACW +: MACW];
 		end
 
 		routetbl #(
 			// {{{
 			.NETH(NETH),
-			.BROADCAST_PORT(EVERYONE_ELSE),
+			.OPT_NEVER(THIS_NEVER),
+			.OPT_ALWAYS(THIS_ALWAYS),
+			.BROADCAST_PORT(EVERYONE_ELSE & ~THIS_NEVER),
 			// .DEFAULT_PORT(NETH),
 			.LGTBL(LGROUTETBL),
 			.LGTIMEOUT(LGROUTE_TIMEOUT),
@@ -790,7 +831,7 @@ module routecore #(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
-			.RX_VALID(remap_valid),
+			.RX_VALID(remap_valid & ~THIS_NEVER),
 			.RX_READY(remap_ready),
 			.RX_SRCMAC(remap_data),
 
@@ -840,7 +881,7 @@ module routecore #(
 	end
 
 	always @(posedge i_clk)
-	if (OPT_VFIFO)
+	if (OPT_VFIFO != 0)
 		o_ctrl_data <= pre_ctrl_data;
 	else
 		o_ctrl_data <= 0;
@@ -1022,7 +1063,7 @@ module routecore #(
 	wire	unused;
 	assign	unused = &{ 1'b0 };
 
-	generate if (!OPT_VFIFO)
+	generate if (OPT_VFIFO == 0)
 	begin : GEN_UNUSED_VFIFO
 		wire	unused_vfifo_wb;
 		assign	unused_vfifo_wb = &{ 1'b0, vfifo_stall, vfifo_ack,

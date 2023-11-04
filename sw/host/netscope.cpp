@@ -39,6 +39,7 @@
 #include <string.h>
 #include <signal.h>
 #include <assert.h>
+#include <vector>
 
 #include "regdefs.h"
 #include "devbus.h"
@@ -59,8 +60,11 @@ void	closeup(int v) {
 	exit(0);
 }
 
+std::vector<unsigned>	crc_size, raw_size, raw_tx, tx_gate;
+
 class	NETSCOPE : public SCOPE {
 public:
+
 	NETSCOPE(DEVBUS *fpga, unsigned addr, bool vecread = true)
 		: SCOPE(fpga, addr, true, vecread) {};
 	~NETSCOPE(void) {}
@@ -70,42 +74,40 @@ public:
 
 		trigger  = (val>>31)&1;
 		if (!trigger) {
-			int	abort, pkt, posn, ovw, lcl, rem, ln, cod,cw;
-			rem   = (val >> 29) & 1;
-			lcl   = (val >> 28) & 1;
-			pkt   = (val >> 25) & 1;
-			posn  = (val >> 18) & 3;
-			abort = (val >> 17) & 1;
-			ovw   = (val >> 16) & 1;
-			cod   = (val) & 0x07ffffff;
-			ln    = (val) & 0x01ffff;
-			cw    = (cod >> 2) & 0x0ff;
-			if (pkt) {
-				printf("IDLE: %08x/%02x %s%s\n", cod, cw,
-					(rem) ? "(REMOTE-FAULT)":"",
-					(lcl) ? "(LOCAL-FAULT)":"");
-			} else {
-				printf("@%d PKT LN %5d %s%s",
-					posn, ln,
-					(ovw) ? "(COUNTER-OVERFLOW)":"",
-					(abort) ? "(ABORTED)":"");
+			int	fault, src, countr, data, sync, stat_data;
+			fault = (val >> 29) & 3;
+			src   = (val >> 26) & 7;
+			countr= (val >> 18) & 0x0ff;
+			data  = (val >>  2) & 0x0ffff;
+			sync  = (val      ) & 3;
+			stat_data= (val >> 2) & 0x3ffff;
+
+			printf("%8x %9s fault", countr,
+				(fault == 3) ? "PHY"
+				: (fault == 2) ? "Remote"
+				: (fault == 1) ? "Local"
+				: "No");
+
+			switch(src) {
+			case 0: printf(", IDLE"); break;
+			case 1: printf(", CTRL %04x-%d", data, sync); break;
+			case 2: printf(", SOP  %04x-%d", data, sync); break;
+			case 3: printf(", EOP  %04x-%d", data, sync); break;
+			case 4: printf(", RX  : %05x", stat_data);   raw_size.push_back(stat_data); break;
+			case 5: printf(", CRC : %05x", stat_data);  crc_size.push_back(stat_data); break;
+			case 6: printf(", TX  : %05x", stat_data);   raw_tx.push_back(stat_data); break;
+			case 7: printf(", GATE: %05x", stat_data); tx_gate.push_back(stat_data); break;
+			default: break;
 			}
 		}
 	}
 
 	virtual	void	define_traces(void) {
-		register_trace("remote_fault", 1,29);
-		register_trace("local_fault",  1,28);
-		register_trace("rx_fast_valid",1,27);
-		register_trace("rx_valid",     1,26);
-		register_trace("nopkt",        1,25);
-		register_trace("posn",  2,18);
-		register_trace("abort", 1,17);
-		register_trace("ovw",   1,16);
-		//
-		register_trace("cw",     8,2);
-		register_trace("cod",   24,0);
-		register_trace("pkt_ln",17,0);
+		register_trace("local_stat", 2,29);
+		register_trace("source",  3,26);
+		register_trace("counter", 8,18);
+		register_trace("data",   16, 2);
+		register_trace("sync",    2, 0);
 	}
 };
 
@@ -124,6 +126,16 @@ int main(int argc, char **argv) {
 	} else {
 		scope->print();
 		scope->writevcd("netscope.vcd");
+
+		for(unsigned k=0; k< raw_size.size(); k++) {
+			printf("RX Packet LN: %08x\n",  raw_size[k]);
+		} for(unsigned k=0; k< crc_size.size(); k++) {
+			printf("RX/CRC PktLN: %08x\n",  crc_size[k]);
+		} for(unsigned k=0; k< raw_tx.size(); k++) {
+			printf("TX Packet LN: %08x\n",  raw_tx[k]);
+		} for(unsigned k=0; k< tx_gate.size(); k++) {
+			printf("TX Pkt Gate :: %08x\n",  tx_gate[k]);
+		}
 	}
 }
 

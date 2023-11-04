@@ -44,8 +44,10 @@ module routetbl #(
 		// parameter [0:0]	OPT_DEFBROADCAST = 1'b0
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Number of incoming eth ports
-		parameter  [NETH-1:0]	BROADCAST_PORT = {(NETH){1'b1}},
-		parameter  [NETH-1:0]	DEFAULT_PORT = BROADCAST_PORT,
+		parameter [NETH-1:0]	OPT_ALWAYS = {(NETH){1'b0}},
+		parameter [NETH-1:0]	OPT_NEVER  = {(NETH){1'b0}},
+		parameter  [NETH-1:0]	BROADCAST_PORT = {(NETH){1'b1}} & (~OPT_NEVER),
+		parameter  [NETH-1:0]	DEFAULT_PORT = BROADCAST_PORT & (~OPT_NEVER),
 		parameter	LGTBL = 6,	// Log_2(NTBL entries)
 		parameter	MACW = 48,	// Bits in a MAC address
 		parameter	LGTIMEOUT = 24,
@@ -114,12 +116,12 @@ module routetbl #(
 		.W(NETH)
 	) u_arbiter (
 		.i_clk(i_clk), .i_reset_n(!i_reset),
-		.i_req(RX_VALID), .i_stall(!rxarb_ready),
+		.i_req(RX_VALID & (~OPT_NEVER)), .i_stall(!rxarb_ready),
 		.o_grant(rxgrant)
 	);
 
 	assign	rxarb_valid = |(RX_VALID & rxgrant);
-	assign	RX_READY    = rxarb_ready ? rxgrant : 0;
+	assign	RX_READY    = OPT_NEVER | (rxarb_ready ? rxgrant : 0);
 
 	assign	rxarb_ready = 1;
 
@@ -127,7 +129,7 @@ module routetbl #(
 	begin
 		rxarb_port = 0;
 		for(ik=0; ik<NETH; ik=ik+1)
-		if (rxgrant[ik])
+		if (rxgrant[ik] && (!OPT_NEVER[ik]))
 			rxarb_port = rxarb_port | ik[LGETH-1:0];
 	end
 
@@ -135,7 +137,7 @@ module routetbl #(
 	begin
 		rxarb_srcmac = 0;
 		for(ik=0; ik<NETH; ik=ik+1)
-		if (rxgrant[ik])
+		if (rxgrant[ik] && (!OPT_NEVER[ik]))
 			rxarb_srcmac = rxarb_srcmac
 					| RX_SRCMAC[ik * MACW +: MACW];
 	end
@@ -260,17 +262,21 @@ module routetbl #(
 			lkup_port = lkup_port | (1<<tbl_port[ik]);
 	end
 
+	initial	TX_PORT = OPT_ALWAYS;
 	always @(posedge i_clk)
 	if (i_reset || (OPT_LOWPOWER && !TX_VALID))
-		TX_PORT <= 0;
+		TX_PORT <= OPT_ALWAYS;
 	else if (TX_VALID && !TX_ACK)
 	begin
 		if (&TX_DSTMAC)
-			TX_PORT <= BROADCAST_PORT;
+			TX_PORT <= BROADCAST_PORT | OPT_ALWAYS;
 		else if (lkup_tblmatch == 0)
-			TX_PORT <= DEFAULT_PORT;	// Could be broadcast
+			// No table lookup match.
+			//
+			// Non-matches can be broadcast
+			TX_PORT <= DEFAULT_PORT | OPT_ALWAYS;
 		else
-			TX_PORT <= lkup_port;
+			TX_PORT <= lkup_port | OPT_ALWAYS;
 	end
 
 	initial	TX_ACK = 1'b0;

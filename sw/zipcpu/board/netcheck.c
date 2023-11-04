@@ -86,13 +86,9 @@ void	pkt_send(char *pkt, unsigned ln) {
 
 	// Is there room in the virtual FIFO?
 	// {{{
-	printf("RPTR= 0x%08x\nWPTR= 0x%08x\nDIFF= 0x%08x\n",
-		rptr, wptr, wptr-rptr);
 	space = mlen - (wptr-rptr);
 	if (rptr > wptr)	// WRAP
 		space -= mlen;
-	printf("0x%08x - 0x%08x = %8d bytes of space in write pointer, need %d bytes\n",
-		rptr, wptr, space, ln+8);
 	if (space < ln + 8)
 		return;	// NO ROOM
 	// }}}
@@ -228,7 +224,7 @@ int main(int argc, char **argv) {
 	// __asm__("NOOP");
 	// __asm__("NOOP");
 	// __asm__("NOOP");
-	(*_netreset) = 3;
+	(*_netreset) = 0;
 #endif
 	printf("NETCHECK -- Holding two channels in reset\n");
 	// }}}
@@ -242,13 +238,17 @@ int main(int argc, char **argv) {
 	// {{{
 	printf("NETCHECK -- Setting up Virtual FIFOs\n");
 	// Get the bus size
-	_gnet->vfif[0].v_memsize = 0;		// Shut the FIFO down
-	{
+	for(unsigned netif=0; netif<4; netif++)
+		_gnet->vfif[netif].v_memsize = 0;	// Shut the FIFO down
+	for(unsigned netif=0; netif<4; netif++) {
 		volatile unsigned	*base;
 
 		base = (volatile unsigned *)&_gnet->vfif[0].v_base;
 		*base = -1;
 		bus_mask = *base;
+
+		if (bus_mask != 0)
+			break;
 	}
 	// _gnet->vfif[0].v_base = (char *)-1;	// Set all usable bits
 	// bus_mask = (volatile unsigned)_gnet->vfif[0].v_base;	// Read the mask back
@@ -263,17 +263,28 @@ int main(int argc, char **argv) {
 	// Assign VFIFOSZ bytes of memory to each network interface
 	// {{{
 	for(int k=0; k<4; k++) {
-		ptr = (char *)malloc(VFIFOSZ + bus_size);
-		// Round up to the next aligned address
-		ptr= (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
-		vfifo_base[k] = ptr;
-		// Set this address as our base address
-		printf("VFIFO[%d] assigned to %08x -> %08x\n",
-			k, ptr, ptr+VFIFOSZ-1);
-		_gnet->vfif[k].v_base    = ptr;
-		_gnet->vfif[k].v_memsize = VFIFOSZ;
+		volatile unsigned	*base;
+		unsigned	vfifo_check;
 
-		// No other registers to set
+		base = (volatile unsigned *)&_gnet->vfif[k].v_base;
+		*base = -1;
+		vfifo_check = *base;
+
+		if (vfifo_check) {
+			ptr = (char *)malloc(VFIFOSZ + bus_size);
+			// Round up to the next aligned address
+			ptr= (char *)((((unsigned)ptr) + (bus_size-1)) & ~(bus_size-1));
+			vfifo_base[k] = ptr;
+			// Set this address as our base address
+			printf("VFIFO[%d] assigned to %08x -> %08x\n",
+				k, ptr, ptr+VFIFOSZ-1);
+			_gnet->vfif[k].v_base    = ptr;
+			_gnet->vfif[k].v_memsize = VFIFOSZ;
+
+			// No other registers to set
+		} // else ...
+		//	No virtual FIFO at this address, don't allocate
+		//	any memory for it
 	}
 	// }}}
 
@@ -401,7 +412,7 @@ int main(int argc, char **argv) {
 		unsigned	pktln;
 
 		// Let's create a ARP request packet, and send it to FPGA #1
-		pkt_send(pkt, 64);
+		// pkt_send(pkt, 64);
 		// Now let's wait a second and see what comes back ...
 		while(0 == (_zip->z_pic & SYSINT_JIFFIES)) {
 			unsigned char *epay = (unsigned char *)&rxpktb[14],
