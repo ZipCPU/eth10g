@@ -37,7 +37,7 @@
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth cecbridge crc_axin crc_eqn
 TESTS += dropshort p642pkt p66brxgears p66btxgears pkt264b pktvfifowr pktvfiford
-TESTS += routetbl wbi2cdma
+TESTS += routetbl wbi2cdma netskid txgetports
 # wbmarbiter sync2stream
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
 .PHONY: $(TESTS)
@@ -69,6 +69,8 @@ SDWB   := sdwb
 SDTX   := sdtxframe
 SDRX   := sdrxframe
 RTBL   := routetbl
+NSKID  := netskid
+TXPORTS:= txgetports
 ## }}}
 
 ## Interfaces
@@ -242,6 +244,24 @@ $(PKTVWR)_cvr/PASS: $(PKTVWR).sby    $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
 	sby $(SBYFLAGS) $(PKTVWR).sby cvr
 ## }}}
 
+.PHONY: $(NSKID)
+## {{{
+$(NSKID): $(NSKID)_prf/PASS
+$(NSKID)_prf/PASS: $(NSKID).sby $(RTLNET)/$(NSKID).v
+	sby $(SBYFLAGS) $(NSKID).sby prf
+## }}}
+
+.PHONY: $(TXPORTS)
+## {{{
+$(TXPORTS): $(TXPORTS)_prf/PASS $(TXPORTS)_prflp/PASS  $(TXPORTS)_cvr/PASS
+$(TXPORTS)_prf/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v
+	sby $(SBYFLAGS) $(TXPORTS).sby prf
+$(TXPORTS)_prflp/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v
+	sby $(SBYFLAGS) $(TXPORTS).sby prflp
+$(TXPORTS)_cvr/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v
+	sby $(SBYFLAGS) $(TXPORTS).sby cvr
+## }}}
+
 .PHONY: $(CEC)
 ## {{{
 $(CEC): $(CEC)_prf/PASS
@@ -322,5 +342,14 @@ report:
 ## {{{
 clean:
 	rm -rf $(NARB)_*/    $(BCAST)_*/     $(NWIDTH)_*/
-	rm -rf $(DSHORT)*/   $(WBMARB)_*/
+	rm -rf $(CRCEQ)_*/
+	rm -rf $(DSHORT)_*/  $(WBMARB)_*/
+	rm -rf $(RXGEARS)_*/ $(TXGEARS)_*/
+	rm -rf $(P642PKT)_*/ $(PKT2P64B)_*/
+	rm -rf $(CEC)_*/     $(I2CDMA)_*/
+	rm -rf $(SDCK)_*/    $(SDCMD)_*/
+	rm -rf $(SDWB)_*/    $(SDTX)_*/
+	rm -rf $(SDRX)_*/    $(RTBL)_*/
+	rm -rf $(NSKID)_*/   $(TXPORTS)_*/
+	rm -rf $(PKTVRD)_*/  $(PKTVWR)_*/
 ## }}}
