@@ -70,7 +70,6 @@ module	netskid #(
 
 	// r_data, r_last
 	// {{{
-
 	always @(posedge i_clk)
 	if (S_AXIN_READY)
 		{ r_data, r_last } <= { S_AXIN_DATA, S_AXIN_LAST };
@@ -132,6 +131,7 @@ module	netskid #(
 	wire	[10:0]	fslv_word, fmst_word;
 	wire	[11:0]	fslv_packets, fmst_packets;
 	(* anyconst *)	reg	[DW:0]	f_never_data_last;
+	(* anyconst *)	reg		fnvr_abort;
 
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
@@ -150,6 +150,7 @@ module	netskid #(
 		.S_AXIN_VALID(S_AXIN_VALID),
 		.S_AXIN_READY(S_AXIN_READY),
 		.S_AXIN_DATA( S_AXIN_DATA),
+		.S_AXIN_BYTES(0),
 		.S_AXIN_LAST( S_AXIN_LAST),
 		.S_AXIN_ABORT(S_AXIN_ABORT),
 		//
@@ -167,6 +168,7 @@ module	netskid #(
 		.S_AXIN_VALID(M_AXIN_VALID),
 		.S_AXIN_READY(M_AXIN_READY),
 		.S_AXIN_DATA( M_AXIN_DATA),
+		.S_AXIN_BYTES(0),
 		.S_AXIN_LAST( M_AXIN_LAST),
 		.S_AXIN_ABORT(M_AXIN_ABORT),
 		//
@@ -179,12 +181,21 @@ module	netskid #(
 	if (!i_reset)
 	begin
 		if ((r_valid && r_last) || r_abort)
+		begin
 			assert(fslv_word == 0);
-		else
+		end else
 			assert(fslv_word == fmst_word + r_valid);
 
 		if (!r_valid)
 			assert(!r_abort);
+	end
+
+	always @(*)
+	if (!i_reset)
+	begin
+		assume(!fslv_packets[11]);
+		assert(fslv_packets == fmst_packets
+				+ ((r_valid && r_last && !r_abort) ? 1:0));
 	end
 
 	always @(*)
@@ -195,6 +206,13 @@ module	netskid #(
 	if (f_past_valid && M_AXIN_VALID)
 		assert({ M_AXIN_LAST, M_AXIN_DATA } != f_never_data_last);
 
+	always @(*)
+	if (fnvr_abort)
+		assume(!S_AXIN_ABORT);
+
+	always @(*)
+	if (!i_reset && fnvr_abort)
+		assert(!M_AXIN_ABORT);
 
 `endif
 // }}}

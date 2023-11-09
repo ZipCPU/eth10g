@@ -1,0 +1,26 @@
+[tasks]
+prf
+# cvr
+
+[options]
+prf: mode prove
+# cvr: mode cover
+prf: depth 5
+
+[engines]
+smtbmc
+
+[script]
+read -formal netskid.v
+read -formal faxin_slave.v
+read -formal faxin_master.v
+--pycode-begin--
+cmd = "hierarchy -top netskid"
+output(cmd)
+--pycode-end--
+prep -top netskid
+
+[files]
+../../rtl/net/netskid.v
+faxin_slave.v
+faxin_master.v
