@@ -239,6 +239,16 @@ module axinarbiter #(
 	//
 	// Interface properties
 	// {{{
+	(* anyconst *)	reg	f_only;
+	(* anyconst *)	reg	[NIN-1:0]	f_only_slv;
+
+	always @(*)
+	if (f_only)
+	begin
+		assume($onehot(f_only_slv));
+	end else
+		assume(f_only_slv == 0);
+
 	generate for(gk=0; gk<NIN; gk=gk+1)
 	begin : F_SLAVE
 		wire	[10:0]	fslv_word;
@@ -293,11 +303,24 @@ module axinarbiter #(
 		always @(*)
 		if (!i_reset && S_VALID[gk])
 			assume({ S_LAST[gk],S_DATA[DW*gk +: DW] } != fnvr_data);
+
+
+		always @(*)
+		if (f_only)
+			assume(!fslv_packets[11]);
+
+		always @(*)
+		if (!i_reset && f_only && f_only_slv == gk)
+		begin
+			assert(fslv_packets == fmst_packets
+				+ ((M_VALID && M_LAST && !M_ABORT) ? 1:0));
+		end else
+			assume(!f_only || !grant[gk]);
 	end endgenerate
 
 	faxin_master #(
 		.DATA_WIDTH(DW), .WBITS(WBITS)
-	) fslv (
+	) fmst(
 		// {{{
 		.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset),
 		//

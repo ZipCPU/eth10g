@@ -388,6 +388,22 @@ module axinbroadcast #(
 		if (!i_reset && midpkt[gk] && (!S_VALID || !S_ABORT)
 			  &&((!M_VALID[gk] || !M_LAST[gk])&& !M_ABORT[gk]))
 			assert(fslv_word == (fmst_word + (M_VALID[gk] ? 1:0)));
+
+		(* anyconst *) reg	fpkt_count_valid;
+
+		always @(*)
+		if(fpkt_count_valid)
+			assume(i_cfg_active[gk] && (!s_midpkt || f_port[gk]));
+
+		always @(*)
+		if(!i_reset && fpkt_count_valid)
+		begin
+			assume(!fslv_packets[11]);
+			assert(fslv_packets == fmst_packets
+			  +((M_VALID[gk] && M_LAST[gk] && !M_ABORT[gk]) ? 1:0));
+
+			assert(!s_midpkt || midpkt[gk]);
+		end
 		// }}}
 	end endgenerate
 
