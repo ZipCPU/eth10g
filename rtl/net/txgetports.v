@@ -134,22 +134,29 @@ module txgetports #(
 		known_ports <= 1'b0;
 	else if (!known_ports && skd_valid && TBL_REQUEST && TBL_VALID)
 		known_ports <= 1'b1;
+	else if (skd_abort && (!skd_valid || skd_ready))
+		known_ports <= 1'b0;
 	else if (skd_valid && skd_ready && skd_last)
 		known_ports <= 1'b0;
 
+	initial	M_PORT = 0;
 	always @(posedge i_clk)
 	if (OPT_LOWPOWER && i_reset)
 		M_PORT <= 0;
-	else if (TBL_REQUEST && TBL_VALID)
+	else if (TBL_REQUEST && TBL_VALID && (!OPT_LOWPOWER || !skd_abort))
 		M_PORT <= TBL_PORT;
-	else if (OPT_LOWPOWER && M_VALID && M_READY && M_LAST)
+	else if (OPT_LOWPOWER && ((M_VALID && M_READY && M_LAST)
+				|| (M_ABORT && (!M_VALID || M_READY))))
 		M_PORT <= 0;
 
+	initial	TBL_REQUEST = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset)
 		TBL_REQUEST <= 1'b0;
-	else if (skd_valid)
-		TBL_REQUEST <= (!known_ports && !TBL_VALID && !skd_abort);
+	else if (TBL_REQUEST)
+		TBL_REQUEST <= !TBL_VALID;
+	else
+		TBL_REQUEST <= !M_VALID && skd_valid && !known_ports;
 
 	// WARNING: This requires at least 48*2 bits per beat, so a minimum
 	// of 128 bits per beat once rounded to a power of two
@@ -166,21 +173,23 @@ module txgetports #(
 	//
 	// Generate our output port
 	// {{{
+	initial	M_VALID = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset)
 		M_VALID <= 1'b0;
-	else if (skd_valid && known_ports)
+	else if (skd_valid && known_ports && !skd_abort)
 		M_VALID <= 1'b1;
 	else if (M_READY)
 		M_VALID <= 1'b0;
 
+	initial	{ M_LAST, M_BYTES, M_DATA } = 0;
 	always @(posedge i_clk)
 	if (OPT_LOWPOWER && i_reset)
 		{ M_LAST, M_BYTES, M_DATA } <= 0;
 	else if (!M_VALID || M_READY)
 	begin
 		{ M_LAST, M_BYTES, M_DATA }<= { skd_last, skd_bytes, skd_data };
-		if (OPT_LOWPOWER && (!skd_valid || skd_abort))
+		if (OPT_LOWPOWER && (!skd_valid || !known_ports || skd_abort))
 			{ M_LAST, M_BYTES, M_DATA } <= 0;
 	end
 
@@ -189,7 +198,7 @@ module txgetports #(
 		M_ABORT <= 0;
 	else if (M_VALID && !M_READY && M_LAST && !M_ABORT)
 		M_ABORT <= 0;
-	else if (skd_abort && (!skd_valid || skd_ready))
+	else if (skd_abort)
 		M_ABORT <= 1'b1;
 	else if (!M_VALID || M_READY)
 		M_ABORT <= 1'b0;
@@ -202,4 +211,170 @@ module txgetports #(
 	assign	unused = &{ 1'b0 };
 	// Verilator lint_on  UNUSED
 	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+	localparam	LGMX = 11;
+	wire	[LGMX-1:0]	fslv_word, fmst_word;
+	wire	[12-1:0]	fslv_packets, fmst_packets;
+	reg			f_tbl_valid, f_past_valid;
+
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	always @(*)
+	if (!f_past_valid)
+		assume(i_reset);
+
+	faxin_slave #(
+		.MAX_LENGTH(1<<(LGMX-1)),
+		.DATA_WIDTH(DW)
+	) fslv (
+		.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset),
+		//
+		.S_AXIN_VALID(S_VALID),
+		.S_AXIN_READY(S_READY),
+		.S_AXIN_DATA(S_DATA),
+		.S_AXIN_BYTES(S_BYTES),
+		.S_AXIN_LAST(S_LAST),
+		.S_AXIN_ABORT(S_ABORT),
+		//
+		.f_stream_word(fslv_word),
+		.f_packets_rcvd(fslv_packets)
+	);
+
+	faxin_master #(
+		.MAX_LENGTH(1<<(LGMX-1)),
+		.DATA_WIDTH(DW)
+	) fmst (
+		.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset),
+		//
+		.S_AXIN_VALID(M_VALID),
+		.S_AXIN_READY(M_READY),
+		.S_AXIN_DATA(M_DATA),
+		.S_AXIN_BYTES(M_BYTES),
+		.S_AXIN_LAST(M_LAST),
+		.S_AXIN_ABORT(M_ABORT),
+		//
+		.f_stream_word(fmst_word),
+		.f_packets_rcvd(fmst_packets)
+	);
+
+	initial	f_tbl_valid = 1'b0;
+	always @(posedge i_clk)
+	if (i_reset)
+		f_tbl_valid <= 1'b0;
+	else
+		f_tbl_valid <= TBL_REQUEST && !TBL_VALID;
+
+	always @(*)
+		assume(f_tbl_valid == TBL_VALID);
+
+	always @(posedge i_clk)
+	if (f_past_valid && !$past(i_reset) && $past(TBL_REQUEST && !TBL_VALID)
+		&& !skd_abort)
+	begin
+		assert(TBL_REQUEST);
+		assert($stable(TBL_MAC));
+	end
+
+	always @(posedge i_clk)
+	if (f_past_valid && !$past(i_reset) && $past(M_VALID && !M_READY))
+	begin
+		assert($stable(M_PORT));
+	end
+
+	always @(*)
+	if (f_past_valid && known_ports)
+		assert(!TBL_REQUEST);
+
+	always @(*)
+	if (f_past_valid && !TBL_REQUEST)
+		assert(!TBL_VALID);
+
+	always @(*)
+	if (f_past_valid && !M_ABORT && (M_VALID || fmst_word > 0))
+		assert(known_ports || (M_VALID && M_LAST));
+
+	always @(posedge i_clk)
+	if (!i_reset)
+	begin
+		if (TBL_REQUEST)
+			assert(fslv_word == 0);
+		if ((!M_VALID || !M_LAST) && !M_ABORT)
+			assert(fslv_word == fmst_word + (M_VALID ? 1:0));
+
+		if ((M_VALID && M_LAST) || M_ABORT)
+			assert(fslv_word == 0);
+
+		if (fslv_word > 0)
+			assert(known_ports);
+
+		if (fmst_word > 0)
+			assert($stable(M_PORT));
+
+		if (fslv_word == 0)
+			assert(!M_VALID || M_LAST || M_ABORT);
+
+		assume(!fslv_packets[11]);
+		assert(fslv_packets == fmst_packets
+			+ ((M_VALID && M_LAST && !M_ABORT) ? 1:0));
+	end
+
+	(* anyconst *) reg	[NETH-1:0]	fnvr_port;
+
+	always @(*)
+	if (TBL_VALID)
+		assume(TBL_PORT != fnvr_port);
+
+	always @(*)
+	if (!i_reset && !skd_abort && (fslv_word > 0))
+		assert(known_ports);
+
+	always @(*)
+	if (!i_reset && !skd_abort && (fslv_word == 0))
+		assert(!known_ports || (!M_VALID && skd_valid && skd_ready));
+
+	always @(*)
+	if (!i_reset && known_ports)
+		assert((skd_valid && skd_ready) || M_VALID || fmst_word > 0);
+
+	always @(*)
+	if (!i_reset && (M_VALID || fmst_word > 0))
+		assert(M_PORT != fnvr_port);
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Lowpower properties
+	// {{{
+	always @(*)
+	if (OPT_LOWPOWER && !M_VALID)
+	begin
+		assert(M_DATA  == 0);
+		assert(M_BYTES == 0);
+		assert(M_LAST  == 0);
+	end
+
+	always @(posedge i_clk)
+	if (f_past_valid && OPT_LOWPOWER && !M_VALID && fmst_word == 0 && !known_ports)
+		assert(M_PORT == 0 || $past(known_ports));
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Cover properties
+	// {{{
+
+	always @(posedge i_clk)
+		cover(!i_reset && $past(!i_reset && M_VALID && M_READY && M_LAST));
+	// }}}
+`endif
+// }}}
 endmodule

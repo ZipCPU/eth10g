@@ -1,0 +1,28 @@
+[tasks]
+prf
+prflp	prf	opt_lowpower
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+prf: depth 5
+
+[engines]
+smtbmc
+
+[script]
+read -formal txgetports.v
+read -formal faxin_slave.v
+read -formal faxin_master.v
+--pycode-begin--
+cmd = "hierarchy -top txgetports -chparam OPT_SKIDBUFFER 0"
+cmd += " -chparam OPT_LOWPOWER %d" % (1 if "opt_lowpower" in tags else 0)
+output(cmd)
+--pycode-end--
+prep -top txgetports
+
+[files]
+../../rtl/net/txgetports.v
+faxin_slave.v
+faxin_master.v
