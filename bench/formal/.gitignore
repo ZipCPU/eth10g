@@ -4,6 +4,7 @@ axinwidth_*/
 cecbridge_*/
 crc_eqn_*/
 dropshort_*/
+netskid_*/
 p66brxgears_*/
 p642pkt_prf*/
 p66btxgears_*/
@@ -17,5 +18,6 @@ sdtxframe_*/
 sdrxframe_*/
 sdwb_*/
 sync2stream_*/
+txgetports_*/
 wbi2cdma_*/
 wbmarbiter_*/
