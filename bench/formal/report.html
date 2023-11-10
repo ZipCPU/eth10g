@@ -1,81 +1,90 @@
 <HTML><HEAD><TITLE>Formal Verification Report</TITLE></HEAD>
 <BODY>
 <H1 align=center>10Gb Ethernet Board Verification Report</H1>
-<H2 align=center>20231018</H2>
+<H2 align=center>20231109</H2>
 <TABLE border>
 <TR><TH>Status</TH><TH>Component</TD><TH>Proof</TH><TH>Component description</TH></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinarbiter</TD><TD>_prflp</TD><TD rowspan=3>Packet stream N:1 arbiter</TD></TR>
-<TR><TD bgcolor=#caeec8>2 Cover points</TD><TD>axinarbiter</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8>2 Cover points</TD><TD>axinarbiter</TD><TD>_cvr</TD><TD rowspan=3>Packet stream N:1 arbiter</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinarbiter</TD><TD>_prflp</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinarbiter</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinbroadcast</TD><TD>_prf</TD><TD rowspan=3>Packet 1:N broadcaster</TD></TR>
+<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>axinbroadcast</TD><TD>_cvr</TD><TD rowspan=3>Packet 1:N broadcaster</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinbroadcast</TD><TD>_prflp</TD></TR>
-<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>axinbroadcast</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinbroadcast</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_cvr</TD><TD rowspan=10>Packet width adjuster</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx512x128</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx64x32</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx32x8</TD><TD rowspan=10>Packet width adjuster</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_cvr</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx8x32</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx128x512</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx32x8</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx64x128</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx128x64</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prv</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx32x64</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx64x128</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prv</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx64x32</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx512x128</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>axinwidth</TD><TD>_prvx128x512</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>cecbridge</TD><TD>_prf</TD><TD rowspan=1>HDMI CEC Bridge</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>crc_eqn</TD><TD>_prf</TD><TD rowspan=1>CRC Equation generator</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>6 Cover points</TD><TD>dropshort</TD><TD>_cvr</TD><TD rowspan=3>Abort short packets</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prflp</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prflp</TD><TD rowspan=3>Abort short packets</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>dropshort</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>6 Cover points</TD><TD>dropshort</TD><TD>_cvr</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_a</TD><TD rowspan=8>AXI Network packet FIFO</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_ar</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_r</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_awr</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_w</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_wr</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netfifo</TD><TD>_prf_aw</TD></TR>
+<TR></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>netskid</TD><TD>_prf</TD><TD rowspan=1>AXI Network packet Skid-Buffer</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>p642pkt</TD><TD>_prf</TD><TD rowspan=1>Convert 66b protocol to AXI Network stream</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66brxgears</TD><TD>_cvr</TD><TD rowspan=2>31/66b Gearbox</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66brxgears</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66brxgears</TD><TD>_prf</TD><TD rowspan=2>31/66b Gearbox</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>p66brxgears</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>6 Cover points</TD><TD>p66btxgears</TD><TD>_cvr</TD><TD rowspan=2>66/64b Gearbox</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>p66btxgears</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pkt2p64b</TD><TD>_prf</TD><TD rowspan=2>Convert AXI Network stream to p66b protocol</TD></TR>
-<TR><TD bgcolor=#caeec8>12 Cover points</TD><TD>pkt2p64b</TD><TD>_cvr</TD></TR>
-<TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfiford</TD><TD>_prf</TD><TD rowspan=4>Virtual Packet FIFO (Read)</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfiford</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfiford</TD><TD>_prf32</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfiford</TD><TD>_prf32</TD><TD rowspan=4>Virtual Packet FIFO (Read)</TD></TR>
+<TR><TD bgcolor=#ffffca>9 steps of BMC</TD><TD>pktvfiford</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#ffffca>9 steps of BMC</TD><TD>pktvfiford</TD><TD>_prf512</TD></TR>
 <TR><TD bgcolor=#caeec8>3 Cover points</TD><TD>pktvfiford</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>7 Cover points</TD><TD>pktvfifowr</TD><TD>_cvr</TD><TD rowspan=4>Virtual Packet FIFO (Write)</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf32</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#ffa4a4>Terminated</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
+<TR><TD bgcolor=#ffa4a4>Terminated</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#ffa4a4>Terminated</TD><TD>pktvfifowr</TD><TD>_prf32</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>routetbl</TD><TD>_prf</TD><TD rowspan=2>Routing table algorithm</TD></TR>
 <TR><TD bgcolor=#caeec8>8 Cover points</TD><TD>routetbl</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>sdckgen</TD><TD>_prf</TD><TD rowspan=1>SDIO divided clock generator</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdcmd</TD><TD>_prfds</TD><TD rowspan=2>SDIO command wire processor</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdcmd</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdcmd</TD><TD>_prf</TD><TD rowspan=2>SDIO command wire processor</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdcmd</TD><TD>_prfds</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdrxframe</TD><TD>_prf</TD><TD rowspan=3>SDIO data receive processor</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdrxframe</TD><TD>_prfs</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdrxframe</TD><TD>_prfs</TD><TD rowspan=3>SDIO data receive processor</TD></TR>
 <TR><TD bgcolor=#caeec8>25 Cover points</TD><TD>sdrxframe</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdrxframe</TD><TD>_prf</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8>34 Cover points</TD><TD>sdtxframe</TD><TD>_cvr</TD><TD rowspan=2>SDIO data transmit generator</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>sdtxframe</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdwb</TD><TD>_prfds</TD><TD rowspan=3>SDIO wishbone command handler</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdwb</TD><TD>_prfdr</TD><TD rowspan=3>SDIO wishbone command handler</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdwb</TD><TD>_prfds</TD></TR>
 <TR><TD bgcolor=#caeec8>Pass</TD><TD>sdwb</TD><TD>_prf</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>sdwb</TD><TD>_prfdr</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>wbi2cdma</TD><TD>_cvr</TD><TD rowspan=2>Low throughput I2C DMA</TD></TR>
-<TR><TD bgcolor=#caeec8>Pass</TD><TD>wbi2cdma</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>txgetports</TD><TD>_prf</TD><TD rowspan=3>AXI network packet routing table lookup</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>txgetports</TD><TD>_prflp</TD></TR>
+<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>txgetports</TD><TD>_cvr</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>wbmarbiter</TD><TD>_cvr</TD><TD rowspan=2>Wishbone N:1 arbiter</TD></TR>
-<TR><TD bgcolor=#ffffca>14 steps of BMC</TD><TD>wbmarbiter</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8>Pass</TD><TD>wbi2cdma</TD><TD>_prf</TD><TD rowspan=2>Low throughput I2C DMA</TD></TR>
+<TR><TD bgcolor=#caeec8>1 Cover points</TD><TD>wbi2cdma</TD><TD>_cvr</TD></TR>
 </TABLE>
 </BODY></HTML>

@@ -73,12 +73,14 @@ module	netfifo #(
 	reg	[LGFLEN:0]	wr_addr, rd_addr, eop_addr;
 	wire	[LGFLEN:0]	fill;
 	reg			r_midpacket, s_midpacket;
+	wire	w_wr, w_rd, s_abort, wr_eop;
 
-	wire	w_wr = (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT);
-	wire	w_rd = (M_AXIN_VALID && M_AXIN_READY); //
+	assign	w_wr = (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT);
+	assign	w_rd = (M_AXIN_VALID && M_AXIN_READY); //
 		 // || (!M_AXIN_LAST && M_AXIN_ABORT && fill > (1+s_abort))));
-	wire	s_abort = S_AXIN_ABORT && s_midpacket;
+	assign	s_abort = S_AXIN_ABORT && s_midpacket;
 	// wire	w_abort = lastv && S_AXIN_ABORT;
+	assign	wr_eop = w_wr && S_AXIN_LAST;
 	// }}}
 
 	// fill
@@ -107,8 +109,7 @@ module	netfifo #(
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
 		lastv <= 0;	// End of packet pointer is invalid
-	else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT && S_AXIN_LAST
-			&& (!r_empty || !M_AXIN_READY))
+	else if (wr_eop && !r_empty)
 		lastv <= 1;	// EOP points to valid spot in the FIFO
 	else if (w_rd && eop_next)
 		lastv <= 0;	// Packet was read, EOP is now invalid
@@ -120,7 +121,7 @@ module	netfifo #(
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
 		eop_addr <= 0;
-	else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT && S_AXIN_LAST)
+	else if (wr_eop)
 		eop_addr <= wr_addr;
 	// }}}
 
@@ -139,8 +140,9 @@ module	netfifo #(
 	begin
 		if (lastv)
 			wr_addr <= eop_addr + 1;	// Back up to last pkt
-		else if (M_AXIN_VALID)
-			wr_addr <= rd_addr + 1;	// Empty FIFO, no pkts within it
+		else
+			// Empty FIFO, no pkts within it
+			wr_addr <= rd_addr + (M_AXIN_VALID ? 1:0);
 	end else if (w_wr)
 		wr_addr <= wr_addr + 1'b1;
 	// }}}
@@ -271,10 +273,10 @@ module	netfifo #(
 		M_AXIN_ABORT <= 1'b0;
 	else if (!M_AXIN_ABORT)
 	begin
-		if (!lastv)
-			M_AXIN_ABORT <= S_AXIN_ABORT && (M_AXIN_VALID || r_midpacket) && s_midpacket;
+		M_AXIN_ABORT <= !lastv && s_abort
+				&& (M_AXIN_VALID || r_midpacket);
 	end else if (!M_AXIN_VALID || M_AXIN_READY)
-			M_AXIN_ABORT <= 1'b0;
+		M_AXIN_ABORT <= 1'b0;
 	// }}}
 
 	// Make Verilator happy
@@ -295,17 +297,6 @@ module	netfifo #(
 ////////////////////////////////////////////////////////////////////////////////
 //
 `ifdef	FORMAL
-
-//
-// Assumptions about our input(s)
-//
-//
-`ifdef	SFIFO
-`define	ASSUME	assume
-`else
-`define	ASSUME	assert
-`endif
-
 	reg			f_past_valid;
 	wire	[LGFLEN:0]	f_fill, f_next;
 	wire			f_full, f_empty;
@@ -336,6 +327,7 @@ module	netfifo #(
 		//
 		.S_AXIN_VALID(S_AXIN_VALID), .S_AXIN_READY(S_AXIN_READY),
 		.S_AXIN_DATA(S_AXIN_DATA), .S_AXIN_LAST(S_AXIN_LAST),
+		.S_AXIN_BYTES(0),
 		.S_AXIN_ABORT(S_AXIN_ABORT),
 		//
 		.f_stream_word(faxin_swords),
@@ -354,6 +346,7 @@ module	netfifo #(
 		//
 		.S_AXIN_VALID(M_AXIN_VALID), .S_AXIN_READY(M_AXIN_READY),
 		.S_AXIN_DATA(M_AXIN_DATA), .S_AXIN_LAST(M_AXIN_LAST),
+		.S_AXIN_BYTES(0),
 		.S_AXIN_ABORT(M_AXIN_ABORT),
 		//
 		.f_stream_word(faxin_mwords),
@@ -501,6 +494,9 @@ module	netfifo #(
 		assert(mem[f_first_addr[LGFLEN-1:0]][BW]);
 	always @(*)
 		f_first_in_fifo = (f_first_addr_in_fifo && (mem[f_first_addr[LGFLEN-1:0]] == f_first_data));
+	always @(*)
+	if (f_first_in_fifo && f_first_data[BW])
+		assert(lastv || (M_AXIN_VALID && M_AXIN_LAST && f_first_addr == rd_addr));
 	// }}}
 
 	// f_second_data checks
@@ -514,6 +510,9 @@ module	netfifo #(
 
 	always @(*)
 		f_second_in_fifo = (f_second_addr_in_fifo && (mem[f_second_addr[LGFLEN-1:0]] == f_second_data));
+	always @(*)
+	if (f_second_in_fifo && f_second_data[BW])
+		assert(lastv || (M_AXIN_VALID && M_AXIN_LAST && f_second_addr == rd_addr));
 	// }}}
 
 	// EOP checks
@@ -527,15 +526,27 @@ module	netfifo #(
 		f_eop_data = mem[eop_addr[LGFLEN-1:0]];
 
 	always @(*)
-	if (S_AXI_ARESETN && lastv)
+	if (S_AXI_ARESETN)
 	begin
-		assert(f_eop_addr_in_fifo);
-		assert(f_eop_data[BW]);
+		if(lastv)
+		begin
+			assert(f_eop_addr_in_fifo);
+			assert(f_eop_data[BW]);
 
-		if (f_first_in_fifo && f_first_data[BW])
-			assert(f_first_to_eop < (1<<LGFLEN));
-		if (f_second_in_fifo && f_second_data[BW])
-			assert(f_second_to_eop < (1<<LGFLEN));
+			if (f_first_in_fifo && f_first_data[BW])
+				assert(f_first_to_eop < (1<<LGFLEN));
+			if (f_second_in_fifo && f_second_data[BW])
+				assert(f_second_to_eop < (1<<LGFLEN));
+		end else begin
+			assert(!f_eop_addr_in_fifo || !f_eop_data[BW]
+				|| (eop_addr == rd_addr && M_AXIN_VALID && M_AXIN_LAST));
+			if (f_first_in_fifo)
+				assert(!f_first_data[BW]
+					||(f_first_addr == rd_addr && M_AXIN_VALID && M_AXIN_LAST));
+			if (f_second_in_fifo)
+				assert(!f_second_data[BW]
+					||(f_second_addr == rd_addr && M_AXIN_VALID && M_AXIN_LAST));
+		end
 	end
 	// }}}
 
@@ -620,16 +631,19 @@ module	netfifo #(
 
 `ifdef	SFIFO
 	always @(posedge S_AXI_ACLK)
-		cover($fell(f_empty));
+		cover(S_AXI_ARESETN && faxin_swords > 0);
+
+	always @(posedge S_AXI_ACLK)
+		cover($fell(f_empty));		 // !!!
 
 	always @(posedge S_AXI_ACLK)
 		cover($fell(!M_AXIN_READY));
 
 	always @(posedge S_AXI_ACLK)
-		cover(f_was_full && f_empty);
+		cover(f_was_full && f_empty);	// !!!
 
 	always @(posedge S_AXI_ACLK)
-		cover($past(!S_AXIN_READY,2)&&(!$past(!S_AXIN_READY))&&(!S_AXIN_READY));
+		cover($past(!S_AXIN_READY,2)&&(!$past(!S_AXIN_READY))&&(!S_AXIN_READY)); // !!!
 
 	always @(posedge S_AXI_ACLK)
 	if (f_past_valid)

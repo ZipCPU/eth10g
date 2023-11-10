@@ -36,8 +36,8 @@
 ##
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth cecbridge crc_axin crc_eqn
-TESTS += dropshort p642pkt p66brxgears p66btxgears pkt264b pktvfifowr pktvfiford
-TESTS += routetbl wbi2cdma netskid txgetports
+TESTS += dropshort netfifo p642pkt p66brxgears p66btxgears pkt264b pktvfifowr
+TESTS += pktvfiford routetbl wbi2cdma netskid txgetports
 # wbmarbiter sync2stream
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
 .PHONY: $(TESTS)
@@ -70,6 +70,7 @@ SDTX   := sdtxframe
 SDRX   := sdrxframe
 RTBL   := routetbl
 NSKID  := netskid
+NFIFO  := netfifo
 TXPORTS:= txgetports
 ## }}}
 
@@ -105,9 +106,9 @@ $(BCAST)_cvr/PASS: $(BCAST).sby   $(RTLNET)/$(BCAST).v $(FAXIN)
 .PHONY: crc_axin
 ## {{{
 crc_axin := crc_axin_prf/PASS crc_axin_cvr/PASS
-crc_axin_prf/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v
+crc_axin_prf/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v $(FAXIN)
 	sby $(SBYFLAGS) crc_axin.sby prf
-crc_axin_cvr/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v
+crc_axin_cvr/PASS: crc_axin.sby   $(RTLNET)/crc_axin.v $(FAXIN)
 	sby $(SBYFLAGS) crc_axin.sby cvr
 ## }}}
 
@@ -183,9 +184,9 @@ $(TXGEARS)_cvr/PASS: $(TXGEARS).sby   $(RTLNET)/$(TXGEARS).v
 .PHONY: $(P642PKT)
 ## {{{
 $(P642PKT): $(P642PKT)_prf/PASS # $(P642PKT)_cvr/PASS
-$(P642PKT)_prf/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
+$(P642PKT)_prf/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v $(FAXIN)
 	sby $(SBYFLAGS) $(P642PKT).sby prf
-$(P642PKT)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v
+$(P642PKT)_cvr/PASS: $(P642PKT).sby   $(RTLNET)/$(P642PKT).v $(FAXIN)
 	sby $(SBYFLAGS) $(P642PKT).sby cvr
 ## }}}
 
@@ -247,18 +248,42 @@ $(PKTVWR)_cvr/PASS: $(PKTVWR).sby    $(RTLNET)/$(PKTVWR).v $(FAXIN) $(WB)
 .PHONY: $(NSKID)
 ## {{{
 $(NSKID): $(NSKID)_prf/PASS
-$(NSKID)_prf/PASS: $(NSKID).sby $(RTLNET)/$(NSKID).v
+$(NSKID)_prf/PASS: $(NSKID).sby $(RTLNET)/$(NSKID).v $(FAXIN)
 	sby $(SBYFLAGS) $(NSKID).sby prf
+## }}}
+
+.PHONY: $(NFIFO)
+## {{{
+$(NFIFO): $(NFIFO)_prf/PASS    $(NFIFO)_prf_wr/PASS
+$(NFIFO): $(NFIFO)_prf_w/PASS  $(NFIFO)_prf_r/PASS
+$(NFIFO): $(NFIFO)_prf_a/PASS  $(NFIFO)_prf_awr/PASS
+$(NFIFO): $(NFIFO)_prf_aw/PASS $(NFIFO)_prf_ar/PASS
+$(NFIFO)_prf/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf
+$(NFIFO)_prf_r/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_r
+$(NFIFO)_prf_w/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_w
+$(NFIFO)_prf_wr/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_wr
+$(NFIFO)_prf_a/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_a
+$(NFIFO)_prf_ar/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_ar
+$(NFIFO)_prf_aw/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_aw
+$(NFIFO)_prf_awr/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby prf_awr
 ## }}}
 
 .PHONY: $(TXPORTS)
 ## {{{
 $(TXPORTS): $(TXPORTS)_prf/PASS $(TXPORTS)_prflp/PASS  $(TXPORTS)_cvr/PASS
-$(TXPORTS)_prf/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v
+$(TXPORTS)_prf/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v $(FAXIN)
 	sby $(SBYFLAGS) $(TXPORTS).sby prf
-$(TXPORTS)_prflp/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v
+$(TXPORTS)_prflp/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v $(FAXIN)
 	sby $(SBYFLAGS) $(TXPORTS).sby prflp
-$(TXPORTS)_cvr/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v
+$(TXPORTS)_cvr/PASS: $(TXPORTS).sby   $(RTLNET)/$(TXPORTS).v $(FAXIN)
 	sby $(SBYFLAGS) $(TXPORTS).sby cvr
 ## }}}
 
@@ -343,13 +368,15 @@ report:
 clean:
 	rm -rf $(NARB)_*/    $(BCAST)_*/     $(NWIDTH)_*/
 	rm -rf $(CRCEQ)_*/
-	rm -rf $(DSHORT)_*/  $(WBMARB)_*/
+	rm -rf $(DSHORT)_*/
 	rm -rf $(RXGEARS)_*/ $(TXGEARS)_*/
 	rm -rf $(P642PKT)_*/ $(PKT2P64B)_*/
 	rm -rf $(CEC)_*/     $(I2CDMA)_*/
 	rm -rf $(SDCK)_*/    $(SDCMD)_*/
 	rm -rf $(SDWB)_*/    $(SDTX)_*/
 	rm -rf $(SDRX)_*/    $(RTBL)_*/
-	rm -rf $(NSKID)_*/   $(TXPORTS)_*/
+	rm -rf $(NSKID)_*/   $(NFIFO)_*/
+	rm -rf $(TXPORTS)_*/
 	rm -rf $(PKTVRD)_*/  $(PKTVWR)_*/
+	rm -rf $(WBMARB)_*/  $(PKTVWR)_*/
 ## }}}
