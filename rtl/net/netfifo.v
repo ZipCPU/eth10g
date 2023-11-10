@@ -300,6 +300,8 @@ module	netfifo #(
 	reg			f_past_valid;
 	wire	[LGFLEN:0]	f_fill, f_next;
 	wire			f_full, f_empty;
+	(* anyconst *)	reg	fnvr_abort;
+	(* anyconst *)	reg	[BW:0]	fnvr_data;
 
 	initial	f_past_valid = 1'b0;
 	always @(posedge S_AXI_ACLK)
@@ -409,6 +411,40 @@ module	netfifo #(
 		assert(!S_AXIN_LAST || M_AXIN_LAST);
 		assert(M_AXIN_DATA == S_AXIN_DATA);
 	end
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Never checks
+	// {{{
+	always @(*)
+	if (fnvr_abort)
+		assume(!S_AXIN_ABORT);
+
+	always @(*)
+	if (S_AXI_ARESETN && fnvr_abort)
+		assert(!M_AXIN_ABORT);
+
+	always @(*)
+	if (S_AXIN_VALID)
+		assume({ S_AXIN_LAST, S_AXIN_DATA } != fnvr_data);
+
+	always @(*)
+	if (S_AXI_ARESETN)
+	begin
+		if (f_first_in_fifo)
+			assert(f_first_data != fnvr_data);
+		if (f_second_in_fifo)
+			assert(f_second_data != fnvr_data);
+
+		if (M_AXIN_VALID && (rd_addr != f_first_addr)
+				&& (rd_addr != f_second_addr))
+			assume({ M_AXIN_LAST, M_AXIN_DATA } != fnvr_data);
+	end
+
+	always @(*)
+	if (S_AXI_ARESETN && M_AXIN_VALID && !M_AXIN_ABORT)
+		assert({ M_AXIN_LAST, M_AXIN_DATA } != fnvr_data);
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
