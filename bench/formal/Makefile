@@ -37,7 +37,7 @@
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth cecbridge crc_axin crc_eqn
 TESTS += dropshort netfifo p642pkt p66brxgears p66btxgears pkt264b pktvfifowr
-TESTS += pktvfiford routetbl wbi2cdma netskid txgetports
+TESTS += pktvfiford routetbl wbi2cdma netskid txgetports pktgate
 # wbmarbiter sync2stream
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
 .PHONY: $(TESTS)
@@ -54,13 +54,18 @@ BCAST  := axinbroadcast
 NWIDTH := axinwidth
 CRCEQ  := crc_eqn
 DSHORT := dropshort
-RXGEARS:= p66brxgears
-TXGEARS:= p66btxgears
+NFIFO  := netfifo
+NSKID  := netskid
 P642PKT:= p642pkt
+PGATE  := pktgate
 PKT2P64B:= pkt2p64b
-WBMARB := wbmarbiter
 PKTVRD := pktvfiford
 PKTVWR := pktvfifowr
+RTBL   := routetbl
+RXGEARS:= p66brxgears
+TXGEARS:= p66btxgears
+TXPORTS:= txgetports
+WBMARB := wbmarbiter
 CEC    := cecbridge
 I2CDMA := wbi2cdma
 SDCK   := sdckgen
@@ -68,10 +73,6 @@ SDCMD  := sdcmd
 SDWB   := sdwb
 SDTX   := sdtxframe
 SDRX   := sdrxframe
-RTBL   := routetbl
-NSKID  := netskid
-NFIFO  := netfifo
-TXPORTS:= txgetports
 ## }}}
 
 ## Interfaces
@@ -258,6 +259,7 @@ $(NFIFO): $(NFIFO)_prf/PASS    $(NFIFO)_prf_wr/PASS
 $(NFIFO): $(NFIFO)_prf_w/PASS  $(NFIFO)_prf_r/PASS
 $(NFIFO): $(NFIFO)_prf_a/PASS  $(NFIFO)_prf_awr/PASS
 $(NFIFO): $(NFIFO)_prf_aw/PASS $(NFIFO)_prf_ar/PASS
+$(NFIFO): $(NFIFO)_cvr/PASS
 $(NFIFO)_prf/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
 	sby $(SBYFLAGS) $(NFIFO).sby prf
 $(NFIFO)_prf_r/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
@@ -274,6 +276,35 @@ $(NFIFO)_prf_aw/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
 	sby $(SBYFLAGS) $(NFIFO).sby prf_aw
 $(NFIFO)_prf_awr/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
 	sby $(SBYFLAGS) $(NFIFO).sby prf_awr
+$(NFIFO)_cvr/PASS: $(NFIFO).sby $(RTLNET)/$(NFIFO).v $(FAXIN)
+	sby $(SBYFLAGS) $(NFIFO).sby cvr
+## }}}
+
+.PHONY: $(PGATE)
+## {{{
+$(PGATE): $(PGATE)_prf/PASS    $(PGATE)_prf_wr/PASS
+$(PGATE): $(PGATE)_prf_w/PASS  $(PGATE)_prf_r/PASS
+$(PGATE): $(PGATE)_prf_a/PASS  $(PGATE)_prf_awr/PASS
+$(PGATE): $(PGATE)_prf_aw/PASS $(PGATE)_prf_ar/PASS
+$(PGATE): $(PGATE)_cvr/PASS
+$(PGATE)_prf/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf
+$(PGATE)_prf_r/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_r
+$(PGATE)_prf_w/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_w
+$(PGATE)_prf_wr/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_wr
+$(PGATE)_prf_a/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_a
+$(PGATE)_prf_ar/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_ar
+$(PGATE)_prf_aw/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_aw
+$(PGATE)_prf_awr/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby prf_awr
+$(PGATE)_cvr/PASS: $(PGATE).sby $(RTLNET)/$(PGATE).v $(FAXIN)
+	sby $(SBYFLAGS) $(PGATE).sby cvr
 ## }}}
 
 .PHONY: $(TXPORTS)
@@ -376,7 +407,7 @@ clean:
 	rm -rf $(SDWB)_*/    $(SDTX)_*/
 	rm -rf $(SDRX)_*/    $(RTBL)_*/
 	rm -rf $(NSKID)_*/   $(NFIFO)_*/
-	rm -rf $(TXPORTS)_*/
+	rm -rf $(TXPORTS)_*/ $(PGATE)_*/
 	rm -rf $(PKTVRD)_*/  $(PKTVWR)_*/
 	rm -rf $(WBMARB)_*/  $(PKTVWR)_*/
 ## }}}
