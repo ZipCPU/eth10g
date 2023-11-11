@@ -269,14 +269,14 @@ module routetbl #(
 	else if (TX_VALID && !TX_ACK)
 	begin
 		if (&TX_DSTMAC)
-			TX_PORT <= BROADCAST_PORT | OPT_ALWAYS;
+			TX_PORT <= (BROADCAST_PORT & (~OPT_NEVER)) | OPT_ALWAYS;
 		else if (lkup_tblmatch == 0)
 			// No table lookup match.
 			//
 			// Non-matches can be broadcast
-			TX_PORT <= DEFAULT_PORT | OPT_ALWAYS;
+			TX_PORT <= (DEFAULT_PORT & (~OPT_NEVER)) | OPT_ALWAYS;
 		else
-			TX_PORT <= lkup_port | OPT_ALWAYS;
+			TX_PORT <= (lkup_port & (~OPT_NEVER)) | OPT_ALWAYS;
 	end
 
 	initial	TX_ACK = 1'b0;

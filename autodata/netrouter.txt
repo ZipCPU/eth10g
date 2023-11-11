@@ -205,8 +205,20 @@
 		.AW(@$(MASTER.BUS.AWID)),
 		.OPT_VFIFO(4'b1100)
 `ifdef	CPUNET_ACCESS
-		, .OPT_NEVER({ 5'h10, 5'h19, 5'h16, 5'h0b, 5'h07 }),
-		.OPT_ALWAYS({ 5'h00, 5'h02, 5'h01, 5'h10, 5'h10 })
+		// This *WORKS*
+		, .OPT_NEVER({ 5'h00, 5'h0d, 5'h0e, 5'h03, 5'h03 }),
+		.OPT_ALWAYS({ 5'h00, 5'h11, 5'h12, 5'h00, 5'h00 })
+		// This also fails ...
+		// , .OPT_NEVER({ 5'h00, 5'h0d, 5'h0e, 5'h03, 5'h03 }),
+		// .OPT_ALWAYS({ 5'h00, 5'h12, 5'h11, 5'h00, 5'h00 })
+		//
+		// This configuration failed
+		// , .OPT_NEVER({ 5'h13, 5'h0b, 5'h07, 5'h03, 5'h03 }),
+		// .OPT_ALWAYS({ 5'h00, 5'h10, 5'h00, 5'h00, 5'h00 })
+		//
+		// This configuration worked (I think ...)
+		// , .OPT_NEVER({ 5'h10, 5'h18, 5'h14, 5'h0b, 5'h07 }),
+		// .OPT_ALWAYS({ 5'h00, 5'h02, 5'h01, 5'h10, 5'h10 })
 `endif
 	) u_router (
 		// {{{
@@ -261,7 +273,7 @@
 	);
 
 	// }}}
-@REGS.N=49
+@REGS.N=59
 @REGS.0=0   R_@$(DEVID) @$(DEVID)
 @REGS.1=0   R_@$(DEVID)0	@$(DEVID)0
 @REGS.2=1   R_@$(DEVID)SZ0	@$(DEVID)SZ0
@@ -313,6 +325,16 @@
 @REGS.46=45 R_@$(DEVID)NWL3	@$(DEVID)NWL3
 @REGS.47=46 R_@$(DEVID)LKH3	@$(DEVID)LKH3
 @REGS.48=47 R_@$(DEVID)LKL3	@$(DEVID)LKL3
+@REGS.49=48 R_@$(DEVID)NWH4	@$(DEVID)NWH4
+@REGS.50=49 R_@$(DEVID)NWL4	@$(DEVID)NWL4
+@REGS.51=50 R_@$(DEVID)LKH4	@$(DEVID)LKH4
+@REGS.52=51 R_@$(DEVID)LKL4	@$(DEVID)LKL4
+@REGS.53=52 R_@$(DEVID)DBG0	@$(DEVID)DBG0
+@REGS.54=53 R_@$(DEVID)DBG1	@$(DEVID)DBG1
+@REGS.55=54 R_@$(DEVID)DBG2	@$(DEVID)DBG2
+@REGS.56=55 R_@$(DEVID)DBG3	@$(DEVID)DBG3
+@REGS.57=56 R_@$(DEVID)DBG4	@$(DEVID)DBG4
+@REGS.58=63 R_@$(DEVID)DBGS	@$(DEVID)DBGS
 @BDEF.DEFN=
 
 typedef	struct	PKTVFIFO_S {

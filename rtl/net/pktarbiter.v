@@ -83,7 +83,7 @@ module pktarbiter #(
 `ifdef	FORMAL
 	// Declarations
 	// {{{
-	reg	f_past_valid;
+	reg		f_past_valid;
 	wire	[W-1:0]	not_granted;
 
 
@@ -106,10 +106,7 @@ module pktarbiter #(
 
 	always @(posedge i_clk)
 	if (!i_reset_n || $past(!i_reset_n))
-	begin
 		assume(i_req == 0);
-	end else
-		assume((i_req & $past(not_granted)) == $past(not_granted));
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

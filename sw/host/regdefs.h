@@ -179,6 +179,16 @@
 #define	R_ROUTERNWL3     	0x020005b4	// 02000500, wbregs names: ROUTERNWL3
 #define	R_ROUTERLKH3     	0x020005b8	// 02000500, wbregs names: ROUTERLKH3
 #define	R_ROUTERLKL3     	0x020005bc	// 02000500, wbregs names: ROUTERLKL3
+#define	R_ROUTERNWH4     	0x020005c0	// 02000500, wbregs names: ROUTERNWH4
+#define	R_ROUTERNWL4     	0x020005c4	// 02000500, wbregs names: ROUTERNWL4
+#define	R_ROUTERLKH4     	0x020005c8	// 02000500, wbregs names: ROUTERLKH4
+#define	R_ROUTERLKL4     	0x020005cc	// 02000500, wbregs names: ROUTERLKL4
+#define	R_ROUTERDBG0     	0x020005d0	// 02000500, wbregs names: ROUTERDBG0
+#define	R_ROUTERDBG1     	0x020005d4	// 02000500, wbregs names: ROUTERDBG1
+#define	R_ROUTERDBG2     	0x020005d8	// 02000500, wbregs names: ROUTERDBG2
+#define	R_ROUTERDBG3     	0x020005dc	// 02000500, wbregs names: ROUTERDBG3
+#define	R_ROUTERDBG4     	0x020005e0	// 02000500, wbregs names: ROUTERDBG4
+#define	R_ROUTERDBGS     	0x020005fc	// 02000500, wbregs names: ROUTERDBGS
 #define	R_DDR3_PHY       	0x02000600	// 02000600, wbregs names: DDR3_PHY
 #define	R_BKRAM          	0x04000000	// 04000000, wbregs names: RAM
 #define	R_DDR3_CONTROLLER	0x40000000	// 40000000, wbregs names: DDR3_CONTROLLER

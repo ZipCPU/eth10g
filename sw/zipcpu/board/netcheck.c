@@ -157,7 +157,8 @@ printf("RX PKT!\n");
 		_cpunet->net_rxrptr = wptr;
 		return 0;
 	} else if (ln > maxln) {
-		printf("ERROR !!  JUMBO packet too big at %d bytes\n", ln);
+		printf("ERROR !!  JUMBO packet too big at %d bytes (%08x)\n",
+			ln, ln);
 		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
 		return 0;
 	}

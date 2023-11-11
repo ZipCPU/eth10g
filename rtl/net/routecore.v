@@ -182,7 +182,11 @@ module routecore #(
 	wire	[31:0]		cpu_debug;
 	wire	[NETH-1:0]	dbg_watchdog, mid_tx;
 
-	reg	[31:0]	dbg_wb_data;
+	reg	[31:0]		dbg_wb_data;
+	wire	[NETH*32-1:0]	w_wide_debug;
+
+	reg	[2:0]		dbg_sel;
+	wire	[NETH*32-1:0]	arb_debug, bcast_debug;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -227,6 +231,8 @@ module routecore #(
 		reg	[NETH*PKTDW-1:0]	prearb_data;
 		reg	[NETH*PKTBYW-1:0]	prearb_bytes;
 		reg	[NETH-1:0]		prearb_last, prearb_abort;
+
+		wire			tx_abort;
 		// }}}
 
 		// Grab packet MACs for the router
@@ -474,8 +480,9 @@ module routecore #(
 			.M_BYTES(txx_bytes[geth * PKTBYW * NETH
 						+: PKTBYW * NETH]),
 			.M_LAST(txx_last[geth * NETH +: NETH]),
-			.M_ABORT(txx_abort[geth * NETH +: NETH])
+			.M_ABORT(txx_abort[geth * NETH +: NETH]),
 			// }}}
+			.o_debug(bcast_debug[geth * 32 +: 32])
 			// }}}
 		);
 		// }}}
@@ -486,7 +493,7 @@ module routecore #(
 		for(iport_pre=0; iport_pre<NETH; iport_pre=iport_pre+1)
 		begin
 			prearb_valid[iport_pre] = txx_valid[iport_pre * NETH+geth];
-			txx_ready[iport_pre*NETH+geth] = prearb_ready[iport_pre];
+			txx_ready[iport_pre*NETH+geth]= prearb_ready[iport_pre];
 			prearb_data[iport_pre * PKTDW +: PKTDW]
 				 = txx_data[(iport_pre*NETH+geth)*PKTDW +: PKTDW];
 			prearb_bytes[iport_pre * PKTBYW +: PKTBYW]
@@ -516,9 +523,13 @@ module routecore #(
 			.M_DATA( TX_DATA[ geth*PKTDW +: PKTDW]),
 			.M_BYTES(TX_BYTES[geth*PKTBYW +: PKTBYW]),
 			.M_LAST( TX_LAST[ geth]),
-			.M_ABORT(TX_ABORT[geth])
+			.M_ABORT(tx_abort),
+			//
+			.o_debug(arb_debug[geth * 32 +: 32])
 			// }}}
 		);
+
+		assign	TX_ABORT[geth] = tx_abort || ETH_RESET[geth];
 		// }}}
 
 		////////////////////////////////////////////////////////////////
@@ -574,6 +585,27 @@ module routecore #(
 		);
 
 		// }}}
+
+		reg	[31:0]	w_debug;
+		integer		dbgi;
+
+		always @(*)
+		begin
+			w_debug = 0;
+			w_debug[20 +: 12] = { TX_VALID[geth], TX_READY[geth],
+					TX_LAST[geth], TX_ABORT[geth],
+				rtd_valid, rtd_ready, rtd_last, rtd_abort,
+				mmout_valid, mmout_ready, mmout_last,
+					mmout_abort
+				 };
+			for(dbgi = 0; dbgi < NETH; dbgi=dbgi+1)
+				w_debug[dbgi*4 +: 4] = { prearb_valid[dbgi],
+					prearb_ready[dbgi],
+					prearb_last[dbgi],
+					prearb_abort[dbgi] };
+		end
+
+		assign	w_wide_debug[geth*32 +: 32] = w_debug;
 	end endgenerate
 
 	function [NETH-1:0]	CALC_NEVER(integer here);
@@ -750,8 +782,9 @@ module routecore #(
 			.M_BYTES(txx_bytes[(NETH-1) * PKTBYW * NETH
 						+: PKTBYW * NETH]),
 			.M_LAST(txx_last[(NETH-1) * NETH +: NETH]),
-			.M_ABORT(txx_abort[(NETH-1) * NETH +: NETH])
+			.M_ABORT(txx_abort[(NETH-1) * NETH +: NETH]),
 			// }}}
+			.o_debug(bcast_debug[NMEM * 32 +: 32])
 			// }}}
 		);
 		// }}}
@@ -792,7 +825,9 @@ module routecore #(
 			.M_DATA( TX_DATA[ (NETH-1)*PKTDW +: PKTDW]),
 			.M_BYTES(TX_BYTES[(NETH-1)*PKTBYW +: PKTBYW]),
 			.M_LAST( TX_LAST[ (NETH-1)]),
-			.M_ABORT(TX_ABORT[(NETH-1)])
+			.M_ABORT(TX_ABORT[(NETH-1)]),
+			//
+			.o_debug(arb_debug[NMEM * 32 +: 32])
 			// }}}
 		);
 		// }}}
@@ -849,6 +884,28 @@ module routecore #(
 		);
 
 		// }}}
+
+		reg	[31:0]	w_debug;
+		integer		dbgi;
+
+		always @(*)
+		begin
+			w_debug = 0;
+			w_debug[20 +: 12] = { TX_VALID[NMEM], TX_READY[NMEM],
+					TX_LAST[NMEM], TX_ABORT[NMEM],
+				rtd_valid, rtd_ready, rtd_last, rtd_abort,
+				mmout_valid, mmout_ready, mmout_last,
+					mmout_abort
+				 };
+			for(dbgi = 0; dbgi < NETH; dbgi=dbgi+1)
+				w_debug[dbgi*4 +: 4] = { prearb_valid[dbgi],
+					prearb_ready[dbgi],
+					prearb_last[dbgi],
+					prearb_abort[dbgi] };
+		end
+
+		assign	w_wide_debug[NMEM*32 +: 32] = w_debug;
+
 	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -879,6 +936,12 @@ module routecore #(
 		if (ctrl_ack==0)
 			pre_ctrl_data = dbg_wb_data;
 	end
+
+	always @(posedge i_clk)
+	if (i_reset)
+		dbg_sel <= 3'h7;
+	else if (i_ctrl_stb && i_ctrl_we && (&i_ctrl_sel) && (&i_ctrl_addr))
+		dbg_sel <= i_ctrl_data[2:0];
 
 	always @(posedge i_clk)
 	if (OPT_VFIFO != 0)
@@ -920,7 +983,8 @@ module routecore #(
 	begin
 		dbg_wb_data <= 32'h0;
 		case(i_ctrl_addr)
-		//
+		// TBL port #0
+		// {{{
 		6'b100_000: begin
 			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*0 +32 +: 16];
 			dbg_wb_data[16 +: $clog2(NETH)]
@@ -934,8 +998,10 @@ module routecore #(
 				(LGROUTETBL+1)*0 +: (LGROUTETBL+1)];
 			end
 		6'b100_011: dbg_wb_data <= tbl_lookup_mac[MACW*0 +: 32];
+		// }}}
 		//
-		//
+		// TBL port #1
+		// {{{
 		6'b100_100: begin
 			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*1 +32 +: 16];
 			dbg_wb_data[16 +: $clog2(NETH)]
@@ -949,8 +1015,10 @@ module routecore #(
 				(LGROUTETBL+1)*1 +: (LGROUTETBL+1)];
 			end
 		6'b100_111: dbg_wb_data <= tbl_lookup_mac[MACW*1 +: 32];
+		// }}}
 		//
-		//
+		// TBL port #2
+		// {{{
 		6'b101_000: begin
 			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*2 +32 +: 16];
 			dbg_wb_data[16 +: $clog2(NETH)]
@@ -964,8 +1032,10 @@ module routecore #(
 				(LGROUTETBL+1)*2 +: (LGROUTETBL+1)];
 			end
 		6'b101_011: dbg_wb_data <= tbl_lookup_mac[MACW*2 +: 32];
+		// }}}
 		//
-		//
+		// TBL port #3
+		// {{{
 		6'b101_100: begin
 			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*3 +32 +: 16];
 			dbg_wb_data[16 +: $clog2(NETH)]
@@ -979,8 +1049,10 @@ module routecore #(
 				(LGROUTETBL+1)*3 +: (LGROUTETBL+1)];
 			end
 		6'b101_111: dbg_wb_data <= tbl_lookup_mac[MACW*3 +: 32];
+		// }}}
 		//
-		//
+		// TBL port #4
+		// {{{
 		6'b110_000: begin
 			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*4 +32 +: 16];
 			dbg_wb_data[16 +: $clog2(NETH)]
@@ -994,18 +1066,28 @@ module routecore #(
 				(LGROUTETBL+1)*4 +: (LGROUTETBL+1)];
 			end
 		6'b110_011: dbg_wb_data <= tbl_lookup_mac[MACW*4 +: 32];
+		// }}}
+		//
+		6'b110_100: dbg_wb_data <= w_wide_debug[0*32 +: 32];
+		6'b110_101: dbg_wb_data <= w_wide_debug[1*32 +: 32];
+		6'b110_110: dbg_wb_data <= w_wide_debug[2*32 +: 32];
+		6'b110_111: dbg_wb_data <= w_wide_debug[3*32 +: 32];
+		6'b111_000: dbg_wb_data <= w_wide_debug[4*32 +: 32];
+		//
+		6'b111_111: dbg_wb_data[2:0] <= dbg_sel;
 		default: begin end
 		endcase
 	end
 
 	generate for (geth=0; geth < NETH; geth = geth+1)
 	begin : GEN_WATCHDOG
-		localparam	LGWATCHDOG = 27;	// About 1s at 100MHz
+		// localparam	LGWATCHDOG = 27;	// About 1s at 100MHz
+		localparam	LGWATCHDOG = 16;
 		reg	[LGWATCHDOG:0]	r_watchdog;
 		reg			r_mid_tx;
 
 		always @(posedge i_clk)
-		if (i_reset)
+		if (i_reset || ETH_RESET[geth])
 			r_watchdog <= 0;
 		else if (TX_VALID[geth] && TX_READY[geth])
 			r_watchdog <= 0;
@@ -1015,7 +1097,7 @@ module routecore #(
 		assign	dbg_watchdog[geth] = r_watchdog[LGWATCHDOG];
 
 		always @(posedge i_clk)
-		if (i_reset)
+		if (i_reset || ETH_RESET[geth])
 			r_mid_tx <= 0;
 		else if (TX_VALID[geth] && TX_READY[geth]
 						&& TX_LAST[geth])
@@ -1039,21 +1121,27 @@ module routecore #(
 		assign	cpu_debug = 32'h0;
 	end endgenerate
 
-	always @(*)
+	always @(posedge i_clk)
 	begin
-		o_debug = 32'h0;
-		o_debug[30] = |dbg_watchdog;
-		o_debug[24 +: NMEM] = RX_VALID[NMEM-1:0];
-		o_debug[20 +: NMEM] = RX_READY[NMEM-1:0];
-		o_debug[16 +: NMEM] = RX_LAST[ NMEM-1:0];
-		o_debug[12 +: NMEM] = RX_ABORT[NMEM-1:0];
-		o_debug[ 8 +: NMEM] = TX_VALID[NMEM-1:0];
-		o_debug[ 4 +: NMEM] = TX_READY[NMEM-1:0];
-		o_debug[ 0 +: NMEM] = mid_tx[NMEM-1:0];
+		o_debug <= 32'h0;
+		o_debug[30] <= |dbg_watchdog;
+		o_debug[24 +: NMEM] <= RX_VALID[NMEM-1:0];
+		o_debug[20 +: NMEM] <= RX_READY[NMEM-1:0];
+		o_debug[16 +: NMEM] <= RX_LAST[ NMEM-1:0];
+		o_debug[12 +: NMEM] <= RX_ABORT[NMEM-1:0];
+		o_debug[ 8 +: NMEM] <= TX_VALID[NMEM-1:0];
+		o_debug[ 4 +: NMEM] <= TX_READY[NMEM-1:0];
+		o_debug[ 0 +: NMEM] <= mid_tx[NMEM-1:0];
 
-		o_debug = o_debug | cpu_debug;
+		o_debug <= o_debug | cpu_debug;
 
-		o_debug[31] = |dbg_watchdog;
+		o_debug[31] <= |dbg_watchdog;
+
+		// Verilator lint_off WIDTH
+		if (dbg_sel < NETH)
+			// o_debug <= arb_debug >> (dbg_sel * 32);
+			o_debug <= bcast_debug >> (dbg_sel * 32);
+		// Verilator lint_on  WIDTH
 	end
 	// }}}
 
@@ -1061,14 +1149,14 @@ module routecore #(
 	// {{{
 	// Verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0 };
+	assign	unused = &{ 1'b0, arb_debug };
 
 	generate if (OPT_VFIFO == 0)
 	begin : GEN_UNUSED_VFIFO
 		wire	unused_vfifo_wb;
 		assign	unused_vfifo_wb = &{ 1'b0, vfifo_stall, vfifo_ack,
-				vfifo_idata, vfifo_err, i_ctrl_addr,
-				i_ctrl_we, i_ctrl_sel, i_ctrl_data };
+				vfifo_idata, vfifo_err, i_ctrl_data
+				};
 	end endgenerate
 	// Verilator lint_on  UNUSED
 	// }}}

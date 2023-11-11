@@ -207,7 +207,8 @@ module	pktvfifo #(
 
 	reg	[26:0]	txpkt_count;
 	reg	[32:0]	txbyte_count;
-	reg	[31:0]	w_tx_debug, w_rx_debug, pkts_in_fifo, bytes_in_fifo;
+	reg	[31:0]	w_tx_debug, w_rx_debug, pkts_in_fifo, bytes_in_fifo,
+			w_txfifo_debug;
 	reg		r_dbg_vfifo, mid_txpkt;
 
 
@@ -391,8 +392,10 @@ module	pktvfifo #(
 				o_ctrl_data <= 32'hffff_ffff;
 			else
 				o_ctrl_data <= txbyte_count[31:0];
-		ADR_FIFOPKTS:
-			o_ctrl_data <= pkts_in_fifo;
+		ADR_FIFOPKTS: if (r_dbg_vfifo)
+				o_ctrl_data <= w_txfifo_debug;
+			else
+				o_ctrl_data <= pkts_in_fifo;
 		ADR_FIFOBYTES:
 			o_ctrl_data <= bytes_in_fifo;
 		endcase
@@ -455,7 +458,15 @@ module	pktvfifo #(
 			(vfifo_wr.wr_pktlen[AW+WBLSB-1:20] != 0) ? 20'hfffff
 				: vfifo_wr.wr_pktlen[19:0],
 			vfifo_wr.wr_state[2:0], wr_wb_cyc,		// 4b
-			wr_wb_stb, vfifo_wr.wr_outstanding[LGPIPE:0] };		// 8b
+			wr_wb_stb, vfifo_wr.wr_outstanding[LGPIPE:0] };	// 8b
+
+		w_txfifo_debug = 0;
+		w_txfifo_debug[0  +: (LGFIFO+1)] = vfifo_rd.fifo_space;
+		w_txfifo_debug[16 +: (LGFIFO+1)] = ign_ackfifo_fill;
+
+		w_txfifo_debug[15:12] = { !ackfifo_empty, ackfifo_read,
+						ackfifo_last, ign_outw_abort };
+		w_txfifo_debug[31:28] = { M_VALID, M_READY, M_LAST, M_ABORT };
 	end
 	// }}}
 	// }}}

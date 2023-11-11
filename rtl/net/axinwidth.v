@@ -74,10 +74,17 @@ module	axinwidth #(
 		output	reg [$clog2(OW/8):0]	M_AXIN_BYTES,
 		output	reg			M_AXIN_LAST,
 		output  reg			M_AXIN_ABORT
+		//
+		// output	wire	[31:0]	o_debug
 		// }}}
 	);
 
+	// Local declarations
+	// {{{
+	wire	[31:0]	o_debug;
+	wire	[31:0]	wsz_debug;
 `ifdef FORMAL
+	// {{{
 	localparam MIN_LENGTH =   64*8;	//   64 Bytes
 	localparam MAX_LENGTH = 2048*8;	// 2048 Bytes
 	localparam MIN_LENGTH_I = MIN_LENGTH/IW;
@@ -100,28 +107,28 @@ module	axinwidth #(
 
 	wire	[LGMX-1:0] f_s_stream_word, f_m_stream_word;
 	wire	[12-1:0]   f_s_packets_rcvd, f_m_packets_rcvd;
+	// }}}
 `endif
+	// }}}
+
 	generate if (IW == OW)
 	begin : EQUAL
 		// {{{
 		assign	S_AXIN_READY = M_AXIN_READY;
 		assign	M_AXIN_DATA  = S_AXIN_DATA;
 
-		always @(posedge ACLK)
-		if (!ARESETN)
+		always @(*)
 		begin
-			M_AXIN_VALID <= 0;
-			M_AXIN_LAST  <= 0;
-			M_AXIN_BYTES <= 0;
-			M_AXIN_ABORT <= 0;
-		end else begin
-			M_AXIN_VALID <= S_AXIN_VALID;
-			M_AXIN_LAST  <= S_AXIN_LAST;
-			M_AXIN_BYTES <= S_AXIN_BYTES;
-			M_AXIN_ABORT <= S_AXIN_ABORT;
+			M_AXIN_VALID = S_AXIN_VALID;
+			M_AXIN_LAST  = S_AXIN_LAST;
+			M_AXIN_BYTES = S_AXIN_BYTES;
+			M_AXIN_ABORT = S_AXIN_ABORT;
 		end
+
+		assign	wsz_debug = 32'h0;
 		// }}}
-	end else if (IW < OW)
+	end else begin : NOT_EQUAL
+	if (IW < OW)
 	begin : IW_SMALLER
 		// {{{
 		// Try IW = 8, OW = 32		(You need this for verification)
@@ -140,7 +147,8 @@ module	axinwidth #(
 
 		assign	s_data = ISWAP_ENDIANNESS(S_AXIN_DATA);
 
-
+		// mid_packet
+		// {{{
 		initial	mid_packet = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
@@ -149,25 +157,26 @@ module	axinwidth #(
 			mid_packet <= 0;
 		else if (S_AXIN_VALID && S_AXIN_READY)
 			mid_packet <= !S_AXIN_LAST && !S_AXIN_ABORT;
+		// }}}
 
 		// M_AXIN_ABORT
+		// {{{
 		initial M_AXIN_ABORT = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
 			M_AXIN_ABORT <= 0;
-		else if (M_AXIN_VALID && !M_AXIN_READY
-				&& (M_AXIN_ABORT || (S_AXIN_ABORT && mid_packet)))
-			M_AXIN_ABORT <= 1;
 		else if (S_AXIN_ABORT && mid_packet)
 			M_AXIN_ABORT <= 1;
 		else if (!M_AXIN_VALID || M_AXIN_READY)
 			M_AXIN_ABORT <= 0;
+		// }}}
 
 		// M_AXIN_DATA, S_AXIN_READY
 		assign S_AXIN_READY = !M_AXIN_VALID || M_AXIN_READY || S_AXIN_ABORT;
 		assign M_AXIN_DATA  = OSWAP_ENDIANNESS(data_concat);
 
 		// M_AXIN_VALID
+		// {{{
 		initial M_AXIN_VALID = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
@@ -179,8 +188,10 @@ module	axinwidth #(
 			M_AXIN_VALID <= 1;
 		else if (M_AXIN_READY)
 			M_AXIN_VALID <= 0;
+		// }}}
 
 		// M_AXIN_BYTES, M_AXIN_LAST, wide_counter, data_concat
+		// {{{
 		initial M_AXIN_BYTES = 0;
 		initial M_AXIN_LAST  = 0;
 		initial wide_counter = 0;
@@ -231,6 +242,10 @@ module	axinwidth #(
 				data_concat  <= 0;
 			end
 		end
+		// }}}
+
+		assign	wsz_debug = 32'h0;
+
 		////////////////////////////////////////////////////////////////
 		//
 		// Formal properties
@@ -301,14 +316,15 @@ module	axinwidth #(
 		// Verilator lint_on  WIDTH
 
 		reg	[IW-OW-1:0]	data_parse;
-		reg	[$clog2(IW/8):0] remaining_bytes;
+		reg	[$clog2(IW/8)-1:0] remaining_bytes;
 		reg			remaining_last, mid_packet;
 		reg	[OW-1:0]	mdata;
 		wire	[IW-1:0]	s_data;
 
 		assign	s_data = ISWAP_ENDIANNESS(S_AXIN_DATA);
 
-
+		// mid_packet
+		// {{{
 		initial mid_packet = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
@@ -317,21 +333,27 @@ module	axinwidth #(
 			mid_packet <= 0;
 		else if (S_AXIN_VALID && S_AXIN_READY)
 			mid_packet <= !S_AXIN_LAST && !S_AXIN_ABORT;
+		// }}}
 
 		// M_AXIN_ABORT
+		// {{{
 		initial M_AXIN_ABORT = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
 			M_AXIN_ABORT <= 0;
-		else if (M_AXIN_VALID && !M_AXIN_READY
-				&& (M_AXIN_ABORT || (S_AXIN_ABORT && mid_packet)))
-			M_AXIN_ABORT <= 1;
 		else if (S_AXIN_ABORT && mid_packet)
 			M_AXIN_ABORT <= 1;
 		else if (!M_AXIN_VALID || M_AXIN_READY)
 			M_AXIN_ABORT <= 0;
+`ifdef	FORMAL
+		always @(*)
+		if (ARESETN && M_AXIN_ABORT)
+			assert(!mid_packet);
+`endif
+		// }}}
 
 		// S_AXIN_READY
+		// {{{
 		// We shouldn't get the data unless we convey all the
 		//   incoming data from slave (check!)
 
@@ -339,7 +361,10 @@ module	axinwidth #(
 		assign S_AXIN_READY = S_AXIN_ABORT || (!M_AXIN_ABORT &&
 			(!M_AXIN_VALID
 				|| (M_AXIN_READY && remaining_bytes == 0)));
+		// }}}
 
+		// M_AXIN_DATA
+		// {{{
 		// Which word (32-bit) should we send first ?
 		// Little endian => sends 0 first
 		always @(posedge ACLK)
@@ -351,59 +376,117 @@ module	axinwidth #(
 			mdata <= data_parse[0 +: OW];
 
 		assign M_AXIN_DATA = OSWAP_ENDIANNESS(mdata);
+		// }}}
 
 		// M_AXIN_VALID
+		// {{{
 		initial M_AXIN_VALID = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
 			M_AXIN_VALID <= 0;
-		else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT)
-			M_AXIN_VALID <= 1;
-		else if (M_AXIN_READY && (remaining_bytes == 0 || M_AXIN_LAST || M_AXIN_ABORT))
-			M_AXIN_VALID <= 0;
+		else if (!M_AXIN_VALID || M_AXIN_READY)
+		begin
+			if (S_AXIN_VALID && S_AXIN_READY)
+				M_AXIN_VALID <= !S_AXIN_ABORT || mid_packet;
+			else if (M_AXIN_READY && (remaining_bytes == 0
+						|| M_AXIN_LAST || M_AXIN_ABORT))
+				M_AXIN_VALID <= 0;
+		end
+		// }}}
 
-		// M_AXIN_BYTES, M_AXIN_LAST, data_parse, remaining_*
+		// M_AXIN_BYTES, M_AXIN_LAST
+		// {{{
+		initial M_AXIN_BYTES    = 0;
+		initial M_AXIN_LAST     = 0;
+		always @(posedge ACLK)
+		if (!ARESETN)
+		begin
+			M_AXIN_BYTES    <= 0;
+			M_AXIN_LAST     <= 0;
+		end else if ((S_AXIN_ABORT || M_AXIN_ABORT)
+				&& (!M_AXIN_VALID || !M_AXIN_LAST))
+		begin
+			if (!M_AXIN_VALID || M_AXIN_READY)
+			begin
+				M_AXIN_BYTES    <= OW[3 +: $clog2(OW/8)+1];
+				M_AXIN_LAST     <= 0;
+			end
+		end else if (S_AXIN_VALID && S_AXIN_READY
+				&& (!M_AXIN_VALID
+				|| (M_AXIN_READY && remaining_bytes == 0)))
+		begin
+			// Verilator lint_off WIDTH
+			M_AXIN_BYTES    <= (S_AXIN_BYTES > FULL_OUTWORD)
+					? FULL_OUTWORD
+					: S_AXIN_BYTES[$clog2(OW/8):0];
+
+			M_AXIN_LAST     <= S_AXIN_LAST
+					&& (S_AXIN_BYTES <= FULL_OUTWORD);
+			// Verilator lint_on  WIDTH
+		end else if (M_AXIN_VALID && M_AXIN_READY)
+		begin
+			// Verilator lint_off WIDTH
+			M_AXIN_BYTES    <= (remaining_bytes > FULL_OUTWORD)
+					? FULL_OUTWORD : remaining_bytes;
+
+			M_AXIN_LAST     <= (remaining_bytes > FULL_OUTWORD)
+					? 0 : remaining_last;
+			// Verilator lint_on  WIDTH
+		end
+		// }}}
+
+		// data_parse
+		// {{{
+		initial data_parse      = 0;
+		always @(posedge ACLK)
+		if (S_AXIN_VALID && (!M_AXIN_VALID
+			|| (M_AXIN_READY && remaining_bytes == 0)))
+			data_parse      <= s_data[IW-1 : OW];
+		else if (M_AXIN_VALID && M_AXIN_READY)
+			data_parse <= data_parse >> OW;
+		// }}}
+
+		// remaining_*
 		// {{{
 		initial remaining_last  = 0;
 		initial remaining_bytes = 0;
-		initial M_AXIN_BYTES    = 0;
-		initial M_AXIN_LAST     = 0;
-		initial data_parse      = 0;
 		always @(posedge ACLK)
 		if (!ARESETN)
 		begin
 			remaining_last  <= 0;
 			remaining_bytes <= 0;
-			M_AXIN_BYTES    <= 0;
-			M_AXIN_LAST     <= 0;
-			data_parse      <= 0;
-		end else if (S_AXIN_VALID && S_AXIN_READY && !S_AXIN_ABORT)
+		end else if (S_AXIN_ABORT)
+		begin
+			remaining_last  <= 0;
+			remaining_bytes <= 0;
+		end else if (S_AXIN_VALID && S_AXIN_READY)
 		begin
 			// Verilator lint_off WIDTH
-			remaining_bytes <= (S_AXIN_BYTES > FULL_OUTWORD) ? (S_AXIN_BYTES - FULL_OUTWORD) : 0;
-			M_AXIN_BYTES    <= (S_AXIN_BYTES > FULL_OUTWORD) ? FULL_OUTWORD : S_AXIN_BYTES[$clog2(OW/8):0];
-			M_AXIN_LAST     <= S_AXIN_LAST && (S_AXIN_BYTES <= FULL_OUTWORD);
-			remaining_last  <= (S_AXIN_LAST && S_AXIN_BYTES > FULL_OUTWORD);
+			remaining_bytes <= (S_AXIN_BYTES > FULL_OUTWORD)
+				? (S_AXIN_BYTES - FULL_OUTWORD) : 0;
+			remaining_last  <= (S_AXIN_LAST
+				&& S_AXIN_BYTES > FULL_OUTWORD);
 			// Verilator lint_on  WIDTH
-			data_parse      <= s_data[IW-1 : OW];
-		end else if (M_AXIN_ABORT && (!M_AXIN_VALID || M_AXIN_READY))
-		begin
-			remaining_bytes <= 0;
-			M_AXIN_BYTES    <= 0;
-			M_AXIN_LAST     <= 0;
-			remaining_last  <= 0;
-			data_parse      <= 0;
 		end else if (M_AXIN_VALID && M_AXIN_READY)
 		begin
 			// Verilator lint_off WIDTH
-			remaining_bytes <= (remaining_bytes <= FULL_OUTWORD) ? 0 : (remaining_bytes - FULL_OUTWORD);
-			M_AXIN_BYTES    <= (remaining_bytes > FULL_OUTWORD) ? FULL_OUTWORD : remaining_bytes;
-			M_AXIN_LAST     <= (remaining_bytes > FULL_OUTWORD) ? 0 : remaining_last;
-			remaining_last  <= (remaining_bytes <= FULL_OUTWORD) ? 0 : remaining_last;
-			data_parse      <= data_parse >> OW;
+			remaining_bytes <= (remaining_bytes <= FULL_OUTWORD)
+				? 0 : (remaining_bytes - FULL_OUTWORD);
+			remaining_last  <= (remaining_bytes <= FULL_OUTWORD)
+				? 0 : remaining_last;
 			// Verilator lint_on  WIDTH
 		end
+`ifdef	FORMAL
+		always @(*)
+		if (ARESETN && M_AXIN_ABORT)
+		begin
+			assert(remaining_bytes == 0);
+			assert(remaining_last  == 0);
+		end
+`endif
 		// }}}
+
+		assign	wsz_debug = 32'h0;
 
 		////////////////////////////////////////////////////////////////
 		//
@@ -414,37 +497,45 @@ module	axinwidth #(
 		always @(*)
 		if (ARESETN)
 		begin
+			assert(mid_packet == (f_s_stream_word > 0));
+
 			assert(FULL_OUTWORD == OW/8);
 			if (M_AXIN_VALID && M_AXIN_LAST)
 			begin
 				assert(f_s_stream_word == 0);
 				assert(remaining_bytes == 0);
 			end else begin
-				if (!M_AXIN_ABORT)
-					assert(mid_packet == (f_s_stream_word > 0));
 				if (remaining_last)
-					assert(f_s_stream_word == 0);
-				else begin
-					if (!M_AXIN_ABORT)
-						assert((f_s_stream_word * IW/OW) == (f_m_stream_word + remaining_bytes/(OW/8) + (M_AXIN_VALID ? 1:0)));
+				begin
+					assert(!mid_packet);
+				end else if (!M_AXIN_ABORT)
+				begin
+					assert(mid_packet || !M_AXIN_VALID);
+					assert((f_s_stream_word * IW/OW)
+						== (f_m_stream_word
+						+ remaining_bytes/(OW/8)
+						+ (M_AXIN_VALID ? 1:0)));
 				end
 			end
 
 			assert(remaining_bytes <= (IW-OW)/8);
 			assert(f_m_stream_word < (MAX_LENGTH * (IW/OW)));
 			if (M_AXIN_ABORT)
+			begin
 				assert(!mid_packet || (S_AXIN_VALID && S_AXIN_ABORT));
-			if (!M_AXIN_ABORT)
+			end else
 				assert(mid_packet == (f_s_stream_word != 0));
+
 			if (!mid_packet)
 				assert(f_s_stream_word == 0);
 			if (!mid_packet && !remaining_last && !M_AXIN_LAST && !M_AXIN_ABORT)
 				assert(f_m_stream_word == 0);
+
+
 			assert(f_s_stream_word <= f_m_stream_word + 1); // +1 is for first word of slave
-			assert(!M_AXIN_LAST || M_AXIN_VALID);   // !!!
+			assert(!M_AXIN_LAST || M_AXIN_VALID);
 			assert(M_AXIN_BYTES <= OW/8);
-			if (M_AXIN_BYTES == OW/8)
-				assert(M_AXIN_VALID);
+
 			if (remaining_bytes > 0 && !S_AXIN_ABORT)
 				assert(!S_AXIN_READY);
 			if (mid_packet)
@@ -468,10 +559,12 @@ module	axinwidth #(
 			&& ((f_s_stream_word > fs_first_word_cnt)
 					|| M_AXIN_LAST || remaining_last)
 			&& (f_m_stream_word <= fm_first_word_cnt)
-			&& ((fm_first_word_cnt * (OW/8)) < f_m_stream_word * (OW/8) + remaining_bytes + (M_AXIN_VALID ? OW/8 : 0)))
+			&& ((fm_first_word_cnt * (OW/8))
+				< f_m_stream_word * (OW/8) + remaining_bytes
+					+ (M_AXIN_VALID ? OW/8 : 0)))
 		begin
-		// Assert the first data
-		assert(fm_first == fc_first);
+			// Assert the first data
+			assert(fm_first == fc_first);
 		end
 
 		always @(*)
@@ -479,7 +572,10 @@ module	axinwidth #(
 			&& ((f_s_stream_word > fs_next_word_cnt)
 					|| M_AXIN_LAST || remaining_last)
 			&& (f_m_stream_word <= fm_next_word_cnt)
-			&& ((fm_next_word_cnt * (OW/8)) < f_m_stream_word * (OW/8) + remaining_bytes + (M_AXIN_VALID ? OW/8 : 0)))
+			&& ((fm_next_word_cnt * (OW/8))
+				< f_m_stream_word * (OW/8)
+					+ remaining_bytes
+					+ (M_AXIN_VALID ? OW/8 : 0)))
 		begin
 			// Assert the next data
 			assert(fm_next == fc_next);
@@ -494,7 +590,11 @@ module	axinwidth #(
 `endif
 		// }}}
 		// }}}
-	end endgenerate
+	end end endgenerate
+
+	assign	o_debug = { 24'h0,
+			M_AXIN_VALID, M_AXIN_READY, M_AXIN_LAST, M_AXIN_ABORT,
+			S_AXIN_VALID, S_AXIN_READY, S_AXIN_LAST, S_AXIN_ABORT } | wsz_debug;
 
 	function [IW-1:0] ISWAP_ENDIANNESS(input [IW-1:0] in);
 		// {{{
@@ -522,6 +622,13 @@ module	axinwidth #(
 	end endfunction
 	// }}}
 
+	// Keep Verilator happy
+	// {{{
+	// Verilator lint_off UNUSED
+	wire	unused;
+	assign	unused = &{ 1'b0, o_debug };
+	// Verilator lint_on  UNUSED
+	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -575,7 +682,7 @@ module	axinwidth #(
 		.MIN_LENGTH(MIN_LENGTH_I),
 		.MAX_LENGTH(MAX_LENGTH_I),
 		.LGMX(LGMX),
-		.WBITS($clog2(IW+1))
+		.WBITS($clog2(IW/8+1))
 	) fslave (
 		.S_AXI_ACLK(ACLK), .S_AXI_ARESETN(ARESETN),
 		.S_AXIN_VALID(S_AXIN_VALID),
@@ -650,7 +757,7 @@ module	axinwidth #(
 		.MIN_LENGTH(MIN_LENGTH_O),
 		.MAX_LENGTH(MAX_LENGTH_O),
 		.LGMX(LGMX),
-		.WBITS($clog2(OW+1))
+		.WBITS($clog2(OW/8+1))
 	) fmaster (
 		.S_AXI_ACLK(ACLK), .S_AXI_ARESETN(ARESETN),
 		.S_AXIN_VALID(M_AXIN_VALID),
@@ -708,39 +815,40 @@ module	axinwidth #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Low power rules (if we wish to use them)
-    // {{{
-    ////////////////////////////////////////////////////////////////////////
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 
-    /*
-    // Power is used every time a register toggles
-    // So, if OPT_LOWPOWER is set -- we keep registers from toggling
-    //	(by pinning them to zero)
-    always @(*)
-    if (OPT_LOWPOWER && !M_AXIN_VALID)
-    begin
-        // Can't assert these first two, since you are building
-        // in M_AXIN_DATA while !M_AXIN_VALID, so we won't assert
-        // these at all.
-        //
-        // assert(M_AXIN_DATA  == 0);
-        // assert(M_AXIN_BYTES == 0);
-        //
+	/*
+	// Power is used every time a register toggles
+	// So, if OPT_LOWPOWER is set -- we keep registers from toggling
+	//	(by pinning them to zero)
+	always @(*)
+	if (OPT_LOWPOWER && !M_AXIN_VALID)
+	begin
+		// Can't assert these first two, since you are building
+		// in M_AXIN_DATA while !M_AXIN_VALID, so we won't assert
+		// these at all.
+		//
+		// assert(M_AXIN_DATA  == 0);
+		// assert(M_AXIN_BYTES == 0);
+		//
 
-        if (WIDE_COUNT == 0)
-            assert(M_AXIN_DATA == 0);
+		if (WIDE_COUNT == 0)
+			assert(M_AXIN_DATA == 0);
 
-        assert(M_AXIN_LAST  == 0);
-    end
+		assert(M_AXIN_LAST  == 0);
+	end
 
-    always @(*)
-    if (OPT_LOWPOWER && M_AXIN_VALID)
-    begin
-        for(i=0; i<OW/8; i=i+1)
-        if (i >= M_AXIN_BYTES)
-            assert(M_AXIN_DATA[8*i +: 8] == 0);
-    end
-    */
-    // }}}
+	always @(*)
+	if (OPT_LOWPOWER && M_AXIN_VALID)
+	begin
+		for(i=0; i<OW/8; i=i+1)
+		if (i >= M_AXIN_BYTES)
+			assert(M_AXIN_DATA[8*i +: 8] == 0);
+	end
+	*/
+
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// "Careless" assumptions

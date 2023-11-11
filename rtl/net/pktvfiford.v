@@ -188,6 +188,7 @@ module	pktvfiford #(
 	reg	[AW+(WBLSB-2)-1:0]	r_readptr, rd_wb_addr, r_endptr;
 
 	reg	[LGPIPE:0]	rd_outstanding;
+	wire	[LGPIPE:0]	w_rd_outstanding;
 	reg			r_lastack, lastack;
 
 	reg	[LGFIFO:0]	fifo_space;
@@ -447,9 +448,9 @@ module	pktvfiford #(
 			rd_state <= RD_CLEARBUS;
 		end else if (!o_wb_stb || !i_wb_stall)
 		begin
-			if (!rd_outstanding[LGPIPE]
+			if (!w_rd_outstanding[LGPIPE]
 				&& (o_wb_stb || !rd_outstanding[LGPIPE-1])
-					&& (fifo_space > (o_wb_stb ? 1:0)))
+					&& (fifo_space > (o_wb_stb ? 2:1)))
 				{ o_wb_cyc, o_wb_stb } <= 2'b11;
 
 		end end
@@ -541,6 +542,8 @@ module	pktvfiford #(
 	2'b01: rd_outstanding <= rd_outstanding - 1;
 	default: begin end
 	endcase
+
+	assign	w_rd_outstanding = rd_outstanding + (o_wb_stb ? 1:0);
 	// }}}
 
 	// fifo_space
@@ -783,16 +786,10 @@ module	pktvfiford #(
 		*/
 
 		always @(posedge i_clk)
-		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE)
-			r_full_stb <= 1'b0;
-		else if (rd_state == RD_SIZE)
+		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE
+							|| rd_state == RD_SIZE)
 		begin
 			r_full_stb <= (&r_readptr[WBLSB-3:0]);
-			/*
-			if (i_wb_ack)
-				r_full_stb <= 1'b0;
-				r_full_stb <= (rdlen_words == nextrdlen[AW+WBLSB-3:0])
-			*/
 		end else if (o_wb_stb && !i_wb_stall)
 			// After the first, all strobe requests are for
 			// a full bus size of data

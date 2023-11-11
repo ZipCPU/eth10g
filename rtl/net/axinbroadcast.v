@@ -67,8 +67,9 @@ module axinbroadcast #(
 		output	reg	[NOUT*DW-1:0]		M_DATA,
 		output	reg	[NOUT*WBITS-1:0]	M_BYTES,
 		output	reg	[NOUT-1:0]		M_LAST,
-		output	reg	[NOUT-1:0]		M_ABORT
+		output	reg	[NOUT-1:0]		M_ABORT,
 		// }}}
+		output	reg	[31:0]			o_debug
 		// }}}
 	);
 
@@ -196,6 +197,30 @@ module axinbroadcast #(
 		// }}}
 	end endgenerate
 	// }}}
+
+	reg	[7:0]	dbg_watchdog;
+	always @(posedge i_clk)
+	if (i_reset || (S_VALID && S_READY))
+		dbg_watchdog <= 0;
+	else if (s_midpkt&& !dbg_watchdog[7])
+		dbg_watchdog <= dbg_watchdog + 1;;
+
+	integer	dbgi;
+
+	always @(posedge i_clk)
+	begin
+		o_debug <= 0;
+
+		for(dbgi=0; dbgi < NOUT; dbgi=dbgi+1)
+			o_debug[dbgi*4 +: 4] <= { M_VALID[dbgi], M_READY[dbgi],
+				M_VALID[dbgi] && M_LAST[dbgi], M_ABORT[dbgi] };
+
+		o_debug[20 +: NOUT] <= midpkt;
+		o_debug[26] <= s_midpkt;
+		o_debug[27 +: 4] <= { S_VALID, S_READY, S_LAST, S_ABORT };
+
+		o_debug[31] <= dbg_watchdog[7];
+	end
 
 	// Keep Verilator happy
 	// {{{

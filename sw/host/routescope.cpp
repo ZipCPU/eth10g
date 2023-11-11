@@ -62,6 +62,7 @@ void	closeup(int v) {
 }
 
 class	ROUTESCOPE : public SCOPE {
+	const	unsigned DBGSEL = 1;
 public:
 	ROUTESCOPE(DEVBUS *fpga, unsigned addr, bool vecread)
 		: SCOPE(fpga, addr, true, vecread) {};
@@ -70,17 +71,52 @@ public:
 	}
 
 	virtual	void	define_traces(void) {
-		//
-		register_trace("watchdog", 1,30);
-		register_trace("CPU_VALID",1,29);
-		register_trace("CPU_READY",1,28);
-		register_trace("RX_VALID", 4,24);
-		register_trace("RX_READY", 4,20);
-		register_trace("RX_LAST",  4,16);
-		register_trace("RX_ABORT", 4,12);
-		register_trace("TX_VALID", 4, 8);
-		register_trace("TX_READY", 4, 4);
-		register_trace("mid_tx",   4, 0);
+		if (DBGSEL == 0) {
+			register_trace("watchdog", 1,30);
+			register_trace("CPU_VALID",1,29);
+			register_trace("CPU_READY",1,28);
+			register_trace("RX_VALID", 4,24);
+			register_trace("RX_READY", 4,20);
+			register_trace("RX_LAST",  4,16);
+			register_trace("RX_ABORT", 4,12);
+			register_trace("TX_VALID", 4, 8);
+			register_trace("TX_READY", 4, 4);
+			register_trace("mid_tx",   4, 0);
+		} else if (DBGSEL == 1) {
+
+			register_trace("M_VALID",1,30);
+			register_trace("M_READY",1,29);
+			register_trace("M_LAST", 1,28);
+			register_trace("M_ABORT",1,27);
+
+			register_trace("s_midpkt",1,26);
+			register_trace("midpkt", 5,20);
+
+			register_trace("V[4]",   1,19);
+			register_trace("R[4]",   1,18);
+			register_trace("L[4]",   1,17);
+			register_trace("A[4]",   1,16);
+
+			register_trace("V[3]",   1,15);
+			register_trace("R[3]",   1,14);
+			register_trace("L[3]",   1,13);
+			register_trace("A[3]",   1,12);
+
+			register_trace("V[2]",   1,11);
+			register_trace("R[2]",   1,10);
+			register_trace("L[2]",   1, 9);
+			register_trace("A[2]",   1, 8);
+
+			register_trace("V[1]",   1, 7);
+			register_trace("R[1]",   1, 6);
+			register_trace("L[1]",   1, 5);
+			register_trace("A[1]",   1, 4);
+
+			register_trace("V[0]",   1, 3);
+			register_trace("R[0]",   1, 2);
+			register_trace("L[0]",   1, 1);
+			register_trace("A[0]",   1, 0);
+		}
 	}
 };
 

@@ -60,8 +60,9 @@ module axinarbiter #(
 		output	reg	[DW-1:0]	M_DATA,
 		output	reg [WBITS-1:0]	M_BYTES,
 		output	reg			M_LAST,
-		output	reg			M_ABORT
+		output	reg			M_ABORT,
 		// }}}
+		output	reg	[31:0]		o_debug
 		// }}}
 	);
 
@@ -92,7 +93,10 @@ module axinarbiter #(
 		.o_grant(grant)
 		// }}}
 	);
-
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Skidbuffer via NETSKID if OPT_SKIDBUFFER
+	// {{{
 	generate if (OPT_SKIDBUFFER)
 	begin : GEN_SKIDBUFFER
 
@@ -129,7 +133,10 @@ module axinarbiter #(
 		assign	skd_abort = S_ABORT;
 
 	end endgenerate
+	// }}}
 
+	// midpkt
+	// {{{
 	generate for(gk=0; gk<NIN; gk=gk+1)
 	begin : GEN_MIDPKT
 		reg	r_midpkt;
@@ -137,16 +144,18 @@ module axinarbiter #(
 		always @(posedge i_clk)
 		if (i_reset)
 			r_midpkt <= 0;
-		else if (skd_abort[gk] && (!skd_valid[gk] || skd_ready[gk]))
+		else if (skd_abort[gk])//&& (!skd_valid[gk] || skd_ready[gk]))
 			r_midpkt <= 1'b0;
 		else if (skd_valid[gk] && skd_ready[gk])
 			r_midpkt <= !skd_last[gk];
 
 		assign	midpkt[gk] = r_midpkt;
 	end endgenerate
+	// }}}
 
-	assign	stalled = |midpkt || |(skd_valid & skd_ready);
-	assign	skd_ready = (!M_VALID || M_READY) ? grant : 0;
+	assign	stalled = |midpkt || |(skd_valid & grant);
+	assign	skd_ready = (skd_abort & ~grant)
+				| ((!M_VALID || M_READY) ? grant : 0);
 
 	// M_VALID
 	// {{{
@@ -212,6 +221,34 @@ module axinarbiter #(
 		M_ABORT <= 1'b1;
 	else if (!M_VALID || M_READY)
 		M_ABORT <= 1'b0;
+	// }}}
+
+	// o_debug
+	// {{{
+	reg	[7:0]	dbg_watchdog;
+	always @(posedge i_clk)
+	if (grant == 0)
+		dbg_watchdog <= 0;
+	else if (!dbg_watchdog[7])
+		dbg_watchdog <= dbg_watchdog+1;
+
+	integer	dbgi;
+	always @(posedge i_clk)
+	begin
+		o_debug <=0;
+
+		for(dbgi=0; dbgi<NIN; dbgi = dbgi+1)
+			o_debug[dbgi*4 +: 4] <= {
+				S_VALID[dbgi], S_READY[dbgi],
+					S_VALID[dbgi] && S_LAST[dbgi],
+					S_ABORT[dbgi] };
+
+		o_debug[20 +: NIN] <= midpkt;
+		o_debug[27 +: 4] <=
+			{ M_VALID, M_READY, M_LAST && M_VALID, M_ABORT };
+
+		o_debug[31] <= dbg_watchdog[7];
+	end
 	// }}}
 
 	// Keep Verilator happy
@@ -337,13 +374,28 @@ module axinarbiter #(
 	);
 
 	always @(*)
-	if (!i_reset && grant == 0)
-		assert(!M_VALID && fmst_word == 0);
+	if (!i_reset && grant == 0 && !M_ABORT)
+		assert((M_VALID && M_LAST) || (!M_VALID && fmst_word == 0));
 
 	always @(posedge i_clk)
 	if (!i_reset && $rose(M_VALID) && fmst_word == 0)
 		assert(!M_ABORT);
 
+	always @(*)
+	if (!i_reset)
+		assert($onehot0(midpkt));
+
+	always @(*)
+	if (!i_reset && M_VALID && M_LAST)
+		assert(midpkt == 0);
+
+	always @(*)
+	if (!i_reset && M_ABORT)
+		assert(midpkt == 0);
+
+	always @(*)
+	if (!i_reset && midpkt != 0)
+		assert(0 != (grant & midpkt));
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
