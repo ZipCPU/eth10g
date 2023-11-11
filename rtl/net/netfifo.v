@@ -665,7 +665,7 @@ module	netfifo #(
 	if (!S_AXIN_READY)
 		f_was_full <= 1;
 
-`ifdef	SFIFO
+`ifdef	NETFIFO
 	always @(posedge S_AXI_ACLK)
 		cover(S_AXI_ARESETN && faxin_swords > 0);
 
