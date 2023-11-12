@@ -271,7 +271,7 @@ module	pkt2p64b #(
 	// default: begin end
 	endcase
 
-	assign	S_READY = r_ready && (TXREADY || flushing);
+	assign	S_READY = (r_ready && TXREADY) || flushing;
 
 	function automatic [7:0] CW(input [7:0] in);
 		// {{{
@@ -550,14 +550,14 @@ module	pkt2p64b #(
 	always @(*)
 	if (S_ARESETN && !flushing && !r_aborted)
 	case(state)
-	TX_IDLE: assert(fs_word == 0);
+	TX_IDLE: assert((!r_ready || S_ABORT) && fs_word == 0);
 	TX_DATA: begin
 		assert(r_ready != r_aborted);
 		assert((fs_word == fpkt_word + 1) || TXDATA == P_START
 			|| S_ABORT);
 		end
-	TX_LAST: assert(fs_word == 0);
-	TX_PAUSE: assert(fs_word == 0);
+	TX_LAST: assert(!r_ready && fs_word == 0);
+	TX_PAUSE: assert(!r_ready && fs_word == 0);
 	endcase
 	// }}}
 	////////////////////////////////////////////////////////////////////////
