@@ -733,8 +733,8 @@ module	netpath #(
 		.i_phy_fault(i_phy_fault),
 		.i_remote_fault(remote_fault), .i_local_fault(local_fault),
 		//
-		.i_p66b_valid(rx_valid && rx_ready),
-		.i_p66b_data(rx_data),
+		.i_p66b_valid(rx_valid && rx_ready), .i_p66b_data(rx_data),
+		// .i_p66b_valid(tx_ready), .i_p66b_data(tx_data),
 		//
 		.i_rx_packet(stat_src_valid), .i_rx_pktlen(stat_src_data),
 		.i_crc_packet(stat_crc_valid), .i_crc_pktlen(stat_crc_data),

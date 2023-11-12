@@ -82,7 +82,7 @@ module	netdbggen (
 	always @(posedge i_clk)
 	if (i_reset)
 		{ idle_en, r_count } <= 0;
-	else
+	else if (i_p66b_valid)
 		{ idle_en, r_count } <= r_count + 1;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -230,7 +230,7 @@ module	netdbggen (
 	always @(posedge i_clk)
 	if (i_reset)
 		ctrl_valid <= 1'b0;
-	else if (!ctrl_valid || (ctrl_ready && !ctrl_last))
+	else if (!ctrl_valid || (ctrl_ready && ctrl_last))
 		ctrl_valid <= !ctrl_fifo_empty;
 	else if (ctrl_ready && ctrl_last)
 		ctrl_valid <= 1'b0;
@@ -239,7 +239,7 @@ module	netdbggen (
 	// ctrl_wide_data
 	// {{{
 	always @(posedge i_clk)
-	if (!ctrl_valid || (ctrl_ready && !ctrl_last))
+	if (!ctrl_valid || (ctrl_ready && ctrl_last))
 		ctrl_wide_data <= ctrl_fifo_data;
 	else if (ctrl_ready)
 		ctrl_wide_data <= { ctrl_wide_data[66 +: 2+8], 16'h0,
@@ -267,7 +267,7 @@ module	netdbggen (
 	end else if (ctrl_valid && ctrl_ready)
 	begin
 		ctrl_dcount <= ctrl_dcount - 1;
-		ctrl_last <= (ctrl_dcount == 2'b01);
+		ctrl_last <= (ctrl_dcount <= 2'b01);
 	end
 	// }}}
 
@@ -289,7 +289,7 @@ module	netdbggen (
 	reg			start_valid, start_last, start_eow;
 	reg			start_ready;
 	reg	[1:0]		start_sub;
-	reg	[1:0]		start_count;
+	reg	[2:0]		start_count;
 
 	wire	[30:0]		start_data;
 
@@ -306,7 +306,7 @@ module	netdbggen (
 	// }}}
 
 	// start_triggered
-	// {{{	
+	// {{{
 	always @(posedge i_clk)
 	if (i_reset)
 		start_triggered <= 0;
@@ -396,7 +396,7 @@ module	netdbggen (
 			start_last <= 1'b1;
 		else if (start_sub != 2'b10)
 			start_last <= 1'b0;
-		else if (start_count >= 2)
+		else if (start_count >= 3)
 			start_last <= 1'b1;
 	end
 	// }}}
@@ -421,7 +421,7 @@ module	netdbggen (
 	reg			eop_valid, eop_last, eop_eow;
 	reg			eop_ready;
 	reg	[1:0]		eop_sub;
-	reg	[1:0]		eop_count;
+	reg	[2:0]		eop_count;
 
 	wire	[30:0]		eop_data;
 
@@ -438,7 +438,7 @@ module	netdbggen (
 	// }}}
 
 	// eop_triggered
-	// {{{	
+	// {{{
 	always @(posedge i_clk)
 	if (i_reset)
 		eop_triggered <= 0;
@@ -460,7 +460,7 @@ module	netdbggen (
 	always @(posedge i_clk)
 	if (i_reset || !eop_triggered || !eop_primed || eop_reset)
 	begin
-		eop_halt_count <= -2;
+		eop_halt_count <= -1;
 		eop_halted <= 1'b0;
 	end else if (i_p66b_valid && !eop_halted)
 		{ eop_halted, eop_halt_count } <= eop_halt_count + 1;
@@ -528,7 +528,7 @@ module	netdbggen (
 			eop_last <= 1'b1;
 		else if (eop_sub != 2'b10)
 			eop_last <= 1'b0;
-		else if (eop_count >= 2)
+		else if (eop_count >= 3)
 			eop_last <= 1'b1;
 	end
 	// }}}
