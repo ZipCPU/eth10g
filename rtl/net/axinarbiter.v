@@ -46,6 +46,8 @@ module axinarbiter #(
 		input	wire				i_clk, i_reset,
 		// Incoming packets from all interfaces
 		// {{{
+		input	wire	[NIN-1:0]		S_CHREQ,
+		output	wire	[NIN-1:0]		S_ALLOC,
 		input	wire	[NIN-1:0]		S_VALID,
 		output	wire	[NIN-1:0]		S_READY,
 		input	wire	[NIN*DW-1:0]		S_DATA,
@@ -89,7 +91,7 @@ module axinarbiter #(
 	) u_arbiter (
 		// {{{
 		.i_clk(i_clk), .i_reset_n(!i_reset),
-		.i_req(S_VALID), .i_stall(stalled),
+		.i_req(S_CHREQ), .i_stall(stalled),
 		.o_grant(grant)
 		// }}}
 	);
@@ -153,9 +155,10 @@ module axinarbiter #(
 	end endgenerate
 	// }}}
 
-	assign	stalled = |midpkt || |(skd_valid & grant);
+	assign	stalled = |midpkt || |(S_CHREQ & grant);
 	assign	skd_ready = (skd_abort & ~grant)
 				| ((!M_VALID || M_READY) ? grant : 0);
+	assign	S_ALLOC = grant;
 
 	// M_VALID
 	// {{{
@@ -308,6 +311,14 @@ module axinarbiter #(
 			.f_packets_rcvd(fslv_packets)
 			// }}}
 		);
+
+		always @(*)
+		if (S_VALID[gk] || fslv_word > 0)
+			assume(S_CHREQ[gk]);
+
+		always @(posedge i_clk)
+		if (!i_reset && $past(S_CHREQ[gk] && S_ALLOC[gk]))
+			assert(S_ALLOC[gk]);
 
 		always @(*)
 		if (!i_reset && !grant[gk])

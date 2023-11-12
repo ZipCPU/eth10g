@@ -57,11 +57,13 @@ module axinbroadcast #(
 		//
 		// S_PORT tells us which port or port(s) we wish to forward
 		// this packet to.  For true broadcasting, S_PORT should be
-		// all ones.  For routing, S_PORT should be $onehot().
+		// all ones.  For standard routing, S_PORT should be $onehot().
 		input	wire [NOUT-1:0]		S_PORT,
 		// }}}
 		// Outgoing packet, forwarded to NOUT interfaces
 		// {{{
+		output	reg	[NOUT-1:0]		M_CHREQ,
+		input	wire	[NOUT-1:0]		M_ALLOC,
 		output	reg	[NOUT-1:0]		M_VALID,
 		input	wire	[NOUT-1:0]		M_READY,
 		output	reg	[NOUT*DW-1:0]		M_DATA,
@@ -84,6 +86,12 @@ module axinbroadcast #(
 
 	reg			s_midpkt;
 	reg	[NOUT-1:0]	midpkt;
+
+	reg		open_channel, deadlock;
+	reg	[4:0]	pseudorandom;
+	reg	[5:0]	deadlock_counter;
+	wire		one_active, full_grant, end_of_packet;
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -118,9 +126,12 @@ module axinbroadcast #(
 
 	end endgenerate
 
-	assign	skd_ready = (0 == (M_VALID & ~M_READY & S_PORT));
+	assign	skd_ready = open_channel
+				&& (0 == (M_VALID & ~M_READY & M_CHREQ));
 	// }}}
 
+	// s_midpkt
+	// {{{
 	always @(posedge i_clk)
 	if (i_reset)
 		s_midpkt <= 0;
@@ -128,11 +139,67 @@ module axinbroadcast #(
 		s_midpkt <= 1'b0;
 	else if (skd_valid && skd_ready && !skd_abort)
 		s_midpkt <= !skd_last;
+	// }}}
+
+	assign	one_active = ONEHOT(skd_port & i_cfg_active);
+	assign	end_of_packet = (skd_valid && skd_ready && skd_last)
+				|| (skd_abort && (!skd_valid || skd_ready));
+
+	// For a full grant, everything we've requested must be available,
+	//	and our request must match the requested skd_port
+	assign	full_grant = (0 == ((M_CHREQ ^ M_ALLOC) & i_cfg_active))
+			&& (0 == ((M_CHREQ ^ skd_port) & i_cfg_active));
+
+	// open_channel
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset)
+		open_channel <= 1'b0;
+	else if (end_of_packet)
+		open_channel <= 1'b0;
+	else if (skd_valid && one_active)
+		open_channel <= 1'b1;
+	else if (full_grant)
+		open_channel <= 1'b1;
+	// }}}
+
+	// pseudorandom
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset)
+		pseudorandom <= 1;
+	else if (skd_valid)
+	begin
+		if (pseudorandom[0])
+			pseudorandom <= (pseudorandom >> 1) ^ 5'h14;
+		else
+			pseudorandom <= pseudorandom >> 1;
+	end
+	// }}}
+
+	// deadlock, deadlock_counter
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset || (M_CHREQ == 0) || (M_CHREQ == M_ALLOC) || open_channel
+			|| M_VALID != 0)
+		{ deadlock, deadlock_counter } <= 0;
+	else if (!deadlock)
+		{ deadlock, deadlock_counter } <= deadlock_counter + 1;
+	else
+		// Verilator lint_off WIDTH
+		{ deadlock, deadlock_counter } <= pseudorandom
+							+ deadlock_counter;
+		// Verilator lint_on  WIDTH
+	// }}}
 
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Generate the outputs
 	// {{{
+	wire	[NOUT-1:0]	m_end_of_packet;
+
+	assign	m_end_of_packet = (M_VALID & M_READY & M_LAST)
+				| (M_ABORT & (~M_VALID | M_READY));
 
 	// M_*
 	initial	M_VALID = 0;
@@ -143,20 +210,33 @@ module axinbroadcast #(
 	generate for(gk=0; gk<NOUT; gk=gk+1)
 	begin : GEN_OUT
 		// {{{
+
+
 		always @(posedge i_clk)
 		if (i_reset || !i_cfg_active[gk])
 			midpkt[gk] <= 0;
 		else if (skd_abort && (!skd_valid || skd_ready))
 			midpkt[gk] <= 1'b0;
-		else if (skd_valid && skd_ready && skd_port[gk]
-								&& !skd_abort)
+		else if (skd_valid && skd_ready && skd_port[gk] && !skd_abort)
 			midpkt[gk] <= (midpkt[gk] || !s_midpkt) && !skd_last;
+
+		always @(posedge i_clk)
+		if (i_reset)
+			M_CHREQ[gk] <= 1'b0;
+		else if (deadlock && !open_channel)
+			M_CHREQ[gk] <= 1'b0;
+		else if ((!s_midpkt && skd_valid) && skd_port[gk]
+							&& i_cfg_active[gk])
+			M_CHREQ[gk] <= 1'b1;
+		else if (m_end_of_packet[gk])
+			M_CHREQ[gk] <= 1'b0;
 
 		always @(posedge i_clk)
 		if (i_reset)
 			M_VALID[gk] <= 0;
 		else if (!M_VALID[gk] || M_READY[gk])
 			M_VALID[gk] <= i_cfg_active[gk]
+				&& open_channel
 				&& (!s_midpkt || midpkt[gk])
 				&& skd_valid && skd_ready
 				&& skd_port[gk] && !skd_abort;
@@ -197,15 +277,19 @@ module axinbroadcast #(
 		// }}}
 	end endgenerate
 	// }}}
-
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Debugging outputs
+	// {{{
 	reg	[7:0]	dbg_watchdog;
+	integer	dbgi;
+
 	always @(posedge i_clk)
 	if (i_reset || (S_VALID && S_READY))
 		dbg_watchdog <= 0;
 	else if (s_midpkt&& !dbg_watchdog[7])
 		dbg_watchdog <= dbg_watchdog + 1;;
 
-	integer	dbgi;
 
 	always @(posedge i_clk)
 	begin
@@ -221,6 +305,18 @@ module axinbroadcast #(
 
 		o_debug[31] <= dbg_watchdog[7];
 	end
+	// }}}
+
+	function	ONEHOT(input [NOUT-1:0] in);
+		integer	k;
+		reg	tmp;
+	begin
+		tmp = 0;
+		for(k=0; k<NOUT; k=k+1)
+			if (in == (1<<k))
+				tmp = 1;
+		ONEHOT = tmp;
+	end endfunction
 
 	// Keep Verilator happy
 	// {{{
@@ -252,7 +348,7 @@ module axinbroadcast #(
 		assume(&i_cfg_active);
 
 	always @(posedge i_clk)
-	if (S_VALID || fslv_word != 0)
+	if (S_VALID || fslv_word != 0 || M_VALID != 0)
 		assume($stable(f_port));
 
 	/*
@@ -328,23 +424,29 @@ module axinbroadcast #(
 			// }}}
 		);
 
+		always @(posedge i_clk)
+		if (!i_reset && $past(!i_reset && M_CHREQ[gk] && M_ALLOC[gk]))
+			assume(M_ALLOC[gk]);
+		always @(posedge i_clk)
+		if (open_channel && f_port[gk])
+			assume(M_CHREQ[gk] && M_ALLOC[gk]);
+
 		always @(*)
 		if (!i_reset)
 		begin
-			/*
-			if (M_VALID && !M_ABORT)
-				assert(M_LAST || fslv_word != 0);
-
-			if (M_ABORT || (M_VALID && M_LAST))
+			if (!open_channel)
+				assert(!M_VALID[gk] || fslv_word == 0);
+			if (M_VALID[gk])
 			begin
-				assert(fslv_word == 0);
-				assert(!midpkt[gk] || (S_VALID && S_ABORT));
-			end else begin
-				assert(midpkt[gk] == (fslv_word != 0));
-				assert(fslv_word
-					== (fmst_word + (M_VALID ? 1:0)));
+				assert(open_channel || M_LAST[gk] || M_ABORT[gk]);
+				assert(f_port[gk]);
+				assert(M_CHREQ[gk]);
+				if (!M_ABORT[gk])
+					assert(M_LAST[gk] == (fslv_word == 0));
+				if (fslv_word == 0)
+					assert(M_LAST[gk] || M_ABORT[gk]);
+				assert(!deadlock);
 			end
-			*/
 
 			if (M_VALID[gk] && !M_ABORT[gk] && !M_LAST)
 			begin
@@ -429,6 +531,8 @@ module axinbroadcast #(
 
 			assert(!s_midpkt || midpkt[gk]);
 		end
+
+		// always @(*) if (!i_cfg_active[gk]) assume(!M_VALID[gk]);
 		// }}}
 	end endgenerate
 

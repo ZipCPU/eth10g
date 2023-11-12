@@ -12,6 +12,7 @@ prf: depth 5
 smtbmc
 
 [script]
+# read -define ARBITER
 read -formal axinarbiter.v
 read -formal faxin_slave.v
 read -formal faxin_master.v

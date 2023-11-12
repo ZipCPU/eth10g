@@ -152,8 +152,8 @@ module routecore #(
 	reg	[NETH*NETH-1:0]		rxtbl_ready;
 	wire	[NETH*NETH*MACW-1:0]	rxtbl_data;
 
-	wire	[NETH*NETH-1:0]		txx_valid;
-	reg	[NETH*NETH-1:0]		txx_ready;
+	wire	[NETH*NETH-1:0]		txx_valid, txx_chreq;
+	reg	[NETH*NETH-1:0]		txx_ready, txx_alloc;
 	wire	[NETH*NETH*PKTDW-1:0]	txx_data;
 	wire [NETH*NETH*PKTBYW-1:0]	txx_bytes;
 	wire	[NETH*NETH-1:0]		txx_last, txx_abort;
@@ -226,8 +226,8 @@ module routecore #(
 		wire	[PKTBYW-1:0]	rtd_bytes;
 		wire	[NETH-1:0]	rtd_port;
 
-		reg	[NETH-1:0]		prearb_valid;
-		wire	[NETH-1:0]		prearb_ready;
+		reg	[NETH-1:0]		prearb_valid, prearb_chreq;
+		wire	[NETH-1:0]		prearb_ready, prearb_alloc;
 		reg	[NETH*PKTDW-1:0]	prearb_data;
 		reg	[NETH*PKTBYW-1:0]	prearb_bytes;
 		reg	[NETH-1:0]		prearb_last, prearb_abort;
@@ -474,6 +474,8 @@ module routecore #(
 			// }}}
 			// txx_*
 			// {{{
+			.M_CHREQ(txx_chreq[geth * NETH +: NETH]),
+			.M_ALLOC(txx_alloc[geth * NETH +: NETH] | ETH_RESET),
 			.M_VALID(txx_valid[geth * NETH +: NETH]),
 			.M_READY(txx_ready[geth * NETH +: NETH] | ETH_RESET),
 			.M_DATA(txx_data[geth * PKTDW * NETH +: PKTDW * NETH]),
@@ -492,6 +494,8 @@ module routecore #(
 		always @(*)
 		for(iport_pre=0; iport_pre<NETH; iport_pre=iport_pre+1)
 		begin
+			prearb_chreq[iport_pre] = txx_chreq[iport_pre * NETH+geth];
+			txx_alloc[iport_pre*NETH+geth]= prearb_alloc[iport_pre];
 			prearb_valid[iport_pre] = txx_valid[iport_pre * NETH+geth];
 			txx_ready[iport_pre*NETH+geth]= prearb_ready[iport_pre];
 			prearb_data[iport_pre * PKTDW +: PKTDW]
@@ -511,6 +515,8 @@ module routecore #(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
+			.S_CHREQ(prearb_chreq),
+			.S_ALLOC(prearb_alloc),
 			.S_VALID(prearb_valid),
 			.S_READY(prearb_ready),
 			.S_DATA( prearb_data),
@@ -660,8 +666,8 @@ module routecore #(
 		wire	[PKTBYW-1:0]	rtd_bytes;
 		wire	[NETH-1:0]	rtd_port;
 
-		reg	[NETH-1:0]		prearb_valid;
-		wire	[NETH-1:0]		prearb_ready;
+		reg	[NETH-1:0]		prearb_valid, prearb_chreq;
+		wire	[NETH-1:0]		prearb_ready, prearb_alloc;
 		reg	[NETH*PKTDW-1:0]	prearb_data;
 		reg	[NETH*PKTBYW-1:0]	prearb_bytes;
 		reg	[NETH-1:0]		prearb_last, prearb_abort;
@@ -776,6 +782,8 @@ module routecore #(
 			// }}}
 			// txx_*
 			// {{{
+			.M_CHREQ(txx_chreq[(NETH-1) * NETH +: NETH]),
+			.M_ALLOC(txx_alloc[(NETH-1) * NETH +: NETH] | ETH_RESET),
 			.M_VALID(txx_valid[(NETH-1) * NETH +: NETH]),
 			.M_READY(txx_ready[(NETH-1) * NETH +: NETH] | ETH_RESET),
 			.M_DATA(txx_data[(NETH-1) * PKTDW * NETH +: PKTDW * NETH]),
@@ -794,6 +802,8 @@ module routecore #(
 		always @(*)
 		for(iport_pre=0; iport_pre<NETH; iport_pre=iport_pre+1)
 		begin
+			prearb_chreq[iport_pre] = txx_chreq[iport_pre * NETH+(NETH-1)];
+			txx_alloc[iport_pre*NETH+(NETH-1)] = prearb_alloc[iport_pre];
 			prearb_valid[iport_pre] = txx_valid[iport_pre * NETH+(NETH-1)];
 			txx_ready[iport_pre*NETH+(NETH-1)] = prearb_ready[iport_pre];
 			prearb_data[iport_pre * PKTDW +: PKTDW]
@@ -813,6 +823,8 @@ module routecore #(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
+			.S_CHREQ(prearb_chreq),
+			.S_ALLOC(prearb_alloc),
 			.S_VALID(prearb_valid),
 			.S_READY(prearb_ready),
 			.S_DATA( prearb_data),
