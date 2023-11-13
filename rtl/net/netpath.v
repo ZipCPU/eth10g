@@ -117,6 +117,7 @@ module	netpath #(
 		parameter	LGCDCRAM = 5,
 		parameter [0:0]	OPT_SCRAMBLER=1,
 		parameter [0:0]	OPT_LITTLE_ENDIAN=0,
+		parameter [0:0]	OPT_INVERT_TX = 1'b0,
 		localparam	RAWDW =  32,
 		localparam	LCLDW =  64,
 		localparam	PKTDW = 128
@@ -654,7 +655,7 @@ module	netpath #(
 		//
 		.i_valid(1'b1),
 		.o_ready(tx_ready),
-		.i_data( tx_data),
+		.i_data( tx_data ^ {(66){OPT_INVERT_TX}}),
 		//
 		.o_valid(ign_tx66b_valid),
 		.i_ready(tx66b_ready),
