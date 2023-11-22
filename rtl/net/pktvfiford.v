@@ -554,7 +554,7 @@ module	pktvfiford #(
 
 	initial	fifo_space = 1<<LGFIFO;
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err)
 		fifo_space <= 1<<LGFIFO;
 	else case({ fifo_commit, i_fifo_rd })
 	2'b10: fifo_space <= fifo_space - 1;
@@ -617,11 +617,12 @@ module	pktvfiford #(
 
 	// o_fifo_err
 	// {{{
-	//	Two causes of FIFO errors:
+	//	Three causes of FIFO errors:
 	//	1. A zero length, after we've been told there's something there
-	//	2. A packet that passes the write pointer
+	//	2. An oversized packet, larger than either MAXLEN or memsize
+	//	3. A packet that passes the write pointer
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err)
 		o_fifo_err <= 1'b0;
 	else begin
 		o_fifo_err <= 1'b0;
@@ -629,11 +630,13 @@ module	pktvfiford #(
 			o_fifo_err <= 1'b1;
 		if (o_wb_cyc && i_wb_ack && rd_state == RD_SIZE)
 		begin
-			if (next_rdlen + 1 >= wide_memsize)
+			if ({ 1'b0, next_rdlen } + 1 >= { 2'b0, wide_memsize })
 				o_fifo_err <= 1'b1;
-			if (next_rdlen < MINLEN)
+			if (AW+WBLSB <= 31 && |next_rdlen[31:AW+WBLSB])
 				o_fifo_err <= 1'b1;
-			if (next_rdlen >= MAXLEN)
+			if ({ 1'b0, next_rdlen } < MINLEN)
+				o_fifo_err <= 1'b1;
+			if ({ 1'b0, next_rdlen } >= MAXLEN)
 				o_fifo_err <= 1'b1;
 		end
 	end
@@ -642,7 +645,7 @@ module	pktvfiford #(
 	// dly_check
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err)
 		dly_check <= 1'b0;
 	else if (i_wb_ack && rd_state == RD_SIZE)
 	begin
@@ -675,7 +678,7 @@ module	pktvfiford #(
 	// error (o_fifo_err), and the controller will cause both write and
 	// reader to abort and reset.
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || !dly_check)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err || !dly_check)
 		dly_fifo_err <= 1'b0;
 	else
 		dly_fifo_err <= (mem_fill < rd_pktlen + 4);

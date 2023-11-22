@@ -188,6 +188,8 @@
 #define	R_ROUTERDBG2     	0x020005d8	// 02000500, wbregs names: ROUTERDBG2
 #define	R_ROUTERDBG3     	0x020005dc	// 02000500, wbregs names: ROUTERDBG3
 #define	R_ROUTERDBG4     	0x020005e0	// 02000500, wbregs names: ROUTERDBG4
+#define	R_ROUTERNEVER    	0x020005e8	// 02000500, wbregs names: ROUTERNV, RTNEVER
+#define	R_ROUTERALWAYS   	0x020005ec	// 02000500, wbregs names: ROUTERAL, RTALWAYS
 #define	R_ROUTERDBGS     	0x020005fc	// 02000500, wbregs names: ROUTERDBGS
 #define	R_DDR3_PHY       	0x02000600	// 02000600, wbregs names: DDR3_PHY
 #define	R_BKRAM          	0x04000000	// 04000000, wbregs names: RAM

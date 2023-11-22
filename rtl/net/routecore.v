@@ -44,7 +44,7 @@ module routecore #(
 		// parameter [0:0]	OPT_DEFBROADCAST = 1'b0
 		// parameter [0:0]	OPT_ONE_TO_MANY  = 1'b0
 		parameter	NETH = 4,	// Number of incoming eth ports
-		// Routing table overrides
+		// Routing table override (defaults)
 		parameter [NETH*NETH-1:0]	OPT_ALWAYS= {(NETH*NETH){1'b0}},
 		parameter [NETH*NETH-1:0]	OPT_NEVER = {(NETH*NETH){1'b0}},
 		// PKTDW is the # of bits per clock cycle or beat of both the
@@ -135,6 +135,7 @@ module routecore #(
 
 	// Local declarations
 	// {{{
+	localparam	LGPOLY = 7;
 	// parameter [AW-1:0]	DEF_BASEADDR = 0,
 	localparam		NMEM = NETH-(OPT_CPUNET ? 1:0);
 	// Verilator lint_off WIDTH
@@ -187,6 +188,8 @@ module routecore #(
 
 	reg	[2:0]		dbg_sel;
 	wire	[NETH*32-1:0]	arb_debug, bcast_debug;
+
+	reg	[NETH*NETH-1:0]	r_route_never, r_route_always;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -196,10 +199,6 @@ module routecore #(
 	begin : GEN_INTERFACES
 		// Per-port declarations
 		// {{{
-		localparam [NETH-1:0]	THIS_ALWAYS = OPT_ALWAYS[geth*NETH +: NETH];
-		// From this, never go there
-		localparam [NETH-1:0]	THIS_NEVER = OPT_NEVER[geth*NETH +: NETH];
-		localparam [NETH-1:0]	THERE_NEVER=CALC_NEVER(geth);
 		localparam [NETH-1:0]	THIS_PORT = (1<<geth);
 		localparam [NETH-1:0]	EVERYONE_ELSE = ~THIS_PORT;
 
@@ -233,6 +232,12 @@ module routecore #(
 		reg	[NETH-1:0]		prearb_last, prearb_abort;
 
 		wire			tx_abort;
+		wire	[NETH-1:0]	w_this_never, w_this_always;
+					// w_there_never;
+
+		assign	w_this_never  = r_route_never[geth*NETH +: NETH];
+		assign	w_this_always = r_route_always[geth*NETH +: NETH];
+		// assign w_there_never = CALC_NEVER(geth, r_route_never);
 		// }}}
 
 		// Grab packet MACs for the router
@@ -282,7 +287,7 @@ module routecore #(
 			//
 			.M_AXIS_TVALID(rxtbl_valid[geth * NETH +: NETH]),
 			.M_AXIS_TREADY(rxtbl_ready[geth * NETH +: NETH]
-				| ETH_RESET | THERE_NEVER),
+				| ETH_RESET),
 			.M_AXIS_TDATA(rxtbl_data[geth * MACW * NETH +: MACW * NETH])
 			// }}}
 		);
@@ -439,7 +444,7 @@ module routecore #(
 			//
 			.TBL_REQUEST(lkup_request), .TBL_VALID(lkup_valid),
 			.TBL_MAC(lkup_dstmac),
-				.TBL_PORT((lkup_port & ~THIS_PORT)|THIS_ALWAYS),
+				.TBL_PORT(lkup_port & ~THIS_PORT),
 			//
 			.M_VALID(rtd_valid), .M_READY(rtd_ready),
 			.M_DATA(rtd_data), .M_BYTES(rtd_bytes),
@@ -455,6 +460,8 @@ module routecore #(
 		axinbroadcast #(
 			.OPT_SKIDBUFFER(OPT_SKIDBUFFER),
 			.OPT_LOWPOWER(OPT_LOWPOWER),
+			.LGPOLY(LGPOLY),
+			.POLYNOMIAL(POLYNOMIAL(geth)),
 			.NOUT(NETH), .DW(PKTDW)
 		) u_rtdbroadcast (
 			// {{{
@@ -550,10 +557,8 @@ module routecore #(
 		begin
 			// Routing *from* geth *to* iport_re
 			//	Once done,x in MAP[x] will be where this is from
-			remap_valid[iport_re] = rxtbl_valid[iport_re * NETH+geth]
-					&& !THIS_NEVER[iport_re];
-			rxtbl_ready[iport_re*NETH+geth] = remap_ready[iport_re]
-					|| THIS_NEVER[iport_re];
+			remap_valid[iport_re] = rxtbl_valid[iport_re * NETH+geth];
+			rxtbl_ready[iport_re*NETH+geth] = remap_ready[iport_re];
 			remap_data[iport_re * MACW +: MACW]
 				 = rxtbl_data[(iport_re*NETH+geth)*MACW +: MACW];
 		end
@@ -561,9 +566,7 @@ module routecore #(
 		routetbl #(
 			// {{{
 			.NETH(NETH),
-			.OPT_ALWAYS(THIS_ALWAYS),
-			.OPT_NEVER(THIS_NEVER),	// Never go from here to there
-			.BROADCAST_PORT(EVERYONE_ELSE & ~THIS_NEVER),
+			.BROADCAST_PORT(EVERYONE_ELSE),
 			// .DEFAULT_PORT(NETH),
 			.LGTBL(LGROUTETBL),
 			.LGTIMEOUT(LGROUTE_TIMEOUT),
@@ -574,7 +577,9 @@ module routecore #(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
-			.RX_VALID(remap_valid & ~THIS_NEVER),
+			.i_cfg_never(w_this_never),.i_cfg_always(w_this_always),
+			//
+			.RX_VALID(remap_valid & ~w_this_never),
 			.RX_READY(remap_ready),
 			.RX_SRCMAC(remap_data),
 
@@ -614,17 +619,36 @@ module routecore #(
 		assign	w_wide_debug[geth*32 +: 32] = w_debug;
 	end endgenerate
 
-	function [NETH-1:0]	CALC_NEVER(integer here);
+	function [NETH-1:0]	CALC_NEVER(integer here, input [NETH*NETH-1:0]
+						request);
 		// {{{
 		integer	there;
 	begin
 		CALC_NEVER = 0;
 		for(there=0; there<NETH; there=there+1)
 		begin
-			CALC_NEVER[there] = OPT_NEVER[here*NETH + there];
+			CALC_NEVER[there] = request[here*NETH + there];
 		end
 	end endfunction
 	// }}}
+
+	function [LGPOLY-1:0]	POLYNOMIAL(integer port);
+		// {{{
+	begin
+		case(port)
+		0:	POLYNOMIAL = 7'h47;
+		1:	POLYNOMIAL = 7'h53;
+		2:	POLYNOMIAL = 7'h55;
+		3:	POLYNOMIAL = 7'h5f;
+		4:	POLYNOMIAL = 7'h65;
+		5:	POLYNOMIAL = 7'h69;
+		6:	POLYNOMIAL = 7'h77;
+		7:	POLYNOMIAL = 7'h7b;
+		default:	POLYNOMIAL = 7'h41;
+		endcase
+	end endfunction
+	// }}}
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -637,11 +661,6 @@ module routecore #(
 		// {{{
 		localparam [NETH-1:0]	THIS_PORT = (1<<(NETH-1));
 		localparam [NETH-1:0]	EVERYONE_ELSE = ~THIS_PORT;
-
-		localparam [NETH-1:0]	THIS_ALWAYS = OPT_ALWAYS[NMEM*NETH +: NETH];
-		// From this, never go there
-		localparam [NETH-1:0]	THIS_NEVER = OPT_NEVER[NMEM*NETH +: NETH];
-		localparam [NETH-1:0]	THERE_NEVER=CALC_NEVER(NMEM);
 
 		wire			smac_valid, smac_ready;
 		wire	[MACW-1:0]	smac_data;
@@ -671,6 +690,15 @@ module routecore #(
 		reg	[NETH*PKTDW-1:0]	prearb_data;
 		reg	[NETH*PKTBYW-1:0]	prearb_bytes;
 		reg	[NETH-1:0]		prearb_last, prearb_abort;
+
+		wire	[NETH-1:0]	w_this_never, w_this_always;
+					// w_there_never;
+
+		// From this, never go there
+		assign	w_this_never  = r_route_never[NMEM*NETH +: NETH];
+		assign	w_this_always = r_route_always[NMEM*NETH +: NETH];
+		// From there, never go here
+		// assign	w_there_never = CALC_NEVER(NMEM, r_route_never);
 		// }}}
 
 		// Grab packet MACs for the router
@@ -720,7 +748,7 @@ module routecore #(
 			//
 			.M_AXIS_TVALID(rxtbl_valid[(NETH-1) * NETH +: NETH]),
 			.M_AXIS_TREADY(rxtbl_ready[(NETH-1) * NETH +: NETH]
-				| ETH_RESET | THERE_NEVER),
+				| ETH_RESET),
 			.M_AXIS_TDATA(rxtbl_data[(NETH-1) * MACW * NETH +: MACW * NETH])
 			// }}}
 		);
@@ -747,7 +775,7 @@ module routecore #(
 			//
 			.TBL_REQUEST(lkup_request), .TBL_VALID(lkup_valid),
 			.TBL_MAC(lkup_dstmac),
-				.TBL_PORT((lkup_port & ~THIS_PORT) | THIS_ALWAYS),
+				.TBL_PORT(lkup_port & ~THIS_PORT),
 			//
 			.M_VALID(rtd_valid), .M_READY(rtd_ready),
 			.M_DATA(rtd_data), .M_BYTES(rtd_bytes),
@@ -763,6 +791,8 @@ module routecore #(
 		axinbroadcast #(
 			.OPT_SKIDBUFFER(OPT_SKIDBUFFER),
 			.OPT_LOWPOWER(OPT_LOWPOWER),
+			.LGPOLY(LGPOLY),
+			.POLYNOMIAL(POLYNOMIAL(NMEM)),
 			.NOUT(NETH), .DW(PKTDW)
 		) u_rtdbroadcast (
 			// {{{
@@ -854,10 +884,8 @@ module routecore #(
 		always @(*)
 		for(iport_re=0; iport_re<NETH; iport_re=iport_re+1)
 		begin
-			remap_valid[iport_re] = rxtbl_valid[iport_re * NETH+NMEM]
-				&& !THIS_NEVER[iport_re];
-			rxtbl_ready[iport_re*NETH+NMEM] = remap_ready[iport_re]
-				|| THIS_NEVER[iport_re];
+			remap_valid[iport_re] = rxtbl_valid[iport_re * NETH+NMEM];
+			rxtbl_ready[iport_re*NETH+NMEM] = remap_ready[iport_re];
 			remap_data[iport_re * MACW +: MACW]
 				 = rxtbl_data[(iport_re*NETH+NMEM)*MACW +: MACW];
 		end
@@ -865,9 +893,7 @@ module routecore #(
 		routetbl #(
 			// {{{
 			.NETH(NETH),
-			.OPT_NEVER(THIS_NEVER),
-			.OPT_ALWAYS(THIS_ALWAYS),
-			.BROADCAST_PORT(EVERYONE_ELSE & ~THIS_NEVER),
+			.BROADCAST_PORT(EVERYONE_ELSE),
 			// .DEFAULT_PORT(NETH),
 			.LGTBL(LGROUTETBL),
 			.LGTIMEOUT(LGROUTE_TIMEOUT),
@@ -878,7 +904,9 @@ module routecore #(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset),
 			//
-			.RX_VALID(remap_valid & ~THIS_NEVER),
+			.i_cfg_never(w_this_never),.i_cfg_always(w_this_always),
+			//
+			.RX_VALID(remap_valid & ~w_this_never),
 			.RX_READY(remap_ready),
 			.RX_SRCMAC(remap_data),
 
@@ -992,6 +1020,31 @@ module routecore #(
 	// Debug handling
 	// {{{
 	always @(posedge i_clk)
+	if (i_reset)
+	begin
+		r_route_never  <= OPT_NEVER;
+		r_route_always <= OPT_ALWAYS;
+	end else if (i_ctrl_stb && !o_ctrl_stall && i_ctrl_we && (&i_ctrl_sel)
+							&& i_ctrl_addr[5])
+	begin
+		case(i_ctrl_addr[4:0])
+		5'b11_010: r_route_never  <= {
+					i_ctrl_data[28:24] | 5'h10,
+					i_ctrl_data[22:18] | 5'h08,
+					i_ctrl_data[16:12] | 5'h04,
+					i_ctrl_data[10: 6] | 5'h02,
+					i_ctrl_data[ 4: 0] | 5'h01 };
+		5'b11_011: r_route_always <= {
+					i_ctrl_data[28:24],
+					i_ctrl_data[22:18],
+					i_ctrl_data[16:12],
+					i_ctrl_data[10: 6],
+					i_ctrl_data[ 4: 0] };
+		default: begin end
+		endcase
+	end
+
+	always @(posedge i_clk)
 	begin
 		dbg_wb_data <= 32'h0;
 		case(i_ctrl_addr)
@@ -1085,6 +1138,17 @@ module routecore #(
 		6'b110_110: dbg_wb_data <= w_wide_debug[2*32 +: 32];
 		6'b110_111: dbg_wb_data <= w_wide_debug[3*32 +: 32];
 		6'b111_000: dbg_wb_data <= w_wide_debug[4*32 +: 32];
+		//
+		6'b111_010: {	dbg_wb_data[28:24],
+				dbg_wb_data[22:18],
+				dbg_wb_data[16:12],
+				dbg_wb_data[10: 6],
+				dbg_wb_data[ 4: 0] } <= r_route_never;
+		6'b111_011: { dbg_wb_data[28:24],
+				dbg_wb_data[22:18],
+				dbg_wb_data[16:12],
+				dbg_wb_data[10: 6],
+				dbg_wb_data[ 4: 0] } <= r_route_always;
 		//
 		6'b111_111: dbg_wb_data[2:0] <= dbg_sel;
 		default: begin end

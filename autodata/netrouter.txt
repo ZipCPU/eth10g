@@ -205,20 +205,13 @@
 		.AW(@$(MASTER.BUS.AWID)),
 		.OPT_VFIFO(4'b1100)
 `ifdef	CPUNET_ACCESS
-		// This *WORKS*
-		, .OPT_NEVER({ 5'h00, 5'h0d, 5'h0e, 5'h03, 5'h03 }),
-		.OPT_ALWAYS({ 5'h00, 5'h11, 5'h12, 5'h00, 5'h00 })
-		// This also fails ...
-		// , .OPT_NEVER({ 5'h00, 5'h0d, 5'h0e, 5'h03, 5'h03 }),
-		// .OPT_ALWAYS({ 5'h00, 5'h12, 5'h11, 5'h00, 5'h00 })
-		//
-		// This configuration failed
-		// , .OPT_NEVER({ 5'h13, 5'h0b, 5'h07, 5'h03, 5'h03 }),
-		// .OPT_ALWAYS({ 5'h00, 5'h10, 5'h00, 5'h00, 5'h00 })
-		//
-		// This configuration worked (I think ...)
-		// , .OPT_NEVER({ 5'h10, 5'h18, 5'h14, 5'h0b, 5'h07 }),
-		// .OPT_ALWAYS({ 5'h00, 5'h02, 5'h01, 5'h10, 5'h10 })
+		// This *should* work, but ... doesn't
+		, .OPT_NEVER({ 5'h10, 5'h08, 5'h04, 5'h1f, 5'h1f }),
+		.OPT_ALWAYS({ 5'h00, 5'h00, 5'h00, 5'h00, 5'h00 })
+//
+		// This should force a "right" answer
+		// , .OPT_NEVER({ 5'h10, 5'h1f, 5'h1f, 5'h1f, 5'h1f }),
+		// .OPT_ALWAYS({ 5'h00, 5'h04, 5'h08, 5'h00, 5'h00 })
 `endif
 	) u_router (
 		// {{{
@@ -273,7 +266,7 @@
 	);
 
 	// }}}
-@REGS.N=59
+@REGS.N=61
 @REGS.0=0   R_@$(DEVID) @$(DEVID)
 @REGS.1=0   R_@$(DEVID)0	@$(DEVID)0
 @REGS.2=1   R_@$(DEVID)SZ0	@$(DEVID)SZ0
@@ -334,7 +327,9 @@
 @REGS.55=54 R_@$(DEVID)DBG2	@$(DEVID)DBG2
 @REGS.56=55 R_@$(DEVID)DBG3	@$(DEVID)DBG3
 @REGS.57=56 R_@$(DEVID)DBG4	@$(DEVID)DBG4
-@REGS.58=63 R_@$(DEVID)DBGS	@$(DEVID)DBGS
+@REGS.58=58 R_@$(DEVID)NEVER	@$(DEVID)NV		RTNEVER
+@REGS.59=59 R_@$(DEVID)ALWAYS	@$(DEVID)AL		RTALWAYS
+@REGS.60=63 R_@$(DEVID)DBGS	@$(DEVID)DBGS
 @BDEF.DEFN=
 
 typedef	struct	PKTVFIFO_S {

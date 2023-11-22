@@ -273,8 +273,7 @@ module	cpunet #(
 			mem_err <= 1'b1;
 		end
 
-		if (rd_fifo_err)
-			reset_rdfifo <= 1'b1;
+		// if (rd_fifo_err) reset_rdfifo <= 1'b1;
 	end
 
 	assign	o_wb_stall = 1'b0;
@@ -651,7 +650,7 @@ module	cpunet #(
 		.BW(BUSDW+$clog2(BUSDW/8)+1), .LGFLEN(LGOFIFO)
 	) u_ackfifo (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset || reset_rdfifo),
+		.i_clk(i_clk), .i_reset(i_reset || reset_rdfifo || rd_fifo_err),
 		//
 		.i_wr(mem_valid), .i_data({ mem_last, mem_bytes, mem_data }),
 			.o_full(ign_mem_full), .o_fill(ign_mem_fill),
@@ -672,7 +671,7 @@ module	cpunet #(
 	always @(posedge i_clk)
 	if (i_reset)
 		TX_ABORT <= 1'b0;
-	else if (reset_rdfifo)
+	else if (reset_rdfifo || rd_fifo_err)
 		TX_ABORT <= 1'b1;
 	else if (!TX_VALID || TX_READY)
 		TX_ABORT <= 1'b0;
@@ -681,7 +680,7 @@ module	cpunet #(
 		.IW(BUSDW), .OW(PKTDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_outwidth (
 		// {{{
-		.ACLK(i_clk), .ARESETN(!i_reset && !reset_rdfifo),
+		.ACLK(i_clk), .ARESETN(!i_reset && !reset_rdfifo && !rd_fifo_err),
 		//
 		.S_AXIN_VALID( memfifo_valid),
 		.S_AXIN_READY( memfifo_ready),

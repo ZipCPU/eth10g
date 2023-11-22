@@ -96,6 +96,8 @@ void	pkt_send(char *pkt, unsigned ln) {
 	// Copy the packet to the virtual FIFO
 	// {{{
 	// Before any wrap
+	printf("PKT-SEND: MEMCPY(0x%08x, %d)\n", (unsigned)wptr, ln);
+
 	hln = ln;
 	if (hln + wptr > endp)
 		hln = endp - wptr;
@@ -127,6 +129,11 @@ void	pkt_send(char *pkt, unsigned ln) {
 	wptr = (char *)_cpunet->net_txwptr + ln + 7;
 	wptr = (char *)(((unsigned)wptr) & ~3);
 	_cpunet->net_txwptr = wptr;
+	printf("PKT-SEND: RPTR = 0x%08x [ == %08x], WPTR = 0x%08x [ == %08x]\n",
+			(unsigned)rptr,
+			*(unsigned *)rptr,
+			(unsigned)wptr,
+			*(unsigned *)wptr);
 	// }}}
 }
 // }}}
@@ -413,7 +420,7 @@ int main(int argc, char **argv) {
 		unsigned	pktln;
 
 		// Let's create a ARP request packet, and send it to FPGA #1
-		// pkt_send(pkt, 64);
+		pkt_send(pkt, 64);
 		// Now let's wait a second and see what comes back ...
 		while(0 == (_zip->z_pic & SYSINT_JIFFIES)) {
 			unsigned char *epay = (unsigned char *)&rxpktb[14],

@@ -201,7 +201,7 @@ module	xgtxphy #(
 		wire	[1:0]	ign_txbufstatus;
 		wire		rxbuf_reset, rx_mmcm_locked, rx_user_clk;
 		wire	[7:0]	ign_monitor;
-		wire	[63:0]	brv_data;
+		wire	[31:0]	brv_data;
 		wire	[2:0]	ign_rx_header;
 		wire		ign_rx_data_valid, ign_rx_header_valid,
 				raw_gtx_tx_clk, raw_gtx_rx_clk;
@@ -286,7 +286,7 @@ module	xgtxphy #(
 		// }}}
 
 		// assign	brv_data = BITREV(S_DATA);
-		assign	brv_data = S_DATA;
+		assign	brv_data = S_DATA[32*gk +: 32];
 
 		GTXE2_CHANNEL #(
 			// {{{
@@ -604,7 +604,7 @@ module	xgtxphy #(
 			.TXUSRCLK2(tx_user_clk),	// Returned clocks w/ data clocks
 			.TXUSRCLK(tx_user_clk),
 			.TXHEADER(3'h0),
-			.TXDATA(brv_data[63:0]),
+			.TXDATA({ 32'h0, brv_data }),
 			.TXGEARBOXREADY(ign_tx_gearbox_ready),
 			//
 			.TXSEQUENCE(7'h0),

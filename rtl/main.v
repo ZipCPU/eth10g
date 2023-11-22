@@ -2396,8 +2396,13 @@ module	main(i_clk, i_reset,
 		.AW(25),
 		.OPT_VFIFO(4'b1100)
 `ifdef	CPUNET_ACCESS
-		, .OPT_NEVER({ 5'h10, 5'h19, 5'h16, 5'h0b, 5'h07 }),
-		.OPT_ALWAYS({ 5'h00, 5'h02, 5'h01, 5'h10, 5'h10 })
+		// This *should* work, but ... doesn't
+		, .OPT_NEVER({ 5'h10, 5'h08, 5'h04, 5'h02, 5'h01 }),
+		.OPT_ALWAYS({ 5'h00, 5'h00, 5'h00, 5'h00, 5'h00 })
+//
+		// This should force a "right" answer
+		// , .OPT_NEVER({ 5'h10, 5'h1f, 5'h1f, 5'h1f, 5'h1f }),
+		// .OPT_ALWAYS({ 5'h00, 5'h04, 5'h08, 5'h00, 5'h00 })
 `endif
 	) u_router (
 		// {{{

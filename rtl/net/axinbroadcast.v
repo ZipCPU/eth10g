@@ -39,6 +39,8 @@ module axinbroadcast #(
 		parameter	NOUT = 4,	// Number of incoming eth ports
 		parameter	DW = 64,	// Bits per clock cycle
 		parameter	WBITS = $clog2(DW/8),
+		parameter	LGPOLY = 7,
+		parameter [LGPOLY-1:0]	POLYNOMIAL = 7'h41,
 		parameter [0:0]	OPT_SKIDBUFFER = 0,
 		parameter [0:0]	OPT_LOWPOWER = 0
 		// }}}
@@ -87,10 +89,10 @@ module axinbroadcast #(
 	reg			s_midpkt;
 	reg	[NOUT-1:0]	midpkt;
 
-	reg		open_channel, deadlock;
-	reg	[4:0]	pseudorandom;
-	reg	[5:0]	deadlock_counter;
-	wire		one_active, full_grant, end_of_packet;
+	reg			open_channel, deadlock;
+	reg	[LGPOLY-1:0]	pseudorandom;
+	reg	[5:0]		deadlock_counter;
+	wire			one_active, full_grant, end_of_packet;
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -171,7 +173,7 @@ module axinbroadcast #(
 	else if (skd_valid)
 	begin
 		if (pseudorandom[0])
-			pseudorandom <= (pseudorandom >> 1) ^ 5'h14;
+			pseudorandom <= (pseudorandom >> 1) ^ POLYNOMIAL;
 		else
 			pseudorandom <= pseudorandom >> 1;
 	end
