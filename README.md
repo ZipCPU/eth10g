@@ -56,7 +56,7 @@ This project is released under the Apache 2 license.
 
 ## Status
 
-As of 2 October, 2023:
+As of 22 November, 2023:
 
 - The initial PCB for this project has been built and testing has completed.  Several issues have been found, which are now scheduled to be fixed in the next revision.
 
@@ -94,26 +94,24 @@ As of 2 October, 2023:
 
     - [SPI based SD card controller](https://github.com/ZipCPU/sdspi).  This worked long enough to prove itself.  [The SPI-based controller](rtl/sdspi/sdspi.v) has since been removed from the design in favor of its [companion SDIO based controller](rtl/sdspi/sdio.v).
 
-    - The [SDIO SD card controller](https://github.com/ZipCPU/sdspi) is now working on the board after replacing one of the level shifting chips on the board.
+    - The [SDIO SD card controller](https://github.com/ZipCPU/sdspi) is now working on the board after replacing one of the level shifting chips on the board.  _(This component has since been temporarily removed for a lack of available space.)_
 
-    - The eMMC device, which also uses the [SDIO controller](https://github.com/ZipCPU/sdspi), is working as well.  The [software driver](sw/zipcpu/fatfs/emmcdrvr.c) could use some more work, but the PCB/chip/RTL device appears to be working just fine.
+    - The eMMC device, which also uses the [SDIO controller](https://github.com/ZipCPU/sdspi), is working as well.  The [software driver](sw/zipcpu/fatfs/emmcdrvr.c) could use some more work, but the PCB/chip/RTL device appears to be working just fine.  _(This component has since been temporarily removed for a lack of available space.)_
 
     - Filesystem support is being provided by [FATFS](http://elm-chan.org/fsw/ff/00index_e.html).  It has been used to (successfully) read the directory of an attached SD Card.
 
   - _(Sort of) Working:_ [SMI Slave Controller](rtl/smi/smi.v).  The SMI pins appear to work--all except the SMI address pins.  I'm not sure why that is, but appears to be a design issue with the [CM4 daughter board](https://www.raspberrypi.com/products/compute-module-4/?variant=raspberry-pi-cm4001000).  Still, it's working well enough that the project can use SMI if desired.
 
-  - [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v).  The receiver now accepts video from the RPi and forwards it downstream.  Either this video, or a blank screen, can then be forwarded to an overlay module.  The result has now been display (successfully) via the HDMI transmitter.
+  - [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v).  The receiver now accepts video from the RPi and forwards it downstream.  Either this video, or a blank screen, can then be forwarded to an overlay module.  The result has now been display (successfully) via the HDMI transmitter.  _(This component has since been temporarily removed for a lack of available space.)_
 
-  - The 10Gb Ethernet component.  All four connections are up and running in our test setup.  The next step will be to verify the router components operation.
+  - The 10Gb Ethernet component.  All connections are up and running in our test setup.  The router itself appears to be working as well.
 
   - This open source [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller).  While I haven't (yet) measured its performance, I'm expecting this controller to a 2x lower latency when compared with Xilinx's MIG controller.
 
-- Components assembled, attached, and currently under test include:
-
-  - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are integrated, but not yet tested.
+  - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are fully integrated, and appear to be working.
 
 
-- Components not yet integrated include:
+- Only one component remains to be integrated:
 
   - [The SATA Controller](https://github.com/ZipCPU/wbsata).  This component needs some more development time at present.
 
