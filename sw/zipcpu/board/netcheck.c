@@ -66,14 +66,14 @@ unsigned calc_crc(int pktlen, const unsigned char *pkt) {
 }
 // }}}
 
-void	pkt_send(char *pkt, unsigned ln) {
+void	pkt_send(const char *pkt, const unsigned ln) {
 	// {{{
 	char	*base  = _cpunet->net_txbase;
 	unsigned mlen = _cpunet->net_txlen;
 	char	*wptr = (char *)_cpunet->net_txwptr+4,
 			*rptr = (char *)_cpunet->net_txrptr,
-			*endp = base + mlen,
-			*pktp = pkt;
+			*endp = base + mlen;
+	const char	*pktp = pkt;
 	unsigned	hln, space;
 
 	if (0 == base || 0 == mlen) {
@@ -84,11 +84,26 @@ void	pkt_send(char *pkt, unsigned ln) {
 	if (wptr >= endp)
 		wptr = base;
 
+	if (rptr >= endp) {
+		printf("ERR: VFIFO Overrun!\n");
+		zip_halt();
+	}
+
 	// Is there room in the virtual FIFO?
 	// {{{
 	space = mlen - (wptr-rptr);
-	if (rptr > wptr)	// WRAP
-		space -= mlen;
+	if (rptr > wptr)
+		// WRAP
+		space = rptr - wptr;
+	else
+		space = mlen - (wptr-rptr);
+
+	if (space > mlen) {
+		printf("ERR: VFIFO space miscalculation!\n");
+		zip_halt();
+	} else
+		printf("PKT-SEND: %08x <= (%08x, %08x) < %08x -> %d bytes\n",
+			(unsigned)base, rptr, wptr, (unsigned)base+ mlen,space);
 	if (space < ln + 8)
 		return;	// NO ROOM
 	// }}}
@@ -128,12 +143,18 @@ void	pkt_send(char *pkt, unsigned ln) {
 	// Now we can update the write pointer
 	wptr = (char *)_cpunet->net_txwptr + ln + 7;
 	wptr = (char *)(((unsigned)wptr) & ~3);
+	if (wptr >= endp)
+		wptr -= mlen;
 	_cpunet->net_txwptr = wptr;
 	printf("PKT-SEND: RPTR = 0x%08x [ == %08x], WPTR = 0x%08x [ == %08x]\n",
 			(unsigned)rptr,
 			*(unsigned *)rptr,
 			(unsigned)wptr,
 			*(unsigned *)wptr);
+	printf("TX PKT (%d bytes):", ln);
+	for(int k=0; k<ln; k++)
+		printf("%02x ", pkt[k] & 0x0ff);
+	printf("\n");
 	// }}}
 }
 // }}}
@@ -163,11 +184,6 @@ printf("RX PKT!\n");
 		printf("HW ERR!!  Net length = %d\n", ln);
 		_cpunet->net_rxrptr = wptr;
 		return 0;
-	} else if (ln > maxln) {
-		printf("ERROR !!  JUMBO packet too big at %d bytes (%08x)\n",
-			ln, ln);
-		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
-		return 0;
 	}
 
 	// SANITY CHECK: Does this packet fit in the virtual FIFO?
@@ -178,6 +194,19 @@ printf("RX PKT!\n");
 		// Reset the FIFO, drop any would-be packets
 		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
 		return 0;	// NO ROOM
+	}
+
+	if (ln > maxln) {
+		printf("ERROR !!  JUMBO packet too big at %d bytes (%08x)\n",
+			ln, ln);
+		printf("\t BASE: 0x%08x\n", (unsigned)base);
+		printf("\t  LEN: 0x%08x\n", mlen);
+		printf("\tWRPTR: 0x%08x\n", (unsigned)wptr);
+		printf("\tRDPTR: 0x%08x\n", (unsigned)rptr);
+		_cpunet->net_rxrptr = _cpunet->net_rxwptr;
+		fflush(stdout);
+		zip_halt();
+		return 0;
 	}
 
 	// Potential wrap due to the pointer being at the end of memory
@@ -204,7 +233,7 @@ printf("RX PKT!\n");
 	rptr += ln + 3;
 	rptr = (char *)(((unsigned)rptr) & ~3);
 	if (rptr >= endp)
-		rptr = base;
+		rptr -= mlen;
 	_cpunet->net_rxrptr = rptr;
 
 	// Return the size of the packet we just read
@@ -225,16 +254,26 @@ int main(int argc, char **argv) {
 	// {{{
 	printf("NETCHECK -- Starting up\n");
 #ifdef	NETRESET_ACCESS
-	// Can't reset everything--we still need to set the addresses, and
-	// holding things in reset prevents them from interacting w/ the bus
-	// (*_netreset) = 16 | 3;	// 5'b1_0011
-	// __asm__("NOOP");
-	// __asm__("NOOP");
-	// __asm__("NOOP");
-	// __asm__("NOOP");
+	(*_netreset) = -1;
+	__asm__("NOOP");
+	__asm__("NOOP");
+	__asm__("NOOP");
+	__asm__("NOOP");
 	(*_netreset) = 0;
 #endif
-	printf("NETCHECK -- Holding two channels in reset\n");
+	{
+		unsigned	nvr;
+		nvr  = (0x12 << 4*6) | (0x0b << 3*6)
+					| (0x07 << 2*6)
+					| (0x1f <<   6) | (0x01f);
+		printf("NVR set to %08x\n", nvr);
+		_gnet->v_never  = nvr;
+		_gnet->v_always = (0x01 << 4*6) | (0x010);
+		printf("NVR reads back as 0x%08x, 0x%08x (&0x%08x)\n",
+			(volatile unsigned)_gnet->v_never,
+			(volatile unsigned)_gnet->v_always,
+			(unsigned)&_gnet->v_never);
+	}
 	// }}}
 
 	char	*vfifo_base[4], *ptr;
@@ -251,7 +290,7 @@ int main(int argc, char **argv) {
 	for(unsigned netif=0; netif<4; netif++) {
 		volatile unsigned	*base;
 
-		base = (volatile unsigned *)&_gnet->vfif[0].v_base;
+		base = (volatile unsigned *)&_gnet->vfif[netif].v_base;
 		*base = -1;
 		bus_mask = *base;
 
@@ -340,13 +379,19 @@ int main(int argc, char **argv) {
 		tmp1 = _cpunet->net_mac[0];
 		tmp2 = _cpunet->net_mac[1];
 
-		my_mac[0] = (tmp1 >> 24);
-		my_mac[1] = (tmp1 >> 16);
-		my_mac[2] = (tmp1 >>  8);
-		my_mac[3] =  tmp1;
+		printf("NETMAC = %08x:%08x\n", tmp1, tmp2);
 
-		my_mac[4] = (tmp1 >> 24);
-		my_mac[5] = (tmp1 >> 16);
+		my_mac[0] = (tmp1 >>  8);
+		my_mac[1] = (tmp1);
+
+		my_mac[2] = (tmp2 >> 24);
+		my_mac[3] = (tmp2 >> 16);
+		my_mac[4] = (tmp2 >>  8);
+		my_mac[5] =  tmp2;
+
+		printf("NETMAC = %02x:%02x:%02x:%02x:%02x:%02x\n",
+			my_mac[0], my_mac[1], my_mac[2], my_mac[3],
+			my_mac[4], my_mac[5]);
 	}
 
 	// fpga1_ip = (192 <<24)|(168 <<16)|(0 << 8)|200;
@@ -370,7 +415,7 @@ int main(int argc, char **argv) {
 	const	unsigned	ONE_MS = ONE_US * 1000;
 	const	unsigned	ONE_SECOND = ONE_MS * 1000;
 	unsigned	crc;
-	const	unsigned	MAX_PKTSZ = 65536;
+	const	unsigned	MAX_PKTSZ = (VFIFOSZ > 65536) ? 65536 : VFIFOSZ-4;
 
 	// Destination MAC = BROADCAST
 	for(int k=0; k<6; k++)
@@ -415,6 +460,10 @@ int main(int argc, char **argv) {
 	_zip->z_pic = EINT(SYSINT_JIFFIES);
 	_zip->z_jiffies = ONE_SECOND;
 
+	printf("Sizeof (_gnet) = %d\n", sizeof(_gnet));
+	printf("NVR reads back as 0x%08x, 0x%08x\n",
+		(volatile unsigned)_gnet->v_never,
+		(volatile unsigned)_gnet->v_always);
 	printf("NETCHECK -- Setup *COMPLETE*\n");
 	while(1) {
 		unsigned	pktln;
@@ -431,9 +480,10 @@ int main(int argc, char **argv) {
 			if (pktln > 0) {
 				// {{{
 				printf("RX PKT (%d bytes):\n", pktln);
-				for(int k=0; k<pktln; k++)
+				for(int k=0; k<pktln && k < 512; k++)
 					printf("%02x ", rxpktb[k]);
 				printf("\n");
+				// if (pktln > 2048) zip_halt();
 				printf("Dst MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
 					rxpktb[0], rxpktb[1], rxpktb[2],
 					rxpktb[3], rxpktb[4], rxpktb[5]);

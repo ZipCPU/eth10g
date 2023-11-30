@@ -323,7 +323,10 @@ module	cpunet #(
 		ADDR_RDBASE:  o_wb_data[BUSLSB +: AW] <= rd_baseaddr;
 		ADDR_RDSIZE:  o_wb_data[BUSLSB +: AW] <= rd_memsize;
 		ADDR_RDWPTR:  o_wb_data[AW+BUSLSB-1:2]<= rd_writeptr;
-		ADDR_RDRPTR:  o_wb_data[AW+BUSLSB-1:2]<= rd_readptr;
+		ADDR_RDRPTR:  if (rd_fifo_err)
+				o_wb_data <= -1;
+			else
+				o_wb_data[AW+BUSLSB-1:2]<= rd_readptr;
 		ADDR_WRBASE:  o_wb_data[BUSLSB +: AW] <= wr_baseaddr;
 		ADDR_WRSIZE:  o_wb_data[BUSLSB +: AW] <= wr_memsize;
 		ADDR_WRWPTR:  o_wb_data[AW+BUSLSB-1:2]<= wr_writeptr;
@@ -340,7 +343,7 @@ module	cpunet #(
 		5'h19: o_wb_data <= {
 				4'h0,
 				rd_wb_cyc, rd_wb_stb, rd_wb_ack, rd_wb_err,
-				1'b0, vfifo_rd.rd_outstanding,	// 8b
+				2'b0, vfifo_rd.rd_outstanding,	// 8b
 				2'h0, vfifo_rd.rd_state,	// 4b
 				TX_VALID, TX_READY, TX_LAST, ign_outw_abort,
 				memfifo_valid, memfifo_ready, ign_mem_full, o_tx_int,

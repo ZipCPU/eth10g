@@ -133,7 +133,7 @@ module	pktvfifo #(
 		parameter [AW-1:0] DEF_BASEADDR = {(AW){1'b0}},
 		parameter [AW-1:0] DEF_MEMSIZE  = {(AW){1'b0}},
 		parameter	LGPIPE = 6,
-		parameter	LGFIFO = 5,
+		parameter	LGFIFO = 6,
 		parameter [0:0]	OPT_LOWPOWER = 1,
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 0
 		// }}}
@@ -271,7 +271,7 @@ module	pktvfifo #(
 	always @(posedge i_clk)
 	if (i_reset || i_net_reset)
 		reset_fifo <= 0;
-	else if ((o_wb_cyc && i_wb_err) || (rd_fifo_err) || mem_err)
+	else if ((o_wb_cyc && i_wb_err) || mem_err)
 		reset_fifo <= 1;
 	else if (ctrl_write && (i_ctrl_addr == ADR_BASEADDR
 					|| i_ctrl_addr == ADR_SIZE))
@@ -379,7 +379,11 @@ module	pktvfifo #(
 		ADR_WRITEPTR:	if (!i_net_reset)
 					o_ctrl_data[AW+WBLSB-1:2] <= w_writeptr;
 		ADR_READPTR:	if (!i_net_reset)
+				begin
 					o_ctrl_data[AW+WBLSB-1:2] <= w_readptr;
+					if (rd_fifo_err)
+						o_ctrl_data <= -1;
+				end
 		ADR_PKTCOUNT: if (r_dbg_vfifo)
 				o_ctrl_data <= w_tx_debug;
 			else if (txpkt_count[26])
@@ -452,7 +456,7 @@ module	pktvfifo #(
 			(vfifo_rd.return_len[AW+WBLSB-1:20] != 0) ? 20'hfffff
 				: vfifo_rd.return_len[19:0],
 			vfifo_rd.rd_state[1:0], rd_wb_cyc, rd_wb_stb,	// 4b
-			mid_txpkt, vfifo_rd.rd_outstanding[LGPIPE:0] };		// 8b
+			mid_txpkt, vfifo_rd.rd_outstanding[LGPIPE:0] };	// 8b
 
 		w_rx_debug = {
 			(vfifo_wr.wr_pktlen[AW+WBLSB-1:20] != 0) ? 20'hfffff
@@ -601,7 +605,7 @@ module	pktvfifo #(
 
 	pktvfiford #(
 		// {{{
-		.AW(AW), .BUSDW(BUSDW), .LGPIPE(LGPIPE),
+		.AW(AW), .BUSDW(BUSDW), .LGPIPE(LGPIPE), .LGFIFO(LGFIFO),
 		.OPT_LOWPOWER(OPT_LOWPOWER),
 		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN)
 		// }}}
@@ -683,7 +687,7 @@ module	pktvfifo #(
 		.BW(BUSDW + $clog2(BUSDW/8) + 1), .LGFLEN(LGFIFO)
 	) u_ackfifo (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset || i_net_reset),
+		.i_clk(i_clk), .i_reset(i_reset || i_net_reset || rd_fifo_err),
 		.i_wr(ack_valid), .i_data({ ack_last, ack_bytes, ack_data }),
 			.o_full(ign_ackfifo_full), .o_fill(ign_ackfifo_fill),
 		.i_rd(ackfifo_rd),
@@ -704,7 +708,7 @@ module	pktvfifo #(
 	always @(posedge i_clk)
 	if (i_reset || i_net_reset)
 		M_ABORT <= 1'b0;
-	else if (reset_fifo)
+	else if (reset_fifo || rd_fifo_err)
 		M_ABORT <= 1'b1;
 	else if (!M_VALID || M_READY)
 		M_ABORT <= 1'b0;
@@ -713,7 +717,7 @@ module	pktvfifo #(
 		.IW(BUSDW), .OW(PKTDW), .OPT_LITTLE_ENDIAN(1'b0)
 	) u_outwidth (
 		// {{{
-		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo && !i_net_reset),
+		.ACLK(i_clk), .ARESETN(!i_reset && !reset_fifo && !i_net_reset && !rd_fifo_err),
 		//
 		.S_AXIN_VALID(!ackfifo_empty),
 		.S_AXIN_READY(ackfifo_read),

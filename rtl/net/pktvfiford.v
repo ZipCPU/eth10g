@@ -20,6 +20,39 @@
 //	Note that the four bytes of the packet length word, preceeding a
 //	packet, are not counted in the packet's length.
 //
+// Parameter configuration:
+//	BUSDW		The data width of the Wishbone bus (in bits).  Must be
+//			at least 32 bits.
+//
+//	AW		The word address width of the Wishbone bus.  This does
+//			not reflect any bits required to represent the bytes
+//			within a bus word.
+//
+//	LGFIFO		The log based two size of the external FIFO.  The
+//			external FIFO must hold (1<<LGFIFO) entries.
+//
+//	LGPIPE		The log based two of the number of bus transactions
+//			that may ever be outstanding at any given time.  This
+//			should probably be set to the maximum bus latency.
+//			When using the MIG, LGPIPE=5 is typically sufficient.
+//
+//			Since every item requested on the bus must have an
+//			allocated entry in the FIFO, LGPIPE should be no larger
+//			than LGFIFO.
+//
+//	MINLEN		The minimum packet length allowed.  This is typically
+//			64 bytes, the minimum size of an Ethernet packet.
+//			This value *MUST* be greater than zero.
+//
+//	MAXLEN		The maximum packet length allowed.  Packets larger than
+//			MAXLEN will generate an internal reset condition,
+//			reflected by o_fifo_err.  This is meant to be a failsafe
+//			check on the memory.
+//
+//	OPT_LOWPOWER	If set, unused values will be forced to zero.
+//
+//	OPT_LITTLE_ENDIAN	True if the WB bus is implemented in a little
+//			endian fashion.
 // Configuration:
 //	i_cfg_reset_fifo	True if/when the FIFO is being reconfigured,
 //			or the base address or memory size are not (yet)
@@ -51,12 +84,23 @@
 //			and 2) the write pointer is not equal to the read
 //			pointer.
 //
-//	o_fifo_err	This is a check on the packet length.  Should an invalid
-//			packet length ever be read, this FIFO error flag will
-//			be set.  Examples of invalid lengths include zero length
-//			packets, packet lengths longer than the memory size,
-//			or even packet lengths longer than the distance to the
-//			write pointer.
+//	o_fifo_err	This is a check on both the packet length and the write
+//			pointer.  Should an invalid packet length ever be read,
+//			this FIFO error flag will be set.  The external FIFO
+//			*must* be reset at this time.  Examples of invalid
+//			lengths include zero length packets, packet lengths
+//			longer than the memory size, or even packet lengths
+//			longer than the distance to the write pointer.
+//			Likewise, this pointer will also be raised if the
+//			write pointer ever goes outside the bounds required by
+//			the i_cfg_baseaddr and i_cfg_memsize.
+//
+//			This is intended to be a self-clearing condition.
+//			When/if o_fifo_err is ever raised, the virtual FIFO
+//			reader will clear its internal state machine and set
+//			the read pointer to the current write pointer.  No
+//			external action is required, save to clear the external
+//			FIFO on this signal.
 //
 //	WB		A Wishbone master interface, used to read from memory.
 //
@@ -66,17 +110,24 @@
 //			generate an ABORT.
 //
 //	i_fifo_rd	The output of this module goes directly into a FIFO.
-//			Since Wishbone has no ability to handle back pressure,
-//			we have to guarantee (internally) that we never issue
-//			more WB requests than the FIFO can hold.  Hence, we
-//			keep track of how much space is available in the FIFO.
+//			This FIFO shall have (1<<LGFIFO) entries.  Since
+//			Wishbone has no ability to handle back pressure, we
+//			have to guarantee (internally) that we never issue more
+//			WB requests than the FIFO can hold.  Hence, we keep
+//			track of how much space is available in the FIFO.
 //			When a read request is issued, we decrement from the
 //			space available, and when *i_fifo_rd* is true we add
 //			one to the space available.
 //
-//			Incidentally, when i_cfg_reset_fifo is true, the FIFO
-//			will be cleared and partial packets ABORTed (further
-//			down in the pipeline.)
+//			LGPIPE determines the number of WB transactions we
+//			allow to be outstanding (1<<LGPIPE).  There is no reason
+//			for this number ever to be larger than the FIFO, so
+//			we also insist that LGFIFO >= LGPIPE.
+//
+//			Also, when either i_reset, i_cfg_reset_fifo, or
+//			o_fifo_err are true, the FIFO shall be cleared and any
+//			partially generated packets ABORTed (further down in
+//			the pipeline.)
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -170,6 +221,7 @@ module	pktvfiford #(
 				RD_SIZE      = 2'h1,
 				RD_PACKET    = 2'h2,
 				RD_CLEARBUS  = 2'h3;
+	localparam	LCLGPIPE = (LGPIPE <= LGFIFO) ? LGPIPE : LGFIFO;
 	// }}}
 
 	// Because we work with so many different types of pointers here,
@@ -187,8 +239,8 @@ module	pktvfiford #(
 	// pointer.
 	reg	[AW+(WBLSB-2)-1:0]	r_readptr, rd_wb_addr, r_endptr;
 
-	reg	[LGPIPE:0]	rd_outstanding;
-	wire	[LGPIPE:0]	w_rd_outstanding;
+	reg	[LCLGPIPE:0]	rd_outstanding;
+	wire	[LCLGPIPE:0]	w_rd_outstanding;
 	reg			r_lastack, lastack;
 
 	reg	[LGFIFO:0]	fifo_space;
@@ -235,6 +287,9 @@ module	pktvfiford #(
 
 		wide_readptr  = 0;
 		wide_readptr  = { r_readptr, 2'b00 };
+
+		// wide_writeptr  = 0;
+		// wide_writeptr  = { i_writeptr, 2'b00 };
 	end
 
 	// }}}
@@ -448,8 +503,10 @@ module	pktvfiford #(
 			rd_state <= RD_CLEARBUS;
 		end else if (!o_wb_stb || !i_wb_stall)
 		begin
-			if (!w_rd_outstanding[LGPIPE]
-				&& (o_wb_stb || !rd_outstanding[LGPIPE-1])
+			if (!w_rd_outstanding[LCLGPIPE]
+				&& (o_wb_stb || !rd_outstanding[LCLGPIPE-1])
+				&& !dly_fifo_err && !dly_check
+				&& (o_wb_stb || fifo_space[LGFIFO])
 					&& (fifo_space > (o_wb_stb ? 2:1)))
 				{ o_wb_cyc, o_wb_stb } <= 2'b11;
 
@@ -490,7 +547,7 @@ module	pktvfiford #(
 `ifdef	FORMAL
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || (o_wb_cyc && i_wb_err))
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err || (o_wb_cyc && i_wb_err))
 	begin
 	end else case(rd_state)
 	RD_IDLE: begin
@@ -528,6 +585,13 @@ module	pktvfiford #(
 						+ rd_outstanding);
 		end end
 	endcase
+
+	always @(posedge i_clk)
+	if (!i_reset && !i_cfg_reset_fifo && !o_fifo_err)
+	begin
+		assert(wide_readptr >= wide_baseaddr);
+		assert(wide_readptr < wide_baseaddr + wide_memsize);
+	end
 	// }}}
 `endif
 
@@ -535,7 +599,7 @@ module	pktvfiford #(
 	// {{{
 	initial	rd_outstanding = 0;
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || !o_wb_cyc)
+	if (i_reset || i_cfg_reset_fifo || !o_wb_cyc || o_fifo_err)
 		rd_outstanding <= 0;
 	else case ({ o_wb_stb && !i_wb_stall, i_wb_ack })
 	2'b10: rd_outstanding <= rd_outstanding + 1;
@@ -568,8 +632,54 @@ module	pktvfiford #(
 		assume(!i_fifo_rd);
 
 	always @(*)
-	if (!i_reset)
+	if (!i_reset && (rd_state == RD_PACKET || rd_state == RD_SIZE))
+	begin
+		assert(!false_ack);
+	end
+
+	always @(*)
+	if (!i_reset && (rd_state == RD_PACKET || rd_state == RD_CLEARBUS))
+	begin
+		if (fifo_space >= (1<<LGFIFO)-1-rd_outstanding + (full_return ? 0:1))
+		begin
+			assume(!i_fifo_rd);
+		end
+
+		if (o_wb_stb || rd_outstanding > 0)
+		begin
+			assert(fifo_space >= 1 + (o_wb_stb ? 1:0));
+		end
 		assert(fifo_space <= (1<<LGFIFO));
+		assert(rd_outstanding <= (1<<LGFIFO));
+		assert(fifo_space + rd_outstanding <= (1<<LGFIFO)
+						+ (full_return ? 0:1));
+	end else if (!i_reset)
+	begin
+		if (fifo_space >= (1<<LGFIFO))
+			assume(!i_fifo_rd);
+	end
+
+	always @(*)
+	if (!i_reset && !i_cfg_reset_fifo && fifo_commit)
+		assert(fifo_space >= 0);
+
+	always @(*)
+	if (!i_reset && !i_cfg_reset_fifo)
+	begin
+		assert(fifo_space <= (1<<LGFIFO));
+		if (o_wb_stb
+			&& (rd_state == RD_PACKET || rd_state == RD_CLEARBUS))
+		begin
+			assert(fifo_space >= 1);
+		end
+
+		if ((rd_state == RD_PACKET && o_wb_stb)
+			|| (rd_state == RD_CLEARBUS && (o_wb_stb
+						|| rd_outstanding != 0)))
+		begin
+			assert(fifo_space > 0);
+		end
+	end
 
 	always @(*)
 	if (!i_reset && o_wb_stb
@@ -617,20 +727,26 @@ module	pktvfiford #(
 
 	// o_fifo_err
 	// {{{
-	//	Three causes of FIFO errors:
+	//	Four causes of FIFO errors:
 	//	1. A zero length, after we've been told there's something there
 	//	2. An oversized packet, larger than either MAXLEN or memsize
 	//	3. A packet that passes the write pointer
+	//	4. An out of bounds write pointer
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || o_fifo_err)
+	if (i_reset || i_cfg_reset_fifo)
 		o_fifo_err <= 1'b0;
 	else begin
 		o_fifo_err <= 1'b0;
 		if (dly_fifo_err)
 			o_fifo_err <= 1'b1;
+		if ({ 1'b0, i_writeptr, 2'b00 } < wide_baseaddr)
+			o_fifo_err <= 1'b1;
+		if ({ 1'b0, i_writeptr, 2'b00 } >= end_of_memory)
+			o_fifo_err <= 1'b1;
 		if (o_wb_cyc && i_wb_ack && rd_state == RD_SIZE)
 		begin
-			if ({ 1'b0, next_rdlen } + 1 >= { 2'b0, wide_memsize })
+			if ({ 1'b0, next_rdlen } + 4 + (1<<WBLSB)
+						>= { 2'b0, wide_memsize })
 				o_fifo_err <= 1'b1;
 			if (AW+WBLSB <= 31 && |next_rdlen[31:AW+WBLSB])
 				o_fifo_err <= 1'b1;
@@ -674,14 +790,19 @@ module	pktvfiford #(
 	// dly_fifo_err
 	// {{{
 	// Packet length verification check: Packets may not be larger than
-	// the memory size available to them.  If they are, we declare an
-	// error (o_fifo_err), and the controller will cause both write and
-	// reader to abort and reset.
+	// the memory size available to them.  If they are, we'll declare an
+	// error (dly_fifo_err, then o_fifo_err on the next clock), and we'll
+	// reset locally to the writeptr as a result.
 	always @(posedge i_clk)
 	if (i_reset || i_cfg_reset_fifo || o_fifo_err || !dly_check)
 		dly_fifo_err <= 1'b0;
-	else
-		dly_fifo_err <= (mem_fill < rd_pktlen + 4);
+	else begin
+		dly_fifo_err <= 0;
+		if (mem_fill < rd_pktlen + 4)
+			// There's no room for this packet in the amount of
+			// memory currently filled
+			dly_fifo_err <= 1'b1;
+	end
 	// }}}
 
 	always @(posedge i_clk)
@@ -705,7 +826,7 @@ module	pktvfiford #(
 	// {{{
 	initial	M_VALID = 1'b0;
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE)
+	if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE || o_fifo_err)
 		M_VALID <= 1'b0;
 	else if ((o_wb_cyc && i_wb_ack && full_return) || false_ack)
 		M_VALID <= 1'b1;
@@ -789,8 +910,8 @@ module	pktvfiford #(
 		*/
 
 		always @(posedge i_clk)
-		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE
-							|| rd_state == RD_SIZE)
+		if (i_reset || i_cfg_reset_fifo || o_fifo_err
+				|| rd_state == RD_IDLE || rd_state == RD_SIZE)
 		begin
 			r_full_stb <= (&r_readptr[WBLSB-3:0]);
 		end else if (o_wb_stb && !i_wb_stall)
@@ -804,8 +925,8 @@ module	pktvfiford #(
 		// full_return: Should an ACK trigger a full DW/8 output?
 		// {{{
 		always @(posedge i_clk)
-		if (i_reset || i_cfg_reset_fifo || rd_state == RD_IDLE
-							|| rd_state == RD_SIZE)
+		if (i_reset || i_cfg_reset_fifo || o_fifo_err
+				|| rd_state == RD_IDLE || rd_state == RD_SIZE)
 			// We only generate a FIFO write on the first return
 			// if the lower bits of the read pointer are zero.
 			// HOWEVER ... the readptr in both IDLE and RD_SIZE
@@ -823,7 +944,7 @@ module	pktvfiford #(
 		// {{{
 		always @(posedge i_clk)
 		if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE
-						|| !i_wb_ack || !lastack)
+					|| o_fifo_err || !i_wb_ack || !lastack)
 			// Wrong time to flush, so ... don't
 			r_false_ack <= 0;
  		// else if (!lastack || (rd_state == RD_PACKET && !o_wb_stb))
@@ -917,6 +1038,17 @@ module	pktvfiford #(
 `ifdef	FORMAL
 		assign	f_read_aligned = (r_readptr[WBLSB-3:0] == 0);
 		assign	f_read_lsb = { r_readptr[WBLSB-3:0], 2'b00 };
+
+		always @(*)
+		if (!i_reset&&(rd_state == RD_PACKET || rd_state == RD_CLEARBUS)
+				&& (rd_outstanding > 0 || full_return))
+		begin
+			assert(full_stb);
+		end
+
+		always @(*)
+		if (!i_reset && rd_outstanding == 0)
+			assert(full_stb == full_return);
 `endif
 	end endgenerate
 
@@ -932,7 +1064,7 @@ module	pktvfiford #(
 `ifdef	FORMAL
 	// {{{
 	// Relate return_len to the difference between r_readptr and r_endptr
-	reg	[AW+WBLSB-1:0]	f_endptr, f_startptr;
+	reg	[AW+WBLSB-1:0]	f_endptr, f_startptr, f_pktlen, fw_endptr;
 
 	// f_startptr -- points to the length word's address of the current pkt
 	// {{{
@@ -941,6 +1073,14 @@ module	pktvfiford #(
 		f_startptr <= { i_cfg_baseaddr, {(WBLSB){1'b0}} };
 	else if (rd_state == RD_IDLE || rd_state == RD_SIZE)
 		f_startptr <= { r_readptr, 2'b00 };
+
+	always @(posedge i_clk)
+	if (!i_reset && !i_cfg_reset_fifo && !o_fifo_err && rd_state != RD_IDLE
+			&& rd_state != RD_SIZE && !dly_check && !dly_fifo_err)
+	begin
+		assert(f_startptr[WBLSB +: AW] != f_endptr[WBLSB +: AW]);
+		assert(return_len <= wide_memsize - (1<<WBLSB)-4);
+	end
 
 	always @(posedge i_clk)
 	if (!i_reset && !i_cfg_reset_fifo && rd_state != RD_IDLE)
@@ -954,6 +1094,34 @@ module	pktvfiford #(
 
 		assert(wide_baseaddr <= { r_readptr, 2'b00 });
 		assert({ 1'b0, r_readptr, 2'b00 } < end_of_memory);
+	end
+	// }}}
+
+	// f_pktlen
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err)
+		f_pktlen <= 0;
+	else if (rd_state == RD_SIZE && i_wb_ack)
+		f_pktlen <= next_rdlen[AW+WBLSB-1:0];
+
+	always @(*)
+	begin
+		fw_endptr = f_startptr + f_pktlen
+				+ 3;	// Plus the size of the pointer,-1
+		fw_endptr[1:0] = 2'b00;
+		if (fw_endptr >= end_of_memory)
+			fw_endptr = fw_endptr
+					- { i_cfg_memsize, {(WBLSB){1'b0}} };
+	end
+
+	always @(posedge i_clk)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err || dly_fifo_err
+			|| dly_check)
+	begin end else if (rd_state == RD_PACKET || rd_state == RD_CLEARBUS)
+	begin
+		assert(f_pktlen <= wide_memsize - (1<<WBLSB) - 4);
+		assert(return_len <= f_pktlen);
 	end
 	// }}}
 
@@ -1000,7 +1168,11 @@ module	pktvfiford #(
 			assert(!o_wb_stb && rd_outstanding == 0);
 		end else // if (full_return)
 		begin
-			assert(dly_check || ({ r_endptr, 2'b00 } == f_endptr));
+			assert(dly_check || !valid_writeptr
+				|| ({ r_endptr, 2'b00 } == fw_endptr));
+			assert(dly_check || !valid_writeptr || dly_fifo_err
+				|| false_ack
+				|| f_endptr == fw_endptr);
 		end end
 	endcase
 	// }}}
@@ -1010,7 +1182,7 @@ module	pktvfiford #(
 	// M_BYTES
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE)
+	if (i_reset || i_cfg_reset_fifo || rd_state == RD_SIZE || o_fifo_err)
 		M_BYTES <= 0;
 	else if (return_len >= BUSDW/8)
 		M_BYTES <= 0;
@@ -1021,7 +1193,7 @@ module	pktvfiford #(
 	// M_LAST
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || i_cfg_reset_fifo)
+	if (i_reset || i_cfg_reset_fifo || o_fifo_err)
 		M_LAST <= 0;
 	else
 		M_LAST <= (return_len <= BUSDW/8);
@@ -1050,14 +1222,14 @@ module	pktvfiford #(
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	localparam	F_LGMAX = $clog2(((MAXLEN*8 + (BUSDW-1))/BUSDW)+1);
-	localparam	F_LGDEPTH = LGPIPE+1;
+	localparam	F_LGDEPTH = LCLGPIPE+1;
 
 	reg	f_past_valid;
 	wire	[F_LGDEPTH-1:0]	frd_nreqs, frd_nacks, frd_outstanding;
 	(* anyconst *)	reg	[AW-1:0]	fc_baseaddr, fc_memsize;
 	(* keep *) reg	[AW+WBLSB:0]	wide_end_of_packet, wide_committed,
 				wide_writeptr, wide_endptr;
-
+	wire			valid_writeptr;
 	wire	[F_LGMAX-1:0]	fs_word;
 	wire	[12-1:0]	fs_packet;
 	reg	[AW+WBLSB:0]	fwb_bytes_returned, fwb_bytes_outstanding,
@@ -1107,14 +1279,14 @@ module	pktvfiford #(
 		wide_writeptr = { i_writeptr, 2'b00 };
 	end
 
+	assign	valid_writeptr = (wide_writeptr >= wide_baseaddr)
+			&&(wide_writeptr < wide_baseaddr + wide_memsize);
+
 	always @(*)
 	if (!i_reset && !i_cfg_reset_fifo)
 	begin
 		assume(i_cfg_baseaddr == fc_baseaddr);
 		assume(i_cfg_memsize  == fc_memsize);
-
-		assume(wide_writeptr >= wide_baseaddr);
-		assume(wide_writeptr < wide_baseaddr + wide_memsize);
 	end
 
 	always @(*)
@@ -1122,12 +1294,9 @@ module	pktvfiford #(
 		assume(i_cfg_reset_fifo);
 
 	always @(posedge i_clk)
-	if (f_past_valid && !$past(i_reset))
+	if (f_past_valid && !$past(i_reset)&& $past(o_wb_cyc && i_wb_err))
 	begin
-		if ($past(o_fifo_err) || $past(o_wb_cyc && i_wb_err))
-		begin
-			assume(i_cfg_reset_fifo);
-		end
+		assume(i_cfg_reset_fifo);
 	end
 
 
@@ -1144,7 +1313,8 @@ module	pktvfiford #(
 		if (i_writeptr < r_readptr)
 			wide_committed = wide_committed
 					+ { fc_memsize, {(WBLSB){1'b0}} };
-		assume(wide_committed <= { fc_memsize, {(WBLSB){1'b0}} });
+		assume(!valid_writeptr
+			|| wide_committed <= { fc_memsize, {(WBLSB){1'b0}} });
 
 		wide_endptr = { 1'b0, r_endptr, 2'b00 };
 		wide_end_of_packet = { 1'b0, r_endptr, 2'b00 } + 4;
@@ -1163,15 +1333,18 @@ module	pktvfiford #(
 		assert(end_of_memory == wide_baseaddr + wide_memsize);
 
 		assert(wide_end_of_packet >= wide_baseaddr);
-		assert(dly_check || wide_end_of_packet <  end_of_memory);
+		assert(o_fifo_err || dly_check || (rd_state == RD_IDLE)
+			|| wide_end_of_packet <  end_of_memory);
 
 		// assert(f_wide_pktfill <= wide_committed);
 
 		if ($stable(r_readptr))
 		begin
-			assume($past(wide_committed) <= wide_committed);
+			assume(!valid_writeptr
+				|| $past(wide_committed) <= wide_committed);
 		end else begin
-			assume($past(wide_committed) <= wide_committed - (BUSDW/8));
+			assume(!valid_writeptr
+				|| $past(wide_committed) <= wide_committed - (BUSDW/8));
 		end
 	end
 
@@ -1215,10 +1388,10 @@ module	pktvfiford #(
 
 	always @(*)
 	if (!i_reset && o_wb_stb)
-		assert(rd_outstanding <= (1<<LGPIPE));
+		assert(rd_outstanding <= (1<<LCLGPIPE));
 
 	always @(*)
-	if (!i_reset && !o_fifo_err && !i_cfg_reset_fifo) // rd_state != RD_IDLE)
+	if (!i_reset && !o_fifo_err && !i_cfg_reset_fifo && valid_writeptr) // rd_state != RD_IDLE)
 	begin
 		assert(wide_readptr >= wide_baseaddr);
 		assert(wide_readptr <  end_of_memory);
@@ -1244,7 +1417,7 @@ module	pktvfiford #(
 	) faxin (
 		// {{{
 		.S_AXI_ACLK(i_clk),
-		.S_AXI_ARESETN(!i_reset && !i_cfg_reset_fifo),
+		.S_AXI_ARESETN(!i_reset && !i_cfg_reset_fifo && !o_fifo_err),
 		//
 		.S_AXIN_VALID(M_VALID),
 		.S_AXIN_READY(1'b1),
@@ -1442,7 +1615,7 @@ module	pktvfiford #(
 	end
 
 	always @(*)
-	if (!i_reset && !i_cfg_reset_fifo && rd_state == RD_IDLE)
+	if (!i_reset && !i_cfg_reset_fifo && rd_state == RD_IDLE && !o_fifo_err)
 	begin
 		assert(!M_VALID || M_LAST || false_ack);
 		if (!M_VALID)
@@ -1461,8 +1634,11 @@ module	pktvfiford #(
 				|| rd_state == RD_CLEARBUS) && !o_fifo_err)
 	begin
 		assert(fwb_bytes_returned <= (frd_words+1) << WBLSB);
-		assert((fwb_bytes_returned >> WBLSB) == fs_word
+		if (valid_writeptr && return_len > 0)
+		begin
+			assert((fwb_bytes_returned >> WBLSB) == fs_word
 				+ (M_VALID ? 1:0));
+		end
 
 		if (!full_return)
 			assert(fwb_bytes_returned == 0);
@@ -1477,8 +1653,9 @@ module	pktvfiford #(
 	begin
 		if (rd_wb_addr >= r_readptr)
 		begin
-			assert(rd_outstanding == rd_wb_addr[(WBLSB-2)+:AW]
-					- r_readptr[(WBLSB-2)+:AW]);
+			assert((rd_outstanding == rd_wb_addr[(WBLSB-2)+:AW]
+					- r_readptr[(WBLSB-2)+:AW])
+				|| ({ rd_outstanding, {(WBLSB){1'b0}} } == wide_memsize));
 		end else begin
 			assert(rd_outstanding == wide_memsize[WBLSB+:AW]
 				+rd_wb_addr[(WBLSB-2)+:AW]
@@ -1534,7 +1711,7 @@ module	pktvfiford #(
 			assert(full_return || return_len == rd_pktlen);
 			assert(full_return || fwb_bytes_returned == 0);
 		end
-		assert((rd_pktlen - fwb_bytes_returned )		// !!!
+		assert((rd_pktlen - fwb_bytes_returned)
 				<= { f_words_remaining, {(WBLSB){1'b0}} });
 		// *****
 		if (f_startptr[WBLSB +: AW] <= r_readptr[WBLSB-2+: AW])
@@ -1543,11 +1720,13 @@ module	pktvfiford #(
 		end else begin
 			assert(f_startptr <= wide_memsize + wide_readptr);
 		end
+		assert(dly_check || dly_fifo_err
+			|| wide_end_of_packet[WBLSB +: AW] != f_startptr[WBLSB +: AW]);
 		if (f_startptr < wide_end_of_packet)
 		begin
 			// No memory wrapping
-			assert(dly_check || fwb_addr < wide_end_of_packet);
-			assert(fwb_addr < wide_end_of_packet);
+			assert(dly_check || dly_fifo_err
+				|| fwb_addr < wide_end_of_packet);
 			if (dly_check)
 			begin
 			end else if (BUSDW <= 64)
@@ -1558,18 +1737,27 @@ module	pktvfiford #(
 			assert(f_startptr < wide_readptr);
 		end else if (f_startptr[WBLSB +: AW] <= o_wb_addr)
 		begin
-			// Start < fwb_addr < end_of_memory
+			// end_of_packet < Start < fwb_addr < end_of_memory
 			assert(f_startptr < wide_readptr);
 			assert(fwb_addr < end_of_memory);
+			assert(o_wb_addr == wide_readptr[WBLSB +: AW] + rd_outstanding);
+			assert(dly_check || dly_fifo_err || wide_end_of_packet < f_startptr);
 		end else if (f_startptr < wide_readptr)
 		begin
 			// fwb_addr < start < readptr < end_of_memory
 			assert(dly_check || fwb_addr < wide_end_of_packet);
+			assert(o_wb_addr == wide_readptr[WBLSB +: AW]
+				+ rd_outstanding - i_cfg_memsize);
+			assert(wide_end_of_packet < f_startptr);
 		end else begin
 			// readptr < fwb_addr < start
+			assert(dly_check || dly_fifo_err
+				|| wide_end_of_packet < f_startptr);
 			assert((r_readptr >> (WBLSB-2)) <= o_wb_addr);
-			assert(wide_readptr[WBLSB +: AW] < f_startptr[WBLSB +: AW]);
-			assert(dly_check || fwb_addr < wide_end_of_packet);
+			assert(dly_fifo_err
+				|| wide_readptr[WBLSB +: AW] < f_startptr[WBLSB +: AW]);
+			assert(dly_check || dly_fifo_err
+				|| fwb_addr < wide_end_of_packet);
 		end
 		// *****
 		assert({ r_readptr, 2'b00 } != f_startptr);
@@ -1591,6 +1779,7 @@ module	pktvfiford #(
 		// ***
 		// assert(f_startptr <= wide_readptr);
 		// ***
+		assert(wide_end_of_packet[WBLSB +: AW] != f_startptr[WBLSB +: AW]);
 		if (f_startptr < wide_end_of_packet)
 		begin
 			if (o_wb_stb || rd_outstanding > 0)
@@ -1611,7 +1800,7 @@ module	pktvfiford #(
 			end
 		end else if (wide_readptr < f_startptr)
 		begin
-			assert(wide_readptr[WBLSB +: AW] != f_startptr[WBLSB +: AW]);
+			assert(return_len == 0 || wide_readptr[WBLSB +: AW] != f_startptr[WBLSB +: AW]);
 			assert((r_readptr >> (WBLSB-2)) <= o_wb_addr);
 			assert(wide_end_of_packet < f_startptr);
 			if (o_wb_stb)
@@ -1629,7 +1818,8 @@ module	pktvfiford #(
 			assert(fwb_bytes_returned[1:0] == 2'b00);
 		assert(fwb_bytes_outstanding + fwb_bytes_returned
 			<= rd_pktlen + (BUSDW/8)-1);
-		assert(fwb_bytes_outstanding + fwb_bytes_returned >= rd_pktlen);
+		assert(return_len == 0
+			|| fwb_bytes_outstanding + fwb_bytes_returned >= rd_pktlen);
 		if (BUSDW == 32 || full_return)
 		begin
 			assert(fwb_bytes_outstanding
@@ -1674,12 +1864,15 @@ module	pktvfiford #(
 	generate if (BUSDW>32)
 	begin : F_WIDE
 		always @(*)
-		if (!i_reset && rd_state != RD_IDLE && rd_state != RD_SIZE)
+		if (!i_reset && rd_state != RD_IDLE && rd_state != RD_SIZE
+				&& valid_writeptr && !i_cfg_reset_fifo
+				&& !o_fifo_err)
 		begin
 			if (!full_return)
 			begin
 				assert(!(&f_startptr[WBLSB-1:2]));
-			end else begin
+			end else if (return_len > 0)
+			begin
 				assert(&f_startptr[WBLSB-1:2]
 					|| fwb_bytes_returned>0);
 			end
@@ -1773,7 +1966,8 @@ module	pktvfiford #(
 	//
 
 	always @(*)	assume(fc_baseaddr == 0);
-	always @(*)	assume(fc_memsize == { 1'b1, {(AW-1){1'b0}} });
+	always @(*)	assume($countones(fc_memsize)==1);
+	// always @(*)	assume(fc_memsize == { 1'b1, {(AW-1){1'b0}} });
 	// always @(*) if (rd_state == RD_SIZE) assume(next_rdlen == 128+4);
 
 	/*

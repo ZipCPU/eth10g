@@ -351,7 +351,12 @@ typedef	struct	ROUTETBLDBG_S {
 struct	@$(DEVID)_S {
 	PKTVFIFO	vfif[@$(NDEV)];
 	PKTVFIFODBG	vdbg[@$(NDEV)];
-	ROUTETBLDBG	vtbl[@$(NDEV)];
+	ROUTETBLDBG	vtbl[@$(NDEV)+1];
+	unsigned	v_adhoc_debug[5];
+	unsigned	v_unused_align;
+	unsigned	v_never, v_always;
+	unsigned	v_unused[3];
+	unsigned	v_debug_select;
 };
 
 @BDEF.IONAME=	_@$(PREFIX)
