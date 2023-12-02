@@ -353,6 +353,7 @@ module routetbl #(
 	(* anyconst *)	reg	[LGETH-1:0]	fc_one, fc_two;
 	(* anyconst *)	reg	[MACW-1:0]	fc_mac, fnvr_mac;
 	(* anyconst *)	reg	[LGETH-1:0]	fc_port;
+	(* anyconst *)	reg	[NETH-1:0]	f_cfg_never, f_cfg_always;
 	wire			f_one_valid, f_two_valid;
 	wire	[MACW-1:0]	f_one_mac,  f_two_mac;
 	wire	[LGETH-1:0]	f_one_port, f_two_port;
@@ -403,6 +404,13 @@ module routetbl #(
 	//
 	// Table lookup request properties
 	// {{{
+
+
+	always @(*)
+		assume(i_cfg_never == f_cfg_never);
+	always @(*)
+		assume(i_cfg_always == f_cfg_always);
+
 	always @(posedge i_clk)
 	if (!f_past_valid || $past(i_reset))
 	begin
@@ -531,18 +539,24 @@ module routetbl #(
 		if(TX_VALID && TX_ACK)
 		begin
 			if (TX_DSTMAC == fnvr_mac)
-				assert(TX_PORT == DEFAULT_PORT);
+				assert(TX_PORT == FIXPATH(DEFAULT_PORT));
 
 			if ($past(f_one_valid) && TX_DSTMAC == $past(f_one_mac)
 							&& !(&TX_DSTMAC))
-				assert(TX_PORT == (1<<$past(f_one_port)));
+				assert(TX_PORT == FIXPATH((1<<$past(f_one_port))));
 
 			if ($past(f_two_valid) && TX_DSTMAC == $past(f_two_mac)
 							&& !(&TX_DSTMAC))
-				assert(TX_PORT == (1<<$past(f_two_port)));
+				assert(TX_PORT == FIXPATH((1<<$past(f_two_port))));
 		end
 	end
 
+	function [NETH-1:0] FIXPATH(input [NETH-1:0] raw_out);
+		// {{{
+	begin
+		FIXPATH = (raw_out & (~f_cfg_never)) | f_cfg_always;
+	end endfunction
+	// }}}
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
