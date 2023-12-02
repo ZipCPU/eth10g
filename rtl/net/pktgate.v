@@ -128,7 +128,7 @@ module	pktgate #(
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
 		lastv <= 0;	// End of packet pointer is invalid
-	else if (wr_eop) // && (!r_empty || !output_active))
+	else if (wr_eop && (!M_AXIN_READY || !r_empty || !output_active || !OPT_READ_ON_EMPTY))
 		lastv <= 1;	// EOP points to valid spot in the FIFO
 	else if (w_rd && eop_next)
 		lastv <= 0;	// Packet was read, EOP is now invalid
@@ -383,7 +383,7 @@ module	pktgate #(
 		assert(rd_addr == wr_addr);
 	always @(*)
 	if (S_AXI_ARESETN && M_AXIN_VALID && M_AXIN_LAST && !M_AXIN_ABORT)
-		assert(lastv);
+		assert(lastv || (OPT_READ_ON_EMPTY && r_empty && output_active && S_AXIN_VALID && S_AXIN_LAST));
 `endif
 	// }}}
 
@@ -507,14 +507,17 @@ module	pktgate #(
 		if (!OPT_WRITE_ON_FULL)
 		begin
 			assert(S_AXIN_READY == (!f_full || S_AXIN_ABORT));
+		end else if (!r_full || S_AXIN_ABORT)
+		begin
+			assert(S_AXIN_READY);
 		end else
-			assert(S_AXIN_READY == (!r_full || S_AXIN_ABORT || M_AXIN_READY));
+			assert(S_AXIN_READY == (output_active && M_AXIN_READY));
 
 		if (!OPT_READ_ON_EMPTY)
 		begin
 			assert(M_AXIN_VALID == (!r_empty && output_active));
 		end else
-			assert(M_AXIN_VALID == !r_empty || (S_AXIN_VALID && !S_AXIN_ABORT));
+			assert(M_AXIN_VALID == (output_active && (!r_empty || (S_AXIN_VALID && !S_AXIN_ABORT))));
 	end
 	// }}}
 

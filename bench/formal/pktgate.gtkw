@@ -1,0 +1,88 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sat Dec  2 21:20:49 2023
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1920 1013
+[pos] -1 -1
+*-3.911296 45 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 343
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 292
+@28
+pktgate.S_AXI_ACLK
+pktgate.S_AXI_ARESETN
+@200
+-
+@28
+pktgate.S_AXIN_VALID
+pktgate.S_AXIN_READY
+@22
+pktgate.S_AXIN_DATA[15:0]
+@28
+pktgate.S_AXIN_BYTES
+pktgate.S_AXIN_LAST
+pktgate.S_AXIN_ABORT
+@200
+-
+@28
+pktgate.M_AXIN_VALID
+pktgate.M_AXIN_READY
+@22
+pktgate.M_AXIN_DATA[15:0]
+@28
+pktgate.M_AXIN_BYTES
+pktgate.M_AXIN_LAST
+pktgate.M_AXIN_ABORT
+@200
+-
+@22
+pktgate.rd_addr[3:0]
+pktgate.wr_addr[3:0]
+@28
+pktgate.f_empty
+pktgate.r_empty
+pktgate.f_full
+pktgate.r_full
+@200
+-
+@28
+pktgate.f_first_in_fifo
+@22
+pktgate.f_distance_to_first[3:0]
+pktgate.f_first_addr[3:0]
+@28
+pktgate.f_first_addr_in_fifo
+@22
+pktgate.f_first_data[17:0]
+pktgate.f_first_to_eop[3:0]
+@200
+-
+@28
+pktgate.f_second_in_fifo
+@22
+pktgate.f_distance_to_second[3:0]
+pktgate.f_second_addr[3:0]
+@28
+pktgate.f_second_addr_in_fifo
+@22
+pktgate.f_second_data[17:0]
+pktgate.f_second_to_eop[3:0]
+@200
+-
+@28
+pktgate.lastv
+@22
+pktgate.eop_addr[3:0]
+@28
+pktgate.f_eop_addr_in_fifo
+pktgate.abort_incoming
+pktgate.wr_eop
+@22
+pktgate.f_distance_to_eop[3:0]
+@23
+pktgate.f_eop_data[17:0]
+[pattern_trace] 1
+[pattern_trace] 0
