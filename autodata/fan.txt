@@ -133,6 +133,7 @@
 ##
 ## regdefs.h / regdefs.cpp
 ##
+@REGS.NOTE=// Fan registers
 @REGS.N=8
 @REGS.0= 0 R_@$(DEVID)_FPGAPWM	@$(DEVID)_FPGAPWM
 @REGS.1= 1 R_@$(DEVID)_SYSPWM	@$(DEVID)_SYSPWM

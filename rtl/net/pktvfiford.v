@@ -1711,8 +1711,24 @@ module	pktvfiford #(
 			assert(full_return || return_len == rd_pktlen);
 			assert(full_return || fwb_bytes_returned == 0);
 		end
-		assert((rd_pktlen - fwb_bytes_returned)
+
+		if (valid_writeptr)
+		begin
+			assert((rd_pktlen - fwb_bytes_returned)
 				<= { f_words_remaining, {(WBLSB){1'b0}} });
+		end
+
+		if (o_wb_stb)
+		begin
+			if (full_return)
+			begin
+				assert(fwb_bytes_returned
+					+ fwb_bytes_outstanding
+					- (BUSDW/8) < f_pktlen);
+			end
+		end else begin
+			assert(fwb_bytes_returned + fwb_bytes_outstanding < f_pktlen);
+		end
 		// *****
 		if (f_startptr[WBLSB +: AW] <= r_readptr[WBLSB-2+: AW])
 		begin
