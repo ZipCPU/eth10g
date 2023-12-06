@@ -11,7 +11,8 @@ prf: depth 10
 cvr: depth 25
 
 [engines]
-smtbmc
+smtbmc yices
+smtbmc boolector
 
 [script]
 read -formal pktvfiford.v

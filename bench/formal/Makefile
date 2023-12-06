@@ -36,7 +36,7 @@
 ##
 ## }}}
 TESTS := axinarbiter axinbroadcast axinwidth cecbridge crc_axin crc_eqn
-TESTS += dropshort netfifo p642pkt p66brxgears p66btxgears pkt264b pktvfifowr
+TESTS += dropshort netfifo p642pkt p66brxgears p66btxgears pkt2p64b pktvfifowr
 TESTS += pktvfiford routetbl wbi2cdma netskid txgetports pktgate
 # wbmarbiter sync2stream
 TESTS += sdckgen sdcmd sdwb sdtxframe sdrxframe
@@ -223,13 +223,13 @@ $(RTBL)_cvr/PASS: $(RTBL).sby   $(RTLNET)/$(RTBL).v $(RTLNET)/pktarbiter.v
 $(PKTVRD): $(PKTVRD)_prf/PASS    $(PKTVRD)_cvr/PASS
 $(PKTVRD): $(PKTVRD)_prf512/PASS $(PKTVRD)_prf32/PASS
 $(PKTVRD)_prf/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
-	sby $(SBYFLAGS) $(PKTVRD).sby prf
+	MAKEFLAGS= sby $(SBYFLAGS) -j20 $(PKTVRD).sby prf
 $(PKTVRD)_prf32/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
-	sby $(SBYFLAGS) $(PKTVRD).sby prf32
+	MAKEFLAGS= sby $(SBYFLAGS) -j20 $(PKTVRD).sby prf32
 $(PKTVRD)_prf512/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN) $(WB)
-	sby $(SBYFLAGS) $(PKTVRD).sby prf512
+	MAKEFLAGS= sby $(SBYFLAGS) -j20 $(PKTVRD).sby prf512
 $(PKTVRD)_cvr/PASS: $(PKTVRD).sby   $(RTLNET)/$(PKTVRD).v $(FAXIN)
-	sby $(SBYFLAGS) $(PKTVRD).sby cvr
+	MAKEFLAGS= sby $(SBYFLAGS) -j20 $(PKTVRD).sby cvr
 ## }}}
 
 .PHONY: $(PKTVWR)
