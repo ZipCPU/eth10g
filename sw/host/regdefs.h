@@ -20,17 +20,22 @@
 // This file is part of the ETH10G project.
 //
 // The ETH10G project contains free software and gateware, licensed under the
-// Apache License, Version 2.0 (the "License").  You may not use this project,
-// or this file, except in compliance with the License.  You may obtain a copy
-// of the License at
+// terms of the 3rd version of the GNU General Public License as published by
+// the Free Software Foundation.
+//
+// This project is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+// target there if the PDF file isn't present.)  If not, see
+// <http://www.gnu.org/licenses/> for a copy.
 // }}}
-//	http://www.apache.org/licenses/LICENSE-2.0
+// License:	GPL, v3, as defined and found on www.gnu.org,
 // {{{
-// Unless required by applicable law or agreed to in writing, files
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-// License for the specific language governing permissions and limitations
-// under the License.
+//		http://www.gnu.org/licenses/gpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -67,6 +72,7 @@
 #define	R_EMMC_FIFOA     	0x02000188	// 02000180, wbregs names: EMMCFIFOA, EMMCFIF0, EMMCFIFA
 #define	R_EMMC_FIFOB     	0x0200018c	// 02000180, wbregs names: EMMCFIFOB, EMMCFIF1, EMMCFIFB
 #define	R_EMMC_PHY       	0x02000190	// 02000180, wbregs names: EMMCPHY
+// Fan registers
 #define	R_FAN_FPGAPWM    	0x02000200	// 02000200, wbregs names: FAN_FPGAPWM
 #define	R_FAN_SYSPWM     	0x02000204	// 02000200, wbregs names: FAN_SYSPWM
 #define	R_FAN_TACH       	0x02000208	// 02000200, wbregs names: FAN_TACH

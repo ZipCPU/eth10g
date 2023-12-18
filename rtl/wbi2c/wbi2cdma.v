@@ -6,16 +6,33 @@
 //
 // Purpose:	This is a basic stream to memory DMA.  It's designed to work
 //		with the I2C controller, where memory accesses are on a byte by
-//	byte basis and rare.  Therefore there's no buffering, and stream data
-//	is immediately written to memory as soon as its received.  Similarly,
-//	since this is designed to write bytes, all bytes will be aligned by
-//	nature.  If the stream width is increased beyond 8bits (a non-I2C
-//	application), the address will need to remain aligned.
+//	byte basis and rare.  Rare, in this case, means no more than one byte
+//	written to the bus every 2000 clock cycles or more--consistent with an
+//	I2C interface running at a 400kHz clock cycle.  As a result, there's no
+//	buffering, and stream data is immediately written to memory as soon as
+//	its received.  Similarly, since this is designed to write bytes, all
+//	bytes will be aligned by nature.  If the stream width is increased
+//	beyond 8bits (a non-I2C application), the address will need to remain
+//	aligned.
 //
-//	The design is activated as soon as a non-zero length is allotted to it.
+//	The design is activated as soon as a memory area, with a non-zero size,
+//	is allotted to it.  It will remain active as long as the size remains
+//	non-zero and no bus errors are received.
 //
-//	On receiving a stream LAST, the current address will return to the
-//	base address.
+//	On receiving a stream LAST, the internal address pointer will return
+//	to the base address, and any subsequent writes will start over from
+//	that point.  After a LAST, the current address register will point to
+//	one past the last address written to--allowing software to read how
+//	many bytes have been written to memory.
+//
+//		typedef struct I2CDMA_S {
+//			volatile unsigned	id_control, id_current,
+//						id_base, id_memlen;
+//		} I2CDMA;
+//
+//		I2CDMA *dev;
+//
+//		bytes_written_to_memory = dev->id_current - dev->id_base;
 //
 //	Registers:
 //	0:	Control/Status
@@ -24,12 +41,13 @@
 //		0:	(Bus) Error.  The design is deactivated on an error.
 //			Write a new base address or length to clear this bit.
 //	1:	(Current address)
-//		Almost.  The actual current address will return to the base
-//		address once a LAST is received.  This address will increment
-//		up to and including the LAST item.  Hence, if nothing has been
-//		received, this will reflect the base address.  If LAST has been
-//		received, then the difference between this and the base address
-//		will be the length of data received.
+//		This is almost, but not quite, the current address pointer.
+//		The actual current address will return to the base address
+//		once a LAST is received.  This address will increment up to and
+//		including the LAST item.  Hence, if nothing has been received,
+//		this will reflect the base address.  If LAST has been received,
+//		then the difference between this and the base address will be
+//		the length of data received.
 //	2:	Base address (No alignment required)
 //	3:	Allocated length (Byte alignment)
 //
@@ -43,17 +61,22 @@
 // This file is part of the ETH10G project.
 //
 // The ETH10G project contains free software and gateware, licensed under the
-// Apache License, Version 2.0 (the "License").  You may not use this project,
-// or this file, except in compliance with the License.  You may obtain a copy
-// of the License at
+// terms of the 3rd version of the GNU General Public License as published by
+// the Free Software Foundation.
+//
+// This project is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+// target there if the PDF file isn't present.)  If not, see
+// <http://www.gnu.org/licenses/> for a copy.
 // }}}
-//	http://www.apache.org/licenses/LICENSE-2.0
+// License:	GPL, v3, as defined and found on www.gnu.org,
 // {{{
-// Unless required by applicable law or agreed to in writing, files
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-// License for the specific language governing permissions and limitations
-// under the License.
+//		http://www.gnu.org/licenses/gpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //

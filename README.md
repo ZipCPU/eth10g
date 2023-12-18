@@ -52,7 +52,8 @@ control](rtl/wbfan.v), and much more.
 
 ## License
 
-This project is released under the Apache 2 license.
+This project is released under the GPLv3 license.  Should you find this license
+insufficient to meet your needs, please contact me.
 
 ## Status
 
