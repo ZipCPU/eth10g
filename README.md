@@ -48,12 +48,14 @@ control](rtl/wbfan.v), and much more.
 
 ## Sponsorship
 
-[This project is sponsored](https://www.netidee.at/fastopenswitch) by [NetIdee](https://www.netidee.at).
+[This project was sponsored](https://www.netidee.at/fastopenswitch) by [NetIdee](https://www.netidee.at).
 
 ## License
 
-This project is released under the GPLv3 license.  Should you find this license
-insufficient to meet your needs, please contact me.
+This project is released under the [GPLv3 license](doc/gpl-3.0.pdf).  This
+should be sufficient for most individual needs.  Should you find this license
+insufficient to meet your needs, other licenses can be purchased from
+Gisselquist Technology, LLC.
 
 ## Status
 
