@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	wbscopc.v
+// Filename:	rtl/wbscope/wbscopc.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -43,7 +43,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023, Gisselquist Technology, LLC
+// Copyright (C) 2023-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
