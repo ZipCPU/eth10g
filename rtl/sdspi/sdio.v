@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	sdio.v
+// Filename:	rtl/sdspi/sdio.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -19,7 +19,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023, Gisselquist Technology, LLC
+// Copyright (C) 2023-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
