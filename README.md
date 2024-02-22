@@ -4,6 +4,9 @@ The main goal of this project is to demonstrate a 10Gb Ethernet switch.
 Packets will arrive in one of four SFP+ interfaces, and from there be routed
 as appropriately.
 
+For a full discussion of the design, please check out [this ZipCPU blog
+article: An Overview of a 10Gb Ethernet Switch](http://zipcpu.com/blog/2023/11/25/eth10g.html).
+
 ## Routing algorithm
 
 The [current (draft) routing algorithm](rtl/net/routecore.v) is as follows:
