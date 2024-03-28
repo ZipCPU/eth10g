@@ -1,6 +1,6 @@
 ################################################################################
 ##
-## Filename:	rtl/make.inc
+## Filename:	./rtl.make.inc
 ## {{{
 ## Project:	10Gb Ethernet switch
 ##
@@ -47,7 +47,7 @@ I2CCPU  := $(addprefix $(I2CCPUD)/,wbi2ccpu.v axisi2c.v)
 I2CDMAD := wbi2c
 I2CDMA  := $(addprefix $(I2CDMAD)/,wbi2cdma.v)
 SDIOD := sdspi
-SDIO  := $(addprefix $(SDIOD)/,sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v)
+SDIO  := $(addprefix $(SDIOD)/,sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v sdcmd.v sddma.v sddma_mm2s.v sddma_rxgears.v sdfifo.v sddma_txgears.v sddma_s2mm.v xsdddr.v xsdserdes8x.v)
 GPIO := wbgpio.v
 
 ICAP := wbicapetwo.v

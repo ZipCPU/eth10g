@@ -1,7 +1,7 @@
 `timescale	1ps / 1ps
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rtl/main.v
+// Filename:	./main.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -155,6 +155,7 @@ module	main(i_clk, i_reset,
 		//
 		i_sdio_cmd_strb,
 		i_sdio_cmd_data,
+		i_sdio_cmd_collision,
 		i_sdio_card_busy,
 		i_sdio_rx_strb,
 		i_sdio_rx_data,
@@ -207,6 +208,7 @@ module	main(i_clk, i_reset,
 		//
 		i_emmc_cmd_strb,
 		i_emmc_cmd_data,
+		i_emmc_cmd_collision,
 		i_emmc_card_busy,
 		i_emmc_rx_strb,
 		i_emmc_rx_data,
@@ -364,6 +366,7 @@ module	main(i_clk, i_reset,
 		//
 	input	wire	[1:0]	i_sdio_cmd_strb;
 	input	wire	[1:0]	i_sdio_cmd_data;
+	input	wire		i_sdio_cmd_collision;
 	input	wire		i_sdio_card_busy;
 	input	wire	[1:0]	i_sdio_rx_strb;
 	input	wire	[15:0]	i_sdio_rx_data;
@@ -421,6 +424,7 @@ module	main(i_clk, i_reset,
 		//
 	input	wire	[1:0]	i_emmc_cmd_strb;
 	input	wire	[1:0]	i_emmc_cmd_data;
+	input	wire		i_emmc_cmd_collision;
 	input	wire		i_emmc_card_busy;
 	input	wire	[1:0]	i_emmc_rx_strb;
 	input	wire	[15:0]	i_emmc_rx_data;
@@ -528,8 +532,9 @@ module	main(i_clk, i_reset,
 	wire	[8-1:0]	w_led;
 	// SDIO SD Card definitions
 	// Verilator lint_off UNUSED
-	wire		w_sdio_1p8v;
-	wire	[31:0]	sdio_debug;
+	wire		w_sdio_1p8v, s_sdio_ready,
+			m_sdio_valid, m_sdio_last;
+	wire	[31:0]	sdio_debug, m_sdio_data;
 	assign		sdio_debug = i_sdio_debug;
 	// Verilator lint_on  UNUSED
 	// Verilator lint_off	UNUSED
@@ -592,8 +597,9 @@ module	main(i_clk, i_reset,
 	// }}}
 	// eMMC Card definitions
 	// Verilator lint_off UNUSED
-	wire		w_emmc_1p8v;
-	wire	[31:0]	emmc_debug;
+	wire		w_emmc_1p8v, s_emmc_ready,
+			m_emmc_valid, m_emmc_last;
+	wire	[31:0]	emmc_debug, m_emmc_data;
 	assign		emmc_debug = i_emmc_debug;
 	// Verilator lint_on  UNUSED
 	// Verilator lint_off UNUSED
@@ -697,6 +703,15 @@ module	main(i_clk, i_reset,
 	wire		wbwide_wbu_arbiter_stall, wbwide_wbu_arbiter_ack, wbwide_wbu_arbiter_err;
 	wire	[511:0]	wbwide_wbu_arbiter_idata;
 	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wbwide, component sdio
+	// Verilator lint_off UNUSED
+	wire		wbwide_sdio_cyc, wbwide_sdio_stb, wbwide_sdio_we;
+	wire	[24:0]	wbwide_sdio_addr;
+	wire	[511:0]	wbwide_sdio_data;
+	wire	[63:0]	wbwide_sdio_sel;
+	wire		wbwide_sdio_stall, wbwide_sdio_ack, wbwide_sdio_err;
+	wire	[511:0]	wbwide_sdio_idata;
+	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component zip
 	// Verilator lint_off UNUSED
 	wire		wbwide_zip_cyc, wbwide_zip_stb, wbwide_zip_we;
@@ -705,6 +720,15 @@ module	main(i_clk, i_reset,
 	wire	[63:0]	wbwide_zip_sel;
 	wire		wbwide_zip_stall, wbwide_zip_ack, wbwide_zip_err;
 	wire	[511:0]	wbwide_zip_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wbwide, component emmc
+	// Verilator lint_off UNUSED
+	wire		wbwide_emmc_cyc, wbwide_emmc_stb, wbwide_emmc_we;
+	wire	[24:0]	wbwide_emmc_addr;
+	wire	[511:0]	wbwide_emmc_data;
+	wire	[63:0]	wbwide_emmc_sel;
+	wire		wbwide_emmc_stall, wbwide_emmc_ack, wbwide_emmc_err;
+	wire	[511:0]	wbwide_emmc_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component gnet
 	// Verilator lint_off UNUSED
@@ -1043,7 +1067,7 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(6), .NS(3), .AW(25), .DW(512),
+		.NM(8), .NS(3), .AW(25), .DW(512),
 		.SLAVE_ADDR({
 			// Address width    = 25
 			// Address LSBs     = 6
@@ -1064,7 +1088,9 @@ module	main(i_clk, i_reset,
 		.i_mcyc({
 			wbwide_cpunetm_cyc,
 			wbwide_gnet_cyc,
+			wbwide_emmc_cyc,
 			wbwide_zip_cyc,
+			wbwide_sdio_cyc,
 			wbwide_wbu_arbiter_cyc,
 			wbwide_i2cdma_cyc,
 			wbwide_i2cm_cyc
@@ -1072,7 +1098,9 @@ module	main(i_clk, i_reset,
 		.i_mstb({
 			wbwide_cpunetm_stb,
 			wbwide_gnet_stb,
+			wbwide_emmc_stb,
 			wbwide_zip_stb,
+			wbwide_sdio_stb,
 			wbwide_wbu_arbiter_stb,
 			wbwide_i2cdma_stb,
 			wbwide_i2cm_stb
@@ -1080,7 +1108,9 @@ module	main(i_clk, i_reset,
 		.i_mwe({
 			wbwide_cpunetm_we,
 			wbwide_gnet_we,
+			wbwide_emmc_we,
 			wbwide_zip_we,
+			wbwide_sdio_we,
 			wbwide_wbu_arbiter_we,
 			wbwide_i2cdma_we,
 			wbwide_i2cm_we
@@ -1088,7 +1118,9 @@ module	main(i_clk, i_reset,
 		.i_maddr({
 			wbwide_cpunetm_addr,
 			wbwide_gnet_addr,
+			wbwide_emmc_addr,
 			wbwide_zip_addr,
+			wbwide_sdio_addr,
 			wbwide_wbu_arbiter_addr,
 			wbwide_i2cdma_addr,
 			wbwide_i2cm_addr
@@ -1096,7 +1128,9 @@ module	main(i_clk, i_reset,
 		.i_mdata({
 			wbwide_cpunetm_data,
 			wbwide_gnet_data,
+			wbwide_emmc_data,
 			wbwide_zip_data,
+			wbwide_sdio_data,
 			wbwide_wbu_arbiter_data,
 			wbwide_i2cdma_data,
 			wbwide_i2cm_data
@@ -1104,7 +1138,9 @@ module	main(i_clk, i_reset,
 		.i_msel({
 			wbwide_cpunetm_sel,
 			wbwide_gnet_sel,
+			wbwide_emmc_sel,
 			wbwide_zip_sel,
+			wbwide_sdio_sel,
 			wbwide_wbu_arbiter_sel,
 			wbwide_i2cdma_sel,
 			wbwide_i2cm_sel
@@ -1112,7 +1148,9 @@ module	main(i_clk, i_reset,
 		.o_mstall({
 			wbwide_cpunetm_stall,
 			wbwide_gnet_stall,
+			wbwide_emmc_stall,
 			wbwide_zip_stall,
+			wbwide_sdio_stall,
 			wbwide_wbu_arbiter_stall,
 			wbwide_i2cdma_stall,
 			wbwide_i2cm_stall
@@ -1120,7 +1158,9 @@ module	main(i_clk, i_reset,
 		.o_mack({
 			wbwide_cpunetm_ack,
 			wbwide_gnet_ack,
+			wbwide_emmc_ack,
 			wbwide_zip_ack,
+			wbwide_sdio_ack,
 			wbwide_wbu_arbiter_ack,
 			wbwide_i2cdma_ack,
 			wbwide_i2cm_ack
@@ -1128,7 +1168,9 @@ module	main(i_clk, i_reset,
 		.o_mdata({
 			wbwide_cpunetm_idata,
 			wbwide_gnet_idata,
+			wbwide_emmc_idata,
 			wbwide_zip_idata,
+			wbwide_sdio_idata,
 			wbwide_wbu_arbiter_idata,
 			wbwide_i2cdma_idata,
 			wbwide_i2cm_idata
@@ -1136,7 +1178,9 @@ module	main(i_clk, i_reset,
 		.o_merr({
 			wbwide_cpunetm_err,
 			wbwide_gnet_err,
+			wbwide_emmc_err,
 			wbwide_zip_err,
+			wbwide_sdio_err,
 			wbwide_wbu_arbiter_err,
 			wbwide_i2cdma_err,
 			wbwide_i2cm_err
@@ -2027,7 +2071,10 @@ module	main(i_clk, i_reset,
 		// {{{
 		.LGFIFO(10), .NUMIO(4),
 		.MW(32),
+		.ADDRESS_WIDTH(25+$clog2(512/8)),
+		.DMA_DW(512),
 		.OPT_SERDES(1'b0),
+		.OPT_DMA(1'b0),
 		.OPT_DDR(1'b1),
 		.OPT_CARD_DETECT(1'b1),
 		.OPT_EMMC(1'b0)
@@ -2041,6 +2088,22 @@ module	main(i_clk, i_reset,
 			.i_wb_data(wb32_sdio_data), // 32 bits wide
 			.i_wb_sel(wb32_sdio_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_sdio_stall),.o_wb_ack(wb32_sdio_ack), .o_wb_data(wb32_sdio_idata),
+		.o_dma_cyc(wbwide_sdio_cyc), .o_dma_stb(wbwide_sdio_stb), .o_dma_we(wbwide_sdio_we),
+			.o_dma_addr(wbwide_sdio_addr[25-1:0]),
+			.o_dma_data(wbwide_sdio_data), // 512 bits wide
+			.o_dma_sel(wbwide_sdio_sel),  // 512/8 bits wide
+		.i_dma_stall(wbwide_sdio_stall), .i_dma_ack(wbwide_sdio_ack), .i_dma_data(wbwide_sdio_idata), .i_dma_err(wbwide_sdio_err),
+		// (Unused) DMA Stream assignments
+		// {{{
+		.s_valid(1'b0),
+		.s_ready(s_sdio_ready),
+		.s_data(32'h0),
+		//
+		.m_valid(m_sdio_valid),
+		.m_ready(1'b1),
+		.m_data(m_sdio_data),
+		.m_last(m_sdio_last),
+		// }}}
 		.i_card_detect(i_sdio_detect),
 		.o_1p8v(w_sdio_1p8v),
 		.o_int(sdio_int),
@@ -2061,6 +2124,7 @@ module	main(i_clk, i_reset,
 		//
 		.i_cmd_strb( i_sdio_cmd_strb),
 		.i_cmd_data( i_sdio_cmd_data),
+		.i_cmd_collision( i_sdio_cmd_collision),
 		.i_card_busy(i_sdio_card_busy),
 		.i_rx_strb(  i_sdio_rx_strb),
 		.i_rx_data(  i_sdio_rx_data),
@@ -2076,6 +2140,9 @@ module	main(i_clk, i_reset,
 	// }}}
 `else	// SDIO_ACCESS
 	// {{{
+	// Null bus master
+	// {{{
+	// }}}
 	// Null bus slave
 	// {{{
 
@@ -2593,7 +2660,10 @@ module	main(i_clk, i_reset,
 		// {{{
 		.LGFIFO(10), .NUMIO(8),
 		.MW(32),
+		.ADDRESS_WIDTH(25+$clog2(512/8)),
+		.DMA_DW(512),
 		.OPT_SERDES(1'b0),
+		.OPT_DMA(1'b0),
 		.OPT_DDR(1'b0),
 		.OPT_CARD_DETECT(1'b0),
 		.OPT_EMMC(1'b1)
@@ -2607,6 +2677,22 @@ module	main(i_clk, i_reset,
 			.i_wb_data(wb32_emmc_data), // 32 bits wide
 			.i_wb_sel(wb32_emmc_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_emmc_stall),.o_wb_ack(wb32_emmc_ack), .o_wb_data(wb32_emmc_idata),
+		.o_dma_cyc(wbwide_emmc_cyc), .o_dma_stb(wbwide_emmc_stb), .o_dma_we(wbwide_emmc_we),
+			.o_dma_addr(wbwide_emmc_addr[25-1:0]),
+			.o_dma_data(wbwide_emmc_data), // 512 bits wide
+			.o_dma_sel(wbwide_emmc_sel),  // 512/8 bits wide
+		.i_dma_stall(wbwide_emmc_stall), .i_dma_ack(wbwide_emmc_ack), .i_dma_data(wbwide_emmc_idata), .i_dma_err(wbwide_emmc_err),
+		// (Unused) DMA Stream assignments
+		// {{{
+		.s_valid(1'b0),
+		.s_ready(s_emmc_ready),
+		.s_data(32'h0),
+		//
+		.m_valid(m_emmc_valid),
+		.m_ready(1'b1),
+		.m_data(m_emmc_data),
+		.m_last(m_emmc_last),
+		// }}}
 		.i_card_detect(i_emmc_detect),
 		.o_1p8v(w_emmc_1p8v),
 		.o_int(emmc_int),
@@ -2627,6 +2713,7 @@ module	main(i_clk, i_reset,
 		//
 		.i_cmd_strb( i_emmc_cmd_strb),
 		.i_cmd_data( i_emmc_cmd_data),
+		.i_cmd_collision( i_emmc_cmd_collision),
 		.i_card_busy(i_emmc_card_busy),
 		.i_rx_strb(  i_emmc_rx_strb),
 		.i_rx_data(  i_emmc_rx_data),
@@ -2642,6 +2729,9 @@ module	main(i_clk, i_reset,
 	// }}}
 `else	// EMMC_ACCESS
 	// {{{
+	// Null bus master
+	// {{{
+	// }}}
 	// Null bus slave
 	// {{{
 

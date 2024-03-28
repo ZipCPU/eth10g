@@ -55,6 +55,7 @@ module	sdfrontend #(
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b1,
 		parameter [0:0]	OPT_DS = OPT_SERDES,
+		parameter [0:0]	OPT_COLLISION = 1'b0,
 		parameter	NUMIO = 8
 		// }}}
 	) (
@@ -85,6 +86,7 @@ module	sdfrontend #(
 		// {{{
 		output	wire	[1:0]	o_cmd_strb,
 		output	wire	[1:0]	o_cmd_data,
+		output	wire		o_cmd_collision,
 		//
 		output	wire	[1:0]	o_rx_strb,
 		output	wire	[15:0]	o_rx_data,
@@ -125,6 +127,7 @@ module	sdfrontend #(
 	reg		dat0_busy, wait_for_busy;
 	wire		raw_cmd;
 	wire	[NUMIO-1:0]	raw_iodat;
+	wire		w_cmd_collision;
 `ifndef	VERILATOR
 	wire			io_cmd_tristate, i_cmd, o_cmd;
 	wire	[NUMIO-1:0]	io_dat_tristate, i_dat, o_dat;
@@ -138,10 +141,15 @@ module	sdfrontend #(
 		// SERDES support, there's no support for the DS (data strobe)
 		// pin either.  Think of this as a compatibility mode.
 		//
-		// Fastest clock supported = incoming clock speed / 2
+		// Fastest clock supported = incoming clock speed / 2.  That's
+		// also the fastest clock supported *if you get lucky*.  It's
+		// possible that there won't be enough sub-clock resolution
+		// to land close enough to the middle of the eye at this
+		// frequency.
 		//
 		wire		next_pedge, next_dedge;
-		reg		resp_started, io_started, last_ck;
+		reg		resp_started, last_ck;
+		reg	[1:0]	io_started;
 		reg		r_cmd_data, r_cmd_strb, r_rx_strb;
 		reg	[7:0]	r_rx_data;
 		reg	[1:0]	ck_sreg, pck_sreg, ck_psreg;
@@ -149,8 +157,8 @@ module	sdfrontend #(
 
 		assign	o_ck = i_sdclk[7];
 
-		assign	io_cmd_tristate
-				= !(i_cmd_en && (i_pp_cmd || !i_cmd_data[1]));
+		assign	io_cmd_tristate = (OPT_COLLISION && o_cmd_collision)
+				|| !(i_cmd_en && (i_pp_cmd || !i_cmd_data[1]));
 		assign	o_cmd = i_cmd_data[1];
 		assign	raw_cmd = i_cmd;
 
@@ -168,12 +176,32 @@ module	sdfrontend #(
 		// assign	io_dat = (o_dat & ~io_dat_tristate)
 		//		| (i_dat & io_dat_tristate);
 
-		assign	next_pedge = !last_ck && i_sdclk[7];
+		assign	next_pedge = !last_ck && o_ck;
 		assign	next_dedge = next_pedge || (i_cfg_ddr
-					&& last_ck && !i_sdclk[7]);
+					&& last_ck && !o_ck);
 
+		assign	w_cmd_collision = OPT_COLLISION && io_cmd_tristate
+				&& i_cmd_en && !i_cmd && next_pedge;
+					// && !i_pp_cmd;
+
+		if (OPT_COLLISION)
+		begin : GEN_COLLISION
+			reg	r_collision;
+
+			always @(posedge i_clk)
+			if (i_reset || !i_cmd_en)
+				r_collision <= 1'b0;
+			else if (w_cmd_collision)
+				r_collision <= 1'b1;
+
+			assign	o_cmd_collision = r_collision;
+		end else begin : NO_COLLISION
+			assign	o_cmd_collision = 1'b0;
+		end
+
+		initial	last_ck = 1'b0;
 		always @(posedge i_clk)
-			last_ck <= i_sdclk[7];
+			last_ck <= o_ck;
 
 		// sample_ck
 		// {{{
@@ -226,7 +254,7 @@ module	sdfrontend #(
 			cmd_sample_ck = 0;
 		else
 			// Verilator lint_off WIDTH
-			cmd_sample_ck = { pck_sreg[1:0], next_pedge } >> i_sample_shift;
+			cmd_sample_ck = { pck_sreg[1:0], next_pedge } >> i_sample_shift[4:3];
 			// Verilator lint_on  WIDTH
 		// }}}
 
@@ -240,9 +268,11 @@ module	sdfrontend #(
 
 		always @(posedge i_clk)
 		if (i_reset || i_data_en || !i_rx_en || i_cfg_ds)
-			io_started <= 1'b0;
+			io_started <= 2'b0;
+		else if (i_cfg_ddr && io_started[0] && sample_ck)
+			io_started <= 2'b11;
 		else if (!i_dat[0] && sample_pck)
-			io_started <= 1'b1;
+			io_started <= (i_cfg_ddr) ? 2'b01 : 2'b11;
 
 		// dat0_busy, wait_for_busy
 		// {{{
@@ -262,11 +292,8 @@ module	sdfrontend #(
 		assign	o_data_busy = dat0_busy;
 		// }}}
 
-		initial	last_ck = 1'b0;
 		always @(posedge i_clk)
 		begin
-			last_ck <= i_sdclk[7];
-
 			if (i_cmd_en || !cmd_sample_ck || i_cfg_dscmd)
 				r_cmd_strb <= 1'b0;
 			else if (!i_cmd || resp_started)
@@ -276,7 +303,7 @@ module	sdfrontend #(
 
 			if (i_data_en || sample_ck == 0 || i_cfg_ds)
 				r_rx_strb <= 1'b0;
-			else if (io_started)
+			else if (io_started[1])
 				r_rx_strb <= 1'b1;
 			else
 				r_rx_strb <= 1'b0;
@@ -361,8 +388,10 @@ module	sdfrontend #(
 		reg	[1:0]	sample_ck, cmd_sample_ck, sample_pck;
 		reg		resp_started, last_ck, r_last_cmd_enabled,
 				r_cmd_strb, r_cmd_data, r_rx_strb;
+		wire	[1:0]	my_cmd_data;
 		reg	[1:0]	io_started;
 		reg	[7:0]	r_rx_data;
+		reg	[1:0]	busy_delay;
 		// Verilator lint_off UNUSED
 		wire		io_clk_tristate, ign_clk;
 		assign		ign_clk = o_ck;
@@ -379,6 +408,7 @@ module	sdfrontend #(
 			.o_pin(o_ck),
 			.i_pin(ign_clk),
 			// Verilator lint_off PINCONNECTEMPTY
+			.o_mine(),
 			.o_wide()
 			// Verilator lint_on  PINCONNECTEMPTY
 		);
@@ -392,15 +422,36 @@ module	sdfrontend #(
 		xsdddr #(.OPT_BIDIR(1'b1))
 		u_cmd_ddr(
 			.i_clk(i_clk),
-			.i_en(i_reset || r_last_cmd_enabled || (i_cmd_en && (i_pp_cmd || !i_cmd_data[1]))),
+			.i_en(i_reset || r_last_cmd_enabled
+				|| (!o_cmd_collision && i_cmd_en
+					&& (i_pp_cmd || !i_cmd_data[1]))),
 			.i_data({(2){ i_reset || i_cmd_data[1] }}),
 			.io_pin_tristate(io_cmd_tristate),
 			.o_pin(o_cmd),
 			.i_pin(i_cmd),
+			.o_mine(my_cmd_data),
 			.o_wide(w_cmd)
 		);
 
 		assign	raw_cmd = i_cmd;
+
+		assign	w_cmd_collision = OPT_COLLISION && i_cmd_en && !i_pp_cmd
+				&& |(my_cmd_data & ~w_cmd);
+
+		if (OPT_COLLISION)
+		begin : GEN_COLLISION
+			reg	r_collision;
+
+			always @(posedge i_clk)
+			if (i_reset || !i_cmd_en || i_pp_cmd)
+				r_collision <= 1'b0;
+			else if (w_cmd_collision)
+				r_collision <= 1'b1;
+
+			assign	o_cmd_collision = r_collision;
+		end else begin : NO_COLLISION
+			assign	o_cmd_collision = 1'b0;
+		end
 		// }}}
 
 		// DATA
@@ -419,6 +470,9 @@ module	sdfrontend #(
 				.io_pin_tristate(io_dat_tristate[gk]),
 				.o_pin(o_dat[gk]),
 				.i_pin(i_dat[gk]),
+				// Verilator lint_off PINCONNECTEMPTY
+				.o_mine(),
+				// Verilator lint_on  PINCONNECTEMPTY
 				.o_wide({ pre_dat[gk+8], pre_dat[gk] })
 			);
 
@@ -518,7 +572,7 @@ module	sdfrontend #(
 		end else if (io_started == 2'b01 && sample_ck != 0)
 			io_started <= 2'b11;
 
-		// dat0_busy, wait_for_busy
+		// dat0_busy, wait_for_busy, busy_delay
 		// {{{
 		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
@@ -526,6 +580,12 @@ module	sdfrontend #(
 		begin
 			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
+			busy_delay <= -1;
+		end else if (busy_delay != 0)
+		begin
+			dat0_busy <= 1'b0;
+			wait_for_busy <= 1'b1;
+			busy_delay <= busy_delay - 1;
 		end else if (wait_for_busy && (cmd_sample_ck != 0)
 				&& (cmd_sample_ck & {w_dat[8],w_dat[0]})==2'b0)
 		begin
@@ -634,7 +694,8 @@ module	sdfrontend #(
 		reg		last_ck;
 		wire	[7:0]	next_ck_sreg, next_ck_psreg;
 		reg	[23:0]	ck_sreg, ck_psreg;
-		wire	[7:0]	next_pedge, next_nedge, wide_cmd_data;
+		wire	[7:0]	next_pedge, next_nedge, wide_cmd_data,
+				my_cmd_data;
 		reg	[7:0]	sample_ck, sample_pck;
 		reg	[1:0]	r_cmd_data;
 		reg		busy_strb, busy_data;
@@ -645,6 +706,8 @@ module	sdfrontend #(
 		reg	[1:0]	r_cmd_strb;
 		reg	[23:0]	pck_sreg;
 		reg	[7:0]	cmd_sample_ck;
+		wire		busy_pin;
+		reg	[1:0]	busy_delay;
 		// }}}
 
 		// Clock
@@ -663,7 +726,7 @@ module	sdfrontend #(
 			.o_pin(o_ck),
 			.i_pin(1'b0),
 			// Verilator lint_off PINCONNECTEMPTY
-			.o_raw(), .o_wide()
+			.o_mine(), .o_raw(), .o_wide()
 			// Verilator lint_on  PINCONNECTEMPTY
 		);
 		// }}}
@@ -747,6 +810,9 @@ module	sdfrontend #(
 				.io_tristate(io_dat_tristate[gk]),
 				.o_pin(o_dat[gk]),
 				.i_pin(i_dat[gk]),
+				// Verilator lint_off PINCONNECTEMPTY
+				.o_mine(),
+				// Verilator lint_on  PINCONNECTEMPTY
 				.o_raw(raw_iodat[gk]), .o_wide(in_pin)
 			);
 
@@ -759,6 +825,8 @@ module	sdfrontend #(
 					start_io[0] = (|sample_pck[3:0])
 						&&(0 == (sample_pck[3:0]&in_pin[3:0]));
 				end
+
+				assign	busy_pin = !in_pin[0];
 			end
 
 			always @(*)
@@ -813,7 +881,12 @@ module	sdfrontend #(
 			r_rx_strb <= 2'b0;
 		else if (sample_ck == 0)
 			r_rx_strb <= 2'b0;
-		else if (io_started[1])
+		else if (io_started == 0
+				&& (|sample_pck[7:4]) && (|sample_pck[3:0])
+				&& start_io[1])
+		begin
+			r_rx_strb <= 2'b10;
+		end else if (io_started[1])
 		begin
 			r_rx_strb[1] <= (|sample_ck);
 			r_rx_strb[0] <= (|sample_ck[7:4]) && (|sample_ck[3:0]);
@@ -854,7 +927,7 @@ module	sdfrontend #(
 		end
 		// }}}
 
-		// o_data_busy, dat0_busy, wait_for_busy
+		// o_data_busy, dat0_busy, wait_for_busy, busy_delay
 		// {{{
 		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
@@ -862,14 +935,25 @@ module	sdfrontend #(
 		begin
 			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
+			busy_delay <= -1;
+		end else if (busy_delay != 0)
+		begin
+			dat0_busy <= 1'b0;
+			wait_for_busy <= 1'b1;
+			busy_delay <= busy_delay - 1;
 		end else if (wait_for_busy)
 		begin
-			if (busy_strb && !busy_data)
+			if (busy_pin)
 			begin
-				dat0_busy <= !w_rx_data[0];
+				// Once busy is activated, we stop waiting for
+				// it, mark ourselves as busy, and then follow
+				// the pin for our busy indicators.
+				dat0_busy <= 1'b1;
 				wait_for_busy <= 1'b0;
 			end
-		end else if (busy_strb && busy_data)
+		end else if (!wait_for_busy && !busy_pin)
+			// Once busy is released, we don't become busy again
+			// until we reset
 			dat0_busy <= 1'b0;
 
 		assign	o_data_busy = dat0_busy;
@@ -879,7 +963,6 @@ module	sdfrontend #(
 		//
 		// CMD
 		// {{{
-
 		always @(posedge i_clk)
 		if (i_reset || i_cfg_dscmd || i_cmd_en)
 			pck_sreg <= 0;
@@ -903,13 +986,35 @@ module	sdfrontend #(
 			.i_clk(i_clk),
 			.i_hsclk(i_hsclk),
 			.i_en(r_last_cmd_enabled
-				||(i_cmd_en && (i_pp_cmd || !i_cmd_data[1]))),
+				||(!w_cmd_collision && !o_cmd_collision
+					&& i_cmd_en
+					&& (i_pp_cmd || !i_cmd_data[1]))),
 			.i_data({ {(4){i_cmd_data[1]}}, {(4){i_cmd_data[0]}} }),
 			.io_tristate(io_cmd_tristate),
 			.o_pin(o_cmd),
 			.i_pin(i_cmd),
+			.o_mine(my_cmd_data),
 			.o_raw(raw_cmd), .o_wide(wide_cmd_data)
 		);
+
+		assign	w_cmd_collision = OPT_COLLISION && i_cmd_en
+					&& !i_pp_cmd && !i_cfg_dscmd
+					&& |(my_cmd_data & ~wide_cmd_data);
+
+		if (OPT_COLLISION)
+		begin : GEN_COLLISION
+			reg	r_collision;
+
+			always @(posedge i_clk)
+			if (i_reset || !i_cmd_en || i_pp_cmd || i_cfg_dscmd)
+				r_collision <= 1'b0;
+			else if (w_cmd_collision)
+				r_collision <= 1'b1;
+
+			assign	o_cmd_collision = r_collision;
+		end else begin : NO_COLLISION
+			assign	o_cmd_collision = 1'b0;
+		end
 
 		// resp_started
 		// {{{
@@ -1027,13 +1132,13 @@ module	sdfrontend #(
 		// {{{
 		// The rule here is that only the positive edges of the
 		// data strobe will qualify the CMD pin;
-		always @(posedge i_ds or posedge cmd_ds_en)
+		always @(posedge i_ds or negedge cmd_ds_en)
 		if (!cmd_ds_en)
 			acmd_started <= 0;
 		else if (!raw_cmd)
 			acmd_started <= 1;
 
-		always @(posedge i_ds or posedge cmd_ds_en)
+		always @(posedge i_ds or negedge cmd_ds_en)
 		if (!cmd_ds_en)
 			acmd_count <= 0;
 		else if (acmd_started || !raw_cmd)
@@ -1043,12 +1148,12 @@ module	sdfrontend #(
 			.LGFIFO(4), .WIDTH(1), .WRITE_ON_POSEDGE(1'b1)
 		) u_pcmd_fifo_0 (
 			// {{{
-			.i_wclk(i_ds), .i_wr_reset_n(!cmd_ds_en),
+			.i_wclk(i_ds), .i_wr_reset_n(cmd_ds_en),
 			.i_wr((acmd_started || !raw_cmd)&& acmd_count == 1'b0),
 				.i_wr_data(raw_cmd),
 			.o_wr_full(ign_acmd_full[0]),
 			//
-			.i_rclk(i_clk), .i_rd_reset_n(!cmd_ds_en),
+			.i_rclk(i_clk), .i_rd_reset_n(cmd_ds_en),
 			.i_rd(acmd_empty == 2'b0), .o_rd_data(af_cmd[1]),
 			.o_rd_empty(acmd_empty[0])
 			// }}}
@@ -1062,7 +1167,7 @@ module	sdfrontend #(
 			.i_wr(acmd_count), .i_wr_data(raw_cmd),
 			.o_wr_full(ign_acmd_full[1]),
 			//
-			.i_rclk(i_clk), .i_rd_reset_n(i_cmd_en),
+			.i_rclk(i_clk), .i_rd_reset_n(cmd_ds_en),
 			.i_rd(acmd_empty == 2'b0), .o_rd_data(af_cmd[0]),
 			.o_rd_empty(acmd_empty[1])
 			// }}}

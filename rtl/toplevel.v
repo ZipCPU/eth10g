@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rtl/toplevel.v
+// Filename:	./toplevel.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -286,6 +286,7 @@ i_sdcard_cd_n,
 		//
 	wire	[1:0]	w_sdio_cmd_strb;
 	wire	[1:0]	w_sdio_cmd_idata;
+	wire		w_sdio_cmd_collision;
 	wire		w_sdio_card_busy;
 	wire	[1:0]	w_sdio_rx_strb;
 	wire	[15:0]	w_sdio_rx_data;
@@ -345,6 +346,7 @@ i_sdcard_cd_n,
 		//
 	wire	[1:0]	w_emmc_cmd_strb;
 	wire	[1:0]	w_emmc_cmd_idata;
+	wire		w_emmc_cmd_collision;
 	wire		w_emmc_card_busy;
 	wire	[1:0]	w_emmc_rx_strb;
 	wire	[15:0]	w_emmc_rx_data;
@@ -439,6 +441,7 @@ i_sdcard_cd_n,
 		//
 		w_sdio_cmd_strb,
 		w_sdio_cmd_idata,
+		w_sdio_cmd_collision,
 		w_sdio_card_busy,
 		w_sdio_rx_strb,
 		w_sdio_rx_data,
@@ -484,6 +487,7 @@ i_sdcard_cd_n,
 		//
 		w_emmc_cmd_strb,
 		w_emmc_cmd_idata,
+		w_emmc_cmd_collision,
 		w_emmc_card_busy,
 		w_emmc_rx_strb,
 		w_emmc_rx_data,
@@ -620,6 +624,7 @@ i_sdcard_cd_n,
 		// Return values
 		.o_cmd_strb(w_sdio_cmd_strb),
 		.o_cmd_data(w_sdio_cmd_idata),
+		.o_cmd_collision(w_sdio_cmd_collision),
 		.o_data_busy(w_sdio_card_busy),
 		.o_rx_strb( w_sdio_rx_strb),
 		.o_rx_data( w_sdio_rx_data),
@@ -815,6 +820,7 @@ i_sdcard_cd_n,
 		// Return values
 		.o_cmd_strb(w_emmc_cmd_strb),
 		.o_cmd_data(w_emmc_cmd_idata),
+		.o_cmd_collision(w_emmc_cmd_collision),
 		.o_data_busy(w_emmc_card_busy),
 		.o_rx_strb( w_emmc_rx_strb),
 		.o_rx_data( w_emmc_rx_data),
