@@ -44,17 +44,13 @@
 module	sdcmd #(
 		// {{{
 		// parameter	MW = 32,
-		parameter [0:0]	OPT_DS = 1'b0,
 		// parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		parameter [0:0]	OPT_EMMC = 1'b1,
-/*
-`ifdef	VERILATOR
-		parameter	LGTIMEOUT = 18,	// About 1.3ms--sim only
-`else
+		parameter [0:0]	OPT_DS = (OPT_EMMC),
+		// OPT_SERDES=1 delays the engagement of any tristate control
+		// by a clock period
+		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter	LGTIMEOUT = 26,	// 500ms expected
-`endif
-*/
-		parameter	LGTIMEOUT = 18,
 		parameter	LGLEN = 9,
 		parameter	MW = 32
 		// }}}
@@ -64,6 +60,7 @@ module	sdcmd #(
 		// Configuration bits
 		input	wire			i_cfg_ds,	// Use ASYNC
 		input	wire			i_cfg_dbl,	// 2Bits/Clk
+		input	wire			i_cfg_pp,	// Push/Pull
 		input	wire			i_ckstb,
 		// Controller interface
 		// {{{
@@ -83,6 +80,7 @@ module	sdcmd #(
 		output	wire			o_cmd_en,
 		// output	wire		o_pp_cmd,	// From CFG reg
 		output	wire	[1:0]		o_cmd_data,
+		output	wire			o_cmd_tristate,
 		// }}}
 		// Receive from the front end
 		// {{{
@@ -124,7 +122,8 @@ module	sdcmd #(
 
 	reg		active;
 	reg	[5:0]	srcount;
-	reg	[47:0]	tx_sreg;
+	reg	[47:0]	tx_sreg, tx_tristate;
+	reg		last_tristate, cmd_tristate;
 
 	reg		waiting_on_response, cfg_ds, cfg_dbl, r_frame_err,
 			response_active;
@@ -142,6 +141,9 @@ module	sdcmd #(
 
 	reg	[6:0]	crc_fill;
 	reg		r_busy, new_data;
+
+	reg		r_delay;
+	reg	[3:0]	r_dly_count;
 
 	reg		r_done;
 
@@ -183,7 +185,7 @@ module	sdcmd #(
 			srcount <= srcount - 1;
 		end
 	end
-	
+
 	always @(posedge i_clk)
 	if (i_reset)
 		tx_sreg <= 48'hffff_ffff_ffff;
@@ -201,9 +203,51 @@ module	sdcmd #(
 			tx_sreg <= { tx_sreg[46:0], 1'b1 };
 	end
 
+	// The "current" tristate would nominally be tx_tristate[47].  However,
+	// our IO elements don't necessarily tristate on a dime, hence the
+	// reason why we have last_tristate and cmd_tristate--to guarantee that
+	// any tristate operation 1) drops tristate immediately if necessary,
+	// and 2) lags by one clock cycle when attempting to enable tristate.
+	always @(posedge i_clk)
+	if (i_reset)
+	begin
+		tx_tristate <= 48'hffff_ffff_ffff;
+		last_tristate <= 1'b1;
+		cmd_tristate  <= 1'b1;
+	end else if (OPT_EMMC && active && i_cmd_collision)
+	begin
+		tx_tristate <= 48'hffff_ffff_ffff;
+		last_tristate <= 1'b1;
+		cmd_tristate  <= 1'b1;
+	end else if (lcl_accept)
+	begin
+		if (i_cfg_pp || i_cfg_dbl)
+			tx_tristate <= 48'h0;
+		else
+			tx_tristate <= { 1'b0, i_cmd, i_arg,
+				CMDCRC({ 1'b0, i_cmd, i_arg }), 1'b1 };
+		last_tristate <= 1'b0;
+		cmd_tristate  <= 1'b0;
+	end else if (i_ckstb)
+	begin
+		last_tristate <= tx_tristate[47];
+		if (cfg_dbl)
+		begin
+			tx_tristate   <= { tx_tristate[45:0], 2'b11 };
+			tx_tristate[47] <= &tx_tristate[45:44];
+			cmd_tristate  <= (&tx_tristate[45:44]) && (!OPT_SERDES || last_tristate);
+		end else begin
+			tx_tristate <= { tx_tristate[46:0], 1'b1 };
+			cmd_tristate  <= tx_tristate[46] && (!OPT_SERDES || last_tristate);
+		end
+	end else begin
+		last_tristate <= tx_tristate[47];
+		cmd_tristate  <= tx_tristate[47] && (!OPT_SERDES || last_tristate);
+	end
+
 	assign	o_cmd_en = active;
 	assign	o_cmd_data = (cfg_dbl) ? tx_sreg[47:46] : {(2){tx_sreg[47]}};
-
+	assign	o_cmd_tristate = cmd_tristate;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -430,7 +474,7 @@ module	sdcmd #(
 		r_frame_err <= 1'b0;
 	else if (resp_count == 2 && rx_sreg[1:0] != 2'b00)
 		r_frame_err <= 1'b1;
-	
+
 	assign	frame_err = r_frame_err || (waiting_on_response
 			&&((cmd_type[1] && !rx_sreg[0] && resp_count == 48)
 			||((cmd_type==R_R2&& !rx_sreg[0] && resp_count == 136))));
@@ -505,7 +549,9 @@ module	sdcmd #(
 			r_no_timeout <= 1'b0;
 		// }}}
 
-		assign	lcl_accept = i_cmd_request && !o_busy
+		assign	lcl_accept = i_cmd_request
+			// && !o_busy
+			&& (i_ckstb && ((!r_busy && !r_delay) || self_request))
 			&& (o_done || !r_busy || (self_request
 					&& (!response_active || rx_timeout)));
 		assign	self_request = r_self_request;
@@ -643,18 +689,46 @@ module	sdcmd #(
 		o_ercode <= 2'b00;
 	else if (!r_done)
 	begin
-		if (w_done)
+		if (rx_timeout)
+			o_ercode <= ECODE_TIMEOUT;
+		else if (w_done)
 		begin
 			o_ercode <= ECODE_OKAY;
 			if (frame_err)
 				o_ercode <= ECODE_FRAMEERR;
 			if (crc_err)
 				o_ercode <= ECODE_BADCRC;
-		end else if (rx_timeout)
-			o_ercode <= ECODE_TIMEOUT;
+		end
 	end
 	// }}}
 
+	// r_delay, r_dly_count
+	// {{{
+	initial	{ r_delay, r_dly_count } = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		{ r_delay, r_dly_count } <= 0;
+	else if (r_busy)
+		{ r_delay, r_dly_count } <= { 1'b1, 4'h8 };
+	else if (r_delay && i_ckstb)
+		{ r_delay, r_dly_count } <= { r_delay, r_dly_count } + 1;
+`ifdef	FORMAL
+	always @(posedge i_clk)
+	if (!i_reset && r_busy && !$past(lcl_accept))
+		assert({ r_delay, r_dly_count } == { 1'b1, 4'h8 });
+
+	always @(*)
+	if (r_delay)
+		assert(o_busy || self_request);
+
+	always @(*)
+	if (!r_delay)
+		assert(r_dly_count == 0);
+`endif
+	// }}}
+
+	// r_done
+	// {{{
 	initial	r_done = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset || w_no_response || o_done || lcl_accept)
@@ -663,7 +737,10 @@ module	sdcmd #(
 		r_done <= 1'b1;
 	// else // if (i_ckstb)
 	//	r_done <= 1'b0;
+	// }}}
 
+	// o_done
+	// {{{
 	initial	o_done = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset || o_done || lcl_accept)
@@ -671,8 +748,11 @@ module	sdcmd #(
 	else
 		o_done <= (rx_timeout || w_no_response
 					|| (r_done && i_ckstb));
+	// }}}
 
-	// r_busy is true if we are unable to accept a command
+	// r_busy
+	// {{{
+	// r_busy is a registered true if we are unable to accept a command
 	initial	r_busy = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -681,8 +761,9 @@ module	sdcmd #(
 		r_busy <= 1'b1;
 	else if (o_done)
 		r_busy <= 1'b0;
+	// }}}
 
-	assign	o_busy = (r_busy && !self_request) || !i_ckstb;
+	assign	o_busy = ((r_busy || r_delay) && !self_request) || !i_ckstb;
 
 	//
 	// Make verilator happy
@@ -705,7 +786,7 @@ module	sdcmd #(
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	(* anyconst *) reg f_nvr_request, f_nvr_collision;
-	reg	f_past_valid, f_busy;
+	reg		f_past_valid, f_busy, f_cfg_pp;
 	reg	[7:0]	f_last_resp_count;
 	reg	[47:0]	f_tx_reg, f_tx_now;
 	wire	[5:0]	f_txshift;
@@ -750,11 +831,15 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (i_reset)
 		f_busy <= 1'b0;
-	else if (i_cmd_request && !o_busy)
+	else if (lcl_accept) // i_cmd_request && !o_busy)
 		f_busy <= 1'b1;
 	else if (o_done)
 		f_busy <= 1'b0;
 
+
+	always @(*)
+	if (!OPT_EMMC)
+		assume(!i_cmd_selfreply);
 
 	always @(*)
 	if (!i_reset && i_cmd_selfreply)
@@ -803,6 +888,13 @@ module	sdcmd #(
 	always @(posedge i_clk)
 	if (!i_reset && $past(o_cmd_response))
 		assert(!o_cmd_response);
+
+	always @(posedge i_clk)
+	if (i_reset)
+		f_cfg_pp <= 5'b0;
+	else if (lcl_accept)
+		f_cfg_pp <= i_cfg_pp;
+	// }}}
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -951,6 +1043,56 @@ module	sdcmd #(
 
 	end
 
+	// Tristate checks
+	// {{{
+	reg	[47:0]	f_tristate, f_tristate_p1, f_tristate_msk,
+			f_tristate_active;
+	always @(*)
+	begin
+		f_tristate_p1 = tx_tristate + 1;
+		f_tristate = (~tx_tristate) + f_tristate_p1;
+
+		f_tristate_msk = (tx_tristate << srcount) + (48'h1 << srcount);
+		f_tristate_active = tx_tristate >> (48-srcount);
+	end
+
+	always @(*)
+	if (!i_reset && o_cmd_en)
+	begin
+		assert(tx_tristate == (tx_tristate & tx_sreg));
+		assert(f_tristate == 0);
+		assert(f_tristate_msk == 48'h0);
+		if (f_cfg_pp || cfg_dbl)
+		begin
+			assert(f_tristate_active == 0);
+		end else begin
+			assert(tx_tristate == tx_sreg);
+		end
+	end
+
+	always @(*)
+	if (!i_reset && !o_cmd_en)
+		assert(&tx_tristate);
+
+	always @(*)
+	if (!i_reset && o_cmd_en)
+	begin
+		if (f_cfg_pp || cfg_dbl)
+		begin
+			assert(!o_cmd_tristate);
+		end else if (o_cmd_data != 2'b11)
+		begin
+			assert(!o_cmd_tristate);
+		end else if (!OPT_SERDES)
+			assert(o_cmd_tristate);
+	end
+
+	always @(posedge i_clk)
+	if (!i_reset && OPT_SERDES && $past(!i_reset && o_cmd_en
+					&& (o_cmd_data != 2'b11 || f_cfg_pp)))
+		assert(!o_cmd_tristate);
+	// }}}
+
 	always @(*)
 		assert(srcount <= 48);
 	always @(*)
@@ -1051,9 +1193,12 @@ module	sdcmd #(
 		cover(i_cmd_type == R_R2 && o_err && o_ercode== ECODE_FRAMEERR);
 	end
 
-	always @(posedge i_clk)
-	if (!i_reset && r_busy && i_cmd_selfreply)
-		cover(!o_busy);
+	generate if (OPT_EMMC)
+	begin : EMMC_CVR
+		always @(posedge i_clk)
+		if (!i_reset && r_busy && i_cmd_selfreply)
+			cover(!o_busy);
+	end endgenerate
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////

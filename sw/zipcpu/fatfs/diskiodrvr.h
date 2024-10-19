@@ -72,7 +72,7 @@ typedef	struct	FATDRIVE_S {
 // there's one FATDRIVE triplet per drive on the board, and so that MAX_DRIVES
 // contains the number of items in the table.
 //
-#define	MAX_DRIVES	4
+#define	MAX_DRIVES	5
 FATDRIVE	DRIVES[MAX_DRIVES] = {
 #ifdef	_BOARD_HAS_SDIO
 		{ (void *)_sdio, &SDIODRVR, NULL },
@@ -86,6 +86,11 @@ FATDRIVE	DRIVES[MAX_DRIVES] = {
 #endif
 #ifdef	_BOARD_HAS_EMMC
 		{ (void *)_emmc, &EMMCDRVR, NULL },
+#else
+		{ NULL, NULL, NULL },
+#endif
+#ifdef	_BOARD_HAS_CRUVMMC
+		{ (void *)_cruvmmc, &EMMCDRVR, NULL },
 #else
 		{ NULL, NULL, NULL },
 #endif

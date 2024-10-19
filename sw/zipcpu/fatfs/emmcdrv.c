@@ -42,36 +42,104 @@ typedef	uint8_t  BYTE;
 typedef	uint16_t WORD;
 typedef	uint32_t DWORD, LBA_t, UINT;
 #include <diskio.h>
-#include "board.h"
-#include "zipcpu.h"
-#ifdef	INCLUDE_DMA_CONTROLLER
-#include "zipsys.h"
-#endif
 #include "emmcdrv.h"
 
+// tx* -- debugging output functions
+// {{{
+// Debugging isn't quite as simple as using printf(), since I want to guarantee
+// that I can still compile and build this into a memory that isn't large enough
+// to hold a printf function.  The txstr(), txchr(), and txhex() functions fit
+// that low memory footprint need.  For cases where these are not sufficient,
+// we use the STDIO_DEBUG flag to determine if the regular ?rintf() functions
+// are available.
 #ifndef	TXFNS_H
 #include <stdio.h>
 
 #define	txchr(A)		putchar(A)
-#define	txstr(A)		printf("%s",A)
+#define	txstr(A)		fputs(A, stdout)
 #define	txhex(A)		printf("%08x", A)
 #define	txdecimal(A)		printf("%d", A)
+#define	STDIO_DEBUG
 #else
 // extern	void	txstr(const char *);
 // extern	void	txhex(unsigned);
 // extern	void	txdecimal(int);
+#define	printf(...)
 #endif
-
-static	const int	EMMCINFO = 1, EMMCDEBUG=1, EXTDMA = 0,
-			EMMCMULTI = 1;
 // }}}
+
+// WBScope
+// {{{
+// The following defines may be useful when a WBScope has been attached
+// to the device.  They are mostly useful for debugging.  If no WBScope
+// is attached, these macros are given null definitions.
+#ifdef	_BOARD_HAS_EMMCSCOPE
+#define	SET_SCOPE	_emmcscope->s_ctrl = 0x04000100
+#define	TRIGGER_SCOPE	_emmcscope->s_ctrl = 0xff000100
+#else
+#define	SET_SCOPE
+#define	TRIGGER_SCOPE
+#endif
+// }}}
+
+// EMMCINFO & EMMCDEBUG
+// {{{
+// These are designed to be compile time constants, to allow the compiler to
+// remove the logic they generate for space reasons.
+//	EMMCDEBUG: Set to turn on debugging output.  Ideally, debugging output
+//		should not be necessary in a *working* design, so its use is
+//		primary until the design starts working.  This debugging
+//		output will tell you (among other things) when the design
+//		issues commands, what command are issued, which routines are
+//		called.  etc.
+//	EMMCINFO: Set to turns on a verbose reporting.  This will dump values of
+//		registers, together with their meanings.  When reading,
+//		it will dump sectors read.  Often requires EMMCDEBUG.
+static	const int	EMMCINFO = 1, EMMCDEBUG=1;
+// }}}
+// Compile time DMA controls
+// {{{
+// OPT_SDIODMA will be defined if the design was built in an environment that
+// (may have potentially) had a hardware DMA built into it.  (We'll still
+// check.)  If not, EXTDMA controls whether or not calls to an _external_
+// DMA should be generated.  These would be calls to the ZipCPU's DMA.  To
+// avoid all external DMA calls, simply set EXTDMA to zero.
+#ifdef	OPT_SDIODMA
+static	const	int	EXTDMA = 0;
+#else
+static	const	int	EXTDMA = 1;
+#endif
+// }}}
+
+// EMMCMULTI
+// {{{
+// EMMCMULTI: Controls whether the read multiple block or write multiple block
+// commands will be used.  Set to 1 to use these commands, 0 otherwise.
+// EMMCMULTI *must* be set to use the internal DMA, otherwise only block level
+// commands will be issued.
+static	const	int	EMMCMULTI = 1;
+// }}}
+// }}}
+
+#define	NEW_MUTEX
+#define	GRAB_MUTEX
+#define	RELEASE_MUTEX
+#ifndef	CLEAR_DCACHE
+#define	CLEAR_DCACHE
+#endif
 
 typedef	struct	EMMCDRV_S {
 	EMMC		*d_dev;
 	uint32_t	d_CID[4], d_OCR;
 	char		d_SCR[8], d_CSD[16], d_EXCSD[512];
-	uint16_t	d_RCA;
-	uint32_t	d_sector_count, d_block_size;
+	uint16_t	d_RCA;	// Relative Card Address
+			// d_sector_count: the number of 512B blocks / device
+	uint32_t	d_sector_count,
+			// d_block_size = 512 (or at least better be ...)
+			d_block_size,
+			// d_DMA: A true/false flag indicating if we are to use
+			// the DMA (true) or not (false).
+			d_DMA;
 } EMMCDRV;
 
 #ifdef	_BOARD_HAS_EMMCSCOPE
@@ -85,35 +153,45 @@ typedef	struct	EMMCDRV_S {
 
 static	const	uint32_t
 		// Command bit enumerations
-		SDIO_RNONE = 0x00000000,
-		SDIO_R1    = 0x00000100,
-		SDIO_R2    = 0x00000200,
-		SDIO_R1b   = 0x00000300,
-		SDIO_WRITE = 0x00000400,
-		SDIO_MEM   = 0x00000800,
-		SDIO_FIFO  = 0x00001000,
-		SDIO_DMA   = 0x00002000,
+		SDIO_RNONE    = 0x00000000,
+		SDIO_R1       = 0x00000100,
+		SDIO_R2       = 0x00000200,
+		SDIO_R1b      = 0x00000300,
+		SDIO_WRITE    = 0x00000400,
+		SDIO_MEM      = 0x00000800,
+		SDIO_FIFO     = 0x00001000,
+		SDIO_DMA      = 0x00002000,
 		SDIO_CMDBUSY  = 0x00004000,
-		SDIO_CARDBUSY = 0x00100000,
-		SDIO_BUSY     = 0x00104800,
 		SDIO_ERR      = 0x00008000,
+		SDIO_CMDTMOUT = 0x00000000,
+		SDIO_CMDEOKAY = 0x00010000,
+		SDIO_CMDCRCER = 0x00020000,
+		SDIO_CMDFRMER = 0x00030000,
+		SDIO_CMDECODE = 0x00030000,
+		// SDIO_REMOVED  = 0x00040000,
+		// SDIO_PRESENTN = 0x00080000,
+		SDIO_CARDBUSY = 0x00100000,
+		SDIO_BUSY     = (SDIO_CARDBUSY|SDIO_CMDBUSY|SDIO_DMA|SDIO_MEM),
 		SDIO_CMDERR   = 0x00200000,
-		SDIO_RXERR    = 0x00400000,
-		SDIO_RXCRCERR = 0x00800000,
-		SDIO_REMOVED  = 0x00040000,
-		SDIO_PRESENTN = 0x00080000,
+		SDIO_RXERR    = 0x00400000,	// RX Error present
+		SDIO_RXECODE  = 0x00800000,	// RX Error code
+		SDIO_DMAERR   = 0x01000000,
+		SDIO_HWRESET  = 0x02000000,
+		SDIO_ACK      = 0x04000000,	// Expect a CRC ACK token
+		SDIO_RESET    = 0x52000000,
 		// PHY enumerations
-		SDIO_DDR      = 0x00004100,	// Requires CK90
-		SDIO_DS       = 0x00004300,	// Requires DDR & CK90
-		SDIO_W1       = 0x00000000,
-		SDIO_W4       = 0x00000400,
-		SDIO_W8	      = 0x00000800,
-		SDIO_WBEST    = 0x00000c00,
-		SDIO_PPDAT    = 0x00001000,	// Push pull drive for data
-		SDIO_PPCMD    = 0x00002000,	// Push pull drive for cmd wire
-		SDIO_PUSHPULL = SDIO_PPDAT | SDIO_PPCMD,
+		SDPHY_DDR      = 0x00004100,	// Requires CK90
+		SDPHY_DS       = 0x00004300,	// Requires DDR & CK90
+		SDPHY_W1       = 0x00000000,
+		SDPHY_W4       = 0x00000400,
+		SDPHY_W8	      = 0x00000800,
+		SDPHY_WBEST    = 0x00000c00,
+		SDPHY_PPDAT    = 0x00001000,	// Push pull drive for data
+		SDPHY_PPCMD    = 0x00002000,	// Push pull drive for cmd wire
+		SDPHY_PUSHPULL = SDPHY_PPDAT | SDPHY_PPCMD,
 		SDIOCK_CK90   = 0x00004000,
 		SDIOCK_SHUTDN = 0x00008000,
+		SDPHY_PHASEMSK= 0x001f0000,
 		// IO clock speeds
 		SDIOCK_100KHZ = 0x000000fc,
 		SDIOCK_200KHZ = 0x0000007f,
@@ -125,15 +203,16 @@ static	const	uint32_t
 		SDIOCK_50MHZ  = 0x00000002,
 		SDIOCK_100MHZ = 0x00000001,
 		SDIOCK_200MHZ = 0x00000000,
-		SDIOCK_1P2V   = 0x00400000,
-		SDIOCK_DS     = SDIOCK_25MHZ | SDIO_W4 | SDIO_PUSHPULL,
-		SDIOCK_HS     = SDIOCK_50MHZ | SDIO_W4 | SDIO_PUSHPULL,
+		SDIOCK_MASK   = 0x000000ff,
+		SDPHY_1P2V    = 0x00400000,
+		SDIOCK_DS     = SDIOCK_25MHZ | SDPHY_W4 | SDPHY_PUSHPULL,
+		SDIOCK_HS     = SDIOCK_50MHZ | SDPHY_W4 | SDPHY_PUSHPULL,
 		// Speed abbreviations
-		SDIOCK_SDR50  = SDIOCK_50MHZ  | SDIO_W4 | SDIO_PUSHPULL | SDIOCK_1P2V,
-		SDIOCK_DDR50  = SDIOCK_50MHZ  | SDIO_W4 | SDIO_PUSHPULL | SDIO_DDR | SDIOCK_1P2V,
-		SDIOCK_SDR104 = SDIOCK_100MHZ | SDIO_W4 | SDIO_PUSHPULL | SDIOCK_1P2V,
-		SDIOCK_SDR200 = SDIOCK_200MHZ | SDIO_W4 | SDIO_PUSHPULL | SDIOCK_1P2V,
-		// SDIOCK_HS400= SDIOCK_200MHZ | SDIO_W4 | SDIO_PUSHPULL | SDIO_DS,
+		SDIOCK_SDR50  = SDIOCK_50MHZ  | SDPHY_W4 | SDPHY_PUSHPULL | SDPHY_1P2V,
+		SDIOCK_DDR50  = SDIOCK_50MHZ  | SDPHY_W4 | SDPHY_PUSHPULL | SDPHY_DDR | SDPHY_1P2V,
+		SDIOCK_SDR104 = SDIOCK_100MHZ | SDPHY_W4 | SDPHY_PUSHPULL | SDPHY_1P2V,
+		SDIOCK_SDR200 = SDIOCK_200MHZ | SDPHY_W4 | SDPHY_PUSHPULL | SDPHY_1P2V,
+		// SDIOCK_HS400= SDIOCK_200MHZ | SDPHY_W4 | SDPHY_PUSHPULL | SDPHY_DS,
 		//
 		SPEED_SLOW   = SDIOCK_400KHZ,
 		SPEED_DEFAULT= SDIOCK_DS,
@@ -142,14 +221,22 @@ static	const	uint32_t
 		SECTOR_4B    = 0x02000000,
 		SECTOR_16B   = 0x04000000,
 		SECTOR_512B  = 0x09000000,
+		SECTOR_MASK  = 0x0f000000,
 		//
 		SDIO_CMD     = 0x00000040,
 		SDIO_READREG  = SDIO_CMD | SDIO_R1 | SDIO_ERR,
+		SDIO_READREGb = SDIO_CMD | SDIO_R1b,
 		SDIO_READR2  = (SDIO_CMD | SDIO_R2),
 		SDIO_WRITEBLK = (SDIO_CMD | SDIO_R1 | SDIO_ERR
-				| SDIO_WRITE | SDIO_MEM) + 24,
+				| SDIO_ACK | SDIO_WRITE | SDIO_MEM) + 24,
+		SDIO_WRMULTI = (SDIO_CMD | SDIO_R1
+				| SDIO_ACK | SDIO_WRITE | SDIO_MEM) + 25,
+		SDIO_WRDMA = SDIO_WRMULTI | SDIO_DMA,
 		SDIO_READBLK  = (SDIO_CMD | SDIO_R1 | SDIO_ERR
 					| SDIO_MEM) + 17,
+		SDIO_RDMULTI  = (SDIO_CMD | SDIO_R1
+					| SDIO_MEM) + 18,
+		SDIO_READDMA  = SDIO_RDMULTI | SDIO_DMA,
 		SDIO_READCID  = (SDIO_CMD | SDIO_R2 | SDIO_ERR) + 2,
 		SDIO_R1ERR    = 0xfff80080;
 static	const	uint32_t
@@ -160,9 +247,7 @@ static	void	emmc_go_idle(EMMCDRV *dev);
 static	void	emmc_all_send_cid(EMMCDRV *dev);
 static	uint32_t emmc_send_rca(EMMCDRV *dev);
 static	void	emmc_select_card(EMMCDRV *dev);	// CMD7
-static	uint32_t emmc_send_if_cond(EMMCDRV *dev, uint32_t ifcond); // CMD8
 static	uint32_t emmc_send_op_cond(EMMCDRV *dev, uint32_t opcond); // ACMD41
-static	void	emmc_set_bus_width(EMMCDRV *dev, uint32_t width); // CMD6
 static	void	emmc_send_app_cmd(EMMCDRV *dev);  // CMD 55
 static	uint32_t emmc_read_ocr(EMMCDRV *dev, uint32_t width);	  // CMD 58
 static	void	emmc_dump_cid(EMMCDRV *dev);
@@ -183,6 +268,15 @@ extern	int	emmc_ioctl(EMMCDRV *dev, char cmd, char *buf);
 void	emmc_wait_while_busy(EMMCDRV *dev) {
 	// {{{
 
+	// Could also do a system call and yield to the scheduler while waiting
+	// if (EMMC_OS) {
+	//	os_wait(dev->d_int);
+	// } else if (EMMC_INT) {
+	//	// Can wait for an interrupt here, such as by calling an
+	//	// external wait_int function with our interrupt ID.
+	//	wait_int(dev->d_int);
+	// } else {
+
 	// Busy wait implementation
 	uint32_t	st;
 
@@ -190,44 +284,84 @@ void	emmc_wait_while_busy(EMMCDRV *dev) {
 	while(st & SDIO_BUSY)
 		st = dev->d_dev->sd_cmd;
 
-	// Could also do interrupt
-	// Could also do a system call and yield to the scheduler while waiting
+	// }
 }
 // }}}
 
-void	emmc_go_idle(EMMCDRV *dev) {				// CMD0
+void	emmc_dump_err(unsigned c) {
+	// {{{
+	// if (c & SDIO_REMOVED)
+		// SD cards can't be removed ...
+	if (c & SDIO_DMAERR)
+		txstr("    DMA Bus Error\n");
+	if (c & SDIO_CMDERR) {
+		if (SDIO_CMDTMOUT == (c & SDIO_CMDECODE))
+			txstr("    CMD-Timeout\n");
+		else if (SDIO_CMDCRCER == (c & SDIO_CMDECODE))
+			txstr("    CMD-CRC Error\n");
+		else if (SDIO_CMDFRMER == (c & SDIO_CMDECODE))
+			txstr("    CMD-Frame Error (Bad stop bit)\n");
+	} else if (c & SDIO_RXERR) {
+		if (c & SDIO_RXECODE)
+			txstr("    Rx CRC Error\n");
+		else
+			txstr("    Data Watchdog timeout\n");
+	}
+}
+// }}}
+
+void	emmc_go_idle(EMMCDRV *dev) {			// CMD0
 	// {{{
 	dev->d_dev->sd_phy = SECTOR_512B | SDIOCK_400KHZ;
 	dev->d_dev->sd_data = 0;
 	dev->d_dev->sd_cmd = SDIO_CMD | SDIO_RNONE | SDIO_ERR;
 
 	emmc_wait_while_busy(dev);
+
+	if (EMMCDEBUG && EMMCINFO) {
+		unsigned	c = dev->d_dev->sd_cmd;
+		unsigned	r = dev->d_dev->sd_data;
+
+		txstr("CMD0:    SEND_GO_IDLE\n");
+		txstr("  Cmd:     "); txhex(c); txstr("\n");
+		txstr("  Data:    "); txhex(r); txstr("\n");
+	}
 }
 // }}}
 
-void	emmc_all_send_cid(EMMCDRV *dev) {	// CMD2
+void	emmc_all_send_cid(EMMCDRV *dev) {		// CMD2
 	// {{{
 	if (EMMCDEBUG)	txstr("READ-CID\n");
+	unsigned	c;
 
 	dev->d_dev->sd_data = 0;
 	dev->d_dev->sd_cmd = (SDIO_ERR|SDIO_READR2)+2;
 
 	emmc_wait_while_busy(dev);
+	c = dev->d_dev->sd_cmd;
 
 	dev->d_CID[0] = dev->d_dev->sd_fifa;
 	dev->d_CID[1] = dev->d_dev->sd_fifa;
 	dev->d_CID[2] = dev->d_dev->sd_fifa;
 	dev->d_CID[3] = dev->d_dev->sd_fifa;
 
-	if (EMMCINFO)
+	if (EMMCDEBUG && (c & SDIO_ERR)) {
+		TRIGGER_SCOPE;
+		txstr("  IO-ERR: "); txhex(c); txstr("\n");
+	}
+
+	if (EMMCINFO) {
+		unsigned r = dev->d_dev->sd_data;
+
+		txstr("  Cmd:     "); txhex(c); txstr("\n");
+		txstr("  Data:    "); txhex(r); txstr("\n");
 		emmc_dump_cid(dev);
+	}
 }
 // }}}
 
-void	emmc_send_cid(EMMCDRV *dev) {	// CMD10
+void	emmc_send_cid(EMMCDRV *dev) {			// CMD10
 	// {{{
-	unsigned	c, r;
-
 	if (EMMCDEBUG)	txstr("SEND-CID\n");
 
 	dev->d_dev->sd_data = (dev->d_RCA << 16);
@@ -235,16 +369,19 @@ void	emmc_send_cid(EMMCDRV *dev) {	// CMD10
 
 	emmc_wait_while_busy(dev);
 
-	c = dev->d_dev->sd_cmd;
-	r = dev->d_dev->sd_data;
-
 	dev->d_CID[0] = dev->d_dev->sd_fifa;
 	dev->d_CID[1] = dev->d_dev->sd_fifa;
 	dev->d_CID[2] = dev->d_dev->sd_fifa;
 	dev->d_CID[3] = dev->d_dev->sd_fifa;
 
-	if (EMMCINFO)
+	if (EMMCINFO) {
+		unsigned c = dev->d_dev->sd_cmd;
+		unsigned r = dev->d_dev->sd_data;
+
+		txstr("  Cmd:     "); txhex(c); txstr("\n");
+		txstr("  Data:    "); txhex(r); txstr("\n");
 		emmc_dump_cid(dev);
+	}
 }
 // }}}
 
@@ -291,7 +428,10 @@ uint32_t emmc_send_rca(EMMCDRV *dev) {				// CMD3
 	// {{{
 	unsigned	c, r;
 
-	dev->d_dev->sd_data = 0;
+	if (EMMCDEBUG)	txstr("SEND-RCA\n");
+
+	dev->d_RCA = 0x1;
+	dev->d_dev->sd_data = (dev->d_RCA << 16);
 	dev->d_dev->sd_cmd = (SDIO_ERR|SDIO_READREG)+3;
 
 	emmc_wait_while_busy(dev);
@@ -300,47 +440,42 @@ uint32_t emmc_send_rca(EMMCDRV *dev) {				// CMD3
 	r = dev->d_dev->sd_data;
 
 	if (EMMCDEBUG && EMMCINFO) {
-		txstr("CMD3:    SEND_RCA\n");
+		if (!EMMCDEBUG) txstr("CMD3:    SEND-RCA\n");
+
 		txstr("  Cmd:     "); txhex(c); txstr("\n");
 		txstr("  Data:    "); txhex(r); txstr("\n");
 	}
 
-	return dev->d_RCA = (r >> 16)&0x0ffff;
+	return dev->d_RCA;
 }
 // }}}
 
 void	emmc_select_card(EMMCDRV *dev) {			// CMD7
 	// {{{
+	unsigned c, r;
+
 	dev->d_dev->sd_data = dev->d_RCA << 16;
-	dev->d_dev->sd_cmd = SDIO_READREG+7;
+	dev->d_dev->sd_cmd = SDIO_READREGb + 7;
 
 	emmc_wait_while_busy(dev);
-}
-// }}}
-
-uint32_t emmc_send_if_cond(EMMCDRV *dev, uint32_t ifcond) { // CMD8
-	// {{{
-	unsigned	c, r;
-
-	dev->d_dev->sd_data = ifcond;
-	dev->d_dev->sd_cmd = SDIO_READREG+8;
-
-	emmc_wait_while_busy(dev);
-
 	c = dev->d_dev->sd_cmd;
 	r = dev->d_dev->sd_data;
 
-	if (EMMCDEBUG && EMMCINFO) {
-		txstr("CMD8:    SEND_IF_COND\n");
+	if (EMMCDEBUG && ((c & SDIO_ERR) || EMMCINFO)) {
+		if (c & SDIO_ERR)
+			TRIGGER_SCOPE;
+		txstr("CMD7:    SELECT_CARD ("); txhex(dev->d_RCA);txstr(")\n");
+		if (c & SDIO_ERR) {
+			txstr("  IO-ERR: "); txhex(c); txstr("\n");
+			emmc_dump_err(c);
+		}
 		txstr("  Cmd:     "); txhex(c); txstr("\n");
 		txstr("  Data:    "); txhex(r); txstr("\n");
 	}
-
-	return r;
 }
 // }}}
 
-uint32_t emmc_send_op_cond(EMMCDRV *dev, uint32_t opcond) { // CMD1
+uint32_t emmc_send_op_cond(EMMCDRV *dev, uint32_t opcond) {	// CMD1
 	// {{{
 	unsigned	c, r;
 
@@ -362,29 +497,7 @@ uint32_t emmc_send_op_cond(EMMCDRV *dev, uint32_t opcond) { // CMD1
 }
 // }}}
 
-void	emmc_set_bus_width(EMMCDRV *dev, uint32_t width) { // CMD6
-	// {{{
-	emmc_send_app_cmd(dev);
-
-	dev->d_dev->sd_data = width;
-	dev->d_dev->sd_cmd = SDIO_READREG+6;
-
-	emmc_wait_while_busy(dev);
-
-	if (EMMCDEBUG && EMMCINFO) {
-		unsigned	c, r;
-
-		c = dev->d_dev->sd_cmd;
-		r = dev->d_dev->sd_data;
-
-		txstr("CMD6:    SET_BUS_WIDTH\n");
-		txstr("  Cmd:     "); txhex(c); txstr("\n");
-		txstr("  Data:    "); txhex(r); txstr("\n");
-	}
-}
-// }}}
-
-void	emmc_send_app_cmd(EMMCDRV *dev) {  // CMD 55
+void	emmc_send_app_cmd(EMMCDRV *dev) {			// CMD 55
 	// {{{
 	dev->d_dev->sd_data = 0;
 	dev->d_dev->sd_cmd = SDIO_READREG+55;
@@ -475,77 +588,11 @@ void	emmc_dump_ocr(EMMCDRV *dev) {
 		if (dev->d_OCR & 0x00020000) txstr("  3.0-2.9 V allowed\n");
 		if (dev->d_OCR & 0x00010000) txstr("  2.9-2.8 V allowed\n");
 		if (dev->d_OCR & 0x00008000) txstr("  2.8-2.7 V allowed\n");
+		if (dev->d_OCR & 0x00000080) txstr("  1.7-1.95 V allowed\n");
 #endif
 	}
 }
 // }}}
-
-/*
-void emmc_read_scr(EMMCDRV *dev) {	  // ACMD 51
-	// {{{
-	uint32_t	phy = dev->d_dev->sd_phy;
-
-	phy &= 0xf0ffffff;
-	phy |= (3 << 24);	// 64 bits = 8 bytes = 2^3 bytes
-	dev->d_dev->sd_phy = phy;
-
-	emmc_send_app_cmd(dev);
-
-	dev->d_dev->sd_data = 0;
-	dev->d_dev->sd_cmd = SDIO_READREG+51;
-
-	emmc_wait_while_busy(dev);
-
-	if (EMMCDEBUG && EMMCINFO) {
-		// {{{
-		unsigned	c, r;
-
-		c = dev->d_dev->sd_cmd;
-		r = dev->d_dev->sd_data;
-
-		txstr("ACMD51:  SEND_SCR\n");
-		txstr("  Cmd:     "); txhex(c); txstr("\n");
-		txstr("  Data:    "); txhex(r); txstr("\n");
-	}
-	// }}}
-
-	for(int k=0; k<8; k+= sizeof(uint32_t)) {
-		unsigned	uv;
-
-		uv = dev->d_dev->sd_fifa;
-		if (EMMCINFO) { txhex(uv); if (k < 4) txstr(":"); }
-		dev->d_SCR[k + 3] = uv & 0x0ff; uv >>= 8;
-		dev->d_SCR[k + 2] = uv & 0x0ff; uv >>= 8;
-		dev->d_SCR[k + 1] = uv & 0x0ff; uv >>= 8;
-		dev->d_SCR[k + 0] = uv;
-	} if (EMMCINFO) txstr("\n");
-
-	phy &= 0xf0ffffff;
-	phy |= (9 << 24);
-	dev->d_dev->sd_phy = phy;
-
-
-	if (EMMCINFO)
-		emmc_dump_scr(dev);
-}
-// }}}
-
-void	emmc_dump_scr(EMMCDRV *dev) {
-	// {{{
-	txstr("  SCR_STRUCTURE: "); txhex((dev->d_SCR[0] >> 4)& 0x0f); txstr("\n");
-	txstr("  SD_SPEC      : "); txhex(dev->d_SCR[0]& 0x0f); txstr("\n");
-	txstr("  STATAFTERERAS: "); txhex((dev->d_SCR[1]&0x80)?1:0); txstr("\n");
-	txstr("  SD_SECURITY  : "); txhex((dev->d_SCR[1]>>4) & 0x07); txstr("\n");
-	txstr("  SD_BUS_WIDTHS: "); txhex(dev->d_SCR[1] & 0x0f); txstr("\n");
-	txstr("  EX_SECURITY  : "); txhex((dev->d_SCR[2]>>3) & 0x07); txstr("\n");
-	txstr("  SD_SPEC3     : "); txhex((dev->d_SCR[2] & 0x80) ? 1:0); txstr("\n");
-	txstr("  SD_SPEC4     : "); txhex((dev->d_SCR[2] & 0x04) ? 1:0); txstr("\n");
-	txstr("  SD_SPECX     : "); txhex(((dev->d_SCR[3]>>6)&0x03)
-					| ((dev->d_SCR[2]&0x03)<<2)); txstr("\n");
-	txstr("  CMD_SUPPORT  : "); txhex(dev->d_SCR[3] & 0x0f); txstr("\n");
-}
-// }}}
-*/
 
 void emmc_read_csd(EMMCDRV *dev) {	  // CMD 9
 	// {{{
@@ -566,9 +613,15 @@ void emmc_read_csd(EMMCDRV *dev) {	  // CMD 9
 		txstr("CMD9:    SEND_CSD\n");
 		txstr("  Cmd:     "); txhex(c); txstr("\n");
 		txstr("  Data:    "); txhex(r); txstr("\n");
+		if (c & SDIO_ERR) {
+			TRIGGER_SCOPE;
+			txstr("  IO-ERR: "); txhex(c); txstr("\n");
+			emmc_dump_err(c);
+		}
 	}
 	// }}}
 
+	if (EMMCINFO) txstr("  CSD :    ");
 	for(int k=0; k<16; k+= sizeof(uint32_t)) {
 		unsigned	uv;
 
@@ -699,53 +752,65 @@ void emmc_read_csd(EMMCDRV *dev) {	  // CMD 9
 
 static	void	emmc_decode_cmd(unsigned cmd) {
 	// {{{
-	printf("  Cmd:     %08x\n", cmd);
-	if ((cmd & 0xc0)==0x40)
-		printf("   %02x: CMD%d\n", cmd & 0x0ff, cmd & 0x3f);
-	else if ((cmd & 0xc0)==0x00)
-		printf("   %02x: REPLY %d\n", cmd & 0x0ff, cmd & 0x3f);
-	else
-		printf("   %02x: ILLEGAL\n", cmd & 0x0ff);
-	switch(cmd & SDIO_R1b) {
-	case SDIO_RNONE: printf("   No reply expected\n"); break;
-	case SDIO_R1:	printf("   R1  reply expected\n"); break;
-	case SDIO_R2:	printf("   R2  reply expected\n"); break;
-	case SDIO_R1b:	printf("   R1b reply expected\n"); break;
-	default: break;
+	txstr("  Cmd:     "); txhex(cmd); txstr("\n");
+	if ((cmd & 0xc0)==0x40) {
+		txstr("   ");
+		txhex(cmd & 0x0ff);
+		txstr(": CMD");
+		txdecimal(cmd & 0x3f);
+		txstr("\n");
+	} else if ((cmd & 0xc0)==0x00) {
+		txstr("   ");
+		txhex(cmd & 0x0ff);
+		txstr(": REPLY ");
+		txdecimal(cmd & 0x3f);
+		txstr("\n");
+	} else {
+		txstr("   ");
+		txhex(cmd & 0x0ff); txstr(": ILLEGAL\n");
 	}
+
+	if (SDIO_RNONE== (cmd & SDIO_R1b))
+		txstr("   No reply expected\n");
+	else if (SDIO_R1 == (cmd & SDIO_R1))
+		txstr("   R1  reply expected\n");
+	else if (SDIO_R2 == (cmd & SDIO_R1))
+		txstr("   R2  reply expected\n");
+	else //
+		txstr("   R1b reply expected\n");
 
 	if (cmd & SDIO_MEM) {
 		if (cmd & SDIO_WRITE)
-			printf("   MEM Write (TX) command\n");
+			txstr("   MEM Write (TX) command\n");
 		else
-			printf("   MEM Read  (RX) command\n");
+			txstr("   MEM Read  (RX) command\n");
 	} if ((cmd & SDIO_MEM) || ((cmd & SDIO_R1b) == SDIO_R2)) {
 		if (cmd & SDIO_FIFO)
-			printf("   FIFO B\n");
+			txstr("   FIFO B\n");
 		else
-			printf("   FIFO A\n");
+			txstr("   FIFO A\n");
 	} if (cmd & SDIO_BUSY) {
-		printf("   Busy\n");
+		txstr("   Busy\n");
 	} if (cmd & SDIO_CMDBUSY) {
-		printf("   CMDBusy\n");
+		txstr("   CMDBusy\n");
 	} if (cmd & SDIO_ERR) {
 		if (cmd & SDIO_CMDERR) {
-			printf("   CMD Err: ");
+			txstr("   CMD Err: ");
 			switch((cmd >> 16)&3) {
-			case 0: printf("Timeout\n"); break;
-			case 1: printf("Okay\n"); break;
-			case 2: printf("Bad CRC\n"); break;
-			case 3: printf("Frame Err\n"); break;
+			case 0: txstr("Timeout\n"); break;
+			case 1: txstr("Okay\n"); break;
+			case 2: txstr("Bad CRC\n"); break;
+			case 3: txstr("Frame Err\n"); break;
 			}
 		} if (cmd & SDIO_RXERR) {
-			printf("   RX Err:  ");
-			if (cmd & SDIO_RXCRCERR) {
-				printf(" CRC Err\n");
+			txstr("   RX Err:  ");
+			if (cmd & SDIO_RXECODE) {
+				txstr(" CRC Err\n");
 			} else
-				printf(" Watchdog Err\n");
+				txstr(" Watchdog Err\n");
 		}
 	} else
-		printf("   No ERR\n");
+		txstr("   No ERR\n");
 }
 // }}}
 
@@ -865,6 +930,9 @@ void emmc_send_ext_csd(EMMCDRV *dev) {	  // CMD 8
 		txstr("  SUPPORTED_MODS: "); txhex(dev->d_EXCSD[493]); txstr("\n");
 		txstr("  CMDQ_SUPPORT  : "); txhex(dev->d_EXCSD[308]); txstr("\n");
 		txstr("  SECTOR_COUNT  : "); txhex(dev->d_sector_count); txstr("\n");
+		uint32_t cache_size = dev->d_EXCSD[ 249] | (dev->d_EXCSD[ 250] << 8) |
+						(dev->d_EXCSD[ 251] << 16) | (dev->d_EXCSD[ 252] << 24);
+		txstr("  CACHE_SIZE    : "); txhex(cache_size); txstr("\n");
 		txstr("  DEVICE_TYPE   : "); txhex(dev->d_EXCSD[196]); txstr("\n");
 		if (dev->d_EXCSD[196] & 0x80)
 			txstr("    HS400 DDR @ 200MHz, 1.2V\n");
@@ -885,17 +953,21 @@ void emmc_send_ext_csd(EMMCDRV *dev) {	  // CMD 8
 		txstr("  CSD_STRUCTURE : "); txhex(dev->d_EXCSD[194]); txstr("\n");
 		txstr("  EXT_CSD_REV   : "); txhex(dev->d_EXCSD[192]); txstr("\n");
 		txstr("  CMD_SET       : "); txhex(dev->d_EXCSD[191]); txstr("\n");
+		txstr("  POWER_CLASS   : "); txhex(dev->d_EXCSD[187]); txstr("\n");
+		txstr("  HS_TIMING     : "); txhex(dev->d_EXCSD[185]); txstr("\n");
 		txstr("  STROBE_SUPPORT: "); txhex(dev->d_EXCSD[184]); txstr("\n");
 		txstr("  BUS_WIDTH     : "); txhex(dev->d_EXCSD[183]); txstr("\n");
 		txstr("  DATA_SECTOR_SZ: "); txhex(dev->d_EXCSD[ 61]); txstr("\n");
+		txstr("  CACHE         : "); txhex(dev->d_EXCSD[ 33]); txstr("\n");
+
 	}
 }
 // }}}
 
-// Get and Dump R1
+// Dump R1
 void emmc_dump_r1(const unsigned rv) {
 	// {{{
-	if (EMMCDEBUG) {
+	if (EMMCINFO) {
 		txstr("EMMC R1 Decode:  "); txhex(rv);
 		if (rv & 0x80000000)
 			txstr("\n  OUT_OF_RANGE");
@@ -952,7 +1024,6 @@ void emmc_dump_r1(const unsigned rv) {
 		if (rv & 0x00000020)
 			txstr("\n  APP_CMD");
 		txstr("\n");
-		// emmc_dump_r1(uv >> 8);
 	}
 }
 // }}}
@@ -962,22 +1033,23 @@ unsigned emmc_get_r1(EMMCDRV *dev) {	// CMD13=send_status
 	unsigned	vc, vd;
 
 	dev->d_dev->sd_data = dev->d_RCA << 16;
-	dev->d_dev->sd_cmd  = SDIO_READREG + 13;
-	if (EMMCINFO && EMMCDEBUG)
+	dev->d_dev->sd_cmd  = (SDIO_ERR|SDIO_READREG) + 13;
+	if (EMMCDEBUG)
 		txstr("CMD13:   SEND_STATUS\n");
 	emmc_wait_while_busy(dev);
 
 	vc = dev->d_dev->sd_cmd;
 	vd = dev->d_dev->sd_data;
-	if (EMMCINFO && EMMCDEBUG) {
+	if (EMMCDEBUG) {
 		txstr("  Cmd:     "); txhex(vc); txstr("\n");
 		// emmc_decode_cmd(c);
 		txstr("  Data:    "); txhex(vd); txstr("\n");
 		txstr("  PHY:     "); txhex(dev->d_dev->sd_phy); txstr("\n");
-	}
 
-	emmc_dump_r1(vd);
-	return vd;
+		if (EMMCINFO && (0 == (vc & 0x8000)))
+			emmc_dump_r1(vd);
+	}
+	return	vd;
 }
 // }}}
 
@@ -995,19 +1067,33 @@ static void emmc_dump_sector(const unsigned *ubuf) {
 
 int	emmc_write_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 24
 	// {{{
-	unsigned	vc, vd;
+	unsigned	dev_stat, card_stat, err = 0;
 
-	if (9 != ((dev->d_dev->sd_phy >> 24)&0x0f)) {
-		uint32_t	phy = dev->d_dev->sd_phy;
-		phy &= 0xf0ffffff;
-		phy |= (9 << 24);
+	if (EMMCDEBUG) {
+		txstr("EMMC-WRITE(BLK): ");
+		txhex(sector);
+		txstr("\n");
 	}
 
-#ifdef	INCLUDE_DMA_CONTROLLER_NOT
-	if (EXTDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
+
+	GRAB_MUTEX;
+
+	{
+		uint32_t	phy = dev->d_dev->sd_phy;
+
+		if (SECTOR_512B != (phy & SECTOR_MASK)) {
+			phy &= ~SECTOR_MASK;
+			phy |= SECTOR_512B;
+			dev->d_dev->sd_phy = phy;
+		}
+	}
+
+	// Load up the FIFO
+#ifdef	INCLUDE_DMA_CONTROLLER
+	if (SDEXTDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 		_zip->z_dma.d_len = 512;
 		_zip->z_dma.d_rd  = (char *)buf;
-		_zip->z_dma.d_wr  = &dev->d_dev->sd_fifa;
+		_zip->z_dma.d_wr  = (char *)&dev->d_dev->sd_fifa;
 		_zip->z_dma.d_ctrl= DMAREQUEST|DMACLEAR|DMA_SRCWIDE
 				|DMA_CONSTDST|DMA_DSTWORD;
 		while(_zip->z_dma.d_ctrl & DMA_BUSY)
@@ -1017,59 +1103,109 @@ int	emmc_write_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 24
 		for(int k=0; k<512/sizeof(uint32_t); k++)
 			dev->d_dev->sd_fifa = buf[k];
 
-	dev->d_dev->sd_data = sector;
+	// Set up the device address
+	// {{{
+	if (dev->d_OCR & 0x40000000)
+		// High capacity card
+		dev->d_dev->sd_data = sector;
+	else
+		dev->d_dev->sd_data = sector*512;
+	// }}}
+
+	// Send the write command
 	dev->d_dev->sd_cmd = SDIO_WRITEBLK;
 
+	// ... and wait while busy
 	emmc_wait_while_busy(dev);
 
-	vc = dev->d_dev->sd_cmd;
-	vd = dev->d_dev->sd_data;
+	dev_stat  = dev->d_dev->sd_cmd;
+	card_stat = dev->d_dev->sd_data;
 
-	if (EMMCDEBUG) {
-		if (vc & SDIO_ERR) {
-			txstr("SDIO ERR: SDIO write response = ");
-			txhex(vc);
-			txstr("\n");
+	RELEASE_MUTEX;
+
+	// Return an error code if necessary
+	// {{{
+	if (dev_stat & (SDIO_ERR|SDIO_RXERR)) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+
+		err = 1;
+		if (EMMCDEBUG) {
+			txstr("SDIO-WRITE -> ERR: \n");
+			txhex(dev_stat); txstr("\n");
+			if (EMMCINFO)
+				emmc_dump_err(dev_stat);
 		}
+	} else if (card_stat & SDIO_R1ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
 
-		if (EMMCINFO)
-			emmc_get_r1(dev);
-	} if (vc & SDIO_ERR) {
-		dev->d_dev->sd_cmd = SDIO_ERR;
-		return -1;
-	} return 0;
+		if (EMMCDEBUG) {
+			if (card_stat & SDIO_ERR) {
+				txstr("EMMC ERR: EMMC write response = ");
+				txhex(card_stat);
+				txstr("\n");
+			}
+
+			if (EMMCINFO)
+				emmc_dump_r1(card_stat);
+		} dev->d_dev->sd_cmd = SDIO_ERR;
+
+		err = 1;
+	}
+	// }}}
+
+	if (err) {
+		if (EMMCDEBUG)
+			txstr("EMMC-READ -> ERR\n");
+		return RES_ERROR;
+	} return RES_OK;
 }
 // }}}
 
 int	emmc_read_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 17
 	// {{{
+	int	err = 0, dev_stat, card_stat;
+
 	if (EMMCDEBUG) {
-		txstr("SDIO-READ: ");
+		txstr("EMMC-READ(BLK): ");
 		txhex(sector);
 		txstr("\n");
 	}
 
-	if (dev->d_dev->sd_cmd & SDIO_REMOVED) {
-		txstr("SDIO ERR: SD-Card was removed\n");
-		return -1;
-	}
+	// No removal check.  EMMC Chip can't be removed.
 
-	if (9 != ((dev->d_dev->sd_phy >> 24)&0x0f)) {
+	GRAB_MUTEX;
+
+	// Check the PHY configuration
+	// {{{
+	{
 		uint32_t	phy = dev->d_dev->sd_phy;
-		phy &= 0xf0ffffff;
-		phy |= (9 << 24);
+
+		if (SECTOR_512B != (phy & SECTOR_MASK)) {
+			phy &= ~SECTOR_MASK;
+			phy |= SECTOR_512B;
+			dev->d_dev->sd_phy = phy;
+		}
 	}
+	// }}}
 
 	dev->d_dev->sd_data = sector;
 	dev->d_dev->sd_cmd = SDIO_READBLK;
 
 	emmc_wait_while_busy(dev);
 
-#ifdef	INCLUDE_DMA_CONTROLLER_NOT
-	if (SDUSEDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
+	// Check for errors
+	dev_stat  = dev->d_dev->sd_cmd;
+	card_stat = dev->d_dev->sd_data;
+
+#ifdef	INCLUDE_DMA_CONTROLLER
+	if (SDEXTDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 		_zip->z_dma.d_len = 512;
-		_zip->z_dma.d_rd  = (char *)&sdcard->sd_fifo[0];
-		_zip->z_dma.d_wr  = buf;
+		_zip->z_dma.d_rd  = (char *)&dev->d_dev->sd_fifa;
+		_zip->z_dma.d_wr  = (char *)buf;
 		_zip->z_dma.d_ctrl= DMAREQUEST|DMACLEAR|DMA_DSTWIDE
 					| DMA_CONSTSRC|DMA_SRCWORD;
 		while(_zip->z_dma.d_ctrl & DMA_BUSY)
@@ -1083,10 +1219,39 @@ int	emmc_read_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 17
 	if (EMMCDEBUG && EMMCINFO)
 		emmc_dump_sector(buf);
 
-	if (dev->d_dev->sd_cmd & (SDIO_ERR | SDIO_REMOVED)) {
-		txstr("EMMC ERR: Read\n");
-		return -1;
-	} return 0;
+	RELEASE_MUTEX;
+
+	// Error handling
+	// {{{
+	if (dev_stat & SDIO_ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		err = 1;
+		if (EMMCDEBUG) {
+			txstr("\tEMMC-READ -> ERR: ");
+			txhex(dev_stat);
+			txstr(":");
+			txhex(card_stat);
+			txstr("\n");
+			if (EMMCINFO)
+				emmc_dump_err(dev_stat);
+		}
+	} else if (card_stat & SDIO_R1ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		// If the card declares an error, return an error status
+		if (EMMCDEBUG) {
+			txstr("\tR1-ERR\n");
+			if (EMMCINFO)
+				emmc_dump_r1(card_stat);
+		}
+		err = 1;
+	}
+	// }}}
+
+	return 0;
 }
 // }}}
 
@@ -1097,19 +1262,19 @@ void	emmc_best_width(EMMCDRV *dev) {
 	unsigned	v, c, r;
 
 	// Section 6.6.4
-		// SDIO_W1       = 0x00000000,
-		// SDIO_W4       = 0x00000400,
-		// SDIO_W8	      = 0x00000800,
-		// SDIO_WBEST    = 0x00000c00,
+		// SDPHY_W1       = 0x00000000,
+		// SDPHY_W4       = 0x00000400,
+		// SDPHY_W8	      = 0x00000800,
+		// SDPHY_WBEST    = 0x00000c00,
 	
 	if (EMMCDEBUG) txstr("Testing 1b width\n");
 	// {{{
-	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(0x0f000000 | SDIO_WBEST))
-				| SDIO_W1 | SECTOR_4B;
+	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(SECTOR_MASK | SDPHY_WBEST))
+				| SDPHY_W1 | SECTOR_4B;
 	dev->d_dev->sd_data = SWITCH_WRITE_BYTE
 				| (WIDTH_INDEX << 16)
-				| (1 << 8);
-	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1 | SDIO_ERR) + 6;
+				| (0 << 8);
+	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 6;
 	emmc_wait_while_busy(dev);
 	if (EMMCINFO && EMMCDEBUG)
 		txstr("CMD6:    SWITCH\n");
@@ -1188,12 +1353,12 @@ void	emmc_best_width(EMMCDRV *dev) {
 	// }}}
 	if (EMMCDEBUG) txstr("Testing 4b width\n");
 	// {{{
-	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(0x0f000000 | SDIO_WBEST))
-			| SDIO_W4 | SECTOR_4B;
+	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(SECTOR_MASK | SDPHY_WBEST))
+			| SDPHY_W4 | SECTOR_4B;
 	dev->d_dev->sd_data = SWITCH_WRITE_BYTE
 				| (WIDTH_INDEX << 16)
-				| (2 << 8);
-	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1 | SDIO_ERR) + 6;
+				| (1 << 8);
+	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 6;
 	if (EMMCINFO && EMMCDEBUG)
 		txstr("CMD6:    SWITCH\n");
 	emmc_wait_while_busy(dev);
@@ -1266,12 +1431,12 @@ void	emmc_best_width(EMMCDRV *dev) {
 		txstr("  4b fail! ("); txhex(v);
 		txstr(") -- falling back to 1b\n");
 		dev->d_dev->sd_phy = (dev->d_dev->sd_phy
-						& ~(0x0f000000 | SDIO_WBEST))
-				| SDIO_W1 | SECTOR_512B;
+						& ~(SECTOR_MASK | SDPHY_WBEST))
+				| SDPHY_W1 | SECTOR_512B;
 		dev->d_dev->sd_data = SWITCH_WRITE_BYTE
 					| (WIDTH_INDEX << 16)
-					| (1 << 8);
-		dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1 | SDIO_ERR) + 6;
+					| (0 << 8);
+		dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 6;
 		emmc_wait_while_busy(dev);
 		if (dev->d_dev->sd_cmd & SDIO_ERR) {
 			txstr("EMMC PANIC!  Err response to switch-cmd\n");
@@ -1289,12 +1454,12 @@ void	emmc_best_width(EMMCDRV *dev) {
 	// }}}
 	if (EMMCDEBUG) txstr("Testing 8b width\n");
 	// {{{
-	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(0x0f000000 | SDIO_WBEST))
-				| SDIO_W8 | SECTOR_4B;
+	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(SECTOR_MASK | SDPHY_WBEST))
+				| SDPHY_W8 | SECTOR_4B;
 	dev->d_dev->sd_data = SWITCH_WRITE_BYTE
 				| (WIDTH_INDEX << 16)
-				| (4 << 8);
-	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1 | SDIO_ERR) + 6;
+				| (2 << 8);
+	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 6;
 	if (EMMCINFO && EMMCDEBUG)
 		txstr("CMD6:    SWITCH\n");
 	emmc_wait_while_busy(dev);
@@ -1373,12 +1538,12 @@ void	emmc_best_width(EMMCDRV *dev) {
 		txstr("  8b fail! ("); txhex(v);
 		txstr(") -- falling back to 4b\n");
 		dev->d_dev->sd_phy = (dev->d_dev->sd_phy
-						& ~(0x0f000000 | SDIO_WBEST))
-				| SDIO_W4 | SECTOR_512B;
+						& ~(SECTOR_MASK | SDPHY_WBEST))
+				| SDPHY_W4 | SECTOR_512B;
 		dev->d_dev->sd_data = SWITCH_WRITE_BYTE
 					| (WIDTH_INDEX << 16)
-					| (2 << 8);
-		dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1 | SDIO_ERR) + 6;
+					| (1 << 8);
+		dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 6;
 		emmc_wait_while_busy(dev);
 		if (dev->d_dev->sd_cmd & SDIO_ERR) {
 			txstr("EMMC PANIC!  Err response to switch-cmd\n");
@@ -1413,9 +1578,32 @@ EMMCDRV *emmc_init(EMMC *dev) {
 	dv->d_sector_count = 0;
 	dv->d_block_size   = 0;
 
+	// Determine if the DMA is present, and mark it for use if so
+	// {{{
+	dv->d_dev->sd_dma_length = -1;
+	dv->d_DMA = 0;
+	if (dv->d_dev->sd_dma_length != 0)
+		dv->d_DMA = 1;
+	// }}}
+
+	// NEW_MUTEX;
+	GRAB_MUTEX;
+
+	// Start by resetting the interface--in case we're being called
+	// to restart from an uncertain state.
+	dv->d_dev->sd_cmd = SDIO_HWRESET;
+	dv->d_dev->sd_cmd = 0;
+	while(dv->d_dev->sd_cmd & SDIO_HWRESET)
+		;
+
 	dv->d_dev->sd_phy = SDIOCK_400KHZ | SECTOR_512B;
+	while(SDIOCK_400KHZ != (dv->d_dev->sd_phy & SDIOCK_MASK))
+		;
 
 	emmc_go_idle(dv);
+
+	// Query OP_COND
+	// supported_op_cond = emmc_send_op_cond(dv,0);
 
 	do {
 		op_cond = emmc_send_op_cond(dv,0x40ff8080);
@@ -1436,9 +1624,8 @@ EMMCDRV *emmc_init(EMMC *dev) {
 
 		// We can move up to 25MHz with no further hassles.
 		// Going faster requires coordination with the eMMC chip
-		phy &= ~0x0ff;
-		phy |= SDIOCK_25MHZ | SDIO_PUSHPULL;
-		// phy |= SDIOCK_12MHZ | SDIO_PUSHPULL;
+		phy &= ~SDIOCK_MASK;
+		phy |= SDIOCK_25MHZ | SDPHY_PUSHPULL;
 		dv->d_dev->sd_phy = phy;
 	}
 
@@ -1453,15 +1640,19 @@ EMMCDRV *emmc_init(EMMC *dev) {
 	// 6.6.4 Bus testing procedure ... via CMD19(BUSTEST_W)
 	//		and CMD14(BUSTEST_R)
 	emmc_best_width(dv);
-	// HS_TIMING to 1 ?
-	// emmc_switch_write_byte(dv, 
+
+	RELEASE_MUTEX;
 
 	// dv->d_sector_count = 0;
 	dv->d_block_size   = 512;
 
-	if (EMMCINFO && EMMCDEBUG)
-		printf("SUMMARY:  %d blocks\n  %d bytes\n", dv->d_sector_count,
-			dv->d_block_size);
+	if (EMMCINFO && EMMCDEBUG) {
+		txstr("EMMC SUMMARY:  ");
+		txstr("Block size:   ");
+		txdecimal(dv->d_block_size);
+		txstr("\nSector count: "); txdecimal(dv->d_sector_count);
+		txstr("\n");
+	}
 
 	return	dv;
 }
@@ -1470,31 +1661,98 @@ EMMCDRV *emmc_init(EMMC *dev) {
 int	emmc_write(EMMCDRV *dev, const unsigned sector,
 			const unsigned count, const char *buf) {
 	// {{{
-	unsigned	st;
+	unsigned	card_stat, dev_stat, err = 0;
 
-	if (count == 1 || !EMMCMULTI) {
+	if (0 == count)
+		return	RES_OK;
+
+	if (!EMMCMULTI) {
 		for(unsigned k=0; k<count; k++) {
+			unsigned	st;
+
 			st = emmc_write_block(dev, sector+k,
-						(uint32_t *)(&buf[k*512]));
-			if (0 != st) {
+					(uint32_t *)&buf[k*512]);
+			if (0 != st)
 				return RES_ERROR;
-			}
 		} return RES_OK;
+	}
+
+	if (EMMCDEBUG) {
+		// {{{
+		txstr("EMMC-WRITE(MNY): ");
+		txhex(sector);
+		txstr(", ");
+		txhex(count);
+		txstr(", @0x");
+		txhex((unsigned)((unsigned long)buf & 0xfffffffful));
+		txstr("-- [DEV ");
+		txhex(dev->d_dev->sd_cmd);
+		txstr("]\n");
+	}
+	// }}}
+
+
+	GRAB_MUTEX;
+
+	// Make sure our device is idle
+	if(dev->d_dev->sd_cmd & SDIO_BUSY)
+		emmc_wait_while_busy(dev);
+
+	// Make sure we're configured for 512B sectors
+	// {{{
+	{
+		unsigned phy = dev->d_dev->sd_phy;
+
+		if (SECTOR_512B != (phy & SECTOR_MASK)) {
+			// Here, we don't care if the clock is shut down as
+			// well, since we control the write speed.
+			phy &= ~SECTOR_MASK;
+			phy |= SECTOR_512B;
+			dev->d_dev->sd_phy = phy;
+		}
+	}
+	// }}}
+
+	if (dev->d_OCR & 0x40000000)
+		// High capacity card
+		dev->d_dev->sd_data = sector;
+	else
+		dev->d_dev->sd_data = sector*512;
+
+	// Check for the DMA's existence
+	dev->d_dev->sd_dma_length = count;
+	if (count == dev->d_dev->sd_dma_length) { // DMA is present
+		// {{{
+
+		// Set up the DMA
+		// {{{
+		dev->d_dev->sd_dma_addr = (char *)buf;
+		// Always transfer in units of 512 bytes
+		// dev->d_dev->sd_dma_length = count;
+		//	Already set above, in order to determine if the DMA
+		//	was present
+		// }}}
+
+		// Command the transfer, setting SDIO_DMA to use the DMA
+		// {{{
+		dev->d_dev->sd_cmd  = SDIO_WRMULTI | SDIO_DMA;
+		// }}}
+
+		// The DMA will end the transfer with a STOP_TRANSMISSION
+		// command *IF* count > 1.  The R1 value from the STOP_TRANS
+		// command will still be in the data register after the
+		// entire command completes.  We can read it here to get the
+		// status from the transmission.
+		// }}}
 	} else {
-		unsigned	card_stat, phy, cmd;
-
-		phy = dev->d_dev->sd_phy;
-		phy &= 0xf0ffffff;
-		dev->d_dev->sd_phy = phy | SECTOR_512B;
-
-		for(unsigned s=0; s<count; s++) {
-			// Load the first/next block of data into the FIFO
+		for(unsigned s=0; s<count; s++) { // Foreach sector
+			// Load the data into alternating buffers
 			// {{{
 #ifdef	INCLUDE_DMA_CONTROLLER
 			if (EXTDMA && (0 == (_zip->z_dma.d_ctrl & DMA_BUSY))) {
 				_zip->z_dma.d_len = 512;
-				_zip->z_dma.d_rd = (char *)buf;
-				_zip->z_dma.d_wr = (s&1)
+				_zip->z_dma.d_rd  = (char *)&buf[s*512];
+				_zip->z_dma.d_wr  = (s&1)
 					? (char *)&dev->d_dev->sd_fifb
 					: (char *)&dev->d_dev->sd_fifa;
 				_zip->z_dma.d_ctrl= DMAREQUEST|DMACLEAR|DMA_SRCWIDE
@@ -1508,36 +1766,30 @@ int	emmc_write(EMMCDRV *dev, const unsigned sector,
 				src = (unsigned *)&buf[s*512];
 
 				if (s&1) {
-					for(int w=0; w<512/sizeof(uint32_t);w++)
+					for(int w=0; w<512/sizeof(uint32_t); w++)
 						dev->d_dev->sd_fifb = src[w];
 				} else {
-					for(int w=0; w<512/sizeof(uint32_t);w++)
+					for(int w=0; w<512/sizeof(uint32_t); w++)
 						dev->d_dev->sd_fifa = src[w];
 				}
 			}
 			// }}}
 
-			// Wait for any previous command(s) to complete
-			while((cmd = dev->d_dev->sd_cmd) & SDIO_BUSY)
-				;
-
-			if (s == 0) { // Issue the WRITE_MULTIPLE_BLOCK cmd
+			if (s == 0) { // Issue WRITE_MULTIPLE_BLOCK cmd
 				// {{{
-				// Issue a write multiple command
-				dev->d_dev->sd_data = sector*512;
-				dev->d_dev->sd_cmd = (SDIO_CMD | SDIO_R1
-					|SDIO_ERR|SDIO_WRITE | SDIO_MEM) + 25;
 
-				while((cmd = dev->d_dev->sd_cmd) & SDIO_CMDBUSY)
-					;
+				// Issue a write-multiple command
+				dev->d_dev->sd_cmd  = SDIO_ERR | SDIO_WRMULTI;
 
-				// Check if we'll have any errors with this cmd
-				if (cmd & SDIO_ERR)
-					return RES_ERROR;
+				emmc_wait_while_busy(dev);
 
+				// Check for errors
+				dev_stat  = dev->d_dev->sd_cmd;
 				card_stat = dev->d_dev->sd_data;
+				if (dev_stat & SDIO_ERR)
+					break;
 				if (card_stat & SDIO_R1ERR)
-					return RES_ERROR;
+					break;
 
 				// Don't wait.  Go around again and load the
 				// next block of data before checking if the
@@ -1545,86 +1797,173 @@ int	emmc_write(EMMCDRV *dev, const unsigned sector,
 				// }}}
 			} else { // Send the next block
 				// {{{
-				// Send another block of data
+				// Wait for the last write to complete
+				emmc_wait_while_busy(dev);
+
+				// Then send another block of data
 				dev->d_dev->sd_cmd = (SDIO_WRITE | SDIO_MEM)
-						+ ((s&1) ? SDIO_FIFO : 0);
+					| ((s&1) ? SDIO_FIFO : 0);
 				// }}}
 			}
 		}
 
 		// Wait for the final write to complete
-		while((cmd = dev->d_dev->sd_cmd) & SDIO_BUSY)
-			;
+		emmc_wait_while_busy(dev);
 
-		// Send a STOP_TRANSMISSION request
+		// Send a (final) STOP_TRANSMISSION request
 		dev->d_dev->sd_data = 0;
-		dev->d_dev->sd_cmd = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 12;
-		while((cmd = dev->d_dev->sd_cmd) & SDIO_BUSY)
-			;
-
-		if (cmd & SDIO_ERR)
-			return RES_ERROR;
-
-		card_stat = dev->d_dev->sd_data;
-		if (card_stat & SDIO_R1ERR)
-			return RES_ERROR;
-
-		return RES_OK;
+		dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 12;
 	}
+
+	emmc_wait_while_busy(dev);
+
+	dev_stat  = dev->d_dev->sd_cmd;
+	card_stat = dev->d_dev->sd_data;
+
+	RELEASE_MUTEX;
+
+	// Error handling
+	// {{{
+	if (err) {
+		// If we had any write failures along the way, return
+		// an error status.
+
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+	} else if (dev_stat & SDIO_ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		err = 1;
+		if (EMMCDEBUG) {
+			txstr("\tEMMC-WRITE -> ERR: ");
+			txhex(dev_stat);
+			txstr(":");
+			txhex(card_stat);
+			txstr("\n");
+			if (EMMCINFO)
+				emmc_dump_err(dev_stat);
+		}
+	} else if (card_stat & SDIO_R1ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		// If the card declares an error, return an error status
+		if (EMMCDEBUG) {
+			txstr("\tR1-ERR\n");
+			if (EMMCINFO)
+				emmc_dump_r1(card_stat);
+		}
+		err = 1;
+	}
+	// }}}
+
+	if (err) {
+		if (EMMCDEBUG)
+			txstr("EMMC-WRITE -> R1 ERR\n");
+		return	RES_ERROR;
+	} return RES_OK;
 }
 // }}}
 
 int	emmc_read(EMMCDRV *dev, const unsigned sector,
 				const unsigned count, char *buf) {
 	// {{{
-	unsigned	st = 0;
+	unsigned	err = 0, dev_stat, card_stat;
 
-	if (1 == count || !EMMCMULTI) {
+	if (0 == count)
+		return RES_OK;
+
+	if (!EMMCMULTI) {
+		// {{{
 		for(unsigned k=0; k<count; k++) {
+			unsigned	st;
+
 			st = emmc_read_block(dev, sector+k,
 						(uint32_t *)(&buf[k*512]));
 			if (0 != st) {
+				// No need for error reporting here.  If
+				// necessary, it took place in emmc_read_block
 				return RES_ERROR;
 			}
 		} return RES_OK;
-	} else {
-		unsigned	err, card_stat, phy;
+	}
+	// }}}
+
+	if (EMMCDEBUG) {
+		// {{{
+		txstr("EMMC-READ(MNY): ");
+		txhex(sector);
+		txstr(", ");
+		txhex(count);
+		txstr(", @0x");
+		txhex((unsigned)((unsigned long)buf & 0xfffffffful));
+		txstr("-- [DEV ");
+		txhex(dev->d_dev->sd_cmd);
+		txstr("]\n");
+	}
+	// }}}
+
+	GRAB_MUTEX;
+
+	// Make sure our device is idle
+	if(dev->d_dev->sd_cmd & SDIO_BUSY)
+		emmc_wait_while_busy(dev);
+
+	// Make sure our PHY is set up properly
+	// {{{
+	{
+		unsigned	phy;
 
 		phy = dev->d_dev->sd_phy;
-		if ((0 == (phy & SDIOCK_SHUTDN)) || (9 != ((phy >> 24)&0x0f))) {
+		if (SECTOR_512B != (phy & (SECTOR_MASK | SDIOCK_SHUTDN))) {
 			// Read multiple *requires* the clock be shut down
 			// between pages, to make sure the device doesn't try
 			// to produce data before we are ready for it.
-			phy &= 0xf0ffffff;
-			phy |= (9 << 24) | SDIOCK_SHUTDN;
+			phy &= ~SECTOR_MASK;
+			phy |= SECTOR_512B | SDIOCK_SHUTDN;
+			dev->d_dev->sd_phy = phy;
 		}
+	}
+	// }}}
 
-		err = 0;
+	// Set the data sector
+	// {{{
+	if (dev->d_OCR & 0x40000000)
+		// High capacity card
+		dev->d_dev->sd_data = sector;
+	else
+		dev->d_dev->sd_data = sector*512;
+	// }}}
+
+	dev->d_dev->sd_dma_length = count;
+	if (count == dev->d_dev->sd_dma_length) {
+		// Activate the EMMC DMA
+		// {{{
+		dev->d_dev->sd_dma_addr = buf;
+		dev->d_dev->sd_cmd = SDIO_ERR | SDIO_READDMA;
+		// }}}
+	} else {
 		// Issue the read multiple command
 		// {{{
-		if (dev->d_OCR & 0x40000000)
-			// High capacity card
-			dev->d_dev->sd_data = sector;
-		else
-			dev->d_dev->sd_data = sector*512;
-		dev->d_dev->sd_cmd  = (SDIO_CMD|SDIO_R1b|SDIO_MEM|SDIO_ERR)+18;
+		dev->d_dev->sd_cmd  = SDIO_ERR | SDIO_RDMULTI;
 		// }}}
 
 		// Read each sector
 		// {{{
 		for(unsigned s=0; s<count; s++) {
 			// Wait until we have a block to read
-			while(dev->d_dev->sd_cmd & SDIO_BUSY)
-				;
+			emmc_wait_while_busy(dev);
 
 			// Send the next (or last) command
 			// {{{
-			if (0 != dev->d_dev->sd_cmd & SDIO_ERR) {
+			if (0 != (dev_stat = dev->d_dev->sd_cmd & SDIO_ERR)) {
 				err = 1;
-			} if (s +1 < count && !err) {
+			} if (s + 1 < count && !err) {
 				// Immediately start the next read request
-				dev->d_dev->sd_cmd  = SDIO_MEM + 18
-						+ ((s&1) ? 0 : SDIO_FIFO);
+				dev->d_dev->sd_cmd  = SDIO_MEM
+					| ((s&1) ? 0 : SDIO_FIFO);
 			} else {
 				// Send a STOP_TRANSMISSION request
 				dev->d_dev->sd_data = 0;
@@ -1640,38 +1979,89 @@ int	emmc_read(EMMCDRV *dev, const unsigned sector,
 				_zip->z_dma.d_rd  = (s&1)
 					? (char *)&dev->d_dev->sd_fifb
 					: (char *)&dev->d_dev->sd_fifa;
-				_zip->z_dma.d_wr  = (char *)buf;
+				_zip->z_dma.d_wr  = (char *)&buf[s*512];
 				_zip->z_dma.d_ctrl= DMAREQUEST|DMACLEAR|DMA_DSTWIDE
-							| DMA_CONSTSRC|DMA_SRCWORD;
+						| DMA_CONSTSRC|DMA_SRCWORD;
 				while(_zip->z_dma.d_ctrl & DMA_BUSY)
 					;
 			} else
 #endif
-				{
-					unsigned *dst;
-					dst = (unsigned *)&buf[s*512];
+			{
+				unsigned *dst;
+				dst = (unsigned *)&buf[s*512];
 
-					if (s&1) {
-						for(int w=0; w<512/sizeof(uint32_t); w++)
-							dst[w] = dev->d_dev->sd_fifb;
-					} else {
-						for(int w=0; w<512/sizeof(uint32_t); w++)
-							dst[w] = dev->d_dev->sd_fifa;
-					}
+				if (s&1) {
+					for(int w=0; w<512/sizeof(uint32_t); w++)
+						dst[w] = dev->d_dev->sd_fifb;
+				} else {
+					for(int w=0; w<512/sizeof(uint32_t); w++)
+						dst[w] = dev->d_dev->sd_fifa;
 				}
+			}
 			// }}}
 		}
 		// }}}
+	}
 
-		// Check the results of the STOP_TRANSMISSION request
-		while(dev->d_dev->sd_cmd & SDIO_BUSY)
-			;
+	// Check the results of the STOP_TRANSMISSION request
+	emmc_wait_while_busy(dev);
+	dev_stat  = dev->d_dev->sd_cmd;
+	card_stat = dev->d_dev->sd_data;
 
-		if (err) {
-			// If we had any read failures along the way, return
-			// an error status
-			return RES_ERROR;
+	RELEASE_MUTEX;
+	CLEAR_DCACHE;
+
+	// Error handling
+	// {{{
+	if (err) {
+		// If we had any read failures along the way, return
+		// an error status.
+
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		if (EMMCDEBUG) {
+			txstr("\tSD-MidREAD -> ERR: ");
+			txhex(dev_stat);
+			txstr("\n");
+			if (EMMCINFO)
+				emmc_dump_err(dev_stat);
 		}
+	} else if (dev_stat & SDIO_ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		err = 1;
+		if (EMMCDEBUG) {
+			txstr("\tEMMC-READ -> ERR: ");
+			txhex(dev_stat);
+			txstr(":");
+			txhex(card_stat);
+			txstr("\n");
+			if (EMMCINFO)
+				emmc_dump_err(dev_stat);
+			emmc_get_r1(dev);
+		}
+		// If the stop transmission command didn't receive
+		// a proper response, return an error status
+	} else if (card_stat & SDIO_R1ERR) {
+		// Immediately trigger the scope (if not already triggered)
+		// to avoid potentially losing any more data.
+		TRIGGER_SCOPE;
+		// If the card declares an error, return an error status
+		if (EMMCDEBUG) {
+			txstr("\tR1-ERR\n");
+			if (EMMCINFO)
+				emmc_dump_r1(card_stat);
+		}
+		err = 1;
+	}
+	// }}}
+
+	if (err) {
+		if (EMMCDEBUG)
+			txstr("EMMC-READ -> ERR\n");
+		return RES_ERROR;
 	} return RES_OK;
 }
 // }}}
@@ -1682,14 +2072,12 @@ int	emmc_ioctl(EMMCDRV *dev, char cmd, char *buf) {
 	unsigned	vc;
 
 	vc = dev->d_dev->sd_cmd;
-	if (vc & SDIO_PRESENTN)
-		return RES_ERROR;
-	if (vc & SDIO_REMOVED)
-		return	RES_NOTRDY;
 
 	switch(cmd) {
 	case CTRL_SYNC: {
+			GRAB_MUTEX;
 			emmc_wait_while_busy(dev);
+			RELEASE_MUTEX;
 			return	RES_OK;
 		} break;
 	case GET_SECTOR_COUNT:

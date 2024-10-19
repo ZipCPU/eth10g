@@ -39,8 +39,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // }}}
-#include "ff.h"
-#include "diskio.h"
+#include "ff.h"		// From FATFS
+#include "diskio.h"	// From FATFS as well
 #include "board.h"
 #include "sdspidrv.h"
 #include "sdiodrv.h"
@@ -52,6 +52,9 @@
 
 #ifdef	STDIO_DEBUG
   #include <stdio.h>
+#define	DBGPRINTF	printf
+#else
+#define	DBGPRINTF	null
 #endif
 
 static inline	void	null(char *s,...) {}
@@ -61,7 +64,6 @@ DSTATUS	disk_status(
 	) {
 	// {{{
 	unsigned	stat = 0;
-// printf("Disk-status check\n");
 
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
 			|| NULL == DRIVES[pdrv].fd_driver)
@@ -72,10 +74,8 @@ DSTATUS	disk_status(
 	if (NULL == DRIVES[pdrv].fd_data
 		|| RES_OK != (*DRIVES[pdrv].fd_driver->dio_ioctl)(
 			DRIVES[pdrv].fd_data,
-					MMC_GET_SDSTAT, (char *)&stat)) {
+					MMC_GET_SDSTAT, (char *)&stat))
 		stat = STA_NODISK;
-// printf("No-disk\n");
-	}
 
 	return	stat;
 }
@@ -85,16 +85,13 @@ DSTATUS	disk_initialize(
 	BYTE pdrv
 	) {
 	// {{{
-// printf("Disk-init check\n");
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
 			|| NULL == DRIVES[pdrv].fd_driver) {
-// printf("No disk\n");
 		return STA_NODISK;
 	} else if (NULL != DRIVES[pdrv].fd_data
 		|| NULL != (DRIVES[pdrv].fd_data
 				= (*DRIVES[pdrv].fd_driver->dio_init)(
 					DRIVES[pdrv].fd_addr))) {
-// printf("INIT, driver = %08x\n", (unsigned)DRIVES[pdrv].fd_data);
 		return RES_OK;
 	} else
 		return STA_NODISK;
@@ -107,18 +104,11 @@ DRESULT disk_ioctl(
 	void *buff	// [I/O parameter and data buffer
 	) {
 	// {{{
-// printf("Disk-IOCTL\n");
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
 			|| NULL == DRIVES[pdrv].fd_driver)
 		return RES_ERROR;
-
-	int	stat;
-	stat = (*DRIVES[pdrv].fd_driver->dio_ioctl)(DRIVES[pdrv].fd_data,
+	return (*DRIVES[pdrv].fd_driver->dio_ioctl)(DRIVES[pdrv].fd_data,
 						cmd, buff);
-
-	// Prevent a sibling call ... for now
-	asm("NOOP");
-	return stat;
 }
 // }}}
 
@@ -182,22 +172,10 @@ DRESULT	disk_read(
 	UINT	count) {
 	// {{{
 	if (pdrv >= MAX_DRIVES || NULL == DRIVES[pdrv].fd_addr
-			|| NULL == DRIVES[pdrv].fd_driver) {
+			|| NULL == DRIVES[pdrv].fd_driver)
 		return RES_ERROR;
-	}
-
-// #define	BROKEN
-#ifdef	BROKEN
 	return (*DRIVES[pdrv].fd_driver->dio_read)(DRIVES[pdrv].fd_data,
 					sector, count, buff);
-#else
-	DWORD	res;
-	res = (*DRIVES[pdrv].fd_driver->dio_read)(DRIVES[pdrv].fd_data,
-					sector, count, buff);
-	if (res != 0)
-		asm("NOOP");
-	return res;
-#endif
 }
 // }}}
 

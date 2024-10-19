@@ -72,9 +72,11 @@ module	sdio #(
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b0,
 		parameter [0:0]	OPT_DS  = OPT_SERDES,
-		parameter [0:0]	OPT_1P8V= 1'b0,
 		parameter [0:0]	OPT_EMMC = 1'b1,
+		parameter [0:0]	OPT_HWRESET = OPT_EMMC,
+		parameter [0:0]	OPT_1P8V= 1'b0,
 		parameter [0:0]	OPT_CARD_DETECT = !OPT_EMMC,
+		parameter [0:0]	OPT_CRCTOKEN = 1'b1,
 		parameter	LGTIMEOUT = 23,
 		parameter [0:0]	OPT_ISTREAM = 0, OPT_OSTREAM = 0,
 		parameter	SW = 32
@@ -127,7 +129,7 @@ module	sdio #(
 		// DMA interface
 		// {{{
 `ifdef	SDIO_AXI
-		// DMA AXI-Lite interface
+		// DMA AXI interface
 		// {{{
 		output	wire			M_AXI_AWVALID,
 		input	wire			M_AXI_AWREADY,
@@ -198,6 +200,7 @@ module	sdio #(
 		output	wire			m_last,
 		// }}}
 		input	wire		i_card_detect,
+		output	wire		o_hwreset_n,
 		output	wire		o_1p8v,
 		output	wire		o_int,
 		// Interface to PHY
@@ -212,10 +215,10 @@ module	sdio #(
 		output	wire	[4:0]	o_cfg_sample_shift,
 		output	reg	[7:0]	o_sdclk,
 		//
-		output	wire		o_cmd_en, o_pp_cmd,
+		output	wire		o_cmd_en, o_cmd_tristate,
 		output	wire	[1:0]	o_cmd_data,
 		//
-		output	wire		o_data_en, o_pp_data, o_rx_en,
+		output	wire		o_data_en, o_data_tristate, o_rx_en,
 		output	wire	[31:0]	o_tx_data,
 		//
 		input	wire	[1:0]	i_cmd_strb, i_cmd_data,
@@ -223,12 +226,14 @@ module	sdio #(
 		input	wire		i_card_busy,
 		input	wire	[1:0]	i_rx_strb,
 		input	wire	[15:0]	i_rx_data,
+		input	wire		i_crcack, i_crcnak,
 		//
 		input	wire		S_AC_VALID,
 		input	wire	[1:0]	S_AC_DATA,
 		input	wire		S_AD_VALID,
 		input	wire	[31:0]	S_AD_DATA
 		// }}}
+		// output	reg	[31:0]	o_debug
 		// }}}
 	);
 
@@ -236,12 +241,13 @@ module	sdio #(
 	// {{{
 	wire			soft_reset;
 
-	wire			cfg_clk90, cfg_clk_shutdown;
+	wire			cfg_clk90, cfg_clk_shutdown, cfg_expect_ack,
+				cfg_cmd_pp, cfg_data_pp;
 	wire	[7:0]		cfg_ckspeed;
 	wire	[1:0]		cfg_width;
 
-	wire			clk_stb, clk_half;
-	wire	[7:0]		w_sdclk, clk_ckspd;
+	wire			clk_stb, clk_half, clk_clk90;
+	wire	[7:0]		clk_wide, clk_ckspd;
 
 	wire			cmd_request, cmd_err, cmd_busy, cmd_done;
 	wire			cmd_selfreply;
@@ -265,6 +271,9 @@ module	sdio #(
 	wire	[MW/8-1:0]	rx_mem_strb;
 	wire	[MW-1:0]	rx_mem_data;
 	wire			rx_done, rx_err, rx_ercode, rx_active, rx_en;
+	wire			tx_done, tx_err, tx_ercode;
+
+	// wire	[31:0]		w_debug;
 
 	// DMA declarations
 	// {{{
@@ -290,9 +299,11 @@ module	sdio #(
 		.OPT_DDR(OPT_DDR),
 		.OPT_DS(OPT_DS),
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
-		.OPT_1P8V(OPT_1P8V),
 		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN),
-		.OPT_EMMC(OPT_EMMC)
+		.OPT_EMMC(OPT_EMMC),
+			.OPT_HWRESET(OPT_HWRESET), .OPT_1P8V(OPT_1P8V),
+		.OPT_STREAM(OPT_ISTREAM || OPT_OSTREAM),
+		.OPT_CRCTOKEN(OPT_CRCTOKEN)
 		// }}}
 	) u_control (
 		// {{{
@@ -329,8 +340,9 @@ module	sdio #(
 		.o_cfg_shutdown(cfg_clk_shutdown),
 		.o_cfg_width(cfg_width), .o_cfg_ds(o_cfg_ds),
 			.o_cfg_dscmd(o_cfg_dscmd), .o_cfg_ddr(o_cfg_ddr),
-		.o_pp_cmd(o_pp_cmd), .o_pp_data(o_pp_data),
+		.o_pp_cmd(cfg_cmd_pp), .o_pp_data(cfg_data_pp), // Push-pull
 		.o_cfg_sample_shift(o_cfg_sample_shift),
+		.o_cfg_expect_ack(cfg_expect_ack),
 		.i_ckspd(clk_ckspd),
 		// }}}
 		.o_soft_reset(soft_reset),
@@ -376,7 +388,7 @@ module	sdio #(
 		.o_tx_mem_valid(tx_mem_valid),
 			.i_tx_mem_ready(tx_mem_ready && tx_en),
 		.o_tx_mem_data(tx_mem_data), .o_tx_mem_last(tx_mem_last),
-		.i_tx_busy(o_data_en),
+		.i_tx_done(tx_done), .i_tx_err(tx_err), .i_tx_ercode(tx_ercode),
 		// }}}
 		// RX interface
 		// {{{
@@ -389,6 +401,7 @@ module	sdio #(
 		// }}}
 		.i_card_detect(i_card_detect),
 		.i_card_busy(i_card_busy),
+		.o_hwreset_n(o_hwreset_n),
 		.o_1p8v(o_1p8v),
 		.o_int(o_int)
 		// }}}
@@ -404,8 +417,10 @@ module	sdio #(
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
 		.OPT_DMA(OPT_DMA),
 		.DMA_AW(ADDRESS_WIDTH + ((OPT_ISTREAM||OPT_OSTREAM) ? 1:0)),
-		.OPT_1P8V(OPT_1P8V),
-		.OPT_EMMC(OPT_EMMC)
+		.OPT_EMMC(OPT_EMMC),
+			.OPT_HWRESET(OPT_HWRESET), .OPT_1P8V(OPT_1P8V),
+		.OPT_STREAM(OPT_ISTREAM || OPT_OSTREAM),
+		.OPT_CRCTOKEN(OPT_CRCTOKEN)
 		// }}}
 	) u_control (
 		// {{{
@@ -425,8 +440,9 @@ module	sdio #(
 		.o_cfg_shutdown(cfg_clk_shutdown),
 		.o_cfg_width(cfg_width), .o_cfg_ds(o_cfg_ds),
 			.o_cfg_dscmd(o_cfg_dscmd), .o_cfg_ddr(o_cfg_ddr),
-		.o_pp_cmd(o_pp_cmd), .o_pp_data(o_pp_data),
+		.o_pp_cmd(cfg_cmd_pp), .o_pp_data(cfg_data_pp), // Push-pull
 		.o_cfg_sample_shift(o_cfg_sample_shift),
+		.o_cfg_expect_ack(cfg_expect_ack),
 		.i_ckspd(clk_ckspd),
 		// }}}
 		.o_soft_reset(soft_reset),
@@ -472,7 +488,7 @@ module	sdio #(
 		.o_tx_mem_valid(tx_mem_valid),
 			.i_tx_mem_ready(tx_mem_ready && tx_en),
 		.o_tx_mem_data(tx_mem_data), .o_tx_mem_last(tx_mem_last),
-		.i_tx_busy(o_data_en),
+		.i_tx_done(tx_done), .i_tx_err(tx_err), .i_tx_ercode(tx_ercode),
 		// }}}
 		// RX interface
 		// {{{
@@ -485,37 +501,45 @@ module	sdio #(
 		// }}}
 		.i_card_detect(i_card_detect),
 		.i_card_busy(i_card_busy),
+		.o_hwreset_n(o_hwreset_n),
 		.o_1p8v(o_1p8v),
 		.o_int(o_int)
+		// .o_debug(w_debug)
 		// }}}
 	);
 `endif
 
 	assign	o_rx_en = rx_en && rx_active;
 
-	sdckgen
-	u_clkgen (
+	sdckgen #(
+		.OPT_SERDES(OPT_SERDES),
+		.OPT_DDR(OPT_DDR)
+	) u_clkgen (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),
 		//
 		.i_cfg_clk90(cfg_clk90), .i_cfg_ckspd(cfg_ckspeed),
 		.i_cfg_shutdown(cfg_clk_shutdown && !rx_active),
 
-		.o_ckstb(clk_stb), .o_hlfck(clk_half), .o_ckwide(w_sdclk),
-		.o_ckspd(clk_ckspd)
+		.o_ckstb(clk_stb), .o_hlfck(clk_half), .o_ckwide(clk_wide),
+		.o_clk90(clk_clk90), .o_ckspd(clk_ckspd)
 		// }}}
 	);
 
 	sdcmd #(
+		// {{{
 		.OPT_DS(OPT_DS),
 		.OPT_EMMC(OPT_EMMC),
+		.OPT_SERDES(OPT_SERDES),
 		.MW(MW),
 		.LGLEN(LGFIFO-$clog2(MW/8))
+		// }}}
 	) u_sdcmd (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || soft_reset),
 		//
 		.i_cfg_ds(o_cfg_dscmd), .i_cfg_dbl(cfg_ckspeed == 0),
+		.i_cfg_pp(cfg_cmd_pp),
 		.i_ckstb(clk_stb),
 		//
 		.i_cmd_request(cmd_request), .i_cmd_type(cmd_type),
@@ -526,6 +550,7 @@ module	sdio #(
 			.o_ercode(cmd_ercode),
 		//
 		.o_cmd_en(o_cmd_en), .o_cmd_data(o_cmd_data),
+			.o_cmd_tristate(o_cmd_tristate),
 		.i_cmd_strb(i_cmd_strb), .i_cmd_data(i_cmd_data),
 			.i_cmd_collision(i_cmd_collision),
 		.S_ASYNC_VALID(S_AC_VALID), .S_ASYNC_DATA(S_AC_DATA),
@@ -539,22 +564,34 @@ module	sdio #(
 	);
 
 	sdtxframe #(
-		.OPT_SERDES(OPT_SERDES || OPT_DDR)
+		// {{{
+		.OPT_SERDES(OPT_SERDES || OPT_DDR),
+		.OPT_CRCTOKEN(OPT_CRCTOKEN)
 		// .MW(MW)
+		// }}}
 	) u_txframe (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || soft_reset),
 		//
-		.i_cfg_spd(cfg_ckspeed),
+		.i_cfg_spd(clk_ckspd),
 		.i_cfg_width(cfg_width),
 		.i_cfg_ddr(o_cfg_ddr),
+		.i_cfg_pp(cfg_data_pp),
+		.i_cfg_expect_ack(cfg_expect_ack),
+		// Extra insights, for assertion checking
+		.i_cfg_clk90(clk_clk90),
+		.i_ckwide(clk_wide),
 		//
 		.i_en(tx_en), .i_ckstb(clk_stb), .i_hlfck(clk_half),
 		//
 		.S_VALID(tx_en && tx_mem_valid), .S_READY(tx_mem_ready),
 		.S_DATA(tx_mem_data), .S_LAST(tx_mem_last),
 		//
-		.tx_valid(o_data_en), .tx_data(o_tx_data)
+		.tx_valid(o_data_en), .tx_data(o_tx_data),
+			.tx_tristate(o_data_tristate),
+		.i_crcack(i_crcack && OPT_CRCTOKEN),
+			.i_crcnak(i_crcnak && OPT_CRCTOKEN),
+		.o_done(tx_done), .o_err(tx_err), .o_ercode(tx_ercode)
 		// }}}
 	);
 
@@ -584,8 +621,26 @@ module	sdio #(
 		// }}}
 	);
 
+	// Delay the clock by one cycle, to match the data
+	// {{{
+	// The following criteria are really redundant.  We could just set
+	// o_sdclk to clk_wide in all conditions.  The extra criteria are here
+	// to simply help ensure minimum logic where available, and to help
+	// guarantee that minimum logic means the same to the tool as it does
+	// to me.  It's also here as a bit of reminder-documentation of what
+	// our various OPT* criteria can generate and handle.
+	initial	o_sdclk = 0;
 	always @(posedge i_clk)
-		o_sdclk <= w_sdclk;
+	if (OPT_SERDES)
+		// Could be one of: 0x66, 0x33, 0x3c, 0x0f, 0x00, or 0xff
+		o_sdclk <= clk_wide;
+	else if (OPT_DDR)
+		// One of 0x0f, 0xf0, 0x00, or 0xff
+		o_sdclk <= { {(4){clk_wide[7]}}, {(4){clk_wide[3]}} };
+	else
+		// Can only be one of 0x00 or 0x0ff
+		o_sdclk <= {(8){ clk_wide[7] }};
+	// }}}
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -764,6 +819,7 @@ module	sdio #(
 				s2sd_ready,
 				s_valid, s_data, m_ready
 				};
+		// Verilator lint_on  UNUSED
 		// }}}
 		// }}}
 	end endgenerate

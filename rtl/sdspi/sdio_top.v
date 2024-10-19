@@ -90,6 +90,7 @@ module sdio_top #(
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 1'b0,
 		localparam	AW = ADDRESS_WIDTH-$clog2(DW/8),
 `endif
+		parameter	HWDELAY=0,
 		// OPT_ISTREAM: Enable an incoming AXI stream to specify data
 		// {{{
 		// to the DMA, separate from any data that may be read from
@@ -139,6 +140,28 @@ module sdio_top #(
 		parameter [0:0]	OPT_DS=OPT_SERDES && OPT_EMMC,
 		// }}}
 		parameter [0:0]	OPT_CARD_DETECT=!OPT_EMMC,
+		// OPT_CRCTOKEN : Look for a CRC token following every blk write
+		// {{{
+		// CRC tokens are returned by both eMMC and SD card devices
+		// following block writes from the host to the card.  The token
+		// tells the host whether or not the block was written validly
+		// or not.
+		//
+		// At one time, I thought this these tokens were optional, then
+		// that they were only on eMMC devices.  The parameter was built
+		// so I could first have that optional support, then so that
+		// support could be optionally configured in.  Now I understand
+		// both eMMC and SD card devices use these toksn.  Therefore,
+		// this parameter should be set and left.
+		parameter [0:0]	OPT_CRCTOKEN=1'b1,
+		// }}}
+		// OPT_HWRESET
+		// {{{
+		// eMMC cards can have hardware resets.  SD Cards do not.  Set
+		// OPT_HWRESET to include control logic to set the hardware
+		// reset.
+		parameter [0:0]	OPT_HWRESET = OPT_EMMC,
+		// }}}
 		// OPT_1P8V
 		// {{{
 		// Some protocols require switching voltages during the
@@ -164,7 +187,10 @@ module sdio_top #(
 		// such happen.  Detecting collisions requires a solid
 		// knowledge internal to the front end about the delay through
 		// the system, to avoid false alarms.
-		parameter [0:0]	OPT_COLLISION=OPT_EMMC,
+		//
+		// NOTE: Collisions detection does not (currently) work with
+		//   OPT_SERDES.
+		parameter [0:0]	OPT_COLLISION=OPT_EMMC && !OPT_SERDES,
 		// }}}
 		// LGTIMEOUT
 		// {{{
@@ -229,50 +255,50 @@ module sdio_top #(
 `ifdef	SDIO_AXI
 		// (Optional) AXI-Lite interface
 		// {{{
-		output	wire		M_AXI_AWVALID,
-		input	wire		M_AXI_AWREADY,
+		output	wire			M_AXI_AWVALID,
+		input	wire			M_AXI_AWREADY,
 		output	wire [AXI_IW-1:0]	M_AXI_AWID,
-		output	wire [AW-1:0]	M_AXI_AWADDR,
-		output	wire [7:0]	M_AXI_AWLEN,
-		output	wire [2:0]	M_AXI_AWSIZE,
-		output	wire [1:0]	M_AXI_AWBURST,
-		output	wire 		M_AXI_AWLOCK,
-		output	wire [3:0]	M_AXI_AWCACHE,
-		output	wire	[2:0]	M_AXI_AWPROT,
-		output	wire [3:0]	M_AXI_AWQOS,
+		output	wire [AW-1:0]		M_AXI_AWADDR,
+		output	wire [7:0]		M_AXI_AWLEN,
+		output	wire [2:0]		M_AXI_AWSIZE,
+		output	wire [1:0]		M_AXI_AWBURST,
+		output	wire 			M_AXI_AWLOCK,
+		output	wire [3:0]		M_AXI_AWCACHE,
+		output	wire	[2:0]		M_AXI_AWPROT,
+		output	wire [3:0]		M_AXI_AWQOS,
 		//
-		output	wire		M_AXI_WVALID,
-		input	wire		M_AXI_WREADY,
-		output	wire [DW-1:0]	M_AXI_WDATA,
-		output	wire [DW/8-1:0]	M_AXI_WSTRB,
-		output	wire		M_AXI_WLAST,
+		output	wire			M_AXI_WVALID,
+		input	wire			M_AXI_WREADY,
+		output	wire [DW-1:0]		M_AXI_WDATA,
+		output	wire [DW/8-1:0]		M_AXI_WSTRB,
+		output	wire			M_AXI_WLAST,
 		//
-		input	wire		M_AXI_BVALID,
-		output	wire		M_AXI_BREADY,
+		input	wire			M_AXI_BVALID,
+		output	wire			M_AXI_BREADY,
 		input	wire [AXI_IW-1:0]	M_AXI_BID,
-		input	wire	[1:0]	M_AXI_BRESP,
+		input	wire	[1:0]		M_AXI_BRESP,
 		//
-		output	wire		M_AXI_ARVALID,
-		input	wire		M_AXI_ARREADY,
+		output	wire			M_AXI_ARVALID,
+		input	wire			M_AXI_ARREADY,
 		output	wire [AXI_IW-1:0]	M_AXI_ARID,
-		output	wire [AW-1:0]	M_AXI_ARADDR,
-		output	wire [7:0]	M_AXI_ARLEN,
-		output	wire [2:0]	M_AXI_ARSIZE,
-		output	wire [1:0]	M_AXI_ARBURST,
-		output	wire 		M_AXI_ARLOCK,
-		output	wire [3:0]	M_AXI_ARCACHE,
-		output	wire	[2:0]	M_AXI_ARPROT,
-		output	wire [3:0]	M_AXI_ARQOS,
+		output	wire [AW-1:0]		M_AXI_ARADDR,
+		output	wire [7:0]		M_AXI_ARLEN,
+		output	wire [2:0]		M_AXI_ARSIZE,
+		output	wire [1:0]		M_AXI_ARBURST,
+		output	wire 			M_AXI_ARLOCK,
+		output	wire [3:0]		M_AXI_ARCACHE,
+		output	wire	[2:0]		M_AXI_ARPROT,
+		output	wire [3:0]		M_AXI_ARQOS,
 		//
-		input	wire		M_AXI_RVALID,
-		output	wire		M_AXI_RREADY,
+		input	wire			M_AXI_RVALID,
+		output	wire			M_AXI_RREADY,
 		input	wire [AXI_IW-1:0]	M_AXI_RID,
-		input	wire [DW-1:0]	M_AXI_RDATA,
-		input	wire		M_AXI_RLAST,
-		input	wire	[1:0]	M_AXI_RRESP,
+		input	wire [DW-1:0]		M_AXI_RDATA,
+		input	wire			M_AXI_RLAST,
+		input	wire	[1:0]		M_AXI_RRESP,
 		// }}}
 `else
-		output	wire		o_dma_cyc, o_dma_stb, o_dma_we,
+		output	wire			o_dma_cyc, o_dma_stb, o_dma_we,
 		output	wire	[AW-1:0]	o_dma_addr,
 		output	wire	[DW-1:0]	o_dma_data,
 		output	wire	[DW/8-1:0]	o_dma_sel,
@@ -311,6 +337,7 @@ module sdio_top #(
 `endif
 		// }}}
 		input	wire		i_card_detect,
+		output	wire		o_hwreset_n,
 		output	wire		o_1p8v,
 		output	wire		o_int,
 		output	wire	[31:0]	o_debug
@@ -322,11 +349,12 @@ module sdio_top #(
 	wire		cfg_ddr, cfg_ds, cfg_dscmd;
 	wire	[4:0]	cfg_sample_shift;
 	wire	[7:0]	sdclk;
+	wire		w_crcack, w_crcnak;
 		//
-	wire		cmd_en, pp_cmd, cmd_collision;
+	wire		cmd_en, cmd_collision, cmd_tristate;
 	wire	[1:0]	cmd_data;
 		//
-	wire		data_en, pp_data, rx_en;
+	wire		data_en, data_tristate, rx_en;
 	wire	[31:0]	tx_data;
 		//
 	wire	[1:0]	rply_strb, rply_data;
@@ -357,6 +385,8 @@ module sdio_top #(
 		.OPT_DS(OPT_DS),
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
 		.OPT_EMMC(OPT_EMMC),
+		.OPT_CRCTOKEN(OPT_CRCTOKEN),
+		.OPT_HWRESET(OPT_HWRESET),
 		.OPT_1P8V(OPT_1P8V),
 		.LGTIMEOUT(LGTIMEOUT)
 		// }}}
@@ -406,7 +436,7 @@ module sdio_top #(
 		// DMA interface
 		// {{{
 `ifdef	SDIO_AXI
-		// (Optional) AXI-Lite interface
+		// AXI DMA interface
 		// {{{
 		.M_AXI_AWVALID(M_AXI_AWVALID),
 		.M_AXI_AWREADY(M_AXI_AWREADY),
@@ -476,6 +506,7 @@ module sdio_top #(
 		.m_last(m_last),
 		// }}}
 		.i_card_detect(i_card_detect),
+		.o_hwreset_n(o_hwreset_n),
 		.o_1p8v(o_1p8v),
 		.o_int(o_int),
 		// Interface to PHY
@@ -484,10 +515,11 @@ module sdio_top #(
 		.o_cfg_sample_shift(cfg_sample_shift),
 		.o_sdclk(sdclk),
 		//
-		.o_cmd_en(cmd_en), .o_pp_cmd(pp_cmd),
+		.o_cmd_en(cmd_en), .o_cmd_tristate(cmd_tristate),
 		.o_cmd_data(cmd_data),
 		//
-		.o_data_en(data_en), .o_rx_en(rx_en), .o_pp_data(pp_data),
+		.o_data_en(data_en), .o_data_tristate(data_tristate),
+			.o_rx_en(rx_en),
 		.o_tx_data(tx_data),
 		//
 		.i_cmd_strb(rply_strb), .i_cmd_data(rply_data),
@@ -495,6 +527,7 @@ module sdio_top #(
 		.i_card_busy(card_busy),
 		.i_rx_strb(rx_strb),
 		.i_rx_data(rx_data),
+		.i_crcack(w_crcack), .i_crcnak(w_crcnak),
 		//
 		.S_AC_VALID(AC_VALID), .S_AC_DATA(AC_DATA),
 		.S_AD_VALID(AD_VALID), .S_AD_DATA(AD_DATA)
@@ -503,11 +536,15 @@ module sdio_top #(
 	);
 
 	sdfrontend #(
+		// {{{
 		.OPT_SERDES(OPT_SERDES), .OPT_DDR(OPT_DDR), .NUMIO(NUMIO),
-		.OPT_DS(OPT_DS), .OPT_COLLISION(OPT_COLLISION)
+		.OPT_DS(OPT_DS), .OPT_COLLISION(OPT_COLLISION),
+		.OPT_CRCTOKEN(OPT_CRCTOKEN), .HWBIAS(HWDELAY),
+		.BUSY_CLOCKS(OPT_CRCTOKEN ? 16 : 4)
+		// }}}
 	) u_sdfrontend (
 		// {{{
-		.i_clk(i_clk), .i_hsclk(i_hsclk), .i_reset(i_reset),
+		.i_clk(i_clk),.i_hsclk(i_hsclk && OPT_SERDES),.i_reset(i_reset),
 		.i_cfg_ddr(cfg_ddr), .i_cfg_ds(cfg_ds), .i_cfg_dscmd(cfg_dscmd),
 		.i_sample_shift(cfg_sample_shift),
 		// Tx path
@@ -515,9 +552,11 @@ module sdio_top #(
 		// MSB "first" incoming data.
 		.i_sdclk(sdclk),
 		//
-		.i_cmd_en(cmd_en), .i_pp_cmd(pp_cmd), .i_cmd_data(cmd_data),				.o_data_busy(card_busy),
+		.i_cmd_en(cmd_en), .i_cmd_tristate(cmd_tristate),
+			.i_cmd_data(cmd_data), .o_data_busy(card_busy),
 		//
-		.i_data_en(data_en), .i_pp_data(pp_data), .i_tx_data(tx_data),
+		.i_data_en(data_en), .i_data_tristate(data_tristate),
+			.i_tx_data(tx_data),
 		// }}}
 		// Synchronous Rx path
 		// {{{
@@ -525,6 +564,8 @@ module sdio_top #(
 		.o_cmd_strb(rply_strb),
 		.o_cmd_data(rply_data),
 		.o_cmd_collision(cmd_collision),
+		//
+		.o_crcack(w_crcack), .o_crcnak(w_crcnak),
 		//
 		.o_rx_strb(rx_strb),
 		.o_rx_data(rx_data),

@@ -629,7 +629,7 @@ module	sdrxframe #(
 		o_ercode <= !r_watchdog;
 	end
 
-	function automatic [NCRC-1:0]	STEPCRC(reg[NCRC-1:0] prior,
+	function automatic [NCRC-1:0]	STEPCRC(input [NCRC-1:0] prior,
 						input i_crc_data);
 	begin
 		if (prior[NCRC-1] ^ i_crc_data)
@@ -669,10 +669,14 @@ module	sdrxframe #(
 
 	//
 	// Make verilator happy
+	// {{{
+	// verilator coverage_off
 	// verilator lint_off UNUSED
 	// wire	unused;
 	// assign	unused = i_wb_cyc;
 	// verilator lint_on  UNUSED
+	// verilator coverage_on
+	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

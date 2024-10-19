@@ -1,0 +1,81 @@
+################################################################################
+##
+## Filename:	autodata/cruviemmc.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how the CRUVI eMMC card connects to the bus.  This one
+##		connects to the CRUVI "B" port on the board.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2024, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=cruvmmc
+@INCLUDEFILE=emmc.txt
+@DEVID=CRUVMMC
+@NAME=CRUVI eMMC Card
+@OPT_SERDES=1'b1
+@OPT_DDR=1'b1
+@OPT_DMA=1'b1
+@TOP.IOPREFIX=@$(PREFIX)
+@INT.EMMC.WIRE=
+@INT.EMMC.PIC=
+@INT.CRUVI.WIRE= @$(PREFIX)_int
+@INT.CRUVI.PIC= altpic
+@SDIO.CLKDECL=
+		o_@$(TOP.IOPREFIX)_clk,
+@SDIO.IOCLK=
+	output	wire	o_@$(TOP.IOPREFIX)_clk;
+## @SDIO.DSASSIGN=
+## @SDIO.DSDECL=	i_@$(TOP.IOPREFIX)_ds,
+## @SDIO.IODS=	input wire io_@$(TOP.IOPREFIX)_ds;
+@TOP.DEFNS=
+@$(SDIO.TOP.DEFNS)
+	wire	[3:0]	su_@$(PREFIX)_nc;	// Unused / noconnect wires
+	wire	i_@$(TOP.IOPREFIX)_cd_n;
+
+	assign	i_@$(TOP.IOPREFIX)_cd_n = 1'b0;
+@SDIO.RSTDECL=
+	o_@$(TOP.IOPREFIX)_hwreset_n,
+@SDIO.IORST=
+	output	wire	o_@$(TOP.IOPREFIX)_hwreset_n;
+@SDIO.RSTASSIGN=
+	assign	o_@$(TOP.IOPREFIX)_hwreset_n = w_@$(PREFIX)_hwreset_n;
+@SDIO.CLKASSIGN=
+	assign	o_@$(TOP.IOPREFIX)_clk = w_@$(PREFIX)_ck;
+@TOP.INSERT=
+	// TOP.INSERT from @$(PREFIX)
+@$(SDIO.FRONTEND)
+@$(SDIO.RSTASSIGN)
+@$(SDIO.CLKASSIGN)
+@$(SDIO.DSASSIGN)
+@XDC.INSERT=
+set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets i_@$(TOP.IOPREFIX)_ds]

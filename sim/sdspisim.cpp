@@ -39,13 +39,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// }}}
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
 
 #include "sdspisim.h"
+// }}}
 
 static	const unsigned
 	MICROSECONDS = 80, // Clocks in a microsecond
@@ -114,9 +114,9 @@ unsigned	SDSPISIM::OCR(void) {
 	unsigned	ocr = 0x00ff80;
 
 	if (CCS)
-		ocr |= 0x400000;
+		ocr |= 0x40000000;
 	if (m_powerup_busy)
-		ocr |= 0x800000;
+		ocr |= 0x80000000;
 
 	return ocr;
 }
@@ -318,7 +318,7 @@ int	SDSPISIM::operator()(const int csn, const int sck, const int mosi) {
 						}
 					} else {
 						m_dat_out = 0x0b;
-						printf("RXCRC Err!  %04x != %04x\n", rxcrc, crc);
+						printf("SDSPISIM: RXCRC Err!  %04x != %04x\n", rxcrc, crc);
 						assert(rxcrc == crc);
 					}
 				}
@@ -489,7 +489,7 @@ int	SDSPISIM::operator()(const int csn, const int sck, const int mosi) {
 						if (m_block_address) {
 							assert(arg < m_devblocks);
 							fseek(m_dev, arg<<LGSECTOR_SIZE, SEEK_SET);
-fprintf(stderr, "READ: Seek to sector %d\n", arg);
+// fprintf(stderr, "READ: Seek to sector %d\n", arg);
 						} else {
 							assert(arg < m_devblocks<<9);
 							fseek(m_dev, arg, SEEK_SET);
@@ -511,7 +511,7 @@ fprintf(stderr, "READ: Seek to sector %d\n", arg);
 						if (m_debug) printf("Going to write to block %08x of %08lx\n", arg, m_devblocks);
 						if (m_block_address) {
 							assert(arg < m_devblocks);
-fprintf(stderr, "WRITE: Seek to sector %d\n", arg);
+// fprintf(stderr, "WRITE: Seek to sector %d\n", arg);
 							fseek(m_dev, arg<<LGSECTOR_SIZE, SEEK_SET);
 						} else {
 							assert(arg < m_devblocks<<9);
@@ -542,6 +542,7 @@ fprintf(stderr, "WRITE: Seek to sector %d\n", arg);
 					// m_rspbuf[3] = 0x80;
 					// m_rspbuf[4] = 0; // No low-voltage supt
 					m_rspdly = 4;
+
 					if (m_reset_state == SDSPI_RESET_COMPLETE)
 						m_reset_state = SDSPI_IN_OPERATION;
 					}
@@ -559,7 +560,7 @@ fprintf(stderr, "WRITE: Seek to sector %d\n", arg);
 				default: // Unimplemented command
 					m_rspbuf[0] = 0x04;
 					m_rspdly = 4;
-					printf("SDSPI ERR: Command CMD%d not implemented!\n", m_cmdbuf[0]&0x03f);
+					if (m_debug) printf("SDSPI ERR: Command CMD%d not implemented!\n", m_cmdbuf[0]&0x03f);
 					fflush(stdout);
 					assert(0 && "Not Implemented");
 				}

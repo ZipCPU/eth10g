@@ -80,22 +80,24 @@ module	xsdserdes8x #(
 		r_last <= { r_last[0], i_data };
 
 	always @(posedge i_clk)
-		r_mine <= r_last;
+		r_mine <= r_last[8:1];
 
 	assign	o_mine = r_mine;
 
 `ifdef OPENSIM
+	// {{{
 	reg		last_ck;
-	reg	[7:0]	ir_wide, or_wide, rx_wide;
+	reg	[7:0]	ir_wide, rx_wide;
+	reg	[14:0]	or_wide;	// Output register
 
 	always @(posedge i_hsclk or negedge i_hsclk)
 		last_ck <= i_clk;
 
 	always @(posedge i_hsclk or negedge i_hsclk)
 	if (i_clk && !last_ck)
-		or_wide <= i_data;
+		or_wide <= { or_wide[13:7], i_data };
 	else
-		or_wide <= { or_wide[6:0], 1'b0 };
+		or_wide <= { or_wide[13:0], 1'b0 };
 
 	always @(posedge i_hsclk or negedge i_hsclk)
 		ir_wide <= { ir_wide[6:0], i_pin !== 1'b0 };
@@ -104,7 +106,7 @@ module	xsdserdes8x #(
 		rx_wide <= ir_wide;
 
 	assign	io_tristate = !i_en;
-	assign	o_pin = or_wide[7];
+	assign	o_pin = or_wide[14];
 	assign	o_wide = rx_wide;
 	assign	o_raw = i_pin;
 
@@ -114,6 +116,7 @@ module	xsdserdes8x #(
 	wire	unused;
 	assign	unused = &{ 1'b0 };
 	// Verilator lint_on  UNUSED
+	// }}}
 	// }}}
 `else
 	wire	w_pin, w_in, w_reset, high_z, fabric_return;
@@ -152,39 +155,38 @@ module	xsdserdes8x #(
 	begin : GEN_BIDIRECTIONAL
 
 		ISERDESE2 #(
-		// {{{
-		.SERDES_MODE("MASTER"),
-		.DATA_RATE("DDR"),
-		.DATA_WIDTH(8),
-		.INTERFACE_TYPE("NETWORKING"),
-		.NUM_CE(1),
-		.INIT_Q1(1'b0), .INIT_Q2(1'b0),
-		.INIT_Q3(1'b0), .INIT_Q4(1'b0),
-		.SRVAL_Q1(1'b0), .SRVAL_Q2(1'b0),
-		.SRVAL_Q3(1'b0), .SRVAL_Q4(1'b0),
-		.SYN_CLKDIV_INV_EN("FALSE"),
-		.DYN_CLK_INV_EN("FALSE"),
-		.OFB_USED("FALSE")
-		// }}}
+			// {{{
+			.SERDES_MODE("MASTER"),
+			.DATA_RATE("DDR"),
+			.DATA_WIDTH(8),
+			.INTERFACE_TYPE("NETWORKING"),
+			.NUM_CE(1),
+			.INIT_Q1(1'b0), .INIT_Q2(1'b0),
+			.INIT_Q3(1'b0), .INIT_Q4(1'b0),
+			.SRVAL_Q1(1'b0), .SRVAL_Q2(1'b0),
+			.SRVAL_Q3(1'b0), .SRVAL_Q4(1'b0),
+			// .SYN_CLKDIV_INV_EN("FALSE"),
+			.DYN_CLK_INV_EN("FALSE"),
+			.OFB_USED("FALSE")
+			// }}}
 		) u_iserdes (
-		// {{{
-		.BITSLIP(1'b0), .CE(1'b1), // .CE2(),
-		.CLK(i_hsclk), .CLKB(!i_hsclk), .CLKDIV(i_clk), .CLKDIVP(1'b0),
-		.D(w_in), .DYNCLKDIVSEL(1'b0), .DYNCLKSEL(1'b0), // .DDLY()
-		.OCLK(1'b0), .OCLKB(1'b0), .O(o_raw), // .OFB(),
-		.Q1(o_wide[0]),	.Q2(o_wide[1]),
-		.Q3(o_wide[2]),	.Q4(o_wide[3]),
-		.Q5(o_wide[4]),	.Q6(o_wide[5]),
-		.Q7(o_wide[6]),	.Q8(o_wide[7]),
-		.RST(w_reset)
-		// .SHIFTIN1(), .SHIFTIN2(), .SHIFTOUT1(), .SHIFTOUT2()
-		// }}}
+			// {{{
+			.BITSLIP(1'b0), .CE1(1'b1), // .CE2(),
+			.CLK(i_hsclk), .CLKB(!i_hsclk), .CLKDIV(i_clk), .CLKDIVP(1'b0),
+			.D(w_in), .DYNCLKDIVSEL(1'b0), .DYNCLKSEL(1'b0), // .DDLY()
+			.OCLK(1'b0), .OCLKB(1'b0), .O(o_raw), // .OFB(),
+			.Q1(o_wide[0]),	.Q2(o_wide[1]),
+			.Q3(o_wide[2]),	.Q4(o_wide[3]),
+			.Q5(o_wide[4]),	.Q6(o_wide[5]),
+			.Q7(o_wide[6]),	.Q8(o_wide[7]),
+			.RST(w_reset)
+			// .SHIFTIN1(), .SHIFTIN2(), .SHIFTOUT1(), .SHIFTOUT2()
+			// }}}
 		);
 	end else begin : GEN_OUTPUT
 
 		assign	o_wide = 8'h0;
 		assign	o_raw  = fabric_return;
-		assign	o_mine = i_data;
 
 		// Keep Verilator happy
 		// {{{
