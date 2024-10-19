@@ -49,6 +49,8 @@
 @SGP=@$(BUS.PREFIX)
 @WBP=@$(SLAVE.BUS.PREFIX)
 @MASTER.ANSPREFIX=pf_
+@INT.I2C.WIRE=i2c_interrupt
+@INT.I2C.PIC=altpic
 @IDW=2
 @TOP.PORTLIST=
 			io_@$(PREFIX)_sda, io_@$(PREFIX)_scl,
@@ -152,6 +154,7 @@
 			.M_AXIS_TID(@$(PREFIX)_id),
 		.i_sync_signal(1'b0),
 		//
+		.o_interrupt(i2c_interrupt),
 		.o_debug(@$(PREFIX)_debug)
 		// }}}
 	);

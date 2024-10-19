@@ -114,7 +114,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype	none
+`default_nettype none
 // }}}
 module	wbi2ccpu #(
 		// {{{
@@ -182,6 +182,7 @@ module	wbi2ccpu #(
 		// OPT output wire		M_AXIS_TABORT,
 		// }}}
 		input	wire		i_sync_signal,
+		output	wire		o_interrupt,
 		output	wire	[31:0]	o_debug
 		// }}}
 	);
@@ -280,7 +281,7 @@ module	wbi2ccpu #(
 	assign	bus_write_data = i_wb_data;
 	assign	bus_write_strb = i_wb_sel;
 
-	assign	bus_read       = i_wb_stb && !i_wb_we && !o_wb_stall;
+	assign	bus_read       = i_wb_stb && !i_wb_we && !o_wb_stall && i_wb_sel != 0;
 	assign	bus_read_addr  = i_wb_addr;
 
 	assign	o_wb_stall = 1'b0; // (i_wb_we && i_wb_addr == BUS_OVERRIDE && !ovw_ready)
@@ -295,14 +296,16 @@ module	wbi2ccpu #(
 	// Read handling
 	// {{{
 	assign	w_control = {
-			half_insn, 3'h0, r_manual,
+			half_insn, 3'h0, r_manual,		// 8b
 			//
 			r_wait, soft_halt_request,
 				r_aborted, r_err, r_halted,
 			insn_valid, half_valid, imm_cycle,
-			//
-			o_i2c_scl, o_i2c_sda,
-				i_i2c_scl, i_i2c_sda,
+			////////
+			// 16b boundary
+			////////
+			o_i2c_scl, o_i2c_sda,			// 2b
+				i_i2c_scl, i_i2c_sda,		// 2b
 			//
 			insn	// 12 bits
 		};
@@ -718,6 +721,8 @@ module	wbi2ccpu #(
 	end
 	// }}}
 
+	assign	o_interrupt = r_halted;
+
 	// r_aborted
 	// {{{
 	always @(posedge i_clk)
@@ -920,7 +925,7 @@ module	wbi2ccpu #(
 	// }}}
 
 	assign	o_debug = {
-			r_aborted, // !r_halted || insn_valid,
+			!r_halted || insn_valid,
 			ovw_data[OVW_VALID],
 			i2c_abort, i2c_stretch, half_insn,
 			r_wait, soft_halt_request,

@@ -7,10 +7,13 @@
 // Purpose:	To create an I2C Slave that can be accessed via a wishbone bus.
 //
 //	This core works by creating a dual-port 128-byte memory, that can be
-//	written to via either the wishbone bus it is connected to, or the I2C
-//	bus which it acts as a slave upon.
-//	Via either bus, the 128 bytes of slave memory may be referenced, read,
-//	and written to.
+//	written to via either 1) the I2C bus which it acts as a slave upon,
+//	2) an AXI slave port, or 3) the wishbone bus it is connected to.  The
+//	128 bytes of slave memory may be referenced, read, and written to via
+//	either of the I2C or WB busses.
+//
+//	The AXI slave port was added as an after thought to allow forwarding
+//	of a read only I2C port (such as EDID info from a downstream monitor).
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
@@ -45,11 +48,11 @@ module	wbi2cslave #(
 		// Verilator lint_off UNUSED
 		parameter	INITIAL_MEM = "",
 		// Verilator lint_on  UNUSED
-		parameter [0:0]	WB_READ_ONLY = 1'b0,
+		parameter [0:0]	WB_READ_ONLY  = 1'b0,
 		parameter [0:0]	I2C_READ_ONLY = 1'b0,
+		parameter [0:0]	AXIS_SUPPORT  = 1'b1,
 		parameter [6:0]	SLAVE_ADDRESS = 7'h50,
-		parameter	MEM_ADDR_BITS = 8,
-		localparam [0:0] READ_ONLY = (WB_READ_ONLY)&&(I2C_READ_ONLY)
+		parameter	MEM_ADDR_BITS = 8
 		// }}}
 	) (
 		// {{{
@@ -82,6 +85,9 @@ module	wbi2cslave #(
 
 	// Local declarations
 	// {{{
+	localparam [0:0] READ_ONLY = WB_READ_ONLY && I2C_READ_ONLY
+							&& !AXIS_SUPPORT;
+
 	localparam [2:0]	I2CIDLE	 = 3'h0,
 				I2CSTART = 3'h1,
 				I2CADDR	 = 3'h2,
@@ -94,7 +100,6 @@ module	wbi2cslave #(
 	localparam	[1:0]	BUS_IDLE = 2'b00,
 				BUS_READ = 2'b01,
 				BUS_SEND = 2'b10;
-	localparam	PL=2;
 
 	reg	[31:0]	mem	[0:((1<<(MEM_ADDR_BITS-2))-1)];
 	reg	[4:0]	wr_stb;
@@ -131,7 +136,7 @@ module	wbi2cslave #(
 	reg	[1:0]	pipe_sel;
 	reg	r_trigger;
 
-	reg	[MEM_ADDR_BITS-1:0]	axis_addr;
+	wire	[MEM_ADDR_BITS-1:0]	axis_addr;
 	//
 
 `ifndef	VERILATOR
@@ -156,19 +161,23 @@ module	wbi2cslave #(
 	begin
 		if (!READ_ONLY)
 		begin
+			// Accept new data from one of three sources:
+			//  1. An I2C write from the I2C master
+			//	(Assuming the device can be adjusted via I2C)
+			//  2. A write from the AXI stream slave port
+			//  3. A WB write
+			//	(Assuming the device can be adjusted via WB)
+			// Writes require two clocks: one for the arbitration
+			// below, and a second one to actually write the data
+			// to memory.
 			if ((!I2C_READ_ONLY)&&(wr_stb[4]))
 			begin
 				r_we <= wr_stb[3:0];
 				r_addr <= i2c_addr[MEM_ADDR_BITS-1:2];
 				r_data <= {(4){wr_data}};
-			end else if (s_valid)
+			end else if (AXIS_SUPPORT && s_valid)
 			begin
-				case(axis_addr[1:0])
-				2'b00: r_we <= 4'b1000;
-				2'b01: r_we <= 4'b0100;
-				2'b10: r_we <= 4'b0010;
-				2'b11: r_we <= 4'b0001;
-				endcase
+				r_we <= { 2'b00, axis_addr[1:0] };
 				r_addr <= axis_addr[MEM_ADDR_BITS-1:2];
 				r_data <= {(4){s_data}};
 			end else if ((!WB_READ_ONLY)&&(i_wb_stb)&&(i_wb_we))
@@ -197,7 +206,10 @@ module	wbi2cslave #(
 	always @(posedge i_clk)
 		o_wb_ack <= (i_wb_stb)&&(!o_wb_stall);
 
-	assign	o_wb_stall = (!READ_ONLY && wr_stb[4]) || s_valid;
+	// Stall on any write, when another source is also attempting to write
+	//   to memory at the same time.
+	assign	o_wb_stall = i_wb_we && ((!I2C_READ_ONLY && wr_stb[4])
+						|| (AXIS_SUPPORT && s_valid));
 	// }}}
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -208,19 +220,33 @@ module	wbi2cslave #(
 	//
 	//
 
-	initial	axis_addr = 0;
-	always @(posedge i_clk)
-	if (i_reset)
-		axis_addr <= 0;
-	else if (s_valid && s_ready)
-	begin
-		if (s_last)
-			axis_addr <= 0;
-		else
-			axis_addr <= axis_addr + 1;
-	end
+	// AXI stream data can be used to set the memory of this I2C slave.
+	// Writes will set one byte of memory at a time, and writes with TLAST
+	// set will reset the address back to the beginning.
 
-	assign	s_ready = (I2C_READ_ONLY || !wr_stb[4]);
+	generate if (AXIS_SUPPORT)
+	begin : GEN_AXIS_ADDR
+		reg	[MEM_ADDR_BITS-1:0]	r_axis_addr;
+
+		initial	r_axis_addr = 0;
+		always @(posedge i_clk)
+		if (i_reset)
+			r_axis_addr <= 0;
+		else if (s_valid && s_ready)
+		begin
+			if (s_last)
+				r_axis_addr <= 0;
+			else
+				r_axis_addr <= axis_addr + 1;
+		end
+
+		assign	axis_addr = r_axis_addr;
+
+	end else begin : NO_AXIS_ADDR_SUPPORT
+		assign	axis_addr = 0;
+	end endgenerate
+
+	assign	s_ready = (!AXIS_SUPPORT || I2C_READ_ONLY || !wr_stb[4]);
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -257,6 +283,7 @@ module	wbi2cslave #(
 	//
 
 	// 2FF Synchronizer
+	localparam	PL=2;
 	always @(posedge i_clk)
 		i2c_pipe <= { i2c_pipe[(2*PL-3):0], i_i2c_scl, i_i2c_sda };
 
@@ -284,12 +311,11 @@ module	wbi2cslave #(
 		if (i2c_posedge)
 			dreg  <= { dreg[6:0], this_sda };
 		if (i2c_negedge)
-			oreg  <= { oreg[6:0], 1'b1 };
+			oreg  <= { oreg[6:0], oreg[0] };
 		case(i2c_state)
 		I2CIDLE: begin
 			// {{{
 			dbits <= 0;
-			oreg <= 8'hff;
 			if (i2c_start)
 				i2c_state <= I2CSTART;
 			end
@@ -368,17 +394,10 @@ module	wbi2cslave #(
 				dbits <= 3'h0;
 				if (i2c_negedge)
 				begin
-					if (!this_sda)
-					begin
-						// I2C ACK -- continue
-						i2c_state <= I2CTX;
-						oreg <= rd_val;
-					end else begin	
-						// NAK -- break
-						i2c_state <= I2CIDLE;
-						oreg <= 8'hff;
-					end
+					i2c_state <= I2CTX;
+					oreg <= i2c_tx_byte;
 				end
+				oreg <= rd_val;
 			end
 			// }}}
 		I2CILLEGAL:	dbits <= 3'h0;
@@ -514,7 +533,7 @@ module	wbi2cslave #(
 
 	assign	o_dbg = { r_trigger, 3'h0,
 			i_wb_stb, i_wb_we && i_wb_stb, o_wb_stall,
-					o_wb_ack, i_wb_addr[5:0],2'b00,	// 12b
+					o_wb_ack, 2'b00,i_wb_addr[5:0],	// 12b
 			s_valid, s_ready, s_last, 1'b0, s_data,		// 12b
 			i_i2c_scl, i_i2c_sda, o_i2c_scl, o_i2c_sda	//  4b
 			};

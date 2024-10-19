@@ -110,6 +110,8 @@ module	wbfan (
 	reg		pre_ack;
 	reg	[31:0]	pre_data;
 
+	wire		ignore_int;
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -297,6 +299,7 @@ module	wbfan (
 		.M_AXIS_TLAST(i2cd_last),
 		//
 		.i_sync_signal(pp_ms),
+		.o_interrupt(ignore_int),
 		.o_debug(temp_debug)
 		// }}}
 	);
@@ -406,6 +409,6 @@ module	wbfan (
 	// {{{
 	wire	unused;
 	assign	unused = &{ 1'b0, ign_mem_cyc, ign_mem_we, ign_mem_data,
-			ign_mem_sel, ign_i2cd_id };
+			ign_mem_sel, ign_i2cd_id, ignore_int };
 	// }}}
 endmodule

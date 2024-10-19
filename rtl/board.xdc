@@ -8,8 +8,8 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 #set_property -dict { PACKAGE_PIN F5 } [get_ports i_clk_150mhz_n]
 #create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_ports i_clk_150mhz_p]
 
-#set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p]
-#set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n]
+set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p]
+set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n]
 #create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
 
 set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p]
@@ -99,48 +99,48 @@ set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports o_si5324_rs
 ## ETH10G
 ## {{{
 ## LOS
-#set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[0]]
-#set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[1]]
-#set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[2]]
-#set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[3]]
+set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[0]]
+set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[1]]
+set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[2]]
+set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports i_gnet_los[3]]
 
 ## TX Disable
-#set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[0]]
-#set_property -dict {PACKAGE_PIN N18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[1]]
-#set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[2]]
-#set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
+set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[0]]
+set_property -dict {PACKAGE_PIN N18 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[1]]
+set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[2]]
+set_property -dict {PACKAGE_PIN P16 IOSTANDARD LVCMOS33} [get_ports o_gnettx_disable[3]]
 
 ## LinkUp LEDs
-#set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
-#set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[1]]
-#set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[2]]
-#set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[3]]
+set_property -dict {PACKAGE_PIN T24 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[0]]
+set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[1]]
+set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[2]]
+set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS33} [get_ports o_gnet_linkup[3]]
 
 ## Activity LEDs
-#set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[0]]
-#set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[1]]
-#set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[2]]
-#set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
+set_property -dict {PACKAGE_PIN T25 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[0]]
+set_property -dict {PACKAGE_PIN R23 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[1]]
+set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[2]]
+set_property -dict {PACKAGE_PIN R22 IOSTANDARD LVCMOS33} [get_ports o_gnet_activity[3]]
 
 ## Network transmit/outputs
-#set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
-#set_property -dict {PACKAGE_PIN P1} [get_ports o_gnet_n[0]]
-#set_property -dict {PACKAGE_PIN M2} [get_ports o_gnet_p[1]]
-#set_property -dict {PACKAGE_PIN M1} [get_ports o_gnet_n[1]]
-#set_property -dict {PACKAGE_PIN K2} [get_ports o_gnet_p[2]]
-#set_property -dict {PACKAGE_PIN K1} [get_ports o_gnet_n[2]]
-#set_property -dict {PACKAGE_PIN H2} [get_ports o_gnet_p[3]]
-#set_property -dict {PACKAGE_PIN H1} [get_ports o_gnet_n[3]]
+set_property -dict {PACKAGE_PIN P2} [get_ports o_gnet_p[0]]
+set_property -dict {PACKAGE_PIN P1} [get_ports o_gnet_n[0]]
+set_property -dict {PACKAGE_PIN M2} [get_ports o_gnet_p[1]]
+set_property -dict {PACKAGE_PIN M1} [get_ports o_gnet_n[1]]
+set_property -dict {PACKAGE_PIN K2} [get_ports o_gnet_p[2]]
+set_property -dict {PACKAGE_PIN K1} [get_ports o_gnet_n[2]]
+set_property -dict {PACKAGE_PIN H2} [get_ports o_gnet_p[3]]
+set_property -dict {PACKAGE_PIN H1} [get_ports o_gnet_n[3]]
 
 ## Network receive/input
-#set_property -dict {PACKAGE_PIN R4} [get_ports i_gnet_p[0]]
-#set_property -dict {PACKAGE_PIN R3} [get_ports i_gnet_n[0]]
-#set_property -dict {PACKAGE_PIN N4} [get_ports i_gnet_p[1]]
-#set_property -dict {PACKAGE_PIN N3} [get_ports i_gnet_n[1]]
-#set_property -dict {PACKAGE_PIN L4} [get_ports i_gnet_p[2]]
-#set_property -dict {PACKAGE_PIN L3} [get_ports i_gnet_n[2]]
-#set_property -dict {PACKAGE_PIN J4} [get_ports i_gnet_p[3]]
-#set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
+set_property -dict {PACKAGE_PIN R4} [get_ports i_gnet_p[0]]
+set_property -dict {PACKAGE_PIN R3} [get_ports i_gnet_n[0]]
+set_property -dict {PACKAGE_PIN N4} [get_ports i_gnet_p[1]]
+set_property -dict {PACKAGE_PIN N3} [get_ports i_gnet_n[1]]
+set_property -dict {PACKAGE_PIN L4} [get_ports i_gnet_p[2]]
+set_property -dict {PACKAGE_PIN L3} [get_ports i_gnet_n[2]]
+set_property -dict {PACKAGE_PIN J4} [get_ports i_gnet_p[3]]
+set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
 
 ## }}}
 
@@ -178,14 +178,14 @@ set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports o_si5324_rs
 
 ## uSD
 ## {{{
-set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n]
-set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk]
+#set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n]
+#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk]
 
-set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
-set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
-set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
-set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[2]]
-set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
+#set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
+#set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
+#set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
+#set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[2]]
+#set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
 ## }}}
 
 ## Flash
@@ -511,21 +511,21 @@ set_property -dict {PACKAGE_PIN M26 IOSTANDARD LVCMOS33} [get_ports i_hdmitx_hpd
 #set_property -dict {PACKAGE_PIN D19 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_TCK]
 ##
 ## We have an eMMC daughter board connected to CRUVI B
-set_property -dict {PACKAGE_PIN D15 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_hwreset_n]
+#set_property -dict {PACKAGE_PIN D15 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_hwreset_n]
 #set_property -dict {PACKAGE_PIN G16 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_SMB_HSI]
 #set_property -dict {PACKAGE_PIN J16 IOSTANDARD LVCMOS33} [get_ports io_i2c_cruvi_emmc_sda]		## Address 0x52
 #set_property -dict {PACKAGE_PIN D15 IOSTANDARD LVCMOS33} [get_ports io_i2c_cruvi_emmc_scl]
-set_property -dict {PACKAGE_PIN H9  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_cmd]
-set_property -dict {PACKAGE_PIN G10 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_clk]
-set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[0]]
-set_property -dict {PACKAGE_PIN H11 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[1]]
-set_property -dict {PACKAGE_PIN F9  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[2]]
-set_property -dict {PACKAGE_PIN F8  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[3]]
-set_property -dict {PACKAGE_PIN G11 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[4]]
-set_property -dict {PACKAGE_PIN F10 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[5]]
-set_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[6]]
-set_property -dict {PACKAGE_PIN E12 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[7]]
-set_property -dict {PACKAGE_PIN A9  IOSTANDARD LVCMOS33} [get_ports i_cruvmmc_ds]
+#set_property -dict {PACKAGE_PIN H9  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_cmd]
+#set_property -dict {PACKAGE_PIN G10 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_clk]
+#set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[0]]
+#set_property -dict {PACKAGE_PIN H11 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[1]]
+#set_property -dict {PACKAGE_PIN F9  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[2]]
+#set_property -dict {PACKAGE_PIN F8  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[3]]
+#set_property -dict {PACKAGE_PIN G11 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[4]]
+#set_property -dict {PACKAGE_PIN F10 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[5]]
+#set_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[6]]
+#set_property -dict {PACKAGE_PIN E12 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[7]]
+#set_property -dict {PACKAGE_PIN A9  IOSTANDARD LVCMOS33} [get_ports i_cruvmmc_ds]
 ## }}}
 
 ## Hard test points
@@ -553,61 +553,97 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## Adding in any XDC_INSERT tags
 
 ## From sirefclkcounter
-## No XDC.INSERT tag in mem_bkram_only
-## From cruvmmc
-set_property -dict { PULLTYPE PULLUP } [get_ports io_cruvmmc_cmd]
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets i_cruvmmc_ds]
-## No XDC.INSERT tag in ddr3_controller
-## No XDC.INSERT tag in bkram
-## No XDC.INSERT tag in zip_alt_upc
-## No XDC.INSERT tag in zip_alt_uoc
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in zip_jiffies
 ## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in TMA
-## From emmc
-set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
-## No XDC.INSERT tag in zip_dmac
-## No XDC.INSERT tag in zip_tmc
-## No XDC.INSERT tag in zip_tmb
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in zip_alt_moc
-## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in i2c
-## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in altpic
-## No XDC.INSERT tag in SIM
-## No XDC.INSERT tag in zip_alt_mtc
-## No XDC.INSERT tag in REGDEFS
-## No XDC.INSERT tag in clk150
-## No XDC.INSERT tag in buildtime
+## No XDC.INSERT tag in i2cdma
+## No XDC.INSERT tag in mem_full
+## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in wbu_arbiter
+## No XDC.INSERT tag in spio
+## From sdio
+set_property -dict { PULLTYPE PULLUP } [get_ports io_sd_cmd]
+## No XDC.INSERT tag in gpio
+## From cfg
+## No XDC.INSERT tag in wbu
+## No XDC.INSERT tag in zip_alt_uic
+## No XDC.INSERT tag in clk200
+## No XDC.INSERT tag in prebus
+## No XDC.INSERT tag in i2cscope
+## No XDC.INSERT tag in version
+## No XDC.INSERT tag in zip_alt_mpc
+## No XDC.INSERT tag in clk
+## No XDC.INSERT tag in XDC
+## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in RESET_ADDRESS
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in ddr3_phy
+## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in wb32
 ## From siclk
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
 set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
-## No XDC.INSERT tag in wb32
-## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in buildtime
+## No XDC.INSERT tag in REGDEFS
+## No XDC.INSERT tag in zip_alt_mtc
+## No XDC.INSERT tag in SIM
 ## No XDC.INSERT tag in uart
-## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in ddr3_phy
+## No XDC.INSERT tag in altpic
+## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in zip_alt_utc
+## No XDC.INSERT tag in clk150
+## No XDC.INSERT tag in zip_tmb
+## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in REGISTER
+## No XDC.INSERT tag in zip_dmac
+## From emmc
+set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
+## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in zip_alt_uoc
+## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in TMA
+## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in ddr3_controller
 ## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in wb
+## No XDC.INSERT tag in netreset
+## From gnet
+create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
+create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
+create_clock -period 3.2 -name RXNETCK1 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[1]]
+create_clock -period 3.2 -name RXNETCK2 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[2]]
+create_clock -period 3.2 -name RXNETCK3 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[3]]
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*.u_netpath/rx_reset*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*.u_netpath/tx_reset*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/gtx_reset*}] -to [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.rx_fault_pipe*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/r_fault_pipe*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.r_phy_fault*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_gendebug/phy_fault_pipe*}] 3.2
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray_cross*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/rgray_cross*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wr_addr*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_rxcdc/u_afifo/wgray*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_pkt2p64b/r_remote_fault_pipe*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_pkt2p64b/r_local_fault_pipe*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/dly_data*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_afifo/rgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/rx_afifo/wgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_stat_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_stat_afifo/rgray_cross*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_stat_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_stat_afifo/wgray_cross*}] 5.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_stat_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/o_debug*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/wgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/wgray_cros*}] 10.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_txcdc/u_afifo/rgray_cros*}] 10.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/wgray_cross*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_pktgate/wr_addr*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_addr*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] 3.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
 ## No XDC.INSERT tag in KEYS
-## No XDC.INSERT tag in zip
-## No XDC.INSERT tag in XDC
-## No XDC.INSERT tag in zip_alt_mpc
-## No XDC.INSERT tag in version
-## No XDC.INSERT tag in prebus
-## No XDC.INSERT tag in clk200
-## No XDC.INSERT tag in wbu
-## No XDC.INSERT tag in mem_full
-## No XDC.INSERT tag in clk
-## From cfg
-## No XDC.INSERT tag in gpio
-## No XDC.INSERT tag in spio
-## No XDC.INSERT tag in zip_alt_uic
-## No XDC.INSERT tag in wbu_arbiter
-## From sdio
-set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
-## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in wb
+## No XDC.INSERT tag in cpunet
+## No XDC.INSERT tag in routescope
+## No XDC.INSERT tag in sdioscope
+## No XDC.INSERT tag in syspic
+## No XDC.INSERT tag in cpunetscope
+## No XDC.INSERT tag in mem_bkram_only

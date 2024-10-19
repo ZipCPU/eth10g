@@ -231,9 +231,9 @@ module	sdio #(
 		input	wire		S_AC_VALID,
 		input	wire	[1:0]	S_AC_DATA,
 		input	wire		S_AD_VALID,
-		input	wire	[31:0]	S_AD_DATA
+		input	wire	[31:0]	S_AD_DATA,
 		// }}}
-		// output	reg	[31:0]	o_debug
+		output	reg	[31:0]	o_debug
 		// }}}
 	);
 
@@ -273,7 +273,7 @@ module	sdio #(
 	wire			rx_done, rx_err, rx_ercode, rx_active, rx_en;
 	wire			tx_done, tx_err, tx_ercode;
 
-	// wire	[31:0]		w_debug;
+	wire	[31:0]		w_debug;
 
 	// DMA declarations
 	// {{{
@@ -503,11 +503,26 @@ module	sdio #(
 		.i_card_busy(i_card_busy),
 		.o_hwreset_n(o_hwreset_n),
 		.o_1p8v(o_1p8v),
-		.o_int(o_int)
-		// .o_debug(w_debug)
+		.o_int(o_int),
+		.o_debug(w_debug)
 		// }}}
 	);
 `endif
+
+	always @(posedge i_clk)
+	begin
+		o_debug <= w_debug;
+
+		if (!w_debug[0]) // !o_rx_en
+		begin
+			o_debug[3] <= i_crcnak;	// i_rx_err
+			o_debug[4] <= i_crcack;	// rx_done
+
+			// if (o_data_en)
+			//	o_debug[4:0] <= { 1'b1, o_tx_data[27:24] };
+		end // if (o_rx_en && i_rx_strb[1])
+		//	o_debug[19:15] <= { 1'b1, i_rx_data[11:8] };
+	end
 
 	assign	o_rx_en = rx_en && rx_active;
 

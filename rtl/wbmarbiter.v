@@ -122,7 +122,7 @@ module wbmarbiter #(
 		.o_grant(grant)
 	);
 
-	assign	arb_stall = m_stb && m_stall;
+	assign	arb_stall = |(s_stb & grant);// || (m_stb && m_stall);
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
