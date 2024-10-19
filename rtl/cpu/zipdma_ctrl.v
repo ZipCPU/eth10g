@@ -60,7 +60,9 @@ module zipdma_ctrl #(
 		input	wire	[SLV_WIDTH-1:0]		i_data,
 		input	wire [SLV_WIDTH/8-1:0]		i_sel,
 		//
+		// Verilator coverage_off
 		output	wire				o_stall,
+		// Verilator coverage_on
 		output	reg				o_ack,
 		output	reg	[SLV_WIDTH-1:0]		o_data,
 		// }}}
@@ -326,6 +328,7 @@ module zipdma_ctrl #(
 
 	// Keep Verilator happy
 	// {{{
+	// Verilator coverage_off
 	// Verilator lint_off UNUSED
 	wire	unused;
 	assign	unused = &{ 1'b0, i_cyc, next_tlen[SLV_WIDTH-1:LGMEMLEN] };
@@ -344,5 +347,6 @@ module zipdma_ctrl #(
 				};
 	end endgenerate
 	// Verilator lint_on  UNUSED
+	// Verilator coverage_on
 	// }}}
 endmodule
