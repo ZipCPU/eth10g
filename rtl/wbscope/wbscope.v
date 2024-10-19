@@ -440,7 +440,7 @@ module wbscope #(
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
-	generate if (SYNCHRONOUS > 0)
+	generate if (SYNCHRONOUS)
 	begin : SYNCHRONOUS_RETURN
 		assign	bw_stopped   = dr_stopped;
 		assign	bw_triggered = dr_triggered;
@@ -489,7 +489,7 @@ module wbscope #(
 			else if (q_oflags[2])
 				assert(dr_stopped);
 		end
-		
+
 `endif
 	end endgenerate
 	// }}}

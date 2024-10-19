@@ -26,7 +26,7 @@
 //	slowly.  They could change so slowly that the standard wishbone scope
 //	doesn't work.  This scope then gives you a working scope, by sampling
 //	at diverse intervals, and only capturing anything that changes within
-//	those intervals.  
+//	those intervals.
 //
 //	Indeed, I'm finding this compressed scope very valuable for evaluating
 //	the timing associated with a GPS PPS and associated NMEA stream.  I
@@ -67,7 +67,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-`default_nettype none
+`default_nettype	none
 // }}}
 module wbscopc #(
 		// {{{
