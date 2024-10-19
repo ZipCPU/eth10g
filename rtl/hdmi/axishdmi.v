@@ -44,6 +44,7 @@ module	axishdmi #(
 		parameter	HW=12,
 				VW=12,
 		parameter [0:0]	OPT_RESYNC_ON_VLAST = 1'b0,
+		parameter [0:0]	OPT_DATAISLAND = 1'b1,
 		// HDMI *only* works with 24-bit color, using 8-bits per color
 		localparam	BITS_PER_COLOR = 8,
 		localparam	BPC = BITS_PER_COLOR,
@@ -57,7 +58,16 @@ module	axishdmi #(
 		input	wire			i_reset,
 		// Verilator lint_on SYNCASYNCNET
 		//
-		// AXI Stream interface
+		// AXI Stream packet interface
+		// {{{
+		input	wire		i_pkt_valid,
+		output	wire		o_pkt_ready,
+		input	wire		i_pkt_hdr,
+		input	wire [7:0]	i_pkt_data,
+		input	wire		i_pkt_last,
+		// }}}
+		//
+		// AXI Stream video interface
 		// {{{
 		input	wire		i_valid,
 		output	reg		o_ready,
@@ -92,10 +102,17 @@ module	axishdmi #(
 
 	// Register declarations
 	// {{{
+	localparam	[1:0]	GUARD = 2'b00,
+				CTL_PERIOD  = 2'b01,
+				DATA_ISLAND = 2'b10,
+				VIDEO_DATA  = 2'b11;
+	localparam		GUARD_PIXELS= 2;
+
 	reg		r_newline, r_newframe, lost_sync;
-	reg		vsync, hsync;
+	reg		vsync, hsync, vblank, vlast;
+	reg		hdmi_gtype;	// Type of guard pixel, 0 = video guard
 	reg	[1:0]	hdmi_type;
-	wire	[3:0]	hdmi_ctl;
+	reg	[3:0]	hdmi_ctl;
 	reg	[11:0]	hdmi_data;
 	reg	[7:0]	red_pixel, grn_pixel, blu_pixel;
 	reg		pre_line;
@@ -223,6 +240,34 @@ module	axishdmi #(
 		r_newframe <= 1'b0;
 	// }}}
 
+	// vblank
+	// {{{
+	always @(posedge i_pixclk)
+	if (i_reset || lost_sync)
+		vblank <= 1'b0;
+	else if (w_external_sync)
+		vblank <= 1'b1;
+	else if (vpos > 0 && vpos < i_vm_height-1)
+		vblank <= 1'b0;
+	else if (vpos == 0 && hpos < i_hm_width)
+		vblank <= 1'b0;
+	else if (vpos == 0 && hpos >= i_hm_raw-1)
+		vblank <= 1'b0;
+	else if (hpos >= i_hm_width)
+		vblank <= 1'b1;
+	// }}}
+
+	// vlast
+	// {{{
+	always @(posedge i_pixclk)
+	if (i_reset || lost_sync)
+		vlast <= 1'b0;
+	else if (w_external_sync)
+		vlast <= 1'b1;
+	else if (hpos == i_hm_raw-1)
+		vlast <= (vpos >= i_vm_raw-1);
+	// }}}
+
 	// vpos, vsync
 	// {{{
 	initial	vpos = 0;
@@ -311,6 +356,198 @@ module	axishdmi #(
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
+	// Data Island pre-encoding
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	wire		di_active;
+	wire	[1:0]	di_type;
+
+	generate if (OPT_DATAISLAND)
+	begin : GEN_DATAISLAND
+		localparam	[2:0]	DI_IDLE       = 0,
+					DI_PREFIX     = 1,
+					DI_PREGUARD   = 2,
+					DI_DATA       = 3,
+					DI_POSTGUARD  = 4,
+					DI_FINALGUARD = 5;
+		// A small state machine to guarantee proper data island
+		// formatting
+		reg		di_may_commit, r_active;
+		reg	[2:0]	di_fsm;
+		reg	[4:0]	di_counter;
+		reg	[1:0]	r_type;
+
+		// di_may_commit
+		// {{{
+		//	A commitment to a new data island will require
+		//		12 control clocks
+		//		 2 guard clocks
+		//		32 data island clocks
+		//		 2 guard clocks
+		//	before we can return to video control pixels.  We'll
+		//	then need either ...
+		//		12 video control clocks
+		//		 2 guard pixels
+		//	before any new line (guarantees minimum duration control
+		//	period), or
+		//		32 video control clocks
+		//		 2 guard pixels
+		//	before any new frame (guarantees minimum duration
+		//	_extended_ control period).
+		//
+		//	A. If we are not in an Island, then we can only start if
+		//		there's room for
+		//			(RAW_WIDTH - (12+2)-(12+2+2+32))
+		//		pixels before the end of the line,
+		//	    *AND* there's at least
+		//			(RAW_WIDTH-(32+2)-(12+2+2+32))
+		//		pixels before the end of the frame
+		//	B. If we are in an island, then we can only continue if
+		//		there's room for
+		//			(RAW_WIDTH-(12+2)-(2+32)
+		//		pixels before the end of the line, *AND*
+		//		there's at least
+		//			(RAW_WIDTH-(32+2)-(2+32))
+		//		pixels before the end of the frame
+		always @(posedge i_pixclk)
+		if (i_reset)
+			di_may_commit <= 0;
+		else if (lost_sync)
+			di_may_commit <= 0;
+		else if (vblank && !vlast)
+			di_may_commit <= 1;
+		else if (di_active)
+		begin
+			// {{{
+			if (!vblank)
+			begin
+				if (hpos + (12+2+2+32) >= i_hm_raw)
+					di_may_commit <= 0;
+				else
+					di_may_commit <= 1;
+			end else // if (vlast)
+			begin
+				if (hpos + (32+2+2+32) >= i_hm_raw)
+					di_may_commit <= 0;
+				else
+					di_may_commit <= 1;
+			end
+			// }}}
+		end else if (!vblank)
+		begin
+			if (hpos < i_hm_width+11)
+				di_may_commit <= 0;
+			else if (hpos + (12+2+12+2+2+32) >= i_hm_raw)
+				di_may_commit <= 0;
+			else
+				di_may_commit <= 1;
+		end else // if (vlast)
+		begin
+			if (hpos + (32+2+12+2+2+32) >= i_hm_raw)
+				di_may_commit <= 0;
+			else
+				di_may_commit <= 1;
+		end
+		// }}}
+
+		// di_active
+		// {{{
+		always @(posedge i_pixclk)
+		if (i_reset || o_ready || lost_sync)
+			r_active <= 1'b0;
+		else if (di_may_commit && i_pkt_valid)
+			r_active <= 1'b1;
+		else if (di_fsm == DI_FINALGUARD || di_fsm == DI_IDLE)
+			r_active <= 1'b0;
+
+		assign	di_active = r_active;
+		// }}}
+
+		// di_fsm
+		// {{{
+		always @(posedge i_pixclk)
+		if (i_reset || lost_sync)
+		begin
+			di_fsm <= DI_IDLE;
+			di_counter <= 0;
+		end else if (!di_active)
+		begin
+			di_fsm <= (i_pkt_valid && di_may_commit)
+						? DI_PREFIX : DI_IDLE;
+			di_counter <= 0;
+		end else case(di_fsm)
+		DI_PREFIX: begin
+			di_counter <= di_counter + 1;
+			if (di_counter >= 12)
+				di_fsm <= DI_PREGUARD;
+			end
+		DI_PREGUARD: begin
+			di_counter <= di_counter + 1;
+			if (di_counter >= 14)
+			begin
+				di_fsm <= DI_DATA;
+				di_counter <= 0;
+			end end
+		DI_DATA: begin
+			di_counter <= di_counter + 1;
+			if (di_counter == 31)
+				di_fsm <= DI_POSTGUARD;
+			end
+		DI_POSTGUARD:
+			di_fsm <= DI_FINALGUARD;
+		DI_FINALGUARD: begin
+			di_counter <= 0;
+			if (i_pkt_valid && di_may_commit && !lost_sync)
+			begin
+				di_fsm <= DI_DATA;
+			end else
+				di_fsm <= DI_IDLE;
+			end
+		default: begin
+			di_fsm <= DI_IDLE;
+			di_counter <= 0;
+			end // includes DI_IDLE
+		endcase
+		// }}}
+
+		// di_type
+		// {{{
+		always @(*)
+		case(di_fsm)
+		DI_IDLE:	r_type = CTL_PERIOD;
+		DI_PREFIX:	r_type = CTL_PERIOD;
+		DI_PREGUARD:	r_type = GUARD;
+		DI_DATA:	r_type = DATA_ISLAND;
+		DI_POSTGUARD:	r_type = GUARD;
+		DI_FINALGUARD:	r_type = GUARD;
+		default:	r_type = CTL_PERIOD;
+		endcase
+
+		assign	di_type = r_type;
+		// }}}
+
+		assign	o_pkt_ready = (hdmi_type == DATA_ISLAND);
+	end else begin : NO_DATAISLAND
+		assign	o_pkt_ready = 1'b1;
+		assign	di_type = CTL_PERIOD;
+		assign	di_active = 1'b0;
+
+		// Keep Verilator happy
+		// {{{
+		// Verilator lint_off UNUSED
+		wire	unused_di;
+		assign	unused_di = &{ 1'b0, i_pkt_valid, i_pkt_hdr,
+					i_pkt_data, i_pkt_last, vblank, vlast };
+		// Verilator lint_on  UNUSED
+		// }}}
+	end endgenerate
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
 	// HDMI encoding
 	// {{{
 	////////////////////////////////////////////////////////////////////////
@@ -342,11 +579,6 @@ module	axishdmi #(
 
 	// hdmi_type
 	// {{{
-	localparam	[1:0]	GUARD = 2'b00;
-	localparam	[1:0]	CTL_PERIOD  = 2'b01;
-	localparam	[1:0]	VIDEO_DATA  = 2'b11;
-	localparam		GUARD_PIXELS= 2;
-
 	initial	pre_line = 1'b1;
 	always @(posedge i_pixclk)
 	if (pix_reset)
@@ -357,32 +589,60 @@ module	axishdmi #(
 	initial	hdmi_type = GUARD;
 	always @(posedge i_pixclk)
 	if (pix_reset)
-		hdmi_type <= GUARD;
-	else if (pre_line)
 	begin
+		hdmi_gtype <= 1'b0;
+		hdmi_type  <= GUARD;
+		hdmi_ctl   <= 4'h1;
+	end else if (di_active)
+	begin
+		hdmi_gtype <= 1'b1;
+		hdmi_type  <= di_type;
+		hdmi_ctl   <= 4'h5;
+	end else if (pre_line)
+	begin
+		hdmi_ctl   <= 4'h1;
+		hdmi_gtype <= 1'b0;
 		if (hpos >= i_hm_raw - 1)
 			hdmi_type <= VIDEO_DATA;
 		else if (hpos < i_hm_width - 1)
 			hdmi_type <= VIDEO_DATA;
 		else if (hpos >= i_hm_raw - 1-GUARD_PIXELS)
 			hdmi_type <= GUARD;
-		else
+		else if (hdmi_type == DATA_ISLAND && i_pkt_valid)
+		begin
+			if (i_pkt_last)
+				hdmi_type <= GUARD;
+		end else
 			hdmi_type <= CTL_PERIOD;
-	end else
+	end else begin
+		hdmi_gtype <= 1'b0;
 		hdmi_type <= CTL_PERIOD;
-
-	assign	hdmi_ctl = 4'h1;
+		hdmi_ctl   <= 4'h1;
+	end
 	// }}}
 
 	// hdmi_data
 	// {{{
 	wire	[1:0]	sync_data;
+	reg		di_pktsync;
 	assign		sync_data = { vsync ^ i_vm_syncpol,
 					hsync ^ i_hm_syncpol };
+	always @(posedge i_pixclk)
+		di_pktsync <= i_pkt_valid && o_pkt_ready;
+
 	always @(*)
 	begin
 		hdmi_data[1:0]	= sync_data;
 		hdmi_data[11:2] = 0;
+
+		if (hdmi_type == DATA_ISLAND)
+		begin
+			hdmi_data[   2] = i_pkt_hdr;
+			hdmi_data[   3] = di_pktsync;
+			hdmi_data[ 7:4] = i_pkt_data[3:0];
+			hdmi_data[11:8] = i_pkt_data[7:4];
+		end else if (hdmi_gtype && hdmi_type == GUARD)
+			hdmi_data[3:2] = 2'b11;
 	end
 	// }}}
 
@@ -407,10 +667,10 @@ module	axishdmi #(
 	) hdmi_encoder_ch0(
 		// {{{
 		.i_clk(i_pixclk),
-		.i_dtype(hdmi_type), .i_ctl(sync_data),
-		.i_aux(hdmi_data[3:0]),
-		.i_data(blu_pixel),
-		.o_word(o_blu)
+		.i_gtype(hdmi_gtype),
+		.i_dtype((hdmi_gtype && hdmi_type == GUARD)
+				? DATA_ISLAND : hdmi_type), .i_ctl(sync_data),
+		.i_aux(hdmi_data[3:0]), .i_data(blu_pixel), .o_word(o_blu)
 		// }}}
 	);
 
@@ -420,7 +680,7 @@ module	axishdmi #(
 	) hdmi_encoder_ch1(
 		// {{{
 		.i_clk(i_pixclk),
-		.i_dtype(hdmi_type), .i_ctl(hdmi_ctl[1:0]),
+		.i_gtype(hdmi_gtype), .i_dtype(hdmi_type), .i_ctl(hdmi_ctl[1:0]),
 		.i_aux(hdmi_data[7:4]),
 		.i_data(grn_pixel),
 		.o_word(o_grn)
@@ -433,7 +693,7 @@ module	axishdmi #(
 	) hdmi_encoder_ch2(
 		// {{{
 		.i_clk(i_pixclk),
-		.i_dtype(hdmi_type), .i_ctl(hdmi_ctl[3:2]),
+		.i_gtype(hdmi_gtype), .i_dtype(hdmi_type), .i_ctl(hdmi_ctl[3:2]),
 		.i_aux(hdmi_data[11:8]),
 		.i_data(red_pixel),
 		.o_word(o_red)
@@ -544,12 +804,12 @@ module	axishdmi #(
 				begin
 					assert(hpos == i_hm_width-1
 						|| vpos == f_ypos
-						|| (f_ypos == 0 && vpos >= f_height));	
+						|| (f_ypos == 0 && vpos >= f_height));
 				end else if (hpos < i_hm_porch)
 				begin
 					if (vpos < f_height-1)
 					begin
-						assert(vpos + 1== f_ypos);	
+						assert(vpos + 1== f_ypos);
 					end else begin
 						assert(f_ypos == 0);
 					end

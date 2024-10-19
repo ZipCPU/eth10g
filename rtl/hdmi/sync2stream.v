@@ -340,7 +340,7 @@ module	sync2stream #(
 		o_raw_height <= vcount_tot[LGDIM-1:0];
 		o_vfront     <= vcount_shelf[LGDIM-1:0] + vcount_lines[LGDIM-1:0];
 		o_vsync      <= vcount_sync[LGDIM-1:0] + vcount_shelf[LGDIM-1:0]
-					+ vcount_lines[LGDIM-1:0];
+					+ vcount_lines[LGDIM-1:0]-1;
 		o_vsync_pol <= vpol;
 	end
 	// }}}
@@ -845,7 +845,7 @@ module	sync2stream #(
 		if (!$past(i_reset))
 			assert(!$rose(vlost_lock));
 	end
-	
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

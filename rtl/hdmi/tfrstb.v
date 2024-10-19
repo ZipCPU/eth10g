@@ -157,10 +157,10 @@ module tfrstb (
 
 	always @(*)
 		assume(i_a_clk == f_count_a[LGCLK-1]);
-	
+
 	always @(*)
 		assume(i_b_clk == f_count_b[LGCLK-1]);
-	
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

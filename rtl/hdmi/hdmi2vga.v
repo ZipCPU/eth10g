@@ -40,8 +40,9 @@
 //
 `default_nettype	none
 // }}}
-module	hdmi2vga // #()	// No parameters (yet)
-	(
+module	hdmi2vga #(
+		parameter [0:0] OPT_DATAISLAND = 1'b1
+	) (
 		// {{{
 		input	wire		i_clk,	i_reset,
 		input	wire	[9:0]	i_hdmi_red,
@@ -52,6 +53,11 @@ module	hdmi2vga // #()	// No parameters (yet)
 		output	reg		o_vsync,
 		output	reg		o_hsync,
 		output	reg	[7:0]	o_vga_red, o_vga_green, o_vga_blue,
+		//
+		output	wire		M_DI_VALID,
+		output	wire		M_DI_HDR,
+		output	wire	[7:0]	M_DI_DATA,
+		output	wire		M_DI_LAST,
 		//
 		output	wire	[31:0]	o_sync_word,
 		output	reg	[31:0]	o_debug
@@ -137,6 +143,18 @@ module	hdmi2vga // #()	// No parameters (yet)
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
+	//
+
+	// Synchronization requires:
+	//	12 (or more) control characters (minimum duration)
+	//	32 (or more) control characters at least once every 50ms
+	//
+	// Video data begins with:
+	// 	1. 8x (or more) video data preamble (control) characters
+	//	2. 2x video Guard character(s)
+	//		BLU = 10_1100_1100 = 10'h2cc
+	//		GRN = 01_0011_0011 = 10'h133
+	//		RED = 10_1100_1100 = 10'h2cc
 	//
 
 	// video_control_blu, video_guard_blu => video_start_blu
@@ -274,101 +292,135 @@ module	hdmi2vga // #()	// No parameters (yet)
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-`ifdef	USE_DATA
-	reg	[9:0]	data_control_blu, data_control_grn, data_control_red;
-	reg	[1:0]	data_guard_blu, data_guard_grn, data_guard_red;
-	reg	[2:0]	data_start_blu, data_start_grn, data_start_red;
-	reg		data_start, data_guard; // data_period;
+	generate if (OPT_DATAISLAND)
+	begin : GEN_DATAISLAND
+		// Local declarations
+		// {{{
+		wire		this_data_guard;
+		reg		last_data_guard;
+		reg	[8:0]	prime_sreg;
+		reg		data_primed;
+		reg		di_valid, di_last, di_hdr;
+		reg	[7:0]	di_data;
+		reg	[4:0]	di_pkt_count;
+		// }}}
 
+		// Notes
+		// {{{
+		// Data islands begin with:
+		// 	1. 8x (or more) data island preamble (control) characters
+		//	2. 2x Data Guard character(s)
+		//		BLU	(TERC4 character, not guard)
+		//		GRN	01_0011_0011 = 10'h133
+		//		RED	01_0011_0011 = 10'h133
+		// and ends with:
+		//	1. 2x Data guard trailer
+		// }}}
 
-	// data_control_blu, data_guard_blu => data_start_blu
-	// {{{
-	always @(*)
-		data_control_blu = video_control_blu;
+		// [this|last]_data_guard
+		// {{{
+		assign	this_data_guard = sblu_aux[5] && sblu_aux[3:2] == 2'b11
+					&& sgrn_aux[6] && sgrn_aux[0]
+					&& sred_aux[6] && sred_aux[0];
 
-	// The blue (channel 0) data island guard bands is just a control
-	// word (not guard, not video, not data, etc)
-	initial	data_guard_blu = 0;
-	always @(*)
-		data_guard_blu = data_control_blu[1:0];
+		initial	last_data_guard = 1'b0;
+		always @(posedge i_clk)
+			last_data_guard <= this_data_guard;
+		// }}}
 
-	initial	data_start_blu = 0;
-	always @(posedge i_clk)
-		data_start_blu <= { data_start_blu[1:0],
-			(&data_control_blu[9:2])&&(&data_guard_blu) };
-	// }}}
+		// data_primed
+		// {{{
+		initial	prime_sreg  = 0;
+		initial	data_primed = 1'b0;
+		always @(posedge i_clk)
+		begin
+			data_primed <= 1'b0;
+			prime_sreg <= { prime_sreg[7:0], 1'b0 };
 
-	// data_control_grn, data_guard_grn => data_start_grn
-	// {{{
-	always @(*)
-		data_control_grn = video_control_grn;
+			if (sblu_aux[4] && sgrn_aux[4] && sgrn_ctl == 2'b01
+					&& sred_aux[4] && sred_ctl == 2'b01)
+				prime_sreg[0] <= 1'b1;
 
-	initial	data_guard_grn = 0;
-	always @(posedge i_clk)
-		data_guard_grn <= {data_guard_grn[0],
-				ugrn_aux[6] && ugrn_aux[0] };
+			if (this_data_guard && last_data_guard
+						&& (&prime_sreg[8:1]))
+				data_primed <= 1'b1;
+		end
+		// }}}
 
-	initial	data_start_grn = 0;
-	always @(posedge i_clk)
-		data_start_grn <= { data_start_grn[1:0],
-			(&data_control_grn[9:2])&&(&data_guard_grn) };
-	// }}}
+		// M_DI_VALID
+		// {{{
+		always @(posedge i_clk)
+		if (di_valid)
+		begin
+			di_valid <= sblu_aux[5] && sgrn_aux[5] && sred_aux[5]
+				&& sblu_aux[3];
+		end else if (data_primed && !di_valid)
+			di_valid <= sblu_aux[5] && !sblu_aux[3]
+				&& sgrn_aux[5] && sred_aux[5];
 
-	// data_control_red, data_guard_red => data_start_red
-	// {{{
-	initial	data_control_red = 0;
-	always @(posedge i_clk)
-		data_control_red <= {data_control_red[8:0],
-				// Data periods start with
-				// {CTL3,CTL2} == 2'b01
-				ured_aux[4] && ured_ctl == 2'b01 };
+		assign	M_DI_VALID = di_valid;
+		// }}}
 
-	initial	data_guard_red = 0;
-	always @(posedge i_clk)
-		data_guard_red <= {data_guard_red[0],
-				ured_aux[6] && !ured_aux[0] };
+		// M_DI_HDR, M_DI_DATA
+		// {{{
+		always @(posedge i_clk)
+		begin
+			di_hdr  <= 1;
+			di_data <= 0;
+			if (sblu_aux[5])
+			begin
+				// If blue is a control word, then it contains
+				// our V & H sync channels.
+				di_hdr <= sblu_aux[2];
+			end
 
-	initial	data_start_red = 0;
-	always @(posedge i_clk)
-		data_start_red <= { data_start_red[1:0],
-			(&data_control_red[9:2])&&(&data_guard_red) };
-	// }}}
+			if (sgrn_aux[5])
+				di_data[3:0] <= sgrn_aux[3:0];
+			if (sred_aux[5])
+				di_data[7:4] <= sred_aux[3:0];
+		end
 
-	// data_start, data_guard, lag_[clr]
-	// {{{
-	initial	data_start = 1'b0;
-	always @(posedge i_clk)
-		data_start <= (|data_start_red[2:0])&&(|data_start_grn[2:0])
-				&&(|data_start_blu[2:0])
-			&&(|{ data_start_red[0], data_start_grn[0],
-				data_start_blu[0] });
+		assign	M_DI_HDR  = di_hdr;
+		assign	M_DI_DATA = di_data;
+		// }}}
 
-	always @(*)
-		data_guard = data_start;
+		// S_LAST
+		// {{{
+		always @(posedge i_clk)
+		if (!di_valid || di_last)
+			di_pkt_count <= 0;
+		else
+			di_pkt_count <= di_pkt_count + 1;
 
-	assign	unused_data = &{ 1'b0,
-			// non_video_data,
-			data_start_red[2], data_start_grn[2], data_start_blu[2],
-			data_control_red[1:0], data_control_grn[1:0], data_control_blu[1:0],
-			data_guard
-		};
-	// }}}
-`endif
+		always @(posedge i_clk)
+			di_last <= di_valid && (di_pkt_count == 30);
+
+		assign	M_DI_LAST = di_last;
+		// }}}
+	end else begin : NO_DATAISLAND_
+		assign	M_DI_VALID = 1'b0;
+		assign	M_DI_HDR   = 1'b0;
+		assign	M_DI_DATA  = 8'b0;
+		assign	M_DI_LAST  = 1'b0;
+	end endgenerate
 	// }}}
 
 	// non_video_data
 	// {{{
 	// Must be combinatorial function of s[red|grn|blu]_*
 	always @(*)
+		// non-video data ends a stream of video pixels.  We'll assume
+		// control data on all three channels marks the end of video
+		// data.
 		non_video_data = (sblu_aux[4])&&(sgrn_aux[4]) &&(sred_aux[4]);
 	// }}}
 
 	// control_sync
 	// {{{
-
+	// Detect a period of 12 control characters
 	always @(posedge i_clk)
 	begin
-		control_sync_sreg[10]   <= &control_sync_sreg[9:0]
+		control_sync_sreg[10]   <= (&control_sync_sreg[9:0])
 				&& sblu_aux[4] && sgrn_aux[4] && sred_aux[4];
 		control_sync_sreg[9:1] <=  control_sync_sreg[ 8:0];
 		control_sync_sreg[0]    <= sblu_aux[4] && sgrn_aux[4]
@@ -383,27 +435,15 @@ module	hdmi2vga // #()	// No parameters (yet)
 	// Sync period detection
 	// {{{
 	// *MUST* depend combinatorial on s[reg|grn|blu]_* signals, nothing
-	// removed from those
+	// removed from those.  In practice, we may also depend on the
+	// u[reg|grn|blu]_* signals.
 	always @(posedge i_clk)
-	begin
-		// data_end <= data_period && data_guard;
-		if (control_sync)	// This is the 12th word in the sync
-		begin
-			// data_period <= 0;
-			video_period <= 0;
-		end else begin
-			if (video_start)
-				video_period <= 1;
-			else if (non_video_data)
-				video_period <= 0;
-			/*
-			if (data_start)
-				data_period <= 1;
-			else if (data_end)
-				data_period <= 0;
-			*/
-		end
-	end
+	if (control_sync)	// This is the 12th word in the sync
+		video_period <= 0;
+	else if (video_start)
+		video_period <= 1;
+	else if (non_video_data)
+		video_period <= 0;
 	// }}}
 
 	// Outgoing signals
@@ -425,10 +465,17 @@ module	hdmi2vga // #()	// No parameters (yet)
 		r_vga_green <= sgrn_pix;
 		r_vga_blue  <= sblu_pix;
 
-		if (sblu_aux[5:4] == 2'b01)
+		// AUX[6] == GUARD encoding
+		// AUX[5] == TERC4 encoding
+		// AUX[4] == control encoding
+		if ((!sblu_aux[6] || sblu_aux[0]
+					|| !sgrn_aux[6] || !sred_aux[6])
+				&& (|sblu_aux[5:4])
+				&& (!video_period || non_video_data))
 		begin
-			// If blue is a control word, then it contains our
-			// V & H sync channels.
+			// If blue is either a control word or a TERC4 data
+			// island packet word, then it contains our V & H sync
+			// channels.  Ignore any potential video guard pixels
 			o_vsync <= sblu_ctl[1];
 			o_hsync <= sblu_ctl[0];
 		end
@@ -449,28 +496,39 @@ module	hdmi2vga // #()	// No parameters (yet)
 	always @(*)
 	begin
 		if (ured_aux[6])
+			// GUARD encoding
 			dbg_red = { 3'b110, 4'h0, ured_aux[0] };
 		else if (ured_aux[4])
+			// Control encoding (will never be TERC4)
 			dbg_red = { 3'b111, 3'h0, ured_ctl };
 		else if (ured_aux[5])
+			// TERC4 encoding
 			dbg_red = { 2'b10,  2'h0, ured_aux[3:0] };
 		else
+			// Video pixel encoding
 			dbg_red = r_vga_red;
 
 		if (ugrn_aux[6])
+			// GUARD
 			dbg_grn = { 3'b110, 4'h0, ugrn_aux[0] };
 		else if (ugrn_aux[4])
+			// Control
 			dbg_grn = { 3'b111, 3'h0, ugrn_ctl };
 		else if (ugrn_aux[5])
+			// TERC4
 			dbg_grn = { 2'b10,  2'h0, ugrn_aux[3:0] };
 		else
+			// TERC4
 			dbg_grn = r_vga_green;
 
 		if (ublu_aux[6])
+			// GUARD
 			dbg_blu = { 3'b110, 4'h0, ublu_aux[0] };
 		else if (ublu_aux[4])
+			// Control
 			dbg_blu = { 3'b111, 3'h0, ublu_ctl };
 		else if (ublu_aux[5])
+			// TERC4
 			dbg_blu = { 2'b10,  2'h0, ublu_aux[3:0] };
 		else
 			dbg_blu = r_vga_blue;
@@ -486,6 +544,24 @@ module	hdmi2vga // #()	// No parameters (yet)
 	always @(posedge i_clk)
 	begin
 		o_debug <= dbg_vga;
+		o_debug <= 0;
+
+		o_debug[28] <= o_pix_valid;
+		o_debug[27] <= o_vsync;
+		o_debug[26] <= o_hsync;
+		o_debug[25:24] <= { sgrn_aux[5], sred_aux[5] };	// 2
+		o_debug[23:20] <= sgrn_aux[3:0];	// 4
+		o_debug[19:16] <= sred_aux[3:0];	// 4
+		o_debug[15:11] <= sblu_aux[6:2];	// 5
+		o_debug[ 10] <= M_DI_VALID;		// 11
+		o_debug[  9] <= M_DI_HDR;
+		o_debug[  8] <= M_DI_LAST;
+		o_debug[7:0] <= M_DI_DATA;
+
+		// o_debug[30:28] <=   ublu_aux[6:4];
+		// o_debug[27:20] <=    dbg_blu[7:0];
+		// o_debug[19:10] <=   blu_word[9:0];
+		// o_debug[ 9: 0] <= i_hdmi_blu[9:0];
 
 		// o_debug[31] <= video_start_red[0];
 		// o_debug[30] <= video_start_grn[0];

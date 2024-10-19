@@ -78,7 +78,27 @@ module	vid_mux #(
 	wire	[NIN-1:0]		new_frame;
 	genvar				gk;
 	integer				ik;
+
+	reg	[26:0]	r_watchdog_timer;
+	reg		r_watchdog_timeout;
 	// }}}
+
+	always @(posedge S_AXI_ACLK)
+	if (!S_AXI_ARESETN || r_framesel == i_select)
+	begin
+		r_watchdog_timer <= -1;
+		r_watchdog_timeout <= 1'b0;
+	end else if (M_VID_VALID && M_VID_READY
+		&& ((OPT_TUSER_IS_SOF && M_VID_USER)	// SOF
+		   ||(!OPT_TUSER_IS_SOF && M_VID_LAST && M_VID_USER))) // HL&VL
+	begin
+		r_watchdog_timer <= -1;
+		r_watchdog_timeout <= 1'b0;
+	end else if (M_VID_READY && !r_watchdog_timeout)
+	begin
+		r_watchdog_timer <= r_watchdog_timer - 1;
+		r_watchdog_timeout <= (r_watchdog_timer <= 1);
+	end
 
 	// r_framesel
 	// {{{
@@ -133,7 +153,7 @@ module	vid_mux #(
 	begin
 		if ({ 1'b0, i_select } < NIN[LGNIN:0])
 			adjust_select <= !new_frame[i_select];
-	end else if (|(eof & (1<<r_framesel)))
+	end else if (|(eof & (1<<r_framesel)) || r_watchdog_timeout)
 	begin
 		adjust_select <= (i_select != r_framesel)
 				&& ({ 1'b0, i_select } < NIN[LGNIN:0]);
@@ -205,7 +225,7 @@ module	vid_mux #(
 
 		always @(*)
 		if (adjust_select)
-			S_VID_READY[gk] = 1'b0;
+			S_VID_READY[gk] = !r_new_frame;
 		else if (r_framesel == gk)
 			S_VID_READY[gk] = !M_VID_VALID || M_VID_READY;
 		else

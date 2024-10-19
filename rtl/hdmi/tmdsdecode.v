@@ -100,7 +100,16 @@ module	tmdsdecode(
 	begin
 		r_aux <= 7'h0;
 		r_ctl <= 2'b00;
+		// Could also be:
+		//	r_ctl[0] = brev_word[0]
+		//	r_ctl[1] = brev_word[9] ^ brev_word[8];
+		//	for less logic if desired
 		//
+		// r_aux[4] == valid 2-bit control period encoding
+		// r_aux[5] == valid TERC4 encoding (may also be GUARD, if [6])
+		//	r_ctl bits capture the bottom two bits, so we can still
+		//		use them when decoding ?SYNC signals.
+		// r_aux[6] == valid GUARD encoding (may also be TERC4, if [5])
 		case(brev_word)
 		// 2-bit control period coding
 		10'h354: begin r_aux <= 7'h10; r_ctl <= 2'h0; end
@@ -117,7 +126,7 @@ module	tmdsdecode(
 		10'h18e: begin r_aux <= 7'h26; r_ctl <= 2'h2; end
 		10'h13c: begin r_aux <= 7'h27; r_ctl <= 2'h3; end
 		// This next pixel is also a guard pixel
-		10'h2cc: begin r_aux <= 7'h68; r_ctl <= 2'h0; end
+		10'h2cc: begin r_aux <= 7'h68; r_ctl <= 2'h0; end // BR VidGuard
 		//
 		10'h139: begin r_aux <= 7'h29; r_ctl <= 2'h1; end
 		10'h19c: begin r_aux <= 7'h2a; r_ctl <= 2'h2; end
@@ -128,7 +137,7 @@ module	tmdsdecode(
 		10'h2c3: begin r_aux <= 7'h2f; r_ctl <= 2'h3; end
 		// Guard band characters
 		//10'h2cc:r_aux<= 8'h38; // done above
-		10'h133: begin r_aux <= 7'h41; r_ctl <= 2'h0; end
+		10'h133: begin r_aux <= 7'h41; r_ctl <= 2'h0; end // G VidGuard
 		default: begin end
 		endcase
 	end

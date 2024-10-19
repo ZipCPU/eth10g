@@ -11,6 +11,18 @@
 //	with modifications made so that: 1) lines are read in vertical order,
 //	starting at the *top*, and 2) there is no line wrapping.
 //
+// Enables:
+//	This IP works on two enables, one on each clock domain:
+//
+//	i_wb_en
+//		Drops if not properly configured, or following a bus error
+//		IP should restart from baseaddr, and communicate the same
+//			to the pixclk side
+//	i_pix_en
+//		Drops if the result is not needed.  If dropped, the IP should
+//		pause/stop WB, and then restart again from the top of the image
+//		once released.
+//
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
@@ -69,8 +81,11 @@ module	vid_wbframebuf #(
 		// Verilator lint_on  SYNCASYNCNET
 		// Video information
 		// {{{
-		input	wire			i_cfg_en,
+		input	wire			i_wb_en,	// WB clk
+		input	wire			i_pix_en,	// Pixel clk
+		// The rest of our config parameters are on the WB clk domain
 		input	wire	[LGFRAME-1:0]	i_height, i_mem_words,
+		input	wire	[LGFRAME-1:0]	i_width,
 		input	wire	[AW-1:0]	i_baseaddr,
 		// }}}
 		// Wishbone bus master
@@ -101,6 +116,10 @@ module	vid_wbframebuf #(
 	// {{{
 	wire			wb_reset;
 	assign	wb_reset = i_reset || (o_wb_cyc && i_wb_err);
+
+	wire			pix_clk, pix_reset, pix_clearing;
+	wire			wb_pix_en;
+	wire	[LGFRAME-1:0]	pix_height, pix_width;
 
 	reg			last_ack, last_request;
 	reg	[LGBURST:0]	wb_outstanding;
@@ -141,7 +160,7 @@ module	vid_wbframebuf #(
 	// {{{
 	initial { o_wb_cyc, o_wb_stb } = 2'b00;
 	always @(posedge i_clk)
-	if (wb_reset || !i_cfg_en)
+	if (wb_reset || !i_wb_en || !wb_pix_en)
 		{ o_wb_cyc, o_wb_stb } <= 2'b00;
 	else if (o_wb_cyc)
 	begin
@@ -195,7 +214,7 @@ module	vid_wbframebuf #(
 	// o_wb_addr, wb_[hv]pos, wb_[hv]last
 	// {{{
 	always @(posedge i_clk)
-	if (wb_reset || !i_cfg_en)
+	if (wb_reset || !i_wb_en || !wb_pix_en)
 	begin
 		// {{{
 		wb_hpos <= 0;
@@ -251,7 +270,7 @@ module	vid_wbframebuf #(
 
 	// rx_[hv]pos, rx_[hv]last
 	always @(posedge i_clk)
-	if (wb_reset || !i_cfg_en)
+	if (wb_reset || !i_wb_en)
 	begin
 		// {{{
 		rx_hpos  <= 0;
@@ -294,7 +313,7 @@ module	vid_wbframebuf #(
 		.BW(DW+2), .LGFLEN(LGFIFO), .OPT_ASYNC_READ(1'b0)
 	) pxfifo (
 		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
+		.i_clk(i_clk), .i_reset(i_reset || !i_wb_en || !wb_pix_en),
 		.i_wr(i_wb_ack), .i_data({ rx_vlast, rx_hlast, i_wb_data }),
 			.o_full(ign_fifo_full), .o_fill(fifo_fill),
 		.i_rd(fifo_read),
@@ -312,14 +331,15 @@ module	vid_wbframebuf #(
 	//
 	//
 
-	wire	pix_clk, pix_reset;
-
 	generate if (OPT_ASYNC_CLOCKS)
 	begin : GEN_ASYNC_FIFO
 		// {{{
-		reg		r_pix_reset;
+		reg		r_pix_reset, pix_clear, r_pix_clearing;
 		reg	[2:0]	r_pix_reset_pipe;
-		wire		afifo_full;
+		wire		afifo_full, p2w_ready;
+		// Verilator lint_off UNUSED
+		wire		ign_p2w_valid, ign_tfr_valid, ign_tfr_ready;
+		// Verilator lint_on  UNUSED
 
 		initial	{ r_pix_reset, r_pix_reset_pipe } = -1;
 		always @(posedge i_pixclk or posedge i_reset)
@@ -327,6 +347,64 @@ module	vid_wbframebuf #(
 			{ r_pix_reset, r_pix_reset_pipe } <= -1;
 		else
 			{ r_pix_reset, r_pix_reset_pipe } <= { r_pix_reset_pipe, 1'b0 };
+
+		tfrvalue #(
+			.W(2*LGFRAME)
+		) u_wb2pix (
+			// {{{
+			.i_a_clk(i_clk),
+			.i_a_reset_n(!i_reset),
+			.i_a_valid(1'b1),
+			.o_a_ready(ign_tfr_ready),
+			.i_a_data({ i_height, i_width }),
+			//
+			.i_b_clk(i_pixclk),
+			.i_b_reset_n(!pix_reset),
+			.o_b_valid(ign_tfr_valid),
+			.i_b_ready(1'b1),
+			.o_b_data({ pix_height, pix_width })
+			// }}}
+		);
+
+		tfrvalue #(
+			.W(1)
+		) u_pix2wb (
+			// {{{
+			.i_a_clk(i_pixclk),
+			.i_a_reset_n(!pix_reset),
+			.i_a_valid(1'b1),
+			.o_a_ready(p2w_ready),
+			.i_a_data(!pix_clear && i_pix_en),
+			//
+			.i_b_clk(i_clk),
+			.i_b_reset_n(!i_reset),
+			.o_b_valid(ign_p2w_valid),
+			.i_b_ready(1'b1),
+			.o_b_data(wb_pix_en)
+			// }}}
+		);
+
+		// pix_clear
+		// {{{
+		always @(posedge pix_clk)
+		if (pix_reset)
+			pix_clear <= 1'b0;
+		else if (!i_pix_en)
+			pix_clear <= 1'b1;
+		else if (p2w_ready)
+			pix_clear <= 1'b0;
+		// }}}
+
+		// pix_clearing
+		// {{{
+		always @(posedge pix_clk)
+		if (pix_reset)
+			r_pix_clearing <= 1'b0;
+		else if (!i_pix_en)
+			r_pix_clearing <= 1'b1;
+		else if (!pix_clear && p2w_ready && afifo_empty)
+			r_pix_clearing <= 1'b0;
+		// }}}
 
 		afifo #(
 			.WIDTH(DW+2), .LGFIFO(3)
@@ -347,6 +425,8 @@ module	vid_wbframebuf #(
 		assign	fifo_read = !fifo_empty && !afifo_full;
 		assign	pix_clk   = i_pixclk;
 		assign	pix_reset = r_pix_reset;
+		assign	pix_clearing = r_pix_clearing;
+		// assign	wb_pix_en = i_pix_en;
 		// }}}
 	end else begin : NO_ASYNC_FIFO
 		// {{{
@@ -356,6 +436,17 @@ module	vid_wbframebuf #(
 		assign	afifo_empty = fifo_empty;
 		assign	{ afifo_vlast, afifo_hlast, afifo_data }
 				= { fifo_vlast, fifo_hlast, fifo_data };
+
+		assign	pix_height = i_height;
+		assign	pix_width  = i_width;
+
+		assign	pix_clearing = !i_wb_en || !i_pix_en;
+		assign	wb_pix_en = i_pix_en;
+
+		// Verilator lint_off UNUSED
+		wire	unused;
+		assign	unused = &{ 1'b0, i_pixclk };
+		// Verilator lint_on  UNUSED
 		// }}}
 	end endgenerate
 
@@ -372,21 +463,27 @@ module	vid_wbframebuf #(
 	generate if (PW != DW)
 	begin : GEN_REWIDTH
 		// {{{
+		localparam	SRWID = DW+PW;
 		reg			px_valid;
 		reg [$clog2(DW+1)-1:0]	px_count;
 		reg			px_vlast, px_hlast, px_lost_sync;
-		reg [DW-1:0]		px_data;
+		reg [SRWID-1:0]		px_data;
 
 		// afifo_read
 		// {{{
 		always @(*)
 		begin
-			afifo_read = (px_count <= PW || !px_valid
+			// Verilator lint_off WIDTH
+			afifo_read = (px_count < 2*PW || !px_valid
 				|| (M_VID_TVALID && M_VID_TREADY && M_VID_HLAST));
+			// Verilator lint_on  WIDTH
+
 			if (M_VID_TVALID && !M_VID_TREADY)
 				afifo_read = 1'b0;
 
 			if (px_lost_sync && (!px_hlast || !px_vlast))
+				afifo_read = 1'b1;
+			if (pix_clearing)
 				afifo_read = 1'b1;
 		end
 		// }}}
@@ -395,14 +492,18 @@ module	vid_wbframebuf #(
 		// {{{
 		initial	px_valid = 0;
 		always @(posedge pix_clk)
-		if (pix_reset)
+		if (pix_reset || pix_clearing)
 			px_valid <= 0;
 		else if (px_lost_sync || !M_VID_TVALID || M_VID_TREADY)
 		begin
 			if (afifo_read)
 				px_valid <= !afifo_empty;
+			else if (M_VID_TVALID && M_VID_TREADY)
+				// Verilator lint_off WIDTH
+				px_valid <= (px_count >= 2*PW);
 			else
-				px_valid <= 1;
+				px_valid <= (px_count >= PW);
+				// Verilator lint_on  WIDTH
 		end
 		// }}}
 
@@ -410,14 +511,24 @@ module	vid_wbframebuf #(
 		// {{{
 		initial	px_count = 0;
 		always @(posedge pix_clk)
-		if (pix_reset)
-			px_count <= DW;
+		if (pix_reset || pix_clearing)
+			px_count <= 0;
 		else if (px_lost_sync || !M_VID_TVALID || M_VID_TREADY)
 		begin
-			if (afifo_read)
-				px_count <= (afifo_empty) ? 0 : DW;
-			else
-				px_count <= px_count - PW;
+			if (px_lost_sync)
+				px_count <= 0;
+			else if (M_VID_TVALID && M_VID_TREADY)
+			begin
+				// Verilator lint_off WIDTH
+				if (afifo_read && !afifo_empty)
+					px_count <= px_count - PW + DW;
+				else if (px_count > PW)
+					px_count <= px_count - PW;
+				else
+					px_count <= 0;
+			end else if (afifo_read && !afifo_empty)
+				px_count <= px_count + DW;
+			// Verilator lint_on  WIDTH
 		end
 		// }}}
 
@@ -425,7 +536,7 @@ module	vid_wbframebuf #(
 		// {{{
 		initial	{ px_vlast, px_hlast } = 0;
 		always @(posedge pix_clk)
-		if (pix_reset)
+		if (pix_reset || pix_clearing)
 		begin
 			px_vlast <= 0;
 			px_hlast <= 0;
@@ -441,17 +552,27 @@ module	vid_wbframebuf #(
 		// {{{
 		initial	px_data = 0;
 		always @(posedge pix_clk)
-		if (pix_reset)
+		if (pix_reset || pix_clearing)
 		begin
 			px_data  <= 0;
 		end else if (!M_VID_TVALID || M_VID_TREADY)
 		begin
 			if (afifo_read && !afifo_empty && !px_lost_sync)
-				px_data <= afifo_data;
-			else if (OPT_MSB_FIRST)
-				px_data <= { px_data[DW-PW-1:0], {(PW){1'b0}} };
+			begin
+				if (M_VID_TVALID && M_VID_HLAST)
+					px_data <= { afifo_data, {(PW){1'b0}} };
+				else if (M_VID_TVALID)
+					// Verilator lint_off WIDTH
+					px_data <= (px_data << PW)
+						|({ {(PW){1'b0}}, afifo_data } << (2*PW-px_count));
+				else
+					px_data <= px_data
+						|({ {(PW){1'b0}}, afifo_data } << (PW-px_count));
+					// Verilator lint_on  WIDTH
+			end else if (OPT_MSB_FIRST)
+				px_data <= { px_data[SRWID-PW-1:0], {(PW){1'b0}} };
 			else
-				px_data <= { {(PW){1'b0}}, px_data[DW-1:PW] };
+				px_data <= { {(PW){1'b0}}, px_data[SRWID-1:PW] };
 		end
 		// }}}
 
@@ -459,7 +580,7 @@ module	vid_wbframebuf #(
 		// {{{
 		initial	px_lost_sync = 0;
 		always @(posedge pix_clk)
-		if (pix_reset)
+		if (pix_reset || pix_clearing)
 			px_lost_sync <= 0;
 		else if (M_VID_TVALID && M_VID_TREADY && M_VID_HLAST)
 		begin
@@ -486,7 +607,7 @@ module	vid_wbframebuf #(
 
 		if (OPT_MSB_FIRST)
 		begin : MSB
-			assign M_VID_TDATA = px_data[DW-PW +: PW];
+			assign M_VID_TDATA = px_data[SRWID-PW +: PW];
 		end else begin : LSB_FIRST
 			assign M_VID_TDATA = px_data[0 +: PW];
 		end
@@ -499,7 +620,7 @@ module	vid_wbframebuf #(
 		initial	M_VID_HLAST = 0;
 		initial	M_VID_VLAST = 0;
 		always @(posedge pix_clk)
-		if (pix_reset)
+		if (pix_reset || pix_clearing)
 		begin
 			m_hpos <= 0;
 			m_vpos <= 0;
@@ -508,37 +629,16 @@ module	vid_wbframebuf #(
 		end else if (M_VID_TVALID && M_VID_TREADY)
 		begin
 			m_hpos <= m_hpos + 1;
-			M_VID_HLAST <= (i_mem_words <= 1) || (m_hpos >= i_mem_words-2);
+			M_VID_HLAST <= (pix_width <= 1) || (m_hpos >= pix_width-2);
 			if (M_VID_HLAST)
 			begin
 				m_hpos <= 0;
 				m_vpos <= m_vpos + 1;
-				M_VID_VLAST <= (i_height <= 1) || (m_vpos == i_height-2);
+				M_VID_HLAST <= 0;
+				M_VID_VLAST <= (pix_height <= 1) || (m_vpos == pix_height-2);
 				if (M_VID_VLAST)
 					m_vpos <= 0;
 			end
-		end
-		// }}}
-
-		// M_VID_TUSER, M_VID_TLAST
-		// {{{
-		if (OPT_TUSER_IS_SOF)
-		begin : GEN_SOF
-			reg	sof;
-
-			always @(posedge pix_clk)
-			if (i_reset)
-				sof <= 1;
-			else if (M_VID_TVALID && M_VID_TREADY)
-			begin
-				sof <= M_VID_VLAST && M_VID_HLAST;
-			end
-
-			assign	M_VID_TLAST = M_VID_HLAST;
-			assign	M_VID_TUSER = sof;
-		end else begin : NO_SOF
-			assign	M_VID_TLAST = M_VID_HLAST && M_VID_VLAST;
-			assign	M_VID_TUSER = M_VID_HLAST;
 		end
 		// }}}
 		// }}}
@@ -557,34 +657,28 @@ module	vid_wbframebuf #(
 			M_VID_VLAST   = afifo_vlast;
 		end
 
-		if (OPT_TUSER_IS_SOF)
-		begin : GEN_SOF
-			reg	sof;
-
-			always @(posedge pix_clk)
-			if (i_reset)
-				sof <= 1;
-			else if (M_VID_TVALID && M_VID_TREADY)
-			begin
-				sof <= M_VID_VLAST && M_VID_HLAST;
-			end
-
-			assign	M_VID_TLAST = M_VID_HLAST;
-			assign	M_VID_TUSER = sof;
-		end else begin : NO_SOF
-			assign	M_VID_TLAST = M_VID_HLAST && M_VID_VLAST;
-			assign	M_VID_TUSER = M_VID_HLAST;
-
-			// Verilator lint_off UNUSED
-			wire	unused;
-			assign	unused = &{ 1'b0, pix_clk };
-			// Verilator lint_on  UNUSED
-		end
-
 		// Verilator lint_off UNUSED
 		wire	unused;
-		assign	unused = &{ 1'b0, m_vpos, m_hpos };
+		assign	unused = &{ 1'b0, m_vpos, m_hpos, pix_width, pix_height,
+					pix_clearing };
 		// Verilator lint_on  UNUSED
+		// }}}
+	end if (OPT_TUSER_IS_SOF)
+	begin : GEN_SOF // M_VID_TUSER, M_VID_TLAST
+		// {{{
+		reg	sof;
+
+		always @(posedge pix_clk)
+		if (pix_reset || pix_clearing)
+			sof <= 1;
+		else if (M_VID_TVALID && M_VID_TREADY)
+			sof <= M_VID_VLAST && M_VID_HLAST;
+
+		assign	M_VID_TLAST = M_VID_HLAST;
+		assign	M_VID_TUSER = sof;
+	end else begin : NO_SOF
+		assign	M_VID_TLAST = M_VID_HLAST && M_VID_VLAST;
+		assign	M_VID_TUSER = M_VID_HLAST;
 		// }}}
 	end endgenerate
 	// }}}
