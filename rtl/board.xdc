@@ -204,17 +204,17 @@ set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]
 ## {{{
 ## The eMMC clock is on CCLK, so no package pin declaration is appropriate
 ## set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
-set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
+#set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
 
-set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
-set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
-set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
-set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
-set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
-set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
-set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
-set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
-set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
+#set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
+#set_property -dict {PACKAGE_PIN A25 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[1]]
+#set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[2]]
+#set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[3]]
+#set_property -dict {PACKAGE_PIN A23 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[4]]
+#set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
+#set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
+#set_property -dict {PACKAGE_PIN C26 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
+#set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 ## }}}
 
 ## SATA
@@ -554,16 +554,12 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 
 ## From sirefclkcounter
 ## No XDC.INSERT tag in fan
-## No XDC.INSERT tag in i2c
-## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in wbu_arbiter
 ## No XDC.INSERT tag in spio
-## From sdio
-set_property -dict { PULLTYPE PULLUP } [get_ports io_sd_cmd]
 ## No XDC.INSERT tag in gpio
 ## From cfg
+## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in wbu
 ## No XDC.INSERT tag in zip_alt_uic
 ## No XDC.INSERT tag in clk200
@@ -577,6 +573,7 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_sd_cmd]
 ## No XDC.INSERT tag in RESET_ADDRESS
 ## No XDC.INSERT tag in sirefclk
 ## No XDC.INSERT tag in ddr3_phy
+## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in wbdown
 ## No XDC.INSERT tag in wb32
 ## From siclk
@@ -589,6 +586,7 @@ set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins 
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in clk150
@@ -596,9 +594,8 @@ set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins 
 ## No XDC.INSERT tag in zip_tmc
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
-## From emmc
-set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
 ## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
 ## No XDC.INSERT tag in zip_alt_upc
 ## No XDC.INSERT tag in TMA
@@ -644,6 +641,4 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 ## No XDC.INSERT tag in cpunet
 ## No XDC.INSERT tag in routescope
 ## No XDC.INSERT tag in sdioscope
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in cpunetscope
 ## No XDC.INSERT tag in mem_bkram_only

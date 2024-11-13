@@ -139,7 +139,7 @@
 		.OPT_CRCTOKEN(@$(CRCTOKEN))
 	) u_@$(PREFIX)_frontend (
 		// {{{
-		.i_clk(s_clk), .i_hsclk(s_clk_400mhz), .i_reset(s_reset),
+		.i_clk(s_clk), .i_hsclk(s_clk4x), .i_reset(s_reset),
 		// Configuration
 		.i_cfg_ddr(w_@$(PREFIX)_cfg_ddr),
 		.i_cfg_ds(w_@$(PREFIX)_cfg_ds),
@@ -313,7 +313,7 @@
 
 	sdio #(
 		// {{{
-		.LGFIFO(10), .NUMIO(@$(NUMIO)),
+		.LGFIFO(9), .NUMIO(@$(NUMIO)),
 		.MW(@$(SLAVE.BUS.WIDTH)),
 		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)),
 		.DMA_DW(@$(MASTER.BUS.WIDTH)),

@@ -137,8 +137,8 @@ module	pktvfifo #(
 		parameter	AW = 30-$clog2(BUSDW/8),
 		parameter [AW-1:0] DEF_BASEADDR = {(AW){1'b0}},
 		parameter [AW-1:0] DEF_MEMSIZE  = {(AW){1'b0}},
-		parameter	LGPIPE = 6,
-		parameter	LGFIFO = 6,
+		parameter	LGPIPE = 5,
+		parameter	LGFIFO = 5,
 		parameter [0:0]	OPT_LOWPOWER = 1,
 		parameter [0:0]	OPT_LITTLE_ENDIAN = 0
 		// }}}
@@ -457,17 +457,22 @@ module	pktvfifo #(
 
 	always @(*)
 	begin
-		w_tx_debug = {
+		w_tx_debug = 0;
+		w_tx_debug[LGPIPE:0] = vfifo_rd.rd_outstanding[LGPIPE:0];
+
+		w_tx_debug[31:7] = {
 			(vfifo_rd.return_len[AW+WBLSB-1:20] != 0) ? 20'hfffff
 				: vfifo_rd.return_len[19:0],
 			vfifo_rd.rd_state[1:0], rd_wb_cyc, rd_wb_stb,	// 4b
-			mid_txpkt, vfifo_rd.rd_outstanding[LGPIPE:0] };	// 8b
+			mid_txpkt };	// 8b
 
-		w_rx_debug = {
+		w_rx_debug = 0;
+		w_rx_debug[LGPIPE:0] = vfifo_wr.wr_outstanding[LGPIPE:0];
+		w_rx_debug[31:7] = {
 			(vfifo_wr.wr_pktlen[AW+WBLSB-1:20] != 0) ? 20'hfffff
 				: vfifo_wr.wr_pktlen[19:0],
 			vfifo_wr.wr_state[2:0], wr_wb_cyc,		// 4b
-			wr_wb_stb, vfifo_wr.wr_outstanding[LGPIPE:0] };	// 8b
+			wr_wb_stb };	// 8b
 
 		w_txfifo_debug = 0;
 		w_txfifo_debug[0  +: (LGFIFO+1)] = vfifo_rd.fifo_space;
