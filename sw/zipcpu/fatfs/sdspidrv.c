@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -160,13 +160,13 @@ int	sdcard_err = 0;
 //
 // If set will produce verbose output via txstr() and txhex().  These functions
 // are roughly equivalent to printf("%s",X) and printf("%08x", X) respectively.
-static const int	SDDEBUG = 1;
+static const int	SDDEBUG = 0;
 
 //
 // SDINFO
 //
 // If set, will produce output indicating the results of transactions.
-static const int	SDINFO  = 1;
+static const int	SDINFO  = 0;
 
 #ifdef	_BOARD_HAS_SDSPI
 

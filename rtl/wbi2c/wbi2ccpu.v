@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	wbi2ccpu.v
+// Filename:	rtl/wbi2c/wbi2ccpu.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -90,7 +90,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //

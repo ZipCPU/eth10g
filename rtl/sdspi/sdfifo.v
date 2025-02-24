@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	sdfifo.v
+// Filename:	rtl/sdspi/sdfifo.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -79,7 +79,8 @@ module sdfifo #(
 	// Register/net declarations
 	// {{{
 	localparam	FLEN=(1<<LGFLEN);
-	reg			r_full, r_empty;
+	wire			r_full;
+	reg			r_empty;
 	reg	[(BW-1):0]	mem[0:(FLEN-1)];
 	reg	[LGFLEN:0]	wr_addr, rd_addr;
 
@@ -103,12 +104,13 @@ module sdfifo #(
 	else case({ w_wr, w_rd })
 	2'b01: o_fill <= o_fill - 1;
 	2'b10: o_fill <= o_fill + 1;
-	default: o_fill <= wr_addr - rd_addr;
+	default: begin end // o_fill <= wr_addr - rd_addr;
 	endcase
 	// }}}
 
 	// r_full, o_full
 	// {{{
+	/*
 	initial	r_full = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -118,6 +120,8 @@ module sdfifo #(
 	2'b10: r_full <= (o_fill == { 1'b0, {(LGFLEN){1'b1}} });
 	default: r_full <= (o_fill == { 1'b1, {(LGFLEN){1'b0}} });
 	endcase
+	*/
+	assign	r_full = o_fill[LGFLEN];
 
 	assign	o_full = (i_rd && OPT_WRITE_ON_FULL) ? 1'b0 : r_full;
 	// }}}

@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -460,7 +460,7 @@ module	zipdma_txgears #(
 `endif
 	reg		f_past_valid;
 	(* anyconst *)	reg	[1:0]	f_cfg_size;
-	// reg	[F_LGCOUNT-1:0]		f_rcvd, f_sent;
+	reg	[F_LGCOUNT-1:0]		fr_rcvd, fr_sent;
 
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
@@ -487,7 +487,7 @@ module	zipdma_txgears #(
 	always @(posedge i_clk)
 	if (!f_past_valid || $past(i_reset || i_soft_reset))
 		`ASSUME(!S_VALID);
-	else if ($past(S_VALID && !S_READY))
+	else if ($past(S_VALID && !S_READY) && !i_reset && !i_soft_reset)
 	begin
 		`ASSUME(S_VALID);
 		`ASSUME($stable(S_DATA));
@@ -508,19 +508,20 @@ module	zipdma_txgears #(
 	end
 	// }}}
 
-	// f_rcvd
+	// fr_rcvd, f_rcvd
 	// {{{
-	initial	f_rcvd = 0;
+	initial	fr_rcvd = 0;
 	always @(posedge i_clk)
 	if (i_reset || i_soft_reset)
-		f_rcvd = 0;
+		fr_rcvd = 0;
 	else if (S_VALID && S_READY)
 	begin
 		if (S_LAST)
-			f_rcvd <= 0;
+			fr_rcvd <= 0;
 		else
-			f_rcvd <= f_rcvd + S_BYTES;
+			fr_rcvd <= fr_rcvd + S_BYTES;
 	end
+	assign	f_rcvd = fr_rcvd;
 
 	always @(*)
 		assume(!f_rcvd[F_LGCOUNT-1]);
@@ -630,19 +631,21 @@ module	zipdma_txgears #(
 	end
 	// }}}
 
-	// f_sent
+	// f_sent, fr_sent
 	// {{{
-	initial	f_sent = 0;
+	initial	fr_sent = 0;
 	always @(posedge i_clk)
 	if (i_reset || i_soft_reset)
-		f_sent <= 0;
+		fr_sent <= 0;
 	else if (M_VALID && M_READY)
 	begin
 		if (M_LAST)
-			f_sent <= 0;
+			fr_sent <= 0;
 		else
-			f_sent <= f_sent + M_BYTES;
+			fr_sent <= fr_sent + M_BYTES;
 	end
+
+	assign	f_sent = fr_sent;
 
 	always @(*)
 	begin

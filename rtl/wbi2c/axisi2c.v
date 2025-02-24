@@ -31,7 +31,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -595,9 +595,9 @@ module axisi2c #(
 			o_abort <= 1;
 
 		// COLLISION ABORT ON REQUEST!!
-		if (state == REPEAT_START && (o_sda != ck_sda))
+		if (state == REPEAT_START && !o_stretch && (o_sda != ck_sda))
 			o_abort <= 1;
-		if (state == REPEAT_START2 && (!ck_scl || !ck_sda))
+		if (state == REPEAT_START2 && !o_stretch &&(!ck_scl || !ck_sda))
 			o_abort <= 1;
 
 		if (OPT_ABORT_REQUEST && state == IDLE_STOPPED

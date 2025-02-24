@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rtl/video/hdmibchdec.v
+// Filename:	rtl/hdmi/hdmibchdec.v
 // {{{
-// Project:	VideoZip, a ZipCPU SoC supporting video functionality
+// Project:	10Gb Ethernet switch
 //
 // Purpose:	Decode the BCH encoded words encoding an (otherwise) 32b packet.
 //
@@ -11,14 +11,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2024, Gisselquist Technology, LLC
+// Copyright (C) 2024-2025, Gisselquist Technology, LLC
 // {{{
-// This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as published
-// by the Free Software Foundation, either version 3 of the License, or (at
-// your option) any later version.
+// This file is part of the ETH10G project.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
+// The ETH10G project contains free software and gateware, licensed under the
+// terms of the 3rd version of the GNU General Public License as published by
+// the Free Software Foundation.
+//
+// This project is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.

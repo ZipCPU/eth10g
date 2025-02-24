@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2023-2024, Gisselquist Technology, LLC
+## Copyright (C) 2023-2025, Gisselquist Technology, LLC
 ## {{{
 ## This file is part of the ETH10G project.
 ##
@@ -59,7 +59,7 @@ CPU     := zipmaster.txt		# smiconsole.txt
 ## NETWORK := netduplex.txt		# Pass through test, no routing
 NETWORK := netrouter.txt cpunet.txt	# Full router, virtual FIFOs, CPU FIFO
 GFX     := # hdmi.txt cec.txt edid.txt
-SCOPES  := routescope.txt i2cscope.txt sdioscope.txt # cpunetscope.txt # netscope.txt hdmiclrscope.txt rxedidscope.txt smiscope.txt flashscope.txt fanscope.txt cfgscope.txt emmcscope.txt
+SCOPES  := routescope.txt i2cscope.txt # sdioscope.txt # cpunetscope.txt # netscope.txt hdmiclrscope.txt rxedidscope.txt smiscope.txt flashscope.txt fanscope.txt cfgscope.txt emmcscope.txt
 LDSCRIPT:= mem_bkram_only.txt mem_full.txt # mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
 OTHER   := i2ccpu.txt fan.txt sirefclkcounter.txt	# netclk.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\

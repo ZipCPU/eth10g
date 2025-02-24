@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	sddma_s2mm.v
+// Filename:	rtl/sdspi/sddma_s2mm.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -16,7 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2022-2024, Gisselquist Technology, LLC
+// Copyright (C) 2022-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -107,11 +107,13 @@ module	sddma_s2mm #(
 	reg	[DW-1:0]		r_data;
 	reg	[2*DW/8-1:0]		next_sel, pre_sel;
 	reg	[DW/8-1:0]		r_sel;
-	reg				r_last, r_wrap;
+	reg				r_last;
 
 	reg	[LGPIPE-1:0]		wb_outstanding;
 	reg				wb_pipeline_full;
-	reg				addr_overflow;
+
+	reg				wr_overflow, addr_overflow;
+	wire				new_data;
 	// }}}
 
 	assign	o_wr_we = 1'b1;
@@ -264,8 +266,23 @@ module	sddma_s2mm #(
 `endif
 	// }}}
 
-	// crc, stb, o_wr_addr, o_wr_sel, o_busy, o_err, subaddr
+	// crc, stb, o_wr_addr, o_busy, o_err, subaddr
 	// {{{
+	// Two cases of "new" (or rather "more") data:
+	//   1. There's more data on the incoming stream, *and* we haven't
+	//	(yet) seen S_LAST
+	//   2. We've seen S_LAST, and we still have data left in our shift
+	//	register.
+	assign	new_data = (r_last && (|r_sel)) || (S_VALID && !r_last);
+
+	always @(posedge i_clk)
+	if (i_reset)
+		wr_overflow <= 1'b0;
+	else if (!o_busy || o_err || (o_wr_cyc && i_wr_err))
+		wr_overflow <= 1'b0;
+	else if (!wr_overflow && o_wr_stb && !i_wr_stall)
+		wr_overflow <= next_addr[ADDRESS_WIDTH];
+
 	initial	o_wr_cyc = 1'b0;
 	initial	o_wr_stb = 1'b0;
 	initial	o_busy   = 1'b0;
@@ -296,8 +313,8 @@ module	sddma_s2mm #(
 		if (o_wr_cyc && i_wr_err)
 			o_busy <= 1'b0;
 
-		if (i_request)	// || !OPT_LOWPOWER
-			{ o_wr_addr, subaddr } <= i_addr;
+		o_wr_addr <= i_addr[ADDRESS_WIDTH-1:WBLSB];
+		subaddr   <= i_addr[WBLSB-1:0];
 		r_last <= 1'b0;
 		// }}}
 	end else if (!o_wr_stb || !i_wr_stall)
@@ -310,14 +327,11 @@ module	sddma_s2mm #(
 
 		if (!wb_pipeline_full)
 		begin
-			if ((r_last && (|r_sel)) || (S_VALID && !r_last))
+			if (new_data)
 			begin
-				// Need to flush our last result out
 				{ o_wr_cyc, o_wr_stb } <= 2'b11;
 
-				// If the address will overflow, then stop
-				// and generate an error.
-				if (r_wrap || (o_wr_stb && addr_overflow))
+				if (o_wr_stb ? addr_overflow : wr_overflow)
 					{ o_err, o_wr_cyc, o_wr_stb } <= 3'b100;
 			end else if (wb_outstanding + (o_wr_stb ? 1:0)
 							== (i_wr_ack ? 1:0))
@@ -333,13 +347,6 @@ module	sddma_s2mm #(
 		// }}}
 	end
 
-	initial	r_wrap = 1'b0;
-	always @(posedge i_clk)
-	if (i_reset || !o_busy)
-		r_wrap <= 1'b0;
-	else if (o_wr_stb && !i_wr_stall)
-		r_wrap <= addr_overflow;
-
 `ifdef	FORMAL
 	always @(posedge i_clk)
 	if (i_reset || !o_busy || o_err || (o_wr_cyc && i_wr_err))
@@ -347,7 +354,7 @@ module	sddma_s2mm #(
 	end else if (!o_wr_stb || !i_wr_stall)
 	begin
 		// {{{
-		if (addr_overflow)
+		if (o_wr_stb ? addr_overflow : wr_overflow)
 		begin
 		end else if (!wb_pipeline_full)
 		begin
@@ -405,10 +412,12 @@ module	sddma_s2mm #(
 
 	// Keep Verilator happy
 	// {{{
+	// Verilator coverage_off
 	// Verilator lint_off UNUSED
 	wire	unused;
 	assign	unused = &{ 1'b0, i_wr_data };
 	// Verilator lint_on  UNUSED
+	// Verilator coverage_on
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

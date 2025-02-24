@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -298,8 +298,8 @@ module zipdma_ctrl #(
 
 		if (i_dma_err)
 			r_err <= 1'b1;
-		if (r_busy && (!i_dma_busy || i_dma_err))
-			o_interrupt <= 1'b1;
+
+		o_interrupt <= (r_busy && (!i_dma_busy || i_dma_err));
 
 		if (i_stb && !o_stall && i_we && i_addr == 2'b00)
 		begin
@@ -312,10 +312,7 @@ module zipdma_ctrl #(
 
 			end else if (i_sel[3])
 			begin
-				// Clear interrupts, errors, and potentially
-				// restart the DMA
-				if (i_data[29] || !i_data[30])
-					o_interrupt <= 1'b0;
+				// Clear errors and potentially restart the DMA
 				if (i_data[30])
 					r_err <= 1'b0;
 				if (!i_data[31] && (!r_err || i_data[30]))

@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2023-2024, Gisselquist Technology, LLC
+## Copyright (C) 2023-2025, Gisselquist Technology, LLC
 ## {{{
 ## This file is part of the ETH10G project.
 ##
@@ -58,6 +58,8 @@
 @OPT_DDR=1'b1
 @OPT_EMMC=1'b0
 @OPT_DMA=1'b1
+@OPT_1P8V=1'b0
+@HW1P8V=1'b0
 @TOP.IOPREFIX=sd
 @OPT_HWRESET=@$(OPT_EMMC)
 @SDIO.IORESET=
@@ -96,7 +98,7 @@
 @SDIO.TOP.DEFNS=
 	// @$(NAME) definitions
 	// {{{
-	wire		w_@$(PREFIX)_hwreset_n;
+	wire		w_@$(PREFIX)_hwreset_n, w_@$(PREFIX)_1p8v;
 	wire		w_@$(PREFIX)_cfg_ddr;
 	wire		w_@$(PREFIX)_cfg_ds, w_@$(PREFIX)_cfg_dscmd;
 	wire	[4:0]	w_@$(PREFIX)_cfg_sample_shift;
@@ -212,7 +214,7 @@
 		w_@$(PREFIX)_ac_data,
 		w_@$(PREFIX)_ad_valid,
 		w_@$(PREFIX)_ad_data,
-		w_@$(PREFIX)_hwreset_n,
+		w_@$(PREFIX)_hwreset_n, w_@$(PREFIX)_1p8v, @$(HW1P8V),
 		w_@$(PREFIX)_debug
 @TOP.INSERT=
 	assign	i_@$(PREFIX)_ds = 1'b0;
@@ -247,7 +249,7 @@
 		i_@$(PREFIX)_ac_data,
 		i_@$(PREFIX)_ad_valid,
 		i_@$(PREFIX)_ad_data,
-		o_@$(PREFIX)_hwreset_n,
+		o_@$(PREFIX)_hwreset_n, o_@$(PREFIX)_1p8v, i_@$(PREFIX)_1p8v,
 		i_@$(PREFIX)_debug
 @MAIN.IODECL=
 	// @$(NAME) declarations
@@ -281,7 +283,9 @@
 	input	wire	[1:0]	i_@$(PREFIX)_ac_data;
 	input	wire		i_@$(PREFIX)_ad_valid;
 	input	wire	[31:0]	i_@$(PREFIX)_ad_data;
-	output	wire		o_@$(PREFIX)_hwreset_n;
+	output	wire		o_@$(PREFIX)_hwreset_n,
+				o_@$(PREFIX)_1p8v;
+	input	wire		i_@$(PREFIX)_1p8v;
 	// Verilator lint_off UNUSED
 	input	wire	[31:0]	i_@$(PREFIX)_debug;
 	// Verilator lint_on  UNUSED
@@ -290,7 +294,7 @@
 	// @$(NAME) definitions
 	// Verilator lint_off UNUSED
 	wire	[31:0]	w_@$(PREFIX)_sdwb_debug;
-	wire		w_@$(PREFIX)_1p8v, s_@$(PREFIX)_ready,
+	wire		s_@$(PREFIX)_ready,
 			m_@$(PREFIX)_valid, m_@$(PREFIX)_last;
 	reg	[31:0]	@$(PREFIX)_debug;
 	wire	[31:0]	m_@$(PREFIX)_data;
@@ -324,6 +328,7 @@
 		.OPT_HWRESET(@$(OPT_HWRESET)),
 		.OPT_CARD_DETECT(@$(CARD_DETECT)),
 		.OPT_CRCTOKEN(@$(CRCTOKEN)),
+		.OPT_1P8V(@$(OPT_1P8V)),
 `ifdef	VERILATOR
 		.LGTIMEOUT(18),
 `else
@@ -351,7 +356,8 @@
 		// }}}
 		.i_card_detect(i_@$(PREFIX)_detect),
 		.o_hwreset_n(o_@$(PREFIX)_hwreset_n),
-		.o_1p8v(w_@$(PREFIX)_1p8v),
+		.o_1p8v(o_@$(PREFIX)_1p8v),
+		.i_1p8v(i_@$(PREFIX)_1p8v),
 		.o_int(@$(PREFIX)_int),
 		//
 		.o_cfg_ddr(o_@$(PREFIX)_cfg_ddr),
@@ -459,9 +465,11 @@ struct @$(DEVID)_S;
 #endif
 @RTL.MAKE.GROUP= SDIO
 @RTL.MAKE.SUBD=sdspi
-@RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v sdcmd.v sddma.v sddma_mm2s.v sddma_rxgears.v sdfifo.v sddma_txgears.v sddma_s2mm.v xsdddr.v xsdserdes8x.v
+@RTL.MAKE.FILES= sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v sdcmd.v sddma.v sddma_mm2s.v sddma_rxgears.v sdfifo.v sddma_txgears.v sddma_s2mm.v xsdddr.v xsdserdes8x.v
 @XDC.SERDES=
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 @XDC.INSERT=
 set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
+@$(XDC.SERDES)

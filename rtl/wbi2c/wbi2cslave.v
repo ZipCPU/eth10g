@@ -17,7 +17,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -175,9 +175,9 @@ module	wbi2cslave #(
 				r_we <= wr_stb[3:0];
 				r_addr <= i2c_addr[MEM_ADDR_BITS-1:2];
 				r_data <= {(4){wr_data}};
-			end else if (AXIS_SUPPORT && s_valid)
+			end else if (AXIS_SUPPORT && s_valid && s_ready)
 			begin
-				r_we <= { 2'b00, axis_addr[1:0] };
+				r_we <= (4'b1000 >> axis_addr[1:0]);
 				r_addr <= axis_addr[MEM_ADDR_BITS-1:2];
 				r_data <= {(4){s_data}};
 			end else if ((!WB_READ_ONLY)&&(i_wb_stb)&&(i_wb_we))
@@ -322,82 +322,76 @@ module	wbi2cslave #(
 			// }}}
 		I2CSTART: begin
 			// {{{
-				dbits <= 0;
-				if (i2c_negedge)
-					i2c_state <= I2CADDR;
+			dbits <= 0;
+			oreg <= 8'hff;
+			if (i2c_negedge)
+				i2c_state <= I2CADDR;
 			end
 			// }}}
 		I2CADDR: begin
 			// {{{
-				if (i2c_negedge)
-					dbits <= dbits + 1'b1;
-				if ((i2c_negedge)&&(dbits == 3'h7))
+			if (i2c_negedge)
+				dbits <= dbits + 1'b1;
+			if ((i2c_negedge)&&(dbits == 3'h7))
+			begin
+				slave_tx_rx_n <= dreg[0];
+				if (dreg[7:1] == SLAVE_ADDRESS)
 				begin
-					slave_tx_rx_n <= dreg[0];
-					if (dreg[7:1] == SLAVE_ADDRESS)
-					begin
-						i2c_state <= I2CSACK;
-						i2c_slave_ack <= 1'b0;
-					end else begin
-						// Ignore this, its not for
-						// me.
-						i2c_state <= I2CILLEGAL;
-						i2c_slave_ack <= 1'b1;
-					end
+					i2c_state <= I2CSACK;
+					i2c_slave_ack <= 1'b0;
+				end else begin
+					// Ignore this, its not for
+					// me.
+					i2c_state <= I2CILLEGAL;
+					i2c_slave_ack <= 1'b1;
 				end
-			end
+			end end
 			// }}}
 		I2CSACK: begin
 			// {{{
-				dbits <= 3'h0;
-				// NACK anything outside of our address range
-				o_i2c_sda <= i2c_slave_ack;
-				oreg <= rd_val;
-				if (i2c_negedge)
-				begin
-					i2c_state <= (slave_tx_rx_n)? I2CTX:I2CRX;
-					oreg <= i2c_tx_byte;
-				end
-			end
+			dbits <= 3'h0;
+			// NACK anything outside of our address range
+			o_i2c_sda <= i2c_slave_ack;
+			oreg <= rd_val;
+			if (i2c_negedge)
+			begin
+				i2c_state <= (slave_tx_rx_n)? I2CTX:I2CRX;
+				oreg <= i2c_tx_byte;
+			end end
 			// }}}
-		I2CRX: begin	// Slave reads from the bus
+		I2CRX: begin	// Slave reads from the bus, master writes
 			// {{{
-				//
-				// First byte received is always the memory
-				// address.
-				//
-				if (i2c_negedge)
-					dbits <= dbits + 1'b1;
-				if ((i2c_negedge)&&(dbits == 3'h7))
-				begin
-					i2c_rx_byte <= dreg;
-					i2c_rx_stb  <= 1'b1;
-					i2c_state <= I2CSACK;
-				end
-			end
+			//
+			// First byte received is always the memory
+			// address.
+			//
+			if (i2c_negedge)
+				dbits <= dbits + 1'b1;
+			if ((i2c_negedge)&&(dbits == 3'h7))
+			begin
+				i2c_rx_byte <= dreg;
+				i2c_rx_stb  <= 1'b1;
+				i2c_state <= I2CSACK;
+			end end
 			// }}}
 		I2CTX: begin	// Slave transmits
 			// {{{
-				// Read from the slave (that's us)
-				if (i2c_negedge)
-					dbits <= dbits + 1'b1;
-				if ((i2c_negedge)&&(dbits == 3'h7))
-				begin
-					i2c_tx_stb <= 1'b1;
-					i2c_state <= I2CMACK;
-				end
-				o_i2c_sda <= oreg[7];
-			end
+			// Read from the slave (that's us)
+			o_i2c_sda <= oreg[7];
+			if (i2c_negedge)
+				dbits <= dbits + 1'b1;
+			if ((i2c_negedge)&&(dbits == 3'h7))
+			begin
+				i2c_tx_stb <= 1'b1;
+				i2c_state <= I2CMACK;
+			end end
 			// }}}
 		I2CMACK: begin
 			// {{{
-				dbits <= 3'h0;
-				if (i2c_negedge)
-				begin
-					i2c_state <= I2CTX;
-					oreg <= i2c_tx_byte;
-				end
-				oreg <= rd_val;
+			dbits <= 3'h0;
+			if (i2c_negedge)
+				i2c_state <= (this_sda)? I2CIDLE:I2CTX;
+			oreg <= i2c_tx_byte;
 			end
 			// }}}
 		I2CILLEGAL:	dbits <= 3'h0;

@@ -13,17 +13,19 @@
 //		Verified in H/W for 1, 4, and 8b.  (Not yet for DDR)
 //		No support for data strobe.
 //	OPT_DDR=1	(With IDDR/ODDR hardware elements, but no SERDES)
-//		Verified in H/W for 1 and 4b.  (Not yet for DDR, not yet for 8b)
+//		Verified in H/W for 1 and 4b.  (Not yet for DDR)
 //		No support for data strobe.
 //	OPT_SERDES=1
-//		NOT YET VERIFIED IN H/W
+//		Verified in H/W for 1b, 4b, and 8b.
+//		Hardware data strobe support verification still pending,
+//		although all simulation tests pass.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -58,7 +60,7 @@ module	sdfrontend #(
 		parameter [0:0]	OPT_COLLISION = 1'b0,
 		parameter [0:0]	OPT_CRCTOKEN = 1'b1,
 		parameter 	BUSY_CLOCKS = 4,
-		parameter	HWBIAS = 0,
+		parameter	HWBIAS = (OPT_SERDES ? 7 : 0),
 		parameter	NUMIO = 8
 		// }}}
 	) (
@@ -140,6 +142,8 @@ module	sdfrontend #(
 	wire	[7:0]	w_pedges, next_pedge, next_nedge, next_dedge;
 	wire		async_ack, async_nak;
 	reg	[4:0]	acknak_sreg;
+
+	reg	ackd, ck_ack, ck_nak, pipe_ack, pipe_nak;
 	// }}}
 
 	// Common setup
@@ -808,8 +812,8 @@ module	sdfrontend #(
 		reg	[1:0]	w_cmd_data;
 		reg	[15:0]	r_rx_data;
 		wire	[15:0]	w_rx_data;
-		wire	[7:0]	next_ck_sreg, next_ck_psreg;
-		reg	[24:0]	ck_sreg, ck_psreg;
+		// wire	[7:0]	next_ck_sreg, next_ck_psreg;
+		reg	[HWBIAS+24:0]	ck_sreg, ck_psreg;
 		wire	[7:0]	wide_cmd_data;
 		reg	[7:0]	sample_ck, sample_pck;
 		reg	[1:0]	r_cmd_data;
@@ -819,7 +823,7 @@ module	sdfrontend #(
 		reg	[1:0]	io_started;
 		reg		resp_started;
 		reg	[1:0]	r_cmd_strb;
-		reg	[24:0]	pck_sreg;
+		reg	[HWBIAS+24:0]	pck_sreg;
 		reg	[7:0]	cmd_sample_ck;
 		wire		busy_pin;
 		reg	[1:0]	busy_delay, itok;
@@ -841,6 +845,7 @@ module	sdfrontend #(
 		u_clk_oserdes(
 			.i_clk(i_clk),
 			.i_hsclk(i_hsclk),
+			.i_reset(i_reset),
 			.i_en(1'b1),
 			.i_data(i_sdclk),
 			.io_tristate(io_clk_tristate),
@@ -853,8 +858,8 @@ module	sdfrontend #(
 		);
 		// }}}
 
-		assign	next_ck_sreg  = (i_data_en) ? 8'h0 : next_dedge;
-		assign	next_ck_psreg = (i_data_en) ? 8'h0 : next_pedge;
+		// assign	next_ck_sreg  = (i_data_en) ? 8'h0 : next_dedge;
+		// assign	next_ck_psreg = (i_data_en) ? 8'h0 : next_pedge;
 
 		// sample_ck
 		// {{{
@@ -919,6 +924,7 @@ module	sdfrontend #(
 			) io_serdes(
 				.i_clk(i_clk),
 				.i_hsclk(i_hsclk),
+				.i_reset(i_reset),
 				.i_en(!r_data_tristate),
 				.i_data(out_pin),
 				.io_tristate(io_dat_tristate[gk]),
@@ -1001,14 +1007,19 @@ module	sdfrontend #(
 		else if (io_started == 0
 				&& (|sample_pck[7:4]) && (|sample_pck[3:0])
 				&& start_io[1])
-		begin
+		begin // Two clocks received (200MHz), one is the start clock
 			r_rx_strb <= 2'b10;
 		end else if (io_started[1])
-		begin
+		begin // The full start clock has been received
 			r_rx_strb[1] <= (|sample_ck);
 			r_rx_strb[0] <= (|sample_ck[7:4]) && (|sample_ck[3:0]);
-		end else if (io_started[0]&& (|sample_ck[7:4]))
-		begin
+		end else if (io_started[0]&& (|sample_ck[7:4])) // PEDGE+NEDGE
+		begin // past PEDGE, this clock has the NEGEDGE on the left
+			// The second clock edge is received on the left, first
+			// data clock on the right.  (100MHz clock)
+			//
+			// io_started == 2'b10 will *ONLY* happen in cfg_ddr
+			//
 			r_rx_strb[1] <= (|sample_ck[3:0]);
 			r_rx_strb[0] <= 1'b0;
 		end else
@@ -1144,6 +1155,7 @@ module	sdfrontend #(
 		) cmd_serdes(
 			.i_clk(i_clk),
 			.i_hsclk(i_hsclk),
+			.i_reset(i_reset),
 			.i_en(!r_cmd_tristate && !o_cmd_collision),
 			.i_data({ {(4){i_cmd_data[1]}}, {(4){i_cmd_data[0]}} }),
 			.io_tristate(io_cmd_tristate),
@@ -1237,6 +1249,7 @@ module	sdfrontend #(
 
 		reg	[31:0]	r_debug;
 		reg	[11:0]	r_dbg_timeout;
+		reg	[7:0]	r_dbg_cmd_counter;
 
 		always @(posedge i_clk)
 		if (i_reset)
@@ -1249,21 +1262,54 @@ module	sdfrontend #(
 			r_dbg_timeout <= r_dbg_timeout - 1;
 
 		always @(posedge i_clk)
+		if (i_reset)
+			r_dbg_cmd_counter <= 0;
+		else if (i_cmd_en || |(o_cmd_strb & ~o_cmd_data))
+			r_dbg_cmd_counter <= 0;
+		else if (!r_dbg_cmd_counter[7] && |o_cmd_strb)
+			r_dbg_cmd_counter <= r_dbg_cmd_counter + 1;
+
+		always @(posedge i_clk)
 		begin
 			r_debug <= 32'h0;
 
 			r_debug[27:25] <= { i_cmd_en, i_cmd_tristate,
 						i_cmd_data[0] };
+			if (!i_cmd_en)
+			begin
+				r_debug[26] <= wide_cmd_data[7];
+				r_debug[25] <= wide_cmd_data[0];
+			end
+
 			r_debug[24:20] <= { i_data_tristate, i_tx_data[3:0] };
 
-			r_debug[19:16] <= { o_cmd_strb, o_cmd_data };
+			if (!r_dbg_cmd_counter[7])
+				r_debug[19:18] <= o_cmd_strb;
+			if (o_cmd_strb == 0)
+				r_debug[17:16] <= r_debug[17:16];
+			else
+				r_debug[17:16] <= o_cmd_data;
+
 			r_debug[15:14] <= { i_rx_en, i_data_en };
 			r_debug[13:12] <= { sync_ack, sync_nak };
-			r_debug[11:10] <= itok;
-			r_debug[ 9: 8] <= o_rx_strb;
-			r_debug[ 7: 0] <= { o_rx_data[11:8], o_rx_data[3:0] };
+			if (i_rx_en && i_cfg_ddr)
+				r_debug[13:12] <= { |sample_pck, |sample_ck };
+			if (i_rx_en && i_cfg_ddr && !i_data_en)
+				r_debug[14] <= ^io_started;
 
-			if (r_dbg_timeout == 0)
+			r_debug[11:10] <= r_debug[11:10];
+			if (|sample_pck[7:4])
+				r_debug[11] <= itok[1];
+			if (|sample_pck[3:0])
+				r_debug[10] <= itok[0];
+
+			r_debug[ 7: 0] <= r_debug;
+			if (i_rx_en)
+				r_debug[ 9: 8] <= o_rx_strb;
+			if (o_rx_strb != 0 || o_cmd_strb != 0)
+				r_debug[ 7: 0] <= { o_rx_data[11:8], o_rx_data[3:0] };
+
+			if (0 && r_dbg_timeout == 0)
 			begin
 				r_debug[9:8] <= 2'b00;
 				r_debug[19:16] <= 4'hf;
@@ -1286,9 +1332,10 @@ module	sdfrontend #(
 		// }}}
 		// }}}
 	end endgenerate
-
-	reg	ackd, ck_ack, ck_nak, pipe_ack, pipe_nak;
-
+	////////////////////////////////////////////////////////////////////////
+	//
+	// TX ACK/NAK handling
+	// {{{
 	always @(posedge i_clk)
 	if (i_reset || i_data_en || !i_cfg_ds || !OPT_DS || !OPT_CRCTOKEN)
 	begin
@@ -1309,7 +1356,7 @@ module	sdfrontend #(
 
 	assign	o_crcack = OPT_CRCTOKEN && (sync_ack || ck_ack) && !ackd;
 	assign	o_crcnak = OPT_CRCTOKEN && (sync_nak || ck_nak) && !ackd;
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Datastrobe support
@@ -1588,6 +1635,9 @@ module	sdfrontend #(
 			.O(i_dat[gk])
 		);
 	end endgenerate
+// else
+	// If we are using Verilator, then the IO buffers are handled
+	// externally as part of the C++ model.
 `endif
 	// }}}
 endmodule

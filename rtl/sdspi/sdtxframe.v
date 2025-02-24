@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -112,6 +112,7 @@ module	sdtxframe #(
 	reg	[NCRC- 1:0]	crc_1w_reg;
 	reg	[NCRC* 2-1:0]	di_crc_2w, nxt_crc_2w, new_crc_2w, crc_2w_reg;
 	reg	[NCRC* 4-1:0]	di_crc_4w, nxt_crc_4w, new_crc_4w, crc_4w_reg;
+	reg	[NCRC* 8-1:0]	di_crc_4d, nxt_crc_4d, new_crc_4d, crc_4d_reg;
 	reg	[NCRC* 8-1:0]	di_crc_8w, nxt_crc_8w, new_crc_8w, crc_8w_reg;
 	reg	[NCRC*16-1:0]	di_crc_8d, nxt_crc_8d, new_crc_8d, crc_8d_reg;
 
@@ -126,7 +127,7 @@ module	sdtxframe #(
 
 	// }}}
 	// Steps: #1, Packetizer: breaks incoming signal into wires
-	// 	#2, add CRC
+	//	#2, add CRC
 	//	#3, split across clocks
 	//
 	////////////////////////////////////////////////////////////////////////
@@ -188,7 +189,36 @@ module	sdtxframe #(
 		// {{{
 		pstate <= P_IDLE;
 		pre_valid <= 0;
-		pre_data <= (S_VALID) ? S_DATA : {(32){1'b1}};
+		// pre_data <= (S_VALID) ? S_DATA : {(32){1'b1}};
+		if (!S_VALID)
+			pre_data <= {(32){1'b1}};
+		else if (!i_cfg_ddr || i_cfg_width == WIDTH_8W)
+			pre_data <= S_DATA;
+		else if (i_cfg_width == WIDTH_4W)
+			pre_data <= {
+				S_DATA[31:28], S_DATA[23:20],
+				S_DATA[27:24], S_DATA[19:16],
+				S_DATA[15:12], S_DATA[ 7: 4],
+				S_DATA[11: 8], S_DATA[ 3: 0] };
+		else
+			pre_data <= {
+				S_DATA[31], S_DATA[23],
+				S_DATA[30], S_DATA[22],
+				S_DATA[29], S_DATA[21],
+				S_DATA[28], S_DATA[20],
+				S_DATA[27], S_DATA[19],
+				S_DATA[26], S_DATA[18],
+				S_DATA[25], S_DATA[17],
+				S_DATA[24], S_DATA[16],
+				S_DATA[15], S_DATA[ 7],
+				S_DATA[14], S_DATA[ 6],
+				S_DATA[13], S_DATA[ 5],
+				S_DATA[12], S_DATA[ 4],
+				S_DATA[11], S_DATA[ 3],
+				S_DATA[10], S_DATA[ 2],
+				S_DATA[ 9], S_DATA[ 1],
+				S_DATA[ 8], S_DATA[ 0] };
+
 		if (start_packet)
 		begin
 			pstate    <= (S_LAST) ? P_CRC : P_DATA;
@@ -200,7 +230,35 @@ module	sdtxframe #(
 		begin
 			pstate <= P_DATA;
 			pre_valid <= 1;
-			pre_data <= S_DATA;
+
+			if (!cfg_ddr || cfg_width == WIDTH_8W)
+				pre_data <= S_DATA;
+			else if (cfg_width == WIDTH_4W)
+			begin
+				pre_data <= {
+					S_DATA[31:28], S_DATA[23:20],
+					S_DATA[27:24], S_DATA[19:16],
+					S_DATA[15:12], S_DATA[ 7: 4],
+					S_DATA[11: 8], S_DATA[ 3: 0] };
+			end else begin
+				pre_data <= {
+					S_DATA[31], S_DATA[23],
+					S_DATA[30], S_DATA[22],
+					S_DATA[29], S_DATA[21],
+					S_DATA[28], S_DATA[20],
+					S_DATA[27], S_DATA[19],
+					S_DATA[26], S_DATA[18],
+					S_DATA[25], S_DATA[17],
+					S_DATA[24], S_DATA[16],
+					S_DATA[15], S_DATA[ 7],
+					S_DATA[14], S_DATA[ 6],
+					S_DATA[13], S_DATA[ 5],
+					S_DATA[12], S_DATA[ 4],
+					S_DATA[11], S_DATA[ 3],
+					S_DATA[10], S_DATA[ 2],
+					S_DATA[ 9], S_DATA[ 1],
+					S_DATA[ 8], S_DATA[ 0] };
+			end
 
 			if (S_LAST)
 				pstate <= P_CRC;
@@ -219,7 +277,7 @@ module	sdtxframe #(
 				else
 				pre_data <= { crc_1w_reg[NCRC-1:0], 16'hffff };
 			WIDTH_4W: if (cfg_ddr)
-				pre_data <= crc_8w_reg[8*NCRC-1:8*NCRC-32];
+				pre_data <= crc_4d_reg[8*NCRC-1:8*NCRC-32];
 				else
 				pre_data <= crc_4w_reg[4*NCRC-1:4*NCRC-32];
 			WIDTH_8W: if (cfg_ddr)
@@ -302,6 +360,12 @@ module	sdtxframe #(
 			for(jk=0; jk<4; jk=jk+1)
 				di_crc_4w[jk*NCRC+ik] = crc_4w_reg[ik*4+jk];
 
+			for(jk=0; jk<4; jk=jk+1)
+			begin
+				di_crc_4d[(2*jk  )*NCRC+ik] = crc_4d_reg[2*ik*4  +jk];
+				di_crc_4d[(2*jk+1)*NCRC+ik] = crc_4d_reg[2*ik*4+4+jk];
+			end
+
 			for(jk=0; jk<8; jk=jk+1)
 				di_crc_8w[jk*NCRC+ik] = crc_8w_reg[ik*8+jk];
 
@@ -312,35 +376,56 @@ module	sdtxframe #(
 
 		// Advance the CRCs based on S_DATA
 		// {{{
-		for(ik=0; ik<2; ik=ik+1)
-		begin
-			new_crc_2w[ik*NCRC +: NCRC] =
-				APPLYCRC16(di_crc_2w[ik*NCRC +: NCRC],
-			  		{ S_DATA[30+ik],S_DATA[28+ik],
-						S_DATA[26+ik],S_DATA[24+ik],
-						S_DATA[22+ik],S_DATA[20+ik],
-						S_DATA[18+ik],S_DATA[16+ik],
-						S_DATA[14+ik],S_DATA[12+ik],
-						S_DATA[10+ik],S_DATA[ 8+ik],
-						S_DATA[ 6+ik],S_DATA[ 4+ik],
-						S_DATA[ 2+ik],S_DATA[   ik] });
-		end
+		new_crc_2w[1*NCRC +: NCRC] =
+			APPLYCRC16(di_crc_2w[1*NCRC +: NCRC],
+				{ S_DATA[31],S_DATA[30],
+					S_DATA[29],S_DATA[28],
+					S_DATA[27],S_DATA[26],
+					S_DATA[25],S_DATA[24],
+					S_DATA[15],S_DATA[14],
+					S_DATA[13],S_DATA[12],
+					S_DATA[11],S_DATA[10],
+					S_DATA[ 9],S_DATA[ 8] });
+
+		new_crc_2w[0*NCRC +: NCRC] =
+			APPLYCRC16(di_crc_2w[0*NCRC +: NCRC],
+				{ S_DATA[23],S_DATA[22],
+					S_DATA[21],S_DATA[20],
+					S_DATA[19],S_DATA[18],
+					S_DATA[17],S_DATA[16],
+					S_DATA[ 7],S_DATA[ 6],
+					S_DATA[ 5],S_DATA[ 4],
+					S_DATA[ 3],S_DATA[ 2],
+					S_DATA[ 1],S_DATA[ 0] });
 
 		for(ik=0; ik<4; ik=ik+1)
 		begin
 			new_crc_4w[ik*NCRC +: NCRC] =
 				APPLYCRC8(di_crc_4w[ik*NCRC +: NCRC],
-			  		{ S_DATA[28+ik],S_DATA[24+ik],
+					{ S_DATA[28+ik],S_DATA[24+ik],
 						S_DATA[20+ik],S_DATA[16+ik],
 						S_DATA[12+ik],S_DATA[ 8+ik],
 						S_DATA[ 4+ik],S_DATA[   ik] });
+		end
+
+		for(ik=0; ik<4; ik=ik+1)
+		begin
+			new_crc_4d[(2*ik+1)*NCRC +: NCRC] =
+				APPLYCRC4(di_crc_4d[(2*ik+1)*NCRC +: NCRC],
+					{ S_DATA[28+ik], S_DATA[24+ik],
+					  S_DATA[12+ik], S_DATA[ 8+ik] });
+
+			new_crc_4d[2*ik*NCRC +: NCRC] =
+				APPLYCRC4(di_crc_4d[2*ik*NCRC +: NCRC],
+					{ S_DATA[20+ik], S_DATA[16+ik],
+					  S_DATA[ 4+ik], S_DATA[   ik] });
 		end
 
 		for(ik=0; ik<8; ik=ik+1)
 		begin
 			new_crc_8w[ik*NCRC +: NCRC] =
 				APPLYCRC4(di_crc_8w[ik*NCRC +: NCRC],
-			  		{ S_DATA[24+ik], S_DATA[16+ik],
+					{ S_DATA[24+ik], S_DATA[16+ik],
 						S_DATA[8+ik], S_DATA[ik] });
 		end
 
@@ -348,7 +433,7 @@ module	sdtxframe #(
 		begin
 			new_crc_8d[ik*NCRC +: NCRC] =
 				APPLYCRC2(di_crc_8d[ik*NCRC +: NCRC],
-			  		{ S_DATA[16+ik], S_DATA[ik] });
+					{ S_DATA[16+ik], S_DATA[ik] });
 		end
 		// }}}
 
@@ -360,6 +445,11 @@ module	sdtxframe #(
 				nxt_crc_2w[ik*2+jk] = new_crc_2w[jk*NCRC+ik];
 			for(jk=0; jk<4; jk=jk+1)
 				nxt_crc_4w[ik*4+jk] = new_crc_4w[jk*NCRC+ik];
+			for(jk=0; jk<4; jk=jk+1)
+			begin
+				nxt_crc_4d[2*ik*4  +jk] = new_crc_4d[(2*jk  )*NCRC+ik];
+				nxt_crc_4d[2*ik*4+4+jk] = new_crc_4d[(2*jk+1)*NCRC+ik];
+			end
 			for(jk=0; jk<8; jk=jk+1)
 				nxt_crc_8w[ik*8+jk] = new_crc_8w[jk*NCRC+ik];
 			for(jk=0; jk<16; jk=jk+1)
@@ -377,6 +467,7 @@ module	sdtxframe #(
 		crc_1w_reg <= 0;
 		crc_2w_reg <= 0;
 		crc_4w_reg <= 0;
+		crc_4d_reg <= 0;
 		crc_8w_reg <= 0;
 		crc_8d_reg <= 0;
 	end else if (S_VALID && S_READY)
@@ -384,6 +475,7 @@ module	sdtxframe #(
 		crc_1w_reg <= {(NCRC   ){1'b1}};
 		crc_2w_reg <= {(NCRC* 2){1'b1}};
 		crc_4w_reg <= {(NCRC* 4){1'b1}};
+		crc_4d_reg <= {(NCRC* 8){1'b1}};
 		crc_8w_reg <= {(NCRC* 8){1'b1}};
 		crc_8d_reg <= {(NCRC*16){1'b1}};
 
@@ -393,7 +485,7 @@ module	sdtxframe #(
 			else
 				crc_1w_reg <= APPLYCRC32(crc_1w_reg, S_DATA);
 		WIDTH_4W: if (cfg_ddr)
-				crc_8w_reg <= nxt_crc_8w;
+				crc_4d_reg <= nxt_crc_4d;
 			else
 				crc_4w_reg <= nxt_crc_4w;
 		WIDTH_8W: if (cfg_ddr)
@@ -407,6 +499,7 @@ module	sdtxframe #(
 		crc_1w_reg <= {(NCRC){1'b1}};
 		crc_2w_reg <= {(2*NCRC){1'b1}};
 		crc_4w_reg <= { crc_4w_reg[ 4*NCRC-32-1:0], 32'hffff_ffff };
+		crc_4d_reg <= { crc_4d_reg[ 8*NCRC-32-1:0], 32'hffff_ffff };
 		crc_8w_reg <= { crc_8w_reg[ 8*NCRC-32-1:0], 32'hffff_ffff };
 		crc_8d_reg <= { crc_8d_reg[16*NCRC-32-1:0], 32'hffff_ffff };
 	end
@@ -1151,6 +1244,13 @@ module	sdtxframe #(
 			assume(i_cfg_ddr == f_cfg_ddr);
 			assume(i_cfg_pp  == f_cfg_pp);
 		end
+
+		case(f_cfg_width)
+		WIDTH_1W: begin end
+		WIDTH_4W: begin end
+		WIDTH_8W: begin end
+		default: assume(0);
+		endcase
 	end
 
 	always @(posedge i_clk)
@@ -1446,7 +1546,38 @@ module	sdtxframe #(
 	begin
 		assert(pstate != P_IDLE);
 		if (fp_count == fc_posn && pstate == P_DATA)
-			assert(pre_data == fc_data);
+		begin
+			if (!f_cfg_ddr || f_cfg_width == WIDTH_8W)
+			begin
+				assert(pre_data == fc_data);
+			end else if (f_cfg_width == WIDTH_4W)
+			begin
+				assert(pre_data == {
+					fc_data[31:28], fc_data[23:20],
+					fc_data[27:24], fc_data[19:16],
+					fc_data[15:12], fc_data[ 7: 4],
+					fc_data[11: 8], fc_data[ 3: 0] });
+			end else if (f_cfg_width == WIDTH_1W)
+			begin
+				assert(pre_data == {
+					fc_data[31], fc_data[23],
+					fc_data[30], fc_data[22],
+					fc_data[29], fc_data[21],
+					fc_data[28], fc_data[20],
+					fc_data[27], fc_data[19],
+					fc_data[26], fc_data[18],
+					fc_data[25], fc_data[17],
+					fc_data[24], fc_data[16],
+					fc_data[15], fc_data[ 7],
+					fc_data[14], fc_data[ 6],
+					fc_data[13], fc_data[ 5],
+					fc_data[12], fc_data[ 4],
+					fc_data[11], fc_data[ 3],
+					fc_data[10], fc_data[ 2],
+					fc_data[ 9], fc_data[ 1],
+					fc_data[ 8], fc_data[ 0] });
+			end
+		end
 	end else begin
 		assert(pstate == P_IDLE || pstate == P_LAST);
 	end
@@ -1909,11 +2040,24 @@ module	sdtxframe #(
 	// "Careless" assumptions
 	// {{{
 
+	// always @(*)
+	// if (!i_reset && tx_valid && fs_count == 0)
+	//	assume(fb_count <= fd_offset);
+
+	// Without the following assertion, f_loaded_count gets out of synch,
+	// and the proof fails.  With the assertion, it passes.
+	// always @(*) assume(i_ckstb || i_hlfck);
+	// always @(*) assume(!i_cfg_ddr && i_cfg_spd >= 1);
 
 	// The following assertion just prevents overflow within the formal
 	// accounting.  It's unnecessary otherwise.
 	always @(*) assume(fb_count < 15'h7fd0);
 
+	// The following assertions are crutches, that have been removed now
+	// that the proof passes.
+	// always @(*) assume(pstate != P_LAST);
+	// always @(*) if (cfg_period == P_1D) assume(!cfg_ddr);
+	// always @(*) if (pstate == P_IDLE) assume(!S_VALID || !S_LAST);
 	// }}}
 `endif	// FORMAL
 // }}}

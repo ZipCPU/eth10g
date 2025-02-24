@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -42,6 +42,7 @@ typedef	uint8_t  BYTE;
 typedef	uint16_t WORD;
 typedef	uint32_t DWORD, LBA_t, UINT;
 #include <diskio.h>
+#include "zipcpu.h"
 #include "emmcdrv.h"
 
 // tx* -- debugging output functions
@@ -173,8 +174,8 @@ static	const	uint32_t
 		SDIO_CARDBUSY = 0x00100000,
 		SDIO_BUSY     = (SDIO_CARDBUSY|SDIO_CMDBUSY|SDIO_DMA|SDIO_MEM),
 		SDIO_CMDERR   = 0x00200000,
-		SDIO_RXERR    = 0x00400000,	// RX Error present
-		SDIO_RXECODE  = 0x00800000,	// RX Error code
+		SDIO_RXERR    = 0x00400000,	// Transfer error present
+		SDIO_RXECODE  = 0x00800000,	// Transfer error code
 		SDIO_DMAERR   = 0x01000000,
 		SDIO_HWRESET  = 0x02000000,
 		SDIO_ACK      = 0x04000000,	// Expect a CRC ACK token
@@ -1568,8 +1569,9 @@ EMMCDRV *emmc_init(EMMC *dev) {
 	EMMCDRV	*dv = (EMMCDRV *)malloc(sizeof(EMMCDRV));
 
 	if (NULL == dv) {
-		txstr("PANIC!  No memory for driver\n");
+		txstr("PANIC!  No memory for eMMC driver\n");
 		PANIC;
+		return NULL;
 	}
 
 	dv->d_dev = dev;
@@ -1684,7 +1686,7 @@ int	emmc_write(EMMCDRV *dev, const unsigned sector,
 		txstr(", ");
 		txhex(count);
 		txstr(", @0x");
-		txhex((unsigned)((unsigned long)buf & 0xfffffffful));
+		txhex((unsigned)buf);
 		txstr("-- [DEV ");
 		txhex(dev->d_dev->sd_cmd);
 		txstr("]\n");
@@ -1898,7 +1900,7 @@ int	emmc_read(EMMCDRV *dev, const unsigned sector,
 		txstr(", ");
 		txhex(count);
 		txstr(", @0x");
-		txhex((unsigned)((unsigned long)buf & 0xfffffffful));
+		txhex((unsigned)buf);
 		txstr("-- [DEV ");
 		txhex(dev->d_dev->sd_cmd);
 		txstr("]\n");
@@ -1917,7 +1919,8 @@ int	emmc_read(EMMCDRV *dev, const unsigned sector,
 		unsigned	phy;
 
 		phy = dev->d_dev->sd_phy;
-		if (SECTOR_512B != (phy & (SECTOR_MASK | SDIOCK_SHUTDN))) {
+		if ((SECTOR_512B|SDIOCK_SHUTDN)
+				!= (phy & (SECTOR_MASK | SDIOCK_SHUTDN))) {
 			// Read multiple *requires* the clock be shut down
 			// between pages, to make sure the device doesn't try
 			// to produce data before we are ready for it.

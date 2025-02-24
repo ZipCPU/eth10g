@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -295,7 +295,7 @@ module axinbroadcast #(
 	if (i_reset || (S_VALID && S_READY))
 		dbg_watchdog <= 0;
 	else if (s_midpkt&& !dbg_watchdog[7])
-		dbg_watchdog <= dbg_watchdog + 1;;
+		dbg_watchdog <= dbg_watchdog + 1;
 
 
 	always @(posedge i_clk)

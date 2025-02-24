@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	rtl/net/pktvfifo.v
+// Filename:	rtl/net/pktvfifo.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -102,7 +102,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //

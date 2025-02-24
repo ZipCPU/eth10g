@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2023-2024, Gisselquist Technology, LLC
+## Copyright (C) 2023-2025, Gisselquist Technology, LLC
 ## {{{
 ## This file is part of the ETH10G project.
 ##
@@ -48,7 +48,7 @@
 			clk_feedback, clk_feedback_bufd,
 			s_lcl_pixclk_nobuf, s_clk4x_unbuffered,
 			s_clk300_nobuf, s_clk300;
-	reg	[2:0]	pipe_reset;
+	reg	[2:0]	pipe_reset, pll_reset;
 	reg	[6:0]	refdly_reset_ctr;
 	wire		refdly_ready;
 @TOP.INSERT=
@@ -58,6 +58,10 @@
 	// {{{
 	// assign	s_clk=s_clk200;
 	// assign	sysclk_locked = 1'b1;
+
+	initial	pll_reset = -1;
+	always @(posedge s_clk200)
+		pll_reset <= { pll_reset[1:0], 1'b0 };
 
 	initial	pipe_reset = -1;
 	always @(posedge s_clk or negedge sysclk_locked)
@@ -77,6 +81,7 @@
 		.CLKOUT2_DIVIDE(14),		// Multiply by 6/14
 		.CLKOUT3_DIVIDE(4)		// Multiply by 3/2
 	) u_syspll (
+		.RST(pll_reset[2]),
 		.CLKOUT0(s_clk_nobuf),		// 100MHz
 		.CLKOUT1(s_clk4x_unbuffered),	// 400MHz
 		.CLKOUT2(s_lcl_pixclk_nobuf),	//  85.7MHz

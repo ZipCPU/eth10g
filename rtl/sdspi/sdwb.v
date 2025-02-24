@@ -37,7 +37,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -203,6 +203,7 @@ module	sdwb #(
 		input	wire			i_card_busy,
 		output	wire			o_hwreset_n,
 		output	wire			o_1p8v,
+		input	wire			i_1p8v,
 		output	reg			o_int,
 		output	wire	[31:0]		o_debug
 		// }}}
@@ -223,14 +224,24 @@ module	sdwb #(
 	localparam	[1:0]	RNO_REPLY = 2'b00,
 				R2_REPLY = 2'b10,
 				R1B_REPLY = 2'b11;
+	// Command register bits
 	localparam		EXPECT_ACK_BIT   = 26,
+				HWRESET_BIT      = 25,
 				CARD_REMOVED_BIT = 18,
 				ERR_BIT          = 15,
 				USE_DMA_BIT      = 13,
 				FIFO_ID_BIT      = 12,
 				USE_FIFO_BIT     = 11,
 				FIFO_WRITE_BIT   = 10;	// Write to SD card
-	localparam		DDR_BIT = 8, CLK90_BIT=14;
+	// PHY register bits
+	localparam		VOLTAGE_BIT = 22,
+				DSCMD_BIT        = 21,
+				CLK_SHUTDOWN_BIT = 15,
+				CLK90_BIT        = 14,
+				PP_CMD_BIT       = 13,
+				PP_DATA_BIT      = 12,
+				DS_BIT           =  9,
+				DDR_BIT          =  8;
 
 	localparam	[1:0]	WIDTH_1W = 2'b00,
 				WIDTH_4W = 2'b01,
@@ -312,9 +323,9 @@ module	sdwb #(
 	assign	bus_rdaddr = i_wb_addr;
 
 	assign	bus_cmd_stb = bus_write && bus_wraddr == ADDR_CMD
-			&& (dma_busy == dma_write)
-			&&((!dma_error && !r_cmd_err && !r_transfer_err)
-					|| (bus_wstrb[1] && bus_wdata[15]));
+		&& (dma_busy == dma_write)
+		&&((!dma_error && !r_cmd_err && !r_transfer_err)
+			|| (bus_wstrb[ERR_BIT/8] && bus_wdata[ERR_BIT]));
 
 
 	// o_soft_reset
@@ -328,10 +339,10 @@ module	sdwb #(
 	end else if (bus_write && bus_wraddr == ADDR_CMD)
 	begin
 		o_soft_reset <= 1'b0;
-		if (OPT_HWRESET && bus_wstrb[3])
-			o_soft_reset <= bus_wdata[25];
+		if (OPT_HWRESET && bus_wstrb[HWRESET_BIT/8])
+			o_soft_reset <= bus_wdata[HWRESET_BIT];
 		if (&bus_wstrb[3:0] && bus_wdata == 32'h5200_0000)
-			o_soft_reset <= (bus_wdata == 32'h5200_0000);
+			o_soft_reset <= 1'b1;
 	end else
 		o_soft_reset <= 1'b0;
 	// }}}
@@ -397,7 +408,7 @@ module	sdwb #(
 					&& bus_wdata[5:0] == 6'h0)); // GO_IDLE
 
 		if (OPT_HWRESET && (!o_hwreset_n
-					|| (bus_wstrb[3] && bus_wdata[25])))
+					|| (bus_wstrb[HWRESET_BIT/8] && bus_wdata[HWRESET_BIT])))
 			w_selfreply_request = 1'b0;
 		if (i_reset || o_soft_reset || !OPT_EMMC)
 			w_selfreply_request = 1'b0;
@@ -421,7 +432,7 @@ module	sdwb #(
 			new_dma_request  = 1'b0;
 			new_r2_request   = 1'b0;
 			// }}}
-		end else if (OPT_HWRESET && bus_wstrb[3] && bus_wdata[25])
+		end else if (OPT_HWRESET && bus_wstrb[HWRESET_BIT/8] && bus_wdata[HWRESET_BIT])
 		begin // Hardware reset request -- overrides everything else
 			// {{{
 			new_cmd_request  = 1'b0;
@@ -1025,7 +1036,7 @@ module	sdwb #(
 	// {{{
 	generate if (OPT_1P8V)
 	begin : GEN_1P8V
-		reg	r_1p8v;
+		reg	new_1p8v, r_1p8v;
 
 		// Chips always start up at 3.3V, so we need to disable 1.8V
 		// on startup.  Once they switch to 1.8V, they cannot switch
@@ -1041,38 +1052,37 @@ module	sdwb #(
 		// then query the card to know if the card supports 1.8V, and
 		// then switch the card and other hardware confidently.
 		//
+		always @(*)
+		begin
+			// Once 1.8v is set, it should stay set.
+			new_1p8v = r_1p8v || (bus_phy_stb
+						&& bus_wstrb[VOLTAGE_BIT/8]
+						&& bus_wdata[VOLTAGE_BIT]);
+
+			// Our one exception is following a hardware reset
+			// request.  In these cases--and only these cases, we
+			// allow the 1.8v setting to be cleared.
+			if (OPT_HWRESET && bus_write && bus_wraddr == ADDR_CMD
+					&& bus_wstrb[HWRESET_BIT/8]
+					&& bus_wdata[HWRESET_BIT])
+				new_1p8v = 1'b0;
+
+			// Of course, the 1.8v setting is *always* cleared on
+			// either a reset, or if the card isn't present in the
+			// first place.  These could be protocol errors, if
+			// OPT_HWRESET (a forced power shutdown) isn't also
+			// supported.
+			if (i_reset || (OPT_HWRESET && !o_hwreset_n)
+					|| !card_present)
+				new_1p8v = 1'b0;
+		end
+
 		initial	r_1p8v = 1'b0;
 		always @(posedge i_clk)
 		if (i_reset || !card_present)
 			r_1p8v <= 1'b0;
-		else if (bus_phy_stb && bus_wstrb[2])
-		begin
-			r_1p8v <= bus_wdata[22];
-
-			// If 1.8v has already been set, then only allow it to
-			// be unset during a hardware reset.  That reset must
-			// be either active already, or commanded as of this
-			// bus request.
-			if (r_1p8v)
-			begin
-				if (!OPT_HWRESET)
-					// If HWRESET isn't supported, then we
-					// can't drop r_1p8v once it is set.
-					r_1p8v <= 1'b1;
-				if ( bus_wstrb[3] && !bus_wdata[25])
-					// If HWRESET is supported, and the user
-					// is requesting the reset be *off*,
-					// then we don't permit r_1p8v to drop.
-					r_1p8v <= 1'b1;
-				if (!bus_wstrb[3] && o_hwreset_n)
-					// If HWRESET is supported, and the
-					// user's request doesn't touch the
-					// reset line but reset is not active,
-					// then don't allow the 1.8v setting to
-					// be released.
-					r_1p8v <= 1'b1;
-			end
-		end
+		else
+			r_1p8v <= new_1p8v;
 
 		assign	o_1p8v = r_1p8v;
 
@@ -1091,14 +1101,14 @@ module	sdwb #(
 		wire	bus_write_reset;
 
 		assign	bus_write_reset = bus_write && bus_wraddr == ADDR_CMD
-				&& bus_wstrb[3];
+				&& bus_wstrb[HWRESET_BIT/8];
 
 		initial	r_hwreset_req = 1'b0;
 		always @(posedge i_clk)
 		if (i_reset)
 			r_hwreset_req <= 1'b0;
 		else if (bus_write_reset)
-			r_hwreset_req <= bus_wdata[25];
+			r_hwreset_req <= bus_wdata[HWRESET_BIT];
 
 		initial	r_rst_counter = CKRSTW;
 		initial	r_hwreset = 1'b0;	// Start at 0, force a rst edge
@@ -1107,7 +1117,7 @@ module	sdwb #(
 		begin
 			r_rst_counter <= CKRSTW;
 			r_hwreset <= 1'b1;
-		end else if (bus_write_reset && !r_hwreset && bus_wdata[25])
+		end else if (bus_write_reset && !r_hwreset && bus_wdata[HWRESET_BIT])
 		begin
 			r_rst_counter <= CKRSTW;
 			r_hwreset <= 1'b1;
@@ -1117,7 +1127,7 @@ module	sdwb #(
 				r_rst_counter <= r_rst_counter - 1;
 				r_hwreset <= 1;
 			end else if ((!bus_write_reset && r_hwreset_req)
-					||(bus_write_reset && bus_wdata[25]))
+				||(bus_write_reset && bus_wdata[HWRESET_BIT]))
 			begin
 				r_rst_counter <= 1;
 				r_hwreset <= 1;
@@ -1186,7 +1196,7 @@ module	sdwb #(
 		{ r_clk_shutdown, o_cfg_clk90 } <= 2'b00;
 	else if (bus_phy_stb && bus_wstrb[CLK90_BIT/8])
 	begin
-		r_clk_shutdown <= bus_wdata[15];
+		r_clk_shutdown <= bus_wdata[CLK_SHUTDOWN_BIT];
 		o_cfg_clk90 <= bus_wdata[CLK90_BIT] || bus_wdata[DDR_BIT];
 	end
 
@@ -1196,7 +1206,7 @@ module	sdwb #(
 	else begin
 		o_cfg_shutdown <= r_clk_shutdown;
 		if (bus_phy_stb && bus_wstrb[1])
-			o_cfg_shutdown <= bus_wdata[15];
+			o_cfg_shutdown <= bus_wdata[CLK_SHUTDOWN_BIT];
 		if (dma_busy)
 			o_cfg_shutdown <= 1'b1;
 		if (w_card_busy)
@@ -1239,7 +1249,10 @@ module	sdwb #(
 	if (i_reset || o_soft_reset)
 		{ o_pp_cmd, o_pp_data } <= 2'b00;
 	else if (bus_phy_stb && bus_wstrb[1])
-		{ o_pp_cmd, o_pp_data } <= bus_wdata[13:12];
+	begin
+		o_pp_cmd  <= bus_wdata[PP_CMD_BIT];
+		o_pp_data <= bus_wdata[PP_DATA_BIT];
+	end
 	// }}}
 
 	// o_cfg_ds: Enable return data strobe support
@@ -1252,8 +1265,8 @@ module	sdwb #(
 		always @(posedge i_clk)
 		if (i_reset || o_soft_reset)
 			r_cfg_ds <= 1'b0;
-		else if (bus_phy_stb && bus_wstrb[1])
-			r_cfg_ds <= (&bus_wdata[9:8]);
+		else if (bus_phy_stb && bus_wstrb[DDR_BIT/8])
+			r_cfg_ds <= bus_wdata[DS_BIT] && bus_wdata[DDR_BIT];
 
 		initial	r_cfg_dscmd = 1'b0;
 		always @(posedge i_clk)
@@ -1263,9 +1276,9 @@ module	sdwb #(
 		begin
 			case(bus_wstrb[2:1])
 			2'b00: begin end
-			2'b10: r_cfg_dscmd<= bus_wdata[21] && o_cfg_ds;
+			2'b10: r_cfg_dscmd<= bus_wdata[DSCMD_BIT] && o_cfg_ds;
 			2'b01: r_cfg_dscmd<= o_cfg_dscmd   && (&bus_wdata[9:8]);
-			2'b11: r_cfg_dscmd<= bus_wdata[21] && (&bus_wdata[9:8]);
+			2'b11: r_cfg_dscmd<= bus_wdata[DSCMD_BIT] && (&bus_wdata[9:8]);
 			endcase
 		end
 
@@ -1388,7 +1401,7 @@ module	sdwb #(
 		w_phy_ctrl[31:28] = LGFIFO; // Can also set lgblk=15, & read MAX
 		w_phy_ctrl[27:24] = lgblk;
 		w_phy_ctrl[23]    = OPT_1P8V;
-		w_phy_ctrl[22]    = o_1p8v;
+		w_phy_ctrl[22]    = i_1p8v;
 		w_phy_ctrl[21]    = o_cfg_dscmd;
 		w_phy_ctrl[20:16] = o_cfg_sample_shift;
 		w_phy_ctrl[15]    = r_clk_shutdown;
@@ -1671,7 +1684,7 @@ module	sdwb #(
 	// tx_mem_addr
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || !o_tx_en || o_soft_reset || o_tx_mem_last)
+	if (i_reset || !o_tx_en || o_soft_reset || o_tx_mem_last || r_tx_sent)
 		tx_mem_addr <= 0;
 	else if (!o_tx_mem_valid || i_tx_mem_ready || !tx_pipe_valid)
 		tx_mem_addr <= tx_mem_addr + 1;
@@ -1709,7 +1722,7 @@ module	sdwb #(
 		tx_fifo_b <= fifo_b[fif_b_rdaddr];
 
 	always @(posedge i_clk)
-	if (OPT_LOWPOWER && (i_reset || o_soft_reset || !o_tx_en))
+	if (OPT_LOWPOWER && (i_reset || o_soft_reset || !o_tx_en || r_tx_sent))
 		tx_fifo_last <= 0;
 	else if (!o_tx_mem_valid || i_tx_mem_ready)
 		tx_fifo_last <= pre_tx_last;
@@ -1723,7 +1736,7 @@ module	sdwb #(
 		reg	[$clog2(MW/32)-1:0]	r_tx_shift;
 
 		always @(posedge i_clk)
-		if (OPT_LOWPOWER && (i_reset || o_soft_reset || !o_tx_en))
+		if (OPT_LOWPOWER && (i_reset || o_soft_reset || !o_tx_en || r_tx_sent))
 			r_tx_shift <= 0;
 		else if (!o_tx_mem_valid || i_tx_mem_ready)
 			r_tx_shift <= tx_mem_addr[$clog2(MW/32)-1:0];
@@ -1738,7 +1751,7 @@ module	sdwb #(
 	end
 
 	always @(posedge i_clk)
-	if (!o_tx_mem_valid || i_tx_mem_ready)
+	if ((!o_tx_mem_valid || i_tx_mem_ready) && !r_tx_sent)
 		o_tx_mem_data <= next_tx_mem[31:0];
 	// }}}
 
@@ -2884,6 +2897,7 @@ module	sdwb #(
 		assign	dma_int       = 1'b0;
 		assign	dma_stopped   = 1'b1;
 		assign	dma_read_active = 1'b0;
+		assign	dma_tx   = 1'b0;
 		//
 		// Common control signals
 		assign	o_dma_addr   = 0;
@@ -2899,7 +2913,6 @@ module	sdwb #(
 		assign	o_s2sd_ready = 1'b1;
 
 		assign	dma_len_return = 0;
-		assign	dma_tx   = 1'b0;
 
 		// Keep Verilator happy with the DMA
 		// {{{
@@ -3009,7 +3022,7 @@ module	sdwb #(
 	assign	o_wb_data = bus_rddata;
 	// }}}
 
-	assign	o_debug = { w_cmd_word[15], w_card_busy,		// 1b
+	assign	o_debug = { w_cmd_word[ERR_BIT], w_card_busy,		// 1b
 		// Command:
 		o_cmd_request, cmd_busy || (i_cmd_busy && o_cmd_request),
 					i_cmd_done,			// 7b

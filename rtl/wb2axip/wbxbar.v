@@ -52,7 +52,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -581,7 +581,7 @@ module	wbxbar #(
 			// r_reindex
 			// {{{
 			// Verilator lint_off BLKSEQ
-			always @(r_regrant, regrant)
+			always @(r_regrant or regrant or r_mindex)
 			begin
 				r_reindex = 0;
 				for(iM=0; iM<=NS; iM=iM+1)

@@ -553,7 +553,6 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## Adding in any XDC_INSERT tags
 
 ## From sirefclkcounter
-## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in wbu_arbiter
 ## No XDC.INSERT tag in spio
@@ -594,6 +593,7 @@ set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins 
 ## No XDC.INSERT tag in zip_tmc
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
+## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in zip_jiffies
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
@@ -640,5 +640,4 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 ## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in cpunet
 ## No XDC.INSERT tag in routescope
-## No XDC.INSERT tag in sdioscope
 ## No XDC.INSERT tag in mem_bkram_only

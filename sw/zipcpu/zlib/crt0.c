@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	sim/zipsw/zlib/crt0.c
+// Filename:	sw/zipcpu/zlib/crt0.c
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -91,7 +91,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -114,7 +114,7 @@
 //		http://www.gnu.org/licenses/gpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
-// }}}
+//
 // }}}
 #include "zipcpu.h"
 #include "board.h"		// Our current board support file

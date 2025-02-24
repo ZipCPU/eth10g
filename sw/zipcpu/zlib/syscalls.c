@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2024, Gisselquist Technology, LLC
+// Copyright (C) 2023-2025, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -54,6 +54,7 @@
 // #define	TXBUSY	((_uart->u_fifo & 0x010000)==0)
 #define	TXBUSY	((UARTTX & 0x0100)!=0)
 // #define	TXBUSY	0
+#define	FIFO_ENABLED
 
 void _outbyte(char v) {
 	// {{{
