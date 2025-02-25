@@ -85,6 +85,7 @@ module	wbi2cslave #(
 
 	// Local declarations
 	// {{{
+	localparam	PL=2;
 	localparam [0:0] READ_ONLY = WB_READ_ONLY && I2C_READ_ONLY
 							&& !AXIS_SUPPORT;
 
@@ -283,7 +284,6 @@ module	wbi2cslave #(
 	//
 
 	// 2FF Synchronizer
-	localparam	PL=2;
 	always @(posedge i_clk)
 		i2c_pipe <= { i2c_pipe[(2*PL-3):0], i_i2c_scl, i_i2c_sda };
 

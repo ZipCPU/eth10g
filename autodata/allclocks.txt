@@ -108,6 +108,7 @@
 	else if (!refdly_reset_ctr[5])
 		refdly_reset_ctr <= refdly_reset_ctr + 1;
 
+	(* IODELAY_GROUP="HDMI-DLYGROUP" *)
 	IDELAYCTRL
 	u_dlyctrl (.REFCLK(s_clk300), .RST(refdly_reset_ctr[5]),
 		.RDY(refdly_ready));

@@ -112,6 +112,7 @@ module	xhdmiin_deserdes #(
 
 		assign w_hs_wire = 1'b0;
 
+		(* IODELAY_GROUP="HDMI-DLYGROUP" *)
 		IDELAYE2	#(
 			.CINVCTRL_SEL("FALSE"),
 			.DELAY_SRC(DELAYSRC),

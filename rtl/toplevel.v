@@ -198,7 +198,7 @@ module	toplevel(
 	output	wire		o_ddr3_reset_n;
 	output	wire	[1:0]	o_ddr3_cke;
 	output	wire	[0:0]	o_ddr3_clk_p, o_ddr3_clk_n;
-	output	wire	[1:0]	o_ddr3_cs_n; // o_ddr3_s_n[1] is set to 0 since controller only support single rank
+	output	wire	[1:0]	o_ddr3_s_n; // o_ddr3_s_n[1] is set to 0 since controller only support single rank
 	output	wire	[0:0]	o_ddr3_ras_n, o_ddr3_cas_n, o_ddr3_we_n;
 	output	wire	[DDR3_CONTROLLERBA_BITS-1:0]	o_ddr3_ba;
 	output	wire	[15:0]	o_ddr3_a; //set to max of 16 bits, but only ROW_BITS bits are relevant
@@ -470,6 +470,7 @@ module	toplevel(
 	else if (!refdly_reset_ctr[5])
 		refdly_reset_ctr <= refdly_reset_ctr + 1;
 
+	(* IODELAY_GROUP="HDMI-DLYGROUP" *)
 	IDELAYCTRL
 	u_dlyctrl (.REFCLK(s_clk300), .RST(refdly_reset_ctr[5]),
 		.RDY(refdly_ready));
