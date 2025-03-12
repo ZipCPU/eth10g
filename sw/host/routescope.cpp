@@ -67,7 +67,7 @@ void	closeup(int v) {
 }
 
 class	ROUTESCOPE : public SCOPE {
-	const	unsigned DBGSEL = 1;
+	const	unsigned DBGSEL = 2;
 public:
 	ROUTESCOPE(DEVBUS *fpga, unsigned addr, bool vecread)
 		: SCOPE(fpga, addr, true, vecread) {};
@@ -77,6 +77,7 @@ public:
 
 	virtual	void	define_traces(void) {
 		if (DBGSEL == 0) {
+			// {{{
 			register_trace("watchdog", 1,30);
 			register_trace("CPU_VALID",1,29);
 			register_trace("CPU_READY",1,28);
@@ -87,8 +88,9 @@ public:
 			register_trace("TX_VALID", 4, 8);
 			register_trace("TX_READY", 4, 4);
 			register_trace("mid_tx",   4, 0);
+			// }}}
 		} else if (DBGSEL == 1) {
-
+			// {{{
 			register_trace("M_VALID",1,30);
 			register_trace("M_READY",1,29);
 			register_trace("M_LAST", 1,28);
@@ -121,6 +123,46 @@ public:
 			register_trace("R[0]",   1, 2);
 			register_trace("L[0]",   1, 1);
 			register_trace("A[0]",   1, 0);
+			// }}}
+		} else if (DBGSEL == 2) {
+			// {{{
+			register_trace("RX_VALID[3]",1,30);
+			register_trace("RX_READY[3]",1,29);
+			register_trace("RX_LAST[3]", 1,28);
+			register_trace("RX_ABORT[3]",1,27);
+			register_trace("ABORT[3]",   1,26);
+			register_trace("ABORT[2]",   1,25);
+
+			register_trace("O_CYC",      1,24);
+			register_trace("O_STB",      1,23);
+			register_trace("O_WE",       1,22);
+			register_trace("I_STALL" ,   1,21);
+			register_trace("I_ACK",      1,20);
+			//
+			register_trace("CYC[3]",     1,19);
+			register_trace("STB[3]",     1,18);
+			register_trace("WE[3]",      1,17);
+			register_trace("STALL[3]",   1,16);
+			register_trace("ACK[3]",     1,15);
+			//
+			register_trace("CYC[2]",     1,14);
+			register_trace("STB[2]",     1,13);
+			register_trace("WE[2]",      1,12);
+			register_trace("STALL[2]",   1,11);
+			register_trace("ACK[2]",     1,10);
+			//
+			register_trace("CYC[1]",     1, 9);
+			register_trace("STB[1]",     1, 8);
+			register_trace("WE[1]",      1, 7);
+			register_trace("STALL[1]",   1, 6);
+			register_trace("ACK[1]",     1, 5);
+			//
+			register_trace("CYC[0]",     1, 4);
+			register_trace("STB[0]",     1, 3);
+			register_trace("WE[0]",      1, 2);
+			register_trace("STALL[0]",   1, 1);
+			register_trace("ACK[0]",     1, 0);
+			// }}}
 		}
 	}
 };

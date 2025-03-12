@@ -41,12 +41,14 @@
 @PREFIX=sdram
 @DEVID=SDRAM
 @ACCESS=@$(DEVID)_ACCESS
-@DEPENDS=ALLCLOCKS_PRESENT
+## @DEPENDS=ALLCLOCKS_PRESENT
+@MAIN.INCLUDE=
+`define	MIG_ACCESS
 ## LGMEMSZ is the size of the SDRAM in bytes, 29 => 512MB
-@$LGMEMSZ=29
+@$LGMEMSZ=30
+@$DDRWIDTH=64
 @LGMEMSZ.FORMAT=%d
-@$UNUSED=9
-@$NADDR=(1<<(LGMEMSZ-(@$(UNUSED))))
+@$NADDR=(1<< @$(LGMEMSZ))/(@$(SLAVE.BUS.WIDTH)/8)
 @$NBYTES=(1<<(@$LGMEMSZ))
 @NBYTES.FORMAT=0x%08x
 @$MADDR= @$(REGBASE)
@@ -55,10 +57,10 @@
 @SLAVE.BUS=wbwide
 # @CLOCK.NAME=clk
 # @CLOCK.FREQUENCY = 81250000
-@BUS=wb
+@BUS=wbwide
 ## @ERROR.WIRE=@$(PREFIX)_err
 # 8-bit byte accesses
-@$ABITS=@$(LGMEMSZ)-@$(UNUSED)
+@ABITS=$clog2(@$NADDR)
 @LD.PERM=wx
 @TOP.PORTLIST=
 		// SDRAM I/O port wires
@@ -78,16 +80,16 @@
 	output	wire	[2:0]	ddr3_ba;
 	output	wire	[14:0]	ddr3_addr;
 	output	wire	[0:0]	ddr3_odt;
-	output	wire	[1:0]	ddr3_dm;
-	inout	wire	[1:0]	ddr3_dqs_p, ddr3_dqs_n;
-	inout	wire	[15:0]	ddr3_dq;
+	output	wire	[@$(DDRWIDTH)/8-1:0]	ddr3_dm;
+	inout	wire	[@$(DDRWIDTH)/8-1:0]	ddr3_dqs_p, ddr3_dqs_n;
+	inout	wire	[@$(DDRWIDTH)-1:0]	ddr3_dq;
 	// }}}
 @TOP.DEFNS=
 	// Wires necessary to run the SDRAM
 	// {{{
 	wire	@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we,
 		@$(PREFIX)_stall, @$(PREFIX)_ack, @$(PREFIX)_err;
-	wire	[(@$(LGMEMSZ)-@$(UNUSED)-1):0]	@$(PREFIX)_addr;
+	wire	[(@$(ABITS)-1):0]	@$(PREFIX)_addr;
 	wire	[(@$(BUS.WIDTH)-1):0]	@$(PREFIX)_wdata,
 					@$(PREFIX)_rdata;
 	wire	[(@$(BUS.WIDTH)/8-1):0]	@$(PREFIX)_sel;
@@ -108,12 +110,12 @@
 	migsdram #(
 		// {{{
 		.AXIDWIDTH(1), .WBDATAWIDTH(@$(BUS.WIDTH)),
-		.DDRWIDTH(16),
+		.DDRWIDTH(@$(DDRWIDTH)),
 		.RAMABITS(@$(LGMEMSZ))
 		// }}}
 	) @$(PREFIX)i(
 		// {{{
-		.i_clk(i_clk_buffered),
+		.i_clk(pre_mig_clk),
 		.i_clk_200mhz(s_clk_200mhz),
 		.o_sys_clk(s_clk),
 		// .i_rst(!i_cpu_resetn),
@@ -153,8 +155,8 @@
 	output	wire	[(@$(BUS.WIDTH)-1):0]	o_@$(PREFIX)_data;
 	output	wire	[(@$(BUS.WIDTH)/8)-1:0]	o_@$(PREFIX)_sel;
 	//
-	input	wire			i_@$(PREFIX)_ack;
 	input	wire			i_@$(PREFIX)_stall;
+	input	wire			i_@$(PREFIX)_ack;
 	input	wire	[(@$(BUS.WIDTH)-1):0]	i_@$(PREFIX)_data;
 	// Verilator lint_off UNUSED
 	input	wire			i_@$(PREFIX)_err;

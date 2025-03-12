@@ -4,3 +4,6 @@
 [submodule "UberDDR3"]
 	path = UberDDR3
 	url = https://github.com/AngeloJacobo/UberDDR3
+[submodule "wbsata"]
+	path = wbsata
+	url = https://github.com/ZipCPU/wbsata

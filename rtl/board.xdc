@@ -553,6 +553,8 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## Adding in any XDC_INSERT tags
 
 ## From sirefclkcounter
+## No XDC.INSERT tag in fan
+## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in wbu_arbiter
 ## No XDC.INSERT tag in spio
@@ -563,7 +565,6 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## No XDC.INSERT tag in zip_alt_uic
 ## No XDC.INSERT tag in clk200
 ## No XDC.INSERT tag in prebus
-## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in version
 ## No XDC.INSERT tag in zip_alt_mpc
 ## No XDC.INSERT tag in clk
@@ -585,7 +586,6 @@ set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins 
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in zip_alt_moc
 ## No XDC.INSERT tag in zip_alt_utc
 ## No XDC.INSERT tag in clk150
@@ -593,11 +593,11 @@ set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins 
 ## No XDC.INSERT tag in zip_tmc
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
-## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in zip_jiffies
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
 ## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in netstats
 ## No XDC.INSERT tag in TMA
 ## No XDC.INSERT tag in bkram
 ## No XDC.INSERT tag in ddr3_controller
@@ -640,4 +640,6 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 ## No XDC.INSERT tag in wb
 ## No XDC.INSERT tag in cpunet
 ## No XDC.INSERT tag in routescope
+## No XDC.INSERT tag in i2cscope
+## No XDC.INSERT tag in gatescope
 ## No XDC.INSERT tag in mem_bkram_only

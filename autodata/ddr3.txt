@@ -74,7 +74,7 @@
 		io_ddr3_dqs_p, io_ddr3_dqs_n, io_ddr3_dq
 
 @TOP.PARAM=
-	localparam real @$(DEVID)CONTROLLER_CLK_PERIOD = 10_000,  //ps, clock period of the controller interface
+	localparam @$(DEVID)CONTROLLER_CLK_PERIOD = 10_000,  //ps, clock period of the controller interface
 		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD) 
 	localparam @$(DEVID)ROW_BITS = 14,  // width of row address
 		@$(DEVID)COL_BITS = 10,  // width of column address
@@ -148,6 +148,12 @@
 	@$(PREFIX)_write_leveling_calib,
 	@$(PREFIX)_reset
 @TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// DDR3 PHY logic
+	// {{{
+	assign	s_clk = pre_mig_clk;
+
 	// DDR3 PHY Instantiation
 	ddr3_phy #(
 		// {{{
@@ -220,6 +226,7 @@
 	begin : GEN_UNUSED_@$(DEVID)_ASSIGN
 		assign o_ddr3_a[@$(PREFIX)gen_index] = 0;
 	end endgenerate
+	// }}}
 @MAIN.PORTLIST=
 		// DDR3 Controller Interface
 		i_@$(PREFIX)_iserdes_data, i_@$(PREFIX)_iserdes_dqs,
@@ -335,7 +342,7 @@
 @PREFIX=ddr3_phy
 @DEVID=DDR3_PHY
 @ACCESS=@$(DEVID)_ACCESS
-@$NADDR=128
+@$NADDR=16 * @$(ddr3_controller.NLANES)
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=wb32
 @SLAVE.ANSPREFIX=wb2_

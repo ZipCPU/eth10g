@@ -62,6 +62,13 @@ typedef	struct SDIO_S {
 #define	TRIGGER
 #endif
 
+const uint32_t
+	SDIO_CMD	= 0x00000040,
+	SDIO_RNONE	= 0x00000000,
+	SDIO_R1		= 0x00000100,
+	SDIO_ERR	= 0x00008000,
+	SDIO_REMOVED	= 0x00040000;
+
 #ifdef	_BOARD_HAS_SDIO
 void	wait_while_busy(void) {
 	unsigned	v;
@@ -97,9 +104,9 @@ int main(int argc, char **argv) {
 	txstr("CMD0:    GO_IDLE\r\n");
 	// {{{
 	_sdio->sd_data = 0;
-	_sdio->sd_cmd = 0x00048040;
+	_sdio->sd_cmd = SDIO_REMOVED | SDIO_CMD | SDIO_RNONE | SDIO_ERR;
 	wait_while_busy();
-	if ((_sdio->sd_cmd & 0x80ff) != 0x040) {
+	if ((_sdio->sd_cmd & 0x80ff) != SDIO_CMD) {
 		TRIGGER;
 		goto failed;
 	}
@@ -108,12 +115,13 @@ int main(int argc, char **argv) {
 	txstr("  Data:    "); txhex(_sdio->sd_data); txstr("\r\n");
 	// }}}
 
-	txstr("CMD8:    SEND_IF_COND\r\n");
+	txstr("CMD8:    SEND_IF_COND (");
+	txhex((SDIO_R1|SDIO_CMD)+8); txstr(")\r\n");
 	// {{{
 	_sdio->sd_data = 0x01a5;
-	_sdio->sd_cmd  = 0x0148;
+	_sdio->sd_cmd  = (SDIO_R1 | SDIO_CMD) + 8;
 	wait_while_busy();
-	if ((_sdio->sd_cmd & 0x80ff) != 0x008) {
+	if ((_sdio->sd_cmd & 0x80ff) != 8) {
 		TRIGGER;
 		goto failed;
 	}
@@ -127,7 +135,7 @@ int main(int argc, char **argv) {
 	do {
 		txstr("CMD55:   SEND_APP_CMD\r\n");
 		_sdio->sd_data = 0;
-		_sdio->sd_cmd  = 0x8140 + 55;
+		_sdio->sd_cmd  = (SDIO_ERR | SDIO_CMD | SDIO_R1) + 55;
 		wait_while_busy();
 		if ((_sdio->sd_cmd & 0x80ff) != 55) {
 			TRIGGER;
@@ -141,7 +149,7 @@ int main(int argc, char **argv) {
 
 		txstr("ACMD41:  SEND_OP_COND\r\n");
 		_sdio->sd_data = 0x40ff8000;
-		_sdio->sd_cmd  = 0x0140 + 41;
+		_sdio->sd_cmd  = (SDIO_CMD | SDIO_R1) + 41;
 		wait_while_busy();
 		if ((_sdio->sd_cmd & 0x00ff) != 0x03f) {
 			TRIGGER;

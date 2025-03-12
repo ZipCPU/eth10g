@@ -67,10 +67,11 @@
 		// }}}
 	) @$(PREFIX)i(
 		// {{{
-		@$(DATA_CLOCK), @$(CAPTURECE), @$(TRIGGER), @$(DEBUG),
-		@$(SLAVE.BUS.CLOCK.WIRE),
-		@$(SLAVE.PORTLIST),
-		@$(PREFIX)_int
+		.i_data_clk(@$(DATA_CLOCK)), .i_ce(@$(CAPTURECE)),
+			.i_trigger(@$(TRIGGER)), .i_data(@$(DEBUG)),
+		.i_wb_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
+		@$(SLAVE.ANSIPORTLIST),
+		.o_interrupt(@$(PREFIX)_int)
 		// }}}
 	);
 @MAIN.ALT=

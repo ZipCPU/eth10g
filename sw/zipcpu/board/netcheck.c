@@ -266,6 +266,18 @@ int main(int argc, char **argv) {
 	__asm__("NOOP");
 	(*_netreset) = 0;
 #endif
+	// Clear any statistics
+#ifdef	NETSTAT_ACCESS
+	{
+		_netstats->v_if[0].v_rx_pktlo = 0;
+		_netstats->v_if[1].v_rx_pktlo = 0;
+		_netstats->v_if[2].v_rx_pktlo = 0;
+		_netstats->v_if[3].v_rx_pktlo = 0;
+	}
+#else
+#error "No netstat"
+#endif
+
 	{
 		unsigned	nvr;
 		nvr  = (0x12 << 4*6) | (0x0b << 3*6)
@@ -278,8 +290,12 @@ int main(int argc, char **argv) {
 			(volatile unsigned)_gnet->v_never,
 			(volatile unsigned)_gnet->v_always,
 			(unsigned)&_gnet->v_never);
+
+		// 0x1e6d77df
+		// 0x01000010
 	}
 	// }}}
+
 
 	char	*vfifo_base[4], *ptr;
 	char	*vfifo_rx, *vfifo_tx;
@@ -474,7 +490,7 @@ int main(int argc, char **argv) {
 		unsigned	pktln;
 
 		// Let's create a ARP request packet, and send it to FPGA #1
-		pkt_send(pkt, 64);
+		// pkt_send(pkt, 64);
 		// Now let's wait a second and see what comes back ...
 		while(0 == (_zip->z_pic & SYSINT_JIFFIES)) {
 			unsigned char *epay = (unsigned char *)&rxpktb[14],

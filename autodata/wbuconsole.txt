@@ -309,10 +309,11 @@ typedef struct  CONSOLE_S {
 
 #define	_@$(PREFIX)_txbusy	((_uart->u_fifo & 0x10000)==0)
 #define	_@$(PREFIX)_txidle	((_uart->u_tx   & 0x100)  ==0)
-@BDEF.IONAME= io_console
+@BDEF.IONAME=_@$(PREFIX)
 @BDEF.IOTYPE= CONSOLE
 @BDEF.OSDEF=	_BOARD_HAS_BUSCONSOLE
-@BDEF.OSVAL=static volatile CONSOLE *const _@$(PREFIX) = ((CONSOLE *)@$[0x%08x](REGBASE));
+@BDEF.OSVAL=static volatile CONSOLE *const @$(BDEF.IONAME) = ((CONSOLE *)@$[0x%08x](REGBASE));
 @RTL.MAKE.GROUP= CONSOLE
 @RTL.MAKE.SUBD=wbuart
 @RTL.MAKE.FILES= txuartlite.v rxuartlite.v ufifo.v
+@LD.DEFNS=@$(BDEF.IONAME) = @$[0x%08x](REGBASE);

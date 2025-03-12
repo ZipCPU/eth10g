@@ -146,6 +146,8 @@
 	// Verilator lint_off UNUSED
 	wire	[32*NETDEVS-1:0]	@$(PREFIX)_net_debug;
 	wire	[32-1:0]		@$(PREFIX)_route_debug;
+	wire	[32-1:0]		net_pkt_debug;
+	wire	[32*NETDEVS-1:0]	netgate_debug;
 	// Verilator lint_on  UNUSED
 @GENDCD=GEN_ETHERNET_DECODE
 @MAIN.INSERT=
@@ -187,10 +189,13 @@
 			.S_LAST( @$(PREFIX)_tx_last[g_@$(PREFIX)]),
 			.S_ABORT(@$(PREFIX)_tx_abort[g_@$(PREFIX)]),
 			// }}}
+			.o_pkt_debug(netgate_debug[32*g_@$(PREFIX) +: 32]),
 			.o_debug(@$(PREFIX)_net_debug[32*g_@$(PREFIX) +: 32])
 			// }}}
 		);
 	end endgenerate
+
+	assign	net_pkt_debug = netgate_debug[32*2 +: 32];
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -198,6 +203,7 @@
 	// {{{
 
 	routecore #(
+		// {{{
 		.NETH(NETPORTS),
 `ifdef	CPUNET_ACCESS
 		.OPT_CPUNET(1'b1),
@@ -218,6 +224,7 @@
 		// , .OPT_NEVER({ 5'h10, 5'h1f, 5'h1f, 5'h1f, 5'h1f }),
 		// .OPT_ALWAYS({ 5'h00, 5'h04, 5'h08, 5'h00, 5'h00 })
 `endif
+		// }}}
 	) u_router (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset),

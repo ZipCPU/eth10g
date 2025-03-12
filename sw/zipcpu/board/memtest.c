@@ -37,8 +37,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-#include "zipcpu.h"
+#include <string.h>
 #include "board.h"
+#include "zipcpu.h"
+#include "zipsys.h"
+#include "txfns.h"
 
 extern	char	_sdram[0x40000000];
 
@@ -47,9 +50,19 @@ extern	char	_sdram[0x40000000];
 #define	STEP(F,T)  asm volatile("LSR 1,%0\n\tXOR.C %1,%0" : "+r"(F) : "r"(T))
 #define	FAIL		asm("TRAP")
 
+#ifdef	_BOARD_HAS_RAMSCOPE
+#define	SET_SCOPE	_ramscope->s_ctrl = WBSCOPE_DISABLE | SCOPE_DELAY
+#define	TRIGGER_SCOPE	_ramscope->s_ctrl = WBSCOPE_TRIGGER | SCOPE_DELAY
+#else
+#define	SET_SCOPE
+#define	TRIGGER_SCOPE
+#endif
+
 //
 // memchk
 // {{{
+unsigned	timestamps[12];
+
 void	memchk(int *mem, int *end, unsigned seed) {
 	int	counts = seed;
 	// const	int	TAPS = 0x0485b5;
@@ -64,24 +77,91 @@ void	memchk(int *mem, int *end, unsigned seed) {
 	// const	int	TAPS = 0x0400501;	// 8Gb
 	// const	int	TAPS = 0x0401401;	// 8Gb
 	// const	int	TAPS = 0x07fffdf;	// 8Gb
+	char	*const cmem= (char *)mem;
 	char	*const endc= (char *)end;
+	unsigned	start, mid, stop, lnw;
 
+	for(int i=0; i<12; i++)
+		timestamps[i] = 0;
+	timestamps[0] = _zip->z_m.ac_ck;
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// #1, data line check
+	// {{{
+	txchr('\n');
+	for(int k=0; k<512; k++) {
+		for(int j=0; j<512/8; j++) {
+			if ((k>>3) == j)
+				cmem[j] = (1<<(k&7));
+			else
+				cmem[j] = '\0';
+		}
+
+		CLEAR_DCACHE;
+
+		for(int j=0; j<512/8; j++) {
+			if ((k>>3) == j) {
+				if (cmem[j] != (1<<(k&7)))
+					FAIL;
+			} else if (cmem[j] != '\0')
+				FAIL;
+		}
+	}
 #ifdef	_BOARD_HAS_SPIO
 	// {{{
 	// Clear the bottom 3 LED's
 	*_spio = 0x0e00;
 	// }}}
 #endif
+	timestamps[1] = _zip->z_m.ac_ck;
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// #1, sequential access, filled with LRS
+	// #2, address line check
+	// {{{
+	txchr('1');
+	for(int k=0; cmem + (1<<k)<endc; k++) {
+		for(int j=0; cmem + (1<<j) < endc; j++) {
+			if (k == j)
+				cmem[j] = 0xad;
+			else
+				cmem[j] = '\0';
+		}
+
+		CLEAR_DCACHE;
+
+		for(int j=0; cmem + (1<<j) < endc; j++) {
+			if (k == j) {
+				if (cmem[j] != 0xad)
+					FAIL;
+			} else if (cmem[j] != '\0')
+				FAIL;
+		}
+	}
+
+#ifdef	_BOARD_HAS_SPIO
+	// {{{
+	// Clear the bottom 3 LED's
+	*_spio = 0x0e02;
+	// }}}
+#endif
+	timestamps[2] = _zip->z_m.ac_ck;
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// #3, sequential access, filled with LRS
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	{
+	txchr('2');
+	if (1) {
 		int	*mptr = mem;
 		unsigned fill;
+
+
+		start = _zip->z_m.ac_ck;
 
 		// Write to memory
 		// {{{
@@ -93,35 +173,48 @@ void	memchk(int *mem, int *end, unsigned seed) {
 		}
 		// }}}
 
+		mid = _zip->z_m.ac_ck;
+
+		CLEAR_DCACHE;
+
 		// Read and compare
 		// {{{
 		fill = (counts == 0) ? 1 : counts;
 		mptr = mem;
 		while(mptr < end) {
 			STEP(fill, TAPS);
-			if (*mptr != (int)fill)
+			if (*mptr != (int)fill) {
 				FAIL;
+				break;
+			}
 			mptr++;
 		}
 		// }}}
+
+		stop = _zip->z_m.ac_ck;
+		txstr("- SEQ: 0x"); txhex(mid-start); txstr(":"); txhex(stop-mid); txstr(" // ");
+
 	}
 	// }}}
 #ifdef	_BOARD_HAS_SPIO
 	// {{{
 	// First test done, set the bottom LED
-	*_spio = 0x0e02;
+	*_spio = 0x0e04;
 	// }}}
 #endif
 	////////////////////////////////////////////////////////////////////////
 	//
-	// #2, sequential access, read/write 3x at a time
+	// #4, sequential access, read/write 3x at a time
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+	txchr('3');
 	if (1) {
 		int	*mptr = mem;
 		unsigned fill;
+
+		start = _zip->z_m.ac_ck;
 
 		// Write to memory
 		// {{{
@@ -142,6 +235,10 @@ void	memchk(int *mem, int *end, unsigned seed) {
 		}
 		// }}}
 
+		mid = _zip->z_m.ac_ck;
+		// TRIGGER_SCOPE;	// CP #3
+		CLEAR_DCACHE;
+
 		// Read and compare
 		// {{{
 		mptr = mem;
@@ -154,38 +251,50 @@ void	memchk(int *mem, int *end, unsigned seed) {
 			c = mptr[2];
 
 			STEP(fill, TAPS);
-			if (a != (int)fill)
-				FAIL;
+			if (a != (int)fill) {
+				FAIL; break;
+			}
 
 			STEP(fill, TAPS);
-			if (b != (int)fill)
-				FAIL;
+			if (b != (int)fill) {
+				FAIL; break;
+			}
 
 			STEP(fill, TAPS);
-			if (c != (int)fill)
-				FAIL;
+			if (c != (int)fill) {
+				FAIL; break;
+			}
 
 			mptr+=3;
 		}
 		// }}}
+
+		stop = _zip->z_m.ac_ck;
+		// TRIGGER_SCOPE;	// CP #4
 	}
 	// }}}
 #ifdef	_BOARD_HAS_SPIO
 	// {{{
 	// Second test done, set the LEDs to reflect that
-	*_spio = 0x0e04;
+	*_spio = 0x0e06;
 	// }}}
 #endif
+	timestamps[4] = _zip->z_m.ac_ck;
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// #3, sequential access, read/write 3x characters at a time
+	// #5, sequential access, read/write 3x characters at a time
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+	txchr('4');
 	if (1) {
 		char	*mcptr;
 		unsigned fill;
+
+
+		start = _zip->z_m.ac_ck;
 
 		// Write to memory
 		// {{{
@@ -206,6 +315,10 @@ void	memchk(int *mem, int *end, unsigned seed) {
 		}
 		// }}}
 
+		mid = _zip->z_m.ac_ck;
+		// TRIGGER_SCOPE;	// CP #5
+		CLEAR_DCACHE;
+
 		// Read and compare
 		// {{{
 		mcptr = (char *)mem;
@@ -218,38 +331,58 @@ void	memchk(int *mem, int *end, unsigned seed) {
 			c = mcptr[2];
 
 			STEP(fill, TAPS);
-			if (((a ^ (int)fill)&0x0ff)!=0)
+			a ^= fill;
+			if ((a&0x0ff)!=0) {
 				FAIL;
+				break;
+			}
 
 			STEP(fill, TAPS);
-			if (((b ^ (int)fill)&0x0ff)!=0)
+			b ^= fill;
+			if ((b &0x0ff)!=0) {
 				FAIL;
+				break;
+			}
 
 			STEP(fill, TAPS);
-			if (((c ^ (int)fill)&0x0ff)!=0)
+			c ^= fill;
+			if ((c&0x0ff)!=0) {
 				FAIL;
+				break;
+			}
 
 			mcptr+=3;
 		}
 		// }}}
+		stop = _zip->z_m.ac_ck;
+		// TRIGGER_SCOPE;	// CP #6
+
+		txstr(" - TRB: 0x"); txhex(mid-start); txstr(":"); txhex(stop-mid); txstr(" // ");
+
 	}
-	// }}}
 #ifdef	_BOARD_HAS_SPIO
 	// {{{
 	// Third test done
-	*_spio = 0x0e06;
+	*_spio = 0x0e08;
 	// }}}
 #endif
+	timestamps[5] = _zip->z_m.ac_ck;
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// #4, random access, read/write one word at a time
+	// #6, random access, read/write one word at a time
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	{
+
+	txchr('5');
+	if (1) {
 		int	*mptr = mem;
 		unsigned afill, dfill, amsk, initial_afill;
+
+
+		start = _zip->z_m.ac_ck;
 
 		// Write to memory
 		// {{{
@@ -265,6 +398,10 @@ void	memchk(int *mem, int *end, unsigned seed) {
 		} while(afill != initial_afill);
 		// }}}
 
+		mid = _zip->z_m.ac_ck;
+		// TRIGGER_SCOPE;	// CP #7
+		CLEAR_DCACHE;
+
 		// Read and compare
 		// {{{
 		afill = counts;       if (afill == 0) afill = 1;
@@ -274,24 +411,116 @@ void	memchk(int *mem, int *end, unsigned seed) {
 			STEP(afill, TAPS);
 			STEP(dfill, TAPS);
 			if ((afill & (~amsk)) == 0) {
-				if (mptr[afill&amsk] != (int)dfill)
-				FAIL;
+				if (mptr[afill&amsk] != (int)dfill) {
+					FAIL;
+					break;
+				}
 			}
 		} while(afill != initial_afill);
 		// }}}
+
+		stop = _zip->z_m.ac_ck;
+		// TRIGGER_SCOPE;	// CP #8
+		txstr(" - RNA: 0x"); txhex(mid-start); txstr(":"); txhex(stop-mid); txstr(" // ");
 	}
-	// }}}
 #ifdef	_BOARD_HAS_SPIO
 	// {{{
 	// Fourth test done
-	*_spio = 0x0e08;
+	*_spio = 0x0e0a;
+	// }}}
+#endif
+	timestamps[6] = _zip->z_m.ac_ck;
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// #7, memcpy
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	txchr('6');
+	lnw = end-mem;
+	start = _zip->z_m.ac_ck;
+	memcpy(mem+lnw/2, mem, lnw/2);
+	stop = _zip->z_m.ac_ck;
+	// TRIGGER_SCOPE;	// CP #9
+	txstr(" - CPY: 0x"); txhex(stop-start); txstr("\n");
+	timestamps[7] = stop;
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// #8, memcmp
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	txchr('7');
+	lnw = end-mem;
+	start = _zip->z_m.ac_ck;
+	if (0 != memcmp(mem+lnw/2, mem, lnw/2))
+		FAIL;
+	stop = _zip->z_m.ac_ck;
+	// TRIGGER_SCOPE;	// CP #A
+	txstr(" - CMP: 0x"); txhex(stop-start); txstr("\n");
+	timestamps[8] = stop;
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// #9, ZipDMA high speed extended throughput check, variable buffer size
+	// {{{
+	// VERILATOR: 102 clocks / loop / 16 words
+#ifdef	_HAVE_ZIPSYS_DMA
+	unsigned	ln = (endc - cmem)/2;
+	char	*const	midc = &cmem[ln];
+
+	for(int sz=1024; sz > 64; sz =  sz>>1) {
+		// WRITES
+		// {{{
+		_zip->z_dma.d_rd = cmem;
+		_zip->z_dma.d_wr = midc;
+		_zip->z_dma.d_len= ln;
+		_zip->z_dma.d_ctrl = DMACCOPY | (sz & 1023);
+		while(_zip->z_dma.d_ctrl & DMA_BUSY)
+			;
+		// }}}
+
+		// READS
+		// {{{
+		_zip->z_dma.d_rd = cmem;
+		_zip->z_dma.d_wr = midc;
+		_zip->z_dma.d_len= ln;
+		_zip->z_dma.d_ctrl = DMACCOPY | (sz & 1023);
+		while(_zip->z_dma.d_ctrl & DMA_BUSY)
+			;
+		// }}}
+
+		// ALL
+		// {{{
+		_zip->z_dma.d_rd = cmem;
+		_zip->z_dma.d_wr = midc;
+		_zip->z_dma.d_len= ln;
+		_zip->z_dma.d_ctrl = DMACCOPY | (sz & 1023);
+		while(_zip->z_dma.d_ctrl & DMA_BUSY)
+			;
+		// TRIGGER_SCOPE;	// CP #B
+		// }}}
+	}
+
+#else
+		txchr('x');
+#endif
+#ifdef	_BOARD_HAS_SPIO
+	// {{{
+	// Fourth test done
 
 	// Toggle bit 0 (0x01) as well--since we just finished another
 	// round.  This way the toggling bit will be the indication
 	// that the memory controller has been successful.
-	*_spio = ((*_spio&1)^1)|0x0100;
+	*_spio = ((*_spio&0x1)^0x1)|0x0f0c;
 	// }}}
 #endif
+		timestamps[9] = _zip->z_m.ac_ck;
+	// }}}
 }
 // }}}
 
@@ -302,8 +531,12 @@ void	runtest(void) {
 	int	counts = 0;
 	int	*const mem = (int *)_sdram;
 	int	*const end = (int *)(&_sdram[sizeof(_sdram)]);
-	unsigned const BLKSIZE = (1u<<20); // 512kB, for 1<<21 < TAPS < 1<<22
+	// unsigned const BLKSIZE = (1u<<24); // 512kB, for 1<<21 < TAPS < 1<<22
+	unsigned const BLKSIZE = (1u<<26); // 512kB, for 1<<21 < TAPS < 1<<22
 
+	txstr("\n+------------------------------+\n"
+		"|-        MEMORY TEST         -|\n"
+		"+------------------------------+\n");
 #ifdef	_BOARD_HAS_SPIO
 	// Clear any/all LED's
 	*_spio = 0x0ff00;

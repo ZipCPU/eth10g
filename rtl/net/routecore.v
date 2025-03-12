@@ -186,10 +186,13 @@ module routecore #(
 	wire [(LGROUTETBL+1)*NETH-1:0]	tbl_fill;
 
 	wire	[31:0]		cpu_debug;
+	reg	[31:0]		bus_debug;
 	wire	[NETH-1:0]	dbg_watchdog, mid_tx;
 
 	reg	[31:0]		dbg_wb_data;
-	wire	[NETH*32-1:0]	w_wide_debug;
+	// Verilator lint_off UNUSED
+	wire	[5*32-1:0]	w_wide_debug;
+	// Verilator lint_on  UNUSED
 
 	reg	[2:0]		dbg_sel;
 	wire	[NETH*32-1:0]	arb_debug, bcast_debug;
@@ -950,6 +953,9 @@ module routecore #(
 		end
 
 		assign	w_wide_debug[NMEM*32 +: 32] = w_debug;
+	end else begin : DBG_NO_CPU_NET
+
+		assign	w_wide_debug[NMEM*32 +: 32] = 32'h0;
 
 	end endgenerate
 	// }}}
@@ -1024,6 +1030,77 @@ module routecore #(
 	//
 	// Debug handling
 	// {{{
+	wire	[31:0]	w_route_never_dbg, w_route_always_dbg;
+	wire	[MACW-1:0]	w_cpu_tbl_insert_mac, w_cpu_tbl_lookup_mac;
+	wire	[NETH*NETH-1:0]	new_route_never, new_route_always;
+	wire	[NETH-1:0]	w_cpu_lookup_port;
+	wire [$clog2(NETH)-1:0]	w_cpu_insert_port;
+	wire	[LGROUTETBL:0]	w_cpu_tbl_fill;
+
+	generate if (OPT_CPUNET)
+	begin : CPU_DEBUG
+		assign	new_route_never = {
+					i_ctrl_data[28:24] | 5'h10,
+					i_ctrl_data[22:18] | 5'h08,
+					i_ctrl_data[16:12] | 5'h04,
+					i_ctrl_data[10: 6] | 5'h02,
+					i_ctrl_data[ 4: 0] | 5'h01 };
+		assign	new_route_always = {
+					i_ctrl_data[28:24],
+					i_ctrl_data[22:18],
+					i_ctrl_data[16:12],
+					i_ctrl_data[10: 6],
+					i_ctrl_data[ 4: 0] };
+
+		assign	w_route_always_dbg = { 2'h0,
+				1'h0, r_route_always[24:20],
+				1'h0, r_route_always[19:15],
+				1'h0, r_route_always[14:10],
+				1'h0, r_route_always[ 9: 5],
+				1'h0, r_route_always[ 4: 0] };
+		assign	w_route_never_dbg = { 2'h0,
+				1'h0, r_route_never[24:20],
+				1'h0, r_route_never[19:15],
+				1'h0, r_route_never[14:10],
+				1'h0, r_route_never[ 9: 5],
+				1'h0, r_route_never[ 4: 0] };
+
+		assign	w_cpu_tbl_insert_mac = tbl_insert_mac[ MACW*4 +: MACW];
+		assign	w_cpu_tbl_lookup_mac = tbl_lookup_mac[ MACW*4 +: MACW];
+
+		assign	w_cpu_lookup_port = tbl_lookup_port[NETH*4 +: NETH];
+		assign	w_cpu_insert_port = tbl_insert_port[$clog2(NETH)*4 +: $clog2(NETH)];
+		assign	w_cpu_tbl_fill = tbl_fill[(LGROUTETBL+1)*4 +: (LGROUTETBL+1)];
+	end else begin : NO_CPU_DEBUG
+		assign	new_route_never = {
+					i_ctrl_data[21:18] | 4'h8,
+					i_ctrl_data[15:12] | 4'h4,
+					i_ctrl_data[ 9: 6] | 4'h2,
+					i_ctrl_data[ 3: 0] | 4'h1 };
+		assign	new_route_always = {
+					i_ctrl_data[21:18],
+					i_ctrl_data[15:12],
+					i_ctrl_data[ 9: 6],
+					i_ctrl_data[ 3: 0] };
+
+		assign	w_route_always_dbg = { 8'h0,
+				2'h0, r_route_always[15:12],
+				2'h0, r_route_always[11: 8],
+				2'h0, r_route_always[ 7: 4],
+				2'h0, r_route_always[ 3: 0] };
+		assign	w_route_never_dbg = { 8'h0,
+				2'h0, r_route_never[15:12],
+				2'h0, r_route_never[11: 8],
+				2'h0, r_route_never[ 7: 4],
+				2'h0, r_route_never[ 3: 0] };
+		assign	w_cpu_lookup_port = {(NETH){1'b0}};
+		assign	w_cpu_insert_port = {($clog2(NETH)){1'b0}};
+		assign	w_cpu_tbl_insert_mac = {(MACW){1'b0}};
+		assign	w_cpu_tbl_lookup_mac = {(MACW){1'b0}};
+		assign	w_cpu_tbl_fill = {(LGROUTETBL+1){1'b0}};
+
+	end endgenerate
+
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
@@ -1033,21 +1110,12 @@ module routecore #(
 							&& i_ctrl_addr[5])
 	begin
 		case(i_ctrl_addr[4:0])
-		5'b11_010: r_route_never  <= {
-					i_ctrl_data[28:24] | 5'h10,
-					i_ctrl_data[22:18] | 5'h08,
-					i_ctrl_data[16:12] | 5'h04,
-					i_ctrl_data[10: 6] | 5'h02,
-					i_ctrl_data[ 4: 0] | 5'h01 };
-		5'b11_011: r_route_always <= {
-					i_ctrl_data[28:24],
-					i_ctrl_data[22:18],
-					i_ctrl_data[16:12],
-					i_ctrl_data[10: 6],
-					i_ctrl_data[ 4: 0] };
+		5'b11_010: r_route_never  <= new_route_never;
+		5'b11_011: r_route_always <= new_route_always;
 		default: begin end
 		endcase
 	end
+
 
 	always @(posedge i_clk)
 	begin
@@ -1121,21 +1189,20 @@ module routecore #(
 		6'b101_111: dbg_wb_data <= tbl_lookup_mac[MACW*3 +: 32];
 		// }}}
 		//
-		// TBL port #4
+		// TBL port #4 -- CPU ports
 		// {{{
 		6'b110_000: begin
-			dbg_wb_data[15:0]<= tbl_insert_mac[MACW*4 +32 +: 16];
-			dbg_wb_data[16 +: $clog2(NETH)]
-				<=tbl_insert_port[$clog2(NETH)*4+:$clog2(NETH)];
+			// dbg_wb_data <= w_cpu_tbl_insert;
+			dbg_wb_data[0 +: 16] <= w_cpu_tbl_insert_mac[32 +: 16];
+			dbg_wb_data[16 +: $clog2(NETH)] <= w_cpu_insert_port;
 			end
-		6'b110_001: dbg_wb_data <= tbl_insert_mac[MACW*4 +: 32];
+		6'b110_001: dbg_wb_data <= w_cpu_tbl_insert_mac[0 +: 32];
 		6'b110_010: begin
-			dbg_wb_data[15:0]<= tbl_lookup_mac[MACW*4 +32 +: 16];
-			dbg_wb_data[16+:NETH]<= tbl_lookup_port[NETH*4 +: NETH];
-			dbg_wb_data[24 +: (LGROUTETBL+1)] <= tbl_fill[
-				(LGROUTETBL+1)*4 +: (LGROUTETBL+1)];
+			dbg_wb_data[15:0] <= w_cpu_tbl_lookup_mac[32 +: 16];
+			dbg_wb_data[16+:NETH] <= w_cpu_lookup_port;
+			dbg_wb_data[24 +: (LGROUTETBL+1)] <= w_cpu_tbl_fill;
 			end
-		6'b110_011: dbg_wb_data <= tbl_lookup_mac[MACW*4 +: 32];
+		6'b110_011: dbg_wb_data <= w_cpu_tbl_lookup_mac[0 +: 32];
 		// }}}
 		//
 		6'b110_100: dbg_wb_data <= w_wide_debug[0*32 +: 32];
@@ -1144,16 +1211,8 @@ module routecore #(
 		6'b110_111: dbg_wb_data <= w_wide_debug[3*32 +: 32];
 		6'b111_000: dbg_wb_data <= w_wide_debug[4*32 +: 32];
 		//
-		6'b111_010: {	dbg_wb_data[28:24],
-				dbg_wb_data[22:18],
-				dbg_wb_data[16:12],
-				dbg_wb_data[10: 6],
-				dbg_wb_data[ 4: 0] } <= r_route_never;
-		6'b111_011: { dbg_wb_data[28:24],
-				dbg_wb_data[22:18],
-				dbg_wb_data[16:12],
-				dbg_wb_data[10: 6],
-				dbg_wb_data[ 4: 0] } <= r_route_always;
+		6'b111_010: dbg_wb_data <= w_route_never_dbg;
+		6'b111_011: dbg_wb_data <= w_route_always_dbg;
 		//
 		6'b111_111: dbg_wb_data[2:0] <= dbg_sel;
 		default: begin end
@@ -1204,6 +1263,24 @@ module routecore #(
 
 	always @(posedge i_clk)
 	begin
+		bus_debug <= 32'h0;
+		bus_debug[ 0 +: 5] <= { vfifo_cyc[0], vfifo_stb[0], vfifo_we[0], vfifo_stall[0], vfifo_ack[0] };
+		bus_debug[ 5 +: 5] <= { vfifo_cyc[1], vfifo_stb[1], vfifo_we[1], vfifo_stall[1], vfifo_ack[1] };
+		bus_debug[10 +: 5] <= { vfifo_cyc[2], vfifo_stb[2], vfifo_we[2], vfifo_stall[2], vfifo_ack[2] };
+		bus_debug[15 +: 5] <= { vfifo_cyc[3], vfifo_stb[3], vfifo_we[3], vfifo_stall[3], vfifo_ack[3] };
+		bus_debug[20 +: 5] <= { o_vfifo_cyc, o_vfifo_stb, o_vfifo_we, i_vfifo_stall, i_vfifo_ack };
+
+		bus_debug[25] <= GEN_INTERFACES[2].GEN_VFIFO.u_pktvfifo.ipkt_abort;
+		bus_debug[26] <= GEN_INTERFACES[3].GEN_VFIFO.u_pktvfifo.ipkt_abort;
+		bus_debug[27] <= tomem_abort[3];
+		bus_debug[28] <= tomem_last[3];
+		bus_debug[29] <= tomem_ready[3];
+		bus_debug[30] <= tomem_valid[3];
+		bus_debug[31] <= tomem_abort[3] || bus_debug[25] || bus_debug[26];
+	end
+
+	always @(posedge i_clk)
+	begin
 		o_debug <= 32'h0;
 		o_debug[30] <= |dbg_watchdog;
 		o_debug[24 +: NMEM] <= RX_VALID[NMEM-1:0];
@@ -1218,11 +1295,14 @@ module routecore #(
 
 		o_debug[31] <= |dbg_watchdog;
 
-		// Verilator lint_off WIDTH
-		if (dbg_sel < NETH)
+		if (dbg_sel < NETH[2:0])
+		begin
+			// Verilator lint_off WIDTH
 			// o_debug <= arb_debug >> (dbg_sel * 32);
 			o_debug <= bcast_debug >> (dbg_sel * 32);
-		// Verilator lint_on  WIDTH
+			// Verilator lint_on  WIDTH
+		end else if (dbg_sel == NETH[2:0])
+			o_debug <= bus_debug;
 	end
 	// }}}
 

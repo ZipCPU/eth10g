@@ -1,0 +1,95 @@
+################################################################################
+##
+## Filename:	autodata/netstats.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023-2025, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=netstats
+@DEVID=NETSTAT
+@ACCESS=NETSTAT_ACCESS
+@DEPENDS=ETH_ROUTER
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=OTHER
+@NADDR=128
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Note the network stats
+	// {{{
+
+	netstats #(
+		// .NETH(NETDEVS)
+	) u_netstats (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+		// Control interface
+		@$(SLAVE.ANSIPORTLIST),
+		// Incoming data interface
+		.i_data(gnet_net_debug)
+		// }}}
+	);
+
+	// }}}
+@REGS.N=1
+@REGS.0=0   R_@$(DEVID) @$(DEVID)
+@BDEF.DEFN=
+
+typedef	struct	ROUTESTAT_S {
+	volatile unsigned	v_rx_pktlo, v_rx_pkthi,
+					v_rx_bytelo, v_rx_bytehi,
+					v_rx_abortlo, v_rx_aborthi,
+				v_crc_pktlo, v_crc_pkthi,
+					v_crc_bytelo, v_crc_bytehi,
+					v_crc_abortlo, v_crc_aborthi,
+				v_tx_pktlo, v_tx_pkthi,
+					v_tx_bytelo, v_tx_bytehi,
+					v_tx_abortlo, v_tx_aborthi,
+				v_gate_pktlo, v_gate_pkthi,
+					v_gate_bytelo, v_gate_bytehi,
+					v_gate_abortlo, v_gate_aborthi;
+	unsigned	v_unused[8];
+} ROUTESTAT;
+
+typedef	struct	@$(DEVID)_S {
+	// 4 Interfaces
+	ROUTESTAT	v_if[4];
+} @$(DEVID);
+
+@BDEF.IONAME=	_@$(PREFIX)
+@BDEF.IOTYPE=	@$(DEVID)
+@BDEF.OSVAL=	static @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+@RTL.MAKE.GROUP=NETSTAT
+@RTL.MAKE.SUBD=net
+@RTL.MAKE.FILES= pktstats.v netstats.v

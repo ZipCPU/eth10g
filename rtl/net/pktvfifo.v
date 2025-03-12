@@ -203,6 +203,9 @@ module	pktvfifo #(
 				ADR_BYTECOUNT= 3'b101,
 				ADR_FIFOPKTS = 3'b110,
 				ADR_FIFOBYTES= 3'b111;
+	localparam	LGWRFIFO = LGFIFO,
+			LGRDFIFO = LGFIFO,
+			LGBUSFIFO = LGFIFO;
 	// }}}
 
 	reg	[AW-1:0]	r_baseaddr,
@@ -211,9 +214,8 @@ module	pktvfifo #(
 	reg	[31:0]		new_memsize;
 
 	reg	[26:0]	txpkt_count;
-	reg	[32:0]	txbyte_count;
-	reg	[31:0]	w_tx_debug, w_rx_debug, pkts_in_fifo, bytes_in_fifo,
-			w_txfifo_debug;
+	reg	[32:0]	txbyte_count, bytes_in_fifo, pkts_in_fifo;
+	reg	[31:0]	w_tx_debug, w_rx_debug, w_txfifo_debug;
 	reg		r_dbg_vfifo, mid_txpkt;
 
 
@@ -253,7 +255,7 @@ module	pktvfifo #(
 	wire				ackfifo_read, ackfifo_rd;
 
 	wire			ign_ackfifo_full, ackfifo_empty, ackfifo_last;
-	wire	[LGFIFO:0]	ign_ackfifo_fill;
+	wire	[LGRDFIFO:0]	ign_ackfifo_fill;
 	wire	[BUSDW-1:0]	ackfifo_data;
 	wire	[$clog2(BUSDW/8)-1:0]	ackfifo_bytes;
 
@@ -403,10 +405,15 @@ module	pktvfifo #(
 				o_ctrl_data <= txbyte_count[31:0];
 		ADR_FIFOPKTS: if (r_dbg_vfifo)
 				o_ctrl_data <= w_txfifo_debug;
+			else if (pkts_in_fifo[32])
+				o_ctrl_data <= 32'hffff_ffff;
 			else
-				o_ctrl_data <= pkts_in_fifo;
+				o_ctrl_data <= pkts_in_fifo[31:0];
 		ADR_FIFOBYTES:
-			o_ctrl_data <= bytes_in_fifo;
+			if (bytes_in_fifo[32])
+				o_ctrl_data <= 32'hffff_ffff;
+			else
+				o_ctrl_data <= bytes_in_fifo[31:0];
 		endcase
 	end
 
@@ -431,29 +438,50 @@ module	pktvfifo #(
 	else if (M_VALID && M_READY)
 		mid_txpkt <= !M_LAST;
 
+	// pkts_in_fifo
+	// {{{
 	always @(posedge i_clk)
 	if (i_reset || i_net_reset || reset_fifo)
 		pkts_in_fifo <= 0;
-	else case({ (S_VALID && S_READY && S_LAST),
-				(M_VALID && M_READY && M_LAST)})
+	else if (pkts_in_fifo[32])
+	begin
+		// Overflow.  All bets are off
+			// .M_AXIN_VALID(wide_valid),
+			// .M_AXIN_READY(wide_ready),
+			// .M_AXIN_DATA({ wide_bytes, wide_data }),
+			// .M_AXIN_LAST( wide_last),
+			// .M_AXIN_ABORT(wide_abort)
+	end else case({ // (S_VALID && S_READY && S_LAST),
+			//	(M_VALID && M_READY && M_LAST)
+			(wide_valid && wide_ready && wide_last && !wide_abort),
+			// (ack_valid && ack_ready && ack_last)
+			(M_VALID && M_READY && M_LAST)
+			})
 	2'b01: pkts_in_fifo <= pkts_in_fifo - 1;
 	2'b10: pkts_in_fifo <= pkts_in_fifo + 1;
 	default: begin end
 	endcase
+	// }}}
 
+	// bytes_in_fifo
+	// {{{
 	always @(posedge i_clk)
 	if (i_reset || i_net_reset || reset_fifo)
 		bytes_in_fifo <= 0;
-	else case({ (S_VALID && S_READY), (M_VALID && M_READY)})
+	else if (bytes_in_fifo[32])
+	begin
+		// Overflow.  All bets are off
+	end else case({ (S_VALID && S_READY), (M_VALID && M_READY)})
 	2'b00: begin end
 	2'b01: bytes_in_fifo <= bytes_in_fifo
-			- { {(31-PKTBYW){1'b0}}, msb_bytes, M_BYTES };
+			- { {(32-PKTBYW){1'b0}}, msb_bytes, M_BYTES };
 	2'b10: bytes_in_fifo <= bytes_in_fifo
-			+ { {(31-PKTBYW){1'b0}}, (S_BYTES==0), S_BYTES };
+			+ { {(32-PKTBYW){1'b0}}, (S_BYTES==0), S_BYTES };
 	2'b11: bytes_in_fifo <= bytes_in_fifo
-			+ { {(31-PKTBYW){1'b0}}, (S_BYTES==0), S_BYTES }
-			- { {(31-PKTBYW){1'b0}}, msb_bytes, M_BYTES };
+			+ { {(32-PKTBYW){1'b0}}, (S_BYTES==0), S_BYTES }
+			- { {(32-PKTBYW){1'b0}}, msb_bytes, M_BYTES };
 	endcase
+	// }}}
 
 	always @(*)
 	begin
@@ -475,8 +503,8 @@ module	pktvfifo #(
 			wr_wb_stb };	// 8b
 
 		w_txfifo_debug = 0;
-		w_txfifo_debug[0  +: (LGFIFO+1)] = vfifo_rd.fifo_space;
-		w_txfifo_debug[16 +: (LGFIFO+1)] = ign_ackfifo_fill;
+		w_txfifo_debug[0  +: (LGRDFIFO+1)] = vfifo_rd.fifo_space;
+		w_txfifo_debug[16 +: (LGRDFIFO+1)] = ign_ackfifo_fill;
 
 		w_txfifo_debug[15:12] = { !ackfifo_empty, ackfifo_read,
 						ackfifo_last, ign_outw_abort };
@@ -524,10 +552,10 @@ module	pktvfifo #(
 	//
 	//
 
-	generate if (LGFIFO > 1)
+	generate if (LGWRFIFO > 1)
 	begin : GEN_NETFIFO
 		netfifo #(
-			.BW(BUSDW + WBLSB), .LGFLEN(LGFIFO)
+			.BW(BUSDW + WBLSB), .LGFLEN(LGWRFIFO)
 		) u_prefifo (
 			// {{{
 			.S_AXI_ACLK(i_clk), .S_AXI_ARESETN(!i_reset && !i_net_reset),
@@ -615,7 +643,7 @@ module	pktvfifo #(
 
 	pktvfiford #(
 		// {{{
-		.AW(AW), .BUSDW(BUSDW), .LGPIPE(LGPIPE), .LGFIFO(LGFIFO),
+		.AW(AW), .BUSDW(BUSDW), .LGPIPE(LGPIPE), .LGFIFO(LGRDFIFO),
 		.OPT_LOWPOWER(OPT_LOWPOWER),
 		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN)
 		// }}}
@@ -652,7 +680,7 @@ module	pktvfifo #(
 	//
 
 	wbmarbiter #(
-		.DW(BUSDW), .AW(AW), .NIN(2), .LGFIFO(LGFIFO)
+		.DW(BUSDW), .AW(AW), .NIN(2), .LGFIFO(LGBUSFIFO)
 	) u_bus_arbiter (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || i_net_reset),
@@ -694,7 +722,7 @@ module	pktvfifo #(
 	// The FIFO helps us guarantee that we don't overload this in back
 	// pressure.
 	sfifo #(
-		.BW(BUSDW + $clog2(BUSDW/8) + 1), .LGFLEN(LGFIFO)
+		.BW(BUSDW + $clog2(BUSDW/8) + 1), .LGFLEN(LGRDFIFO)
 	) u_ackfifo (
 		// {{{
 		.i_clk(i_clk), .i_reset(i_reset || i_net_reset || rd_fifo_err),

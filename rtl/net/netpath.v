@@ -118,7 +118,7 @@
 // }}}
 module	netpath #(
 		// {{{
-		parameter	LGPKTGATE=4,
+		parameter	LGPKTGATE=8,
 		parameter	LGCDCRAM = 5,
 		parameter [0:0]	OPT_SCRAMBLER=1,
 		parameter [0:0]	OPT_LITTLE_ENDIAN=0,
@@ -156,6 +156,7 @@ module	netpath #(
 		output	wire				M_LAST,
 		output	wire				M_ABORT,
 		// }}}
+		output	reg	[31:0]	o_pkt_debug,
 		output	reg	[31:0]	o_debug
 		// }}}
 	);
@@ -344,7 +345,7 @@ module	netpath #(
 	// Count packets, generate stats
 	// {{{
 	pktcount #(
-		.LGPKTLN(LGPKTLN)
+		.LGPKTLN(LGPKTLN)	// LGPKTLN=16
 	) u_src_stats (
 		// {{{
 		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
@@ -437,7 +438,7 @@ module	netpath #(
 	end endgenerate
 
 	pktcount #(
-		.LGPKTLN(LGPKTLN)
+		.LGPKTLN(LGPKTLN)	// LGPKTLN=16
 	) u_crc_stats (
 		// {{{
 		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
@@ -573,7 +574,7 @@ module	netpath #(
 	);
 
 	pktcount #(
-		.LGPKTLN(LGPKTLN)
+		.LGPKTLN(LGPKTLN)	// LGPKTLN=16
 	) u_in_stats (
 		// {{{
 		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
@@ -612,7 +613,7 @@ module	netpath #(
 	);
 
 	pktcount #(
-		.LGPKTLN(LGPKTLN)
+		.LGPKTLN(LGPKTLN)	// LGPKTLN=16
 	) u_tx_stats (
 		// {{{
 		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),
@@ -625,6 +626,41 @@ module	netpath #(
 		.M_DATA(stat_gate_data)
 		// }}}
 	);
+
+	always @(posedge i_fast_clk)
+	begin
+		o_pkt_debug <= 0;
+
+		o_pkt_debug[13:0] <= {
+			// 7b
+			TXWD_VALID, TXWD_READY, TXWD_LAST, TXWD_ABORT,
+				TXWD_BYTES,	// 3b
+			// 7b more
+			FULL_VALID, FULL_READY, FULL_LAST, FULL_ABORT,
+				FULL_BYTES	// 3b
+		};
+
+		if (FULL_ABORT || TXWD_ABORT
+			|| (o_pkt_debug[6] &&
+			(!o_pkt_debug[4] || !o_pkt_debug[5]) && !FULL_VALID))
+		begin
+			o_pkt_debug[14] <= 1'b1;
+			o_pkt_debug[31] <= 1'b1;
+		end
+
+		o_pkt_debug[15] <= u_pktgate.output_active;
+		o_pkt_debug[16] <= u_pktgate.lastv;
+		o_pkt_debug[17] <= u_pktgate.s_midpacket;
+		o_pkt_debug[18] <= u_pktgate.abort_incoming;
+		o_pkt_debug[19] <= u_pktgate.r_full;
+		//
+		o_pkt_debug[20] <= stat_tx_valid;
+		o_pkt_debug[21] <= stat_gate_valid;
+		o_pkt_debug[22] <= fast_dbg_valid;
+		o_pkt_debug[23] <= fast_dbgfifo_full;
+
+		o_pkt_debug[29:24] <= u_pktgate.fill[5:0];
+	end
 	// }}}
 
 	// Convert from AXI Net Packets to the p66b (near XGMII) format
@@ -769,6 +805,8 @@ module	netpath #(
 	always @(posedge i_sys_clk)
 	if (!dbgfifo_empty)
 		o_debug <= { 1'b1, dbgfifo_data };
+	else
+		o_debug[31] <= 1'b0;
 	// }}}
 
 	assign	o_link_up = rx_link_up && tx_link_up;

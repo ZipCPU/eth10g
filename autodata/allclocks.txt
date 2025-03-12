@@ -47,7 +47,7 @@
 	wire		s_clk, s_reset, sysclk_locked, s_clk_nobuf,
 			clk_feedback, clk_feedback_bufd,
 			s_lcl_pixclk_nobuf, s_clk4x_unbuffered,
-			s_clk300_nobuf, s_clk300;
+			s_clk300_nobuf, s_clk300, pre_mig_clk;
 	reg	[2:0]	pipe_reset, pll_reset;
 	reg	[6:0]	refdly_reset_ctr;
 	wire		refdly_ready;
@@ -95,7 +95,7 @@
 	);
 
 	BUFG	feedback_buffer(.I(clk_feedback), .O(clk_feedback_bufd));
-	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(s_clk));
+	BUFG	sysclk_buffer(.I(s_clk_nobuf), .O(pre_mig_clk));
 	BUFG	clk300_buf(.I(s_clk300_nobuf), .O(s_clk300));
 	// BUFG	sysclk_buffer(.I(s_lcl_pixclk_nobuf), .O(s_lcl_pixclk));
 

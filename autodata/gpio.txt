@@ -121,7 +121,9 @@
 	) @$(PREFIX)i(
 		// {{{
 		i_clk, @$(SLAVE.PORTLIST),
-		i_@$(PREFIX), o_@$(PREFIX), @$(PREFIX)_int
+		i_@$(PREFIX) | (ign_ddr3_controller_calib_complete
+			? 16'h40 : 16'h0),
+		o_@$(PREFIX), @$(PREFIX)_int
 		// }}}
 	);
 
@@ -138,6 +140,7 @@
 #define	GPIO_SI_INT		0x000080000
 #define	GPIO_HDMITXD		0x000100000
 #define	GPIO_PIXCLK_LOCKED	0x000200000
+#define	GPIO_DDRCALIB_COMPLETE	0x000400000
 //
 // @$(DEVID) output wires
 //

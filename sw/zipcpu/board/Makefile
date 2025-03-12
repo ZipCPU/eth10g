@@ -37,7 +37,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg # contest
 all:	$(PROGRAMS)
 #
 #
@@ -99,7 +99,7 @@ $(OBJDIR)/cputestcis.o: cputest.c board.h
 $(OBJDIR)/cputest.s: cputest.c
 	$(CC) $(CFLAGS) -S -Wa,-cis -fno-builtin $< -o $@
 
-cputest: $(OBJDIR)/cputestcis.o board.ld $(LIB)
+cputest: $(OBJDIR)/cputestcis.o bkram.ld $(LIB)
 	# $(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 	$(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
 
@@ -161,11 +161,15 @@ dmatest: $(OBJDIR)/dmatest.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
 rxhdmi: $(OBJDIR)/rxhdmi.o bkram.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
-memtest: $(OBJDIR)/memtest.o bkram.ld $(LIB)
-	$(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
+memtest: $(OBJDIR)/memtest.o bkram.ld $(OBJDIR)/txfns.o $(LIB)
+	$(CC) $(CFLAGS) $(LBKRAM) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
 netcheck: $(OBJDIR)/netcheck.o $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+
+$(OBJDIR)/ddr3dbg.o: ddr3dbg.c board.h txfns.h
+ddr3dbg: $(OBJDIR)/ddr3dbg.o $(OBJDIR)/txfns.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LBKRAM) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
 define	mk-objdir
 	@bash -c "if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR)/; fi"

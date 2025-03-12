@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 			printf("AltBitFile: No alternate bit-file given\n");
 
 		if (execfile)
-			printf("Executable: %s\n", altbitfile);
+			printf("Executable: %s\n", execfile);
 		else
 			printf("Executable: No ZipCPU executable (ELF) file given\n");
 	}
@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	// }}}
-		
+
 	if (altbitfile) {
 		// {{{
 		FILE	*fp;

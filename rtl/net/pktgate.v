@@ -277,13 +277,10 @@ module	pktgate #(
 						S_AXIN_DATA };
 		end
 
-		always @(posedge S_AXI_ACLK)
-			last_override <= 0 && (M_AXIN_VALID && !M_AXIN_READY && M_AXIN_LAST);
-
 		assign	M_AXIN_DATA = memv[DW-1:0];
 		assign	M_AXIN_BYTES = memv[DW +: $clog2(DW/8)];
 
-		assign	M_AXIN_LAST = memv[FW-1] || last_override;
+		assign	M_AXIN_LAST = memv[FW-1];
 		// }}}
 	end else if (OPT_ASYNC_READ)
 	begin : ASYNCHRONOUS_READ

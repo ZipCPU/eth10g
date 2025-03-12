@@ -103,7 +103,7 @@ module	pktcount #(
 		M_VALID <= 0;
 	else if ((S_ABORT && active) || (S_VALID && S_LAST))
 	begin
-		M_VALID <= (!S_ABORT || active);
+		M_VALID <= 1'b1;
 	end else if (M_READY)
 		M_VALID <= 0;
 
@@ -120,6 +120,8 @@ module	pktcount #(
 				+ (1 << PKTLSB);
 		else
 			M_DATA <= { S_ABORT, word_count, S_BYTES };
+
+		M_DATA[LGPKTLN+1] <= S_ABORT;
 	end
 
 	// Keep Verilator happy
