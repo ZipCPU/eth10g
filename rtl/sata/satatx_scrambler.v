@@ -1,0 +1,1 @@
+../../wbsata/rtl/satatx_scrambler.v

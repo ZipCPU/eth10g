@@ -1,6 +1,7 @@
 *.txt
 clkcheck
 cputest
+ddr3dbg
 deploy.sh
 emmcinfo
 hello

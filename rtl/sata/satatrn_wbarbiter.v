@@ -1,0 +1,1 @@
+../../wbsata/rtl/satatrn_wbarbiter.v

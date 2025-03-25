@@ -1,0 +1,103 @@
+################################################################################
+##
+## Filename:	autodata/satascope.txt
+## {{{
+## Project:	KIMOS, a Mercury KX2 demonstration project
+##
+## Purpose:	Describes how to connect the various debugging ports of the
+##		SATA controller to compressed wishbone scopes.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2025, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=satatscope
+@DEVID=SATATSCOPE
+@DEPENDS=SATA_ACCESS
+@TARGET=w_sata_dbg_tran
+@TRIGGER=@$(TARGET)[31]
+@DEBUG=@$(TARGET)[30:0]
+@$LOG_CAPTURE_SIZE=12
+@INCLUDEFILE=wbscopc.txt
+@INT.SATATSCOPE.PIC=syspic
+@INT.SATATSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+##
+@PREFIX=satalscope
+@DEVID=SATALSCOPE
+@DEPENDS=SATA_ACCESS
+@TARGET=w_sata_dbg_link
+@TRIGGER=@$(TARGET)[31]
+@DEBUG=@$(TARGET)[30:0]
+@SYNCHRONOUS=0
+@DATA_CLOCK=i_sata_txphy_clk
+@$LOG_CAPTURE_SIZE=12
+@INCLUDEFILE=wbscopc.txt
+@INT.SATALSCOPE.PIC=syspic
+@INT.SATALSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+@XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
+##
+## This one makes no sense ...
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
+##
+@PREFIX=satarscope
+@DEVID=SATARSCOPE
+@DEPENDS=SATA_ACCESS
+@TARGET=w_sata_dbg_reset
+@TRIGGER=@$(TARGET)[31]
+@DEBUG=@$(TARGET)[30:0]
+@SYNCHRONOUS=0
+@DATA_CLOCK=i_sata_txphy_clk
+@$LOG_CAPTURE_SIZE=12
+@INCLUDEFILE=wbscopc.txt
+@INT.SATARSCOPE.PIC=syspic
+@INT.SATARSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+@XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8

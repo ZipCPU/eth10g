@@ -42,12 +42,12 @@ all:
 ## {{{
 CXX := g++
 OBJDIR := obj-pc
-SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope cpunetscope routescope gatescope
+SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope cpunetscope routescope gatescope satarscope satalscope satatscope
 RTLD := ../../rtl
 ZIPSUPPORT := zipload zipstate zipdbg
 BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp devbus.cpp
 BUSOBJS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(BUSSRCS)))
-PROGRAMS := wbregs $(ZIPSUPPORT) $(SCOPES) flashid netuart
+PROGRAMS := wbregs $(ZIPSUPPORT) $(SCOPES) flashid netuart routestat
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) $(BUSSRCS)
 HEADERS := $(wildcard *.h) $(wildcard $(RTLD)/*.h)
 CFLAGS := -Og -g -Wall -I. -I$(RTLD)
@@ -70,6 +70,9 @@ netuart: $(OBJDIR)/netuart.o
 	$(CXX) $(CFLAGS) $^ -o $@
 
 wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -o $@
+
+routestat: $(OBJDIR)/routestat.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@
 
 zipdbg: $(OBJDIR)/zipdbg.o $(OBJDIR)/twoc.o $(OBJDIR)/zopcodes.o $(BUSOBJS)

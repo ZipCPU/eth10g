@@ -72,8 +72,7 @@
 	wire	[31:0]	@$(PREFIX)_rxphy_data;
 	wire		@$(PREFIX)_rxphy_error, @$(PREFIX)_rxphy_syncd,
 			@$(PREFIX)_rxphy_elecidle, @$(PREFIX)_rxphy_cominit,
-			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold,
-			@$(PREFIX)_rxphy_cdrlock;
+			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold;
 	// Verilator lint_off UNUSED
 	wire		ign_@$(PREFIX)_stall, ign_@$(PREFIX)_ack;
 	wire	[31:0]	ign_@$(PREFIX)_data;
@@ -92,8 +91,7 @@
 		@$(PREFIX)_rxphy_data,
 		@$(PREFIX)_rxphy_error, @$(PREFIX)_rxphy_syncd,
 			@$(PREFIX)_rxphy_elecidle, @$(PREFIX)_rxphy_cominit,
-			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold,
-			@$(PREFIX)_rxphy_cdrlock
+			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -143,7 +141,6 @@
 		.o_rx_cominit_detect(	@$(PREFIX)_rxphy_cominit),
 		.o_rx_comwake_detect(	@$(PREFIX)_rxphy_comwake),
 		.i_rx_cdrhold(	@$(PREFIX)_rxphy_cdrhold),
-		.o_rx_cdrlock(	@$(PREFIX)_rxphy_cdrlock),
 		// }}}
 		// Connections to external pads
 		// {{{
@@ -166,8 +163,7 @@
 		i_@$(PREFIX)_rxphy_data,
 		i_@$(PREFIX)_rxphy_error, i_@$(PREFIX)_rxphy_syncd,
 			i_@$(PREFIX)_rxphy_elecidle, i_@$(PREFIX)_rxphy_cominit,
-			i_@$(PREFIX)_rxphy_comwake, o_@$(PREFIX)_rxphy_cdrhold,
-			i_@$(PREFIX)_rxphy_cdrlock
+			i_@$(PREFIX)_rxphy_comwake, o_@$(PREFIX)_rxphy_cdrhold
 @MAIN.IODECL=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -198,7 +194,6 @@
 				i_@$(PREFIX)_rxphy_cominit,
 				i_@$(PREFIX)_rxphy_comwake;
 	output	wire		o_@$(PREFIX)_rxphy_cdrhold;
-	input	wire		i_@$(PREFIX)_rxphy_cdrlock;
 	// }}}
 @MAIN.DEFNS=
 	////////////////////////////////////////////////////////////////////////
@@ -207,8 +202,10 @@
 	// {{{
 			// Verilator lint_off UNUSED
 	wire		w_@$(PREFIX)_phy_reset,
-			w_@$(PREFIX)_link_up,
 			w_@$(PREFIX)_link_ready;
+	wire	[31:0]	w_@$(PREFIX)_dbg_reset,
+			w_@$(PREFIX)_dbg_link,
+			w_@$(PREFIX)_dbg_tran;
 			// Verilator lint_on  UNUSED
 	// }}}
 @MAIN.INSERT=
@@ -222,7 +219,7 @@
 		// SATA PHY interface
 		// {{{
 		.i_rxphy_clk(	i_@$(PREFIX)_rxphy_clk),
-		.i_rxphy_valid(	i_@$(PREFIX)_phy_ready && i_@$(PREFIX)_rxphy_syncd),
+		.i_rxphy_valid(	i_@$(PREFIX)_rxphy_syncd),
 		.i_rxphy_data({ i_@$(PREFIX)_rxphy_primitive, i_@$(PREFIX)_rxphy_data }),
 		//
 		.i_txphy_clk(	i_@$(PREFIX)_txphy_clk),
@@ -242,13 +239,15 @@
 		.i_rxphy_cominit(	i_@$(PREFIX)_rxphy_cominit),
 		.i_rxphy_comwake(	i_@$(PREFIX)_rxphy_comwake),
 		.o_rxphy_cdrhold(	o_@$(PREFIX)_rxphy_cdrhold),
-		.i_rxphy_cdrlock(	i_@$(PREFIX)_rxphy_cdrlock),
 		// }}}
 		//
 		.o_int(	@$(PREFIX)_int),
 		//
-		.o_lnk_up(	w_@$(PREFIX)_link_up),
-		.o_lnk_ready(	w_@$(PREFIX)_link_ready)
+		.o_lnk_ready(	w_@$(PREFIX)_link_ready),
+		//
+		.o_dbg_reset(w_@$(PREFIX)_dbg_reset),
+		.o_dbg_link(w_@$(PREFIX)_dbg_link),
+		.o_dbg_tran(w_@$(PREFIX)_dbg_tran)
 		// }}}
 	);
 @REGS.N=5
@@ -279,3 +278,51 @@ typedef	struct	@$(DEVID)_S {
 @BDEF.IOTYPE=@$(DEVID)
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME)=((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+@TPATH=thedesign/u_@$(PREFIX)/u_transport
+@LINKP=thedesign/u_@$(PREFIX)/u_link
+@XDC.INSERT=
+## 150 MHz clock, therefore has a period of 6.6666... ns
+create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_ports i_@$(REFCK)_p]
+create_clock -name SATARX -period 26.6664 [get_pins u_@$(PREFIX)/u_gtx_channel/RXOUTCLK]
+create_clock -name SATATX -period 26.6664 [get_pins u_@$(PREFIX)/u_gtx_channel/TXOUTCLK]
+##
+set_max_delay -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/gtx_reset_pipe*}] 4
+set_max_delay -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/gtx_reset_pipe*}] 4
+##
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_pll_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_gtx_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_user_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txgears/GEN_LAST.r_last*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txgears/GEN_LAST.m_last*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txgears/GEN_NEXT.r_next*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txgears/sreg*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txgears/fill*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rxregfis/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rxregfis/u_reg_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rxregfis/u_reg_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rxregfis/u_reg_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rxregfis/u_reg_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rxregfis/u_reg_afifo/GEN_REGISTERED_READ.o_rd_data*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rx_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_rx_afifo/rgray_cross*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_afifo/rgray_cross*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/phy_reset_xpipe*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/*reset*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/wgray_cross*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/deframer/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_tran_abort_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_tran_abort_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/o_link_up*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_link_up_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/link_fsm/o_error*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_link_up_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/link_fsm/o_ready*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_link_up_xpipe*}] 10
+##

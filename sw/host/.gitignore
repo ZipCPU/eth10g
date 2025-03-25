@@ -1,5 +1,6 @@
 cfgscope
 cpunetscope
+ddr3dbg
 emmcscope
 fanscope
 flashid
@@ -11,6 +12,9 @@ netscope
 netuart
 routescope
 rxedidscope
+satalscope
+satarscope
+satatscope
 sdioscope
 smiscope
 wbregs

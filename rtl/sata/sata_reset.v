@@ -1,0 +1,1 @@
+../../wbsata/rtl/sata_reset.v

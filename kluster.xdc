@@ -14,6 +14,7 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 #set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p]
 #set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n]
+## SIREF clock is declared in autodata/siclk.txt
 #create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk_si_p]
 
 #set_property -dict { PACKAGE_PIN B26 } [get_ports i_emcclk]

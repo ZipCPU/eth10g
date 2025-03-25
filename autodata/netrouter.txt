@@ -419,6 +419,9 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rd_addr*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/@$(GENDCD)*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
+##
+##
+create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
 ## }}}
 @RTL.MAKE.GROUP=NET
 @RTL.MAKE.SUBD=net

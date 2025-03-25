@@ -1,0 +1,53 @@
+################################################################################
+##
+## Filename:	autodata/gatescope.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to connect the debugging ports from all of the
+##		various network connections to a single (compressed) wishbone
+##	scope, then to be connected to the bus by autofpga.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023-2025, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=gatescope
+@DEVID=GATESCOPE
+@DEPENDS=ETH_ROUTER
+@TARGET=net_pkt
+@TRIGGER=@$(TARGET)_debug[31]
+@$LOG_CAPTURE_SIZE=12
+@SYNCHRONOUS=1'b0
+@DATA_CLOCK=i_clk200
+@INCLUDEFILE=wbscopc.txt
+@INT.NETGATE.PIC=altpic
+@INT.NETGATE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+##

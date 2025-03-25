@@ -1,0 +1,1 @@
+../../wbsata/rtl/satatrn_txarb.v
