@@ -280,8 +280,8 @@ int main(int argc, char **argv) {
 
 	{
 		unsigned	nvr;
-		nvr  = (0x12 << 4*6) | (0x0b << 3*6)
-					| (0x07 << 2*6)
+		nvr  = (0x12 << 4*6) | (0x1b << 3*6)
+					| (0x17 << 2*6)
 					| (0x1f <<   6) | (0x01f);
 		printf("NVR set to %08x\n", nvr);
 		_gnet->v_never  = nvr;
@@ -301,6 +301,9 @@ int main(int argc, char **argv) {
 	char	*vfifo_rx, *vfifo_tx;
 	unsigned	start_jiffies, bus_mask, bus_size;
 	unsigned	loopctr = 0;
+#ifdef	_BOARD_HAS_NETLOCK
+	unsigned	netlock = 0;
+#endif
 
 	// Set up the virtual FIFOs
 	// {{{
@@ -496,6 +499,13 @@ int main(int argc, char **argv) {
 			unsigned char *epay = (unsigned char *)&rxpktb[14],
 					*ipay;
 			unsigned	ethtype;
+
+#ifdef	_BOARD_HAS_NETLOCK
+			if (netlock != _netlock) {
+				netlock = _netlock;
+				printf("NET-LOCK Change: %08x\n", netlock);
+			}
+#endif
 
 			pktln = pkt_recv(rxpktb, MAX_PKTSZ);
 			if (pktln > 0) {

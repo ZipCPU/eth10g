@@ -70,7 +70,7 @@
 	assign	@$(SLAVE.PREFIX)_ack = @$(SLAVE.PREFIX)_stb;
 	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
 @REGS.N=1
-@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@REGS.0= 0 R_@$(DEVID) BLDTIME @$(DEVID)
 @BDEF.IONAME=_@$(PREFIX)
 @BDEF.IOTYPE=unsigned
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)

@@ -49,6 +49,20 @@
 @INT.SATATSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 ##
+@PREFIX=satapscope
+@DEVID=SATAPSCOPE
+@DEPENDS=SATA_ACCESS
+@TARGET=i_sata_phy
+@$LOG_CAPTURE_SIZE=12
+@INCLUDEFILE=wbscopc.txt
+@$DEFHOLDOFF=0x1ffff
+@INT.SATAPSCOPE.PIC=syspic
+@INT.SATAPSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+@XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/new_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/qd_data*}] 8
+##
 @PREFIX=satalscope
 @DEVID=SATALSCOPE
 @DEPENDS=SATA_ACCESS
@@ -76,6 +90,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(
 ##
 ## This one makes no sense ...
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
 ##
 @PREFIX=satarscope
 @DEVID=SATARSCOPE
@@ -101,3 +116,74 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data_r*}] 8
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+##
+##
+##
+@PREFIX=satarefcounter
+@DEVID=SATAREFCOUNTER
+@DEPENDS=SATA_ACCESS
+@ACCESS=@$(DEVID)_ACCESS
+@NADDR=1
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=SINGLE
+@MAIN.INSERT=
+	clkcounter
+	u_@$(PREFIX) (
+		.i_sys_clk(i_clk), .i_tst_clk(i_sata_phy_refclk),
+		.i_sys_pps(1'b0), .o_sys_counts(@$(SLAVE.PREFIX)_idata)
+	);
+@MAIN.ALT=
+	assign	@$(SLAVE.PREFIX)_idata = 32'h0;
+@REGS.N=1
+@REGS.0=0 R_SATAREF SATAREF
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
+@XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v*}] 8.0
+##
+##
+@PREFIX=satatxck
+@DEVID=SATATXCOUNTER
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS=SATA_ACCESS
+@NADDR=1
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=SINGLE
+@MAIN.INSERT=
+	clkcounter
+	u_@$(PREFIX) (
+		.i_sys_clk(i_clk), .i_tst_clk(i_sata_txphy_clk),
+		.i_sys_pps(1'b0), .o_sys_counts(@$(SLAVE.PREFIX)_idata)
+	);
+@MAIN.ALT=
+	assign	@$(SLAVE.PREFIX)_idata = 32'h0;
+@REGS.N=1
+@REGS.0=0 R_SATATX SATATX SATATXCLK SATATXCK
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
+@XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v*}] 8.0
+##
+##
+@PREFIX=satarxck
+@DEVID=SATARXCOUNTER
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS=SATA_ACCESS
+@NADDR=1
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=SINGLE
+@MAIN.INSERT=
+	clkcounter
+	u_@$(PREFIX) (
+		.i_sys_clk(i_clk), .i_tst_clk(i_sata_rxphy_clk),
+		.i_sys_pps(1'b0), .o_sys_counts(@$(SLAVE.PREFIX)_idata)
+	);
+@MAIN.ALT=
+	assign	@$(SLAVE.PREFIX)_idata = 32'h0;
+@REGS.N=1
+@REGS.0=0 R_SATARX SATARX SATARXCLK SATARXCK
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
+@XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v*}] 8.0

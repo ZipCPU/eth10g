@@ -45,6 +45,7 @@
 #include <string.h>
 #include <signal.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include "regdefs.h"
 #include "port.h"
@@ -63,7 +64,20 @@ void	usage(void) {
 	printf("USAGE: routestat\n");
 }
 
+#ifndef	R_ROUTER
+#define	NO_STATREGS
+#else
+  #ifndef	R_NETSTAT
+  #define	NO_STATREGS
+  #endif
+#endif
+
+#define	LLD	PRId64
+
 int main(int argc, char **argv) {
+#ifdef	NO_STATREGS
+	printf("No stat registers defined\n");
+#else
 	int	skp=0;
 	const char *host = FPGAHOST;
 	int	port=FPGAPORT;
@@ -104,7 +118,7 @@ int main(int argc, char **argv) {
 		} u;
 	} WIDE;
 
-	WIDE		tm, rx, tx;
+	WIDE		tm; //rx, tx;
 
 	m_fpga->readi(R_ROUTER,  sizeof(ubuf)/sizeof(unsigned), ubuf);
 	m_fpga->readi(R_NETSTAT, sizeof(sbuf)/sizeof(unsigned), sbuf);
@@ -124,42 +138,42 @@ int main(int argc, char **argv) {
 
 		// RX
 		// {{{
-		tm.u.lo = sbuf[32*n + 0]; tm.u.hi = sbuf[32*n + 1]; rx.l=tm.l;
-		printf("  RX   Packets: %13lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		tm.u.lo = sbuf[32*n + 0]; tm.u.hi = sbuf[32*n + 1]; // rx.l=tm.l;
+		printf("  RX   Packets: %13" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 2]; tm.u.hi = sbuf[32*n + 3];
-		printf("  RX   Bytes: %15lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  RX   Bytes: %15" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 4]; tm.u.hi = sbuf[32*n + 5];
-		printf("  RX   Aborts:     %10lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  RX   Aborts:     %10" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		// }}}
 
 		// CRC
 		// {{{
 		tm.u.lo = sbuf[32*n + 6]; tm.u.hi = sbuf[32*n + 7];
-		printf("  CRC  Packets: %13lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  CRC  Packets: %13" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 8]; tm.u.hi = sbuf[32*n + 9];
-		printf("  CRC  Bytes: %15lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  CRC  Bytes: %15" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 10]; tm.u.hi = sbuf[32*n + 11];
-		printf("  CRC  Aborts:     %10lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  CRC  Aborts:     %10" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		// }}}
 
 		// TX
 		// {{{
 		tm.u.lo = sbuf[32*n + 12]; tm.u.hi = sbuf[32*n + 13];
-		printf("  TX   Packets: %13lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  TX   Packets: %13" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 14]; tm.u.hi = sbuf[32*n + 15];
-		printf("  TX   Bytes: %15lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  TX   Bytes: %15" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 16]; tm.u.hi = sbuf[32*n + 17];
-		printf("  TX   Aborts:     %10lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  TX   Aborts:     %10" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		// }}}
 
 		// TX-Gate
 		// {{{
-		tm.u.lo = sbuf[32*n + 18]; tm.u.hi = sbuf[32*n + 19]; tx.l=tm.l;
-		printf("  Gate Packets: %13lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		tm.u.lo = sbuf[32*n + 18]; tm.u.hi = sbuf[32*n + 19]; //tx.l=tm.l;
+		printf("  Gate Packets: %13" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 20]; tm.u.hi = sbuf[32*n + 21];
-		printf("  Gate Bytes: %15lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  Gate Bytes: %15" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		tm.u.lo = sbuf[32*n + 22]; tm.u.hi = sbuf[32*n + 23];
-		printf("  Gate Aborts:     %10lld (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
+		printf("  Gate Aborts:     %10" LLD " (%08x:%08x)\n", tm.l, tm.u.hi, tm.u.lo);
 		// }}}
 
 		printf("  FIFO TX Packets: %10d (0x%08x)\n", vpkt[0], vpkt[0]);
@@ -202,5 +216,6 @@ int main(int argc, char **argv) {
 	*/
 
 	delete	m_fpga;
+#endif
 }
 

@@ -1214,7 +1214,10 @@ module routecore #(
 		6'b111_010: dbg_wb_data <= w_route_never_dbg;
 		6'b111_011: dbg_wb_data <= w_route_always_dbg;
 		//
-		6'b111_111: dbg_wb_data[2:0] <= dbg_sel;
+		6'b111_111: begin
+			dbg_wb_data[8 +: NMEM] <= OPT_VFIFO;
+			dbg_wb_data[2:0] <= dbg_sel;
+			end
 		default: begin end
 		endcase
 	end

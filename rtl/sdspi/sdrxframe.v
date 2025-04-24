@@ -156,13 +156,16 @@ module	sdrxframe #(
 
 	// Step #1: Bit sync
 	// {{{
+	wire	[1:0]	w_cfg_width;
+	assign	w_cfg_width = { i_cfg_width[1] & (NUMIO >= 8),
+				i_cfg_width[0] && (NUMIO >= 4) };
 	always @(posedge i_clk)
 	if (i_reset || !i_rx_en || (i_cfg_ds && OPT_DS) || !data_phase)
 		sync_fill <= 0;
 	else if (i_rx_strb == 0)
 	begin
 		sync_fill[4] <= 1'b0;
-	end else case(i_cfg_width)
+	end else case(w_cfg_width)
 	WIDTH_1W: sync_fill <= sync_fill[3:0] + (i_rx_strb[1] ? 1:0)
 						+ (i_rx_strb[0] ? 1:0);
 	WIDTH_4W: sync_fill <= sync_fill[3:0] + (i_rx_strb[1] ? 4:0)
@@ -176,19 +179,19 @@ module	sdrxframe #(
 		sync_sreg <= 0;
 	else if (i_rx_strb != 0)
 	begin
-		case(i_cfg_width)
+		case(w_cfg_width)
 		WIDTH_1W: if (i_rx_strb == 2'b11)
-			sync_sreg <= { sync_sreg[17:0], i_rx_data[8], i_rx_data[0] };
+			sync_sreg <= { sync_sreg[21:0], i_rx_data[8], i_rx_data[0] };
 			else if (i_rx_strb[1])
-				sync_sreg <= { sync_sreg[18:0], i_rx_data[8] };
+				sync_sreg <= { sync_sreg[22:0], i_rx_data[8] };
 			else
-				sync_sreg <= { sync_sreg[18:0], i_rx_data[0] };
+				sync_sreg <= { sync_sreg[22:0], i_rx_data[0] };
 		WIDTH_4W: if (i_rx_strb == 2'b11)
-			sync_sreg <= { sync_sreg[11:0], i_rx_data[11:8], i_rx_data[3:0] };
+			sync_sreg <= { sync_sreg[15:0], i_rx_data[11:8], i_rx_data[3:0] };
 			else if (i_rx_strb[1])
-				sync_sreg <= { sync_sreg[15:0], i_rx_data[11:8] };
+				sync_sreg <= { sync_sreg[19:0], i_rx_data[11:8] };
 			else
-				sync_sreg <= { sync_sreg[15:0], i_rx_data[3:0] };
+				sync_sreg <= { sync_sreg[19:0], i_rx_data[3:0] };
 		default: if (i_rx_strb == 2'b11)
 			sync_sreg <= { sync_sreg[7:0], i_rx_data[15:8], i_rx_data[7:0] };
 			else if (i_rx_strb[1])
@@ -225,7 +228,24 @@ module	sdrxframe #(
 	if (OPT_LOWPOWER && (!i_rx_en || (i_cfg_ds && OPT_DS)))
 		s2_data <= 0;
 	else if (sync_fill[4])
-		s2_data <= sync_sreg >> sync_fill[3:0];
+	begin
+		// s2_data <= sync_sreg >> sync_fill[3:0];
+		// Vastly simplified below
+		case(w_cfg_width)
+		WIDTH_1W: if (sync_fill[0])
+				s2_data <= sync_sreg[16:1];
+			else
+				s2_data <= sync_sreg[15:0];
+		WIDTH_4W: if (sync_fill[2])
+				s2_data <= sync_sreg[19:4];
+			else
+				s2_data <= sync_sreg[15:0];
+		WIDTH_8W: if (sync_fill[3])
+				s2_data <= sync_sreg[23:8];
+			else
+				s2_data <= sync_sreg[15:0];
+		endcase
+	end
 	// else if (sync_fill[3])
 	//	s2_data <= {sync_sreg, 8'h0} >> sync_fill[2:0];
 	// Verilator lint_on  WIDTH
@@ -304,7 +324,7 @@ module	sdrxframe #(
 	// o_mem_data, o_mem_strb
 	// {{{
 	always @(*)
-	if (!i_cfg_ddr || i_cfg_width == WIDTH_8W)
+	if (!i_cfg_ddr || w_cfg_width == WIDTH_8W)
 		ddr_s2_data = s2_data;
 	else if (i_cfg_width == WIDTH_4W)
 		ddr_s2_data = { s2_data[15:12], s2_data[7:4],
@@ -416,10 +436,10 @@ module	sdrxframe #(
 	begin
 		// {{{
 		// Verilator lint_off WIDTH
-		last_strb  <= (!i_crc_en && i_cfg_width == WIDTH_8W && i_length == 1);
+		last_strb  <= (!i_crc_en && w_cfg_width == WIDTH_8W && i_length == 1);
 		if (i_cfg_ds)
 			rail_count <= i_length + (i_crc_en ? (16 + (i_cfg_ddr ? 16 : 0)) : 0);
-		else case(i_cfg_width)
+		else case(w_cfg_width)
 		WIDTH_1W: rail_count <= (i_length << 3) + (i_crc_en ? (16 + (i_cfg_ddr ? 16:0)):0);
 		WIDTH_4W: rail_count <= (i_length << 1) + (i_crc_en ? (16 + (i_cfg_ddr ? 16:0)):0);
 		default:  rail_count <= i_length + (i_crc_en ? (16 + (i_cfg_ddr ? 16:0)):0);
@@ -556,8 +576,8 @@ module	sdrxframe #(
 		always @(posedge i_clk)
 		if (i_reset || !i_rx_en || !i_crc_en ||(!data_phase&&!load_crc))
 			pedge_crc <= 0;
-		else if ((gk >= 1 && i_cfg_width == WIDTH_1W)
-				|| (gk >= 4 && i_cfg_width == WIDTH_4W))
+		else if ((gk >= 1 && w_cfg_width == WIDTH_1W)
+				|| (gk >= 4 && w_cfg_width == WIDTH_4W))
 			pedge_crc <= 0;
 		else if (!i_cfg_ds || !OPT_DS)
 		begin // CRC based upon synchronous inputs
@@ -599,8 +619,8 @@ module	sdrxframe #(
 		if (i_reset || !i_rx_en || !i_crc_en || (!data_phase&&!load_crc)
 								|| !i_cfg_ddr)
 			nedge_crc <= 0;
-		else if ((gk >= 1 && i_cfg_width == WIDTH_1W)
-				|| (gk >= 4 && i_cfg_width == WIDTH_4W))
+		else if ((gk >= 1 && w_cfg_width == WIDTH_1W)
+				|| (gk >= 4 && w_cfg_width == WIDTH_4W))
 			// Zero out any unused rails
 			nedge_crc <= 0;
 		else if (!i_cfg_ds || !OPT_DS)
@@ -745,6 +765,16 @@ module	sdrxframe #(
 	if (!OPT_DS)
 		assume(!i_cfg_ds);
 
+	always @(*)
+	if (NUMIO < 4)
+	begin
+		assume(f_cfg_width == 2'b00);
+	end else if (NUMIO < 8)
+	begin
+		assume(f_cfg_width[1] == 1'b0);
+	end else
+		assume(f_cfg_width != 2'b11);
+
 	always @(posedge i_clk)
 	if (!i_reset && $past(i_reset))
 		assume(!i_rx_en);
@@ -766,7 +796,7 @@ module	sdrxframe #(
 		if (i_cfg_ds)
 		begin
 			assume(i_length[1:0] == 2'b00);
-		end else if (i_cfg_ddr && i_cfg_width >= WIDTH_8W)
+		end else if (i_cfg_ddr && w_cfg_width >= WIDTH_8W)
 			assume(i_length[0] == 1'b0);
 	end
 
@@ -1104,10 +1134,20 @@ module	sdrxframe #(
 		assert({ mem_full, o_mem_addr, subaddr } == fmem_count);
 
 	always @(posedge i_clk)
-	if (!i_reset && !i_rx_en)
+	if (i_reset)
+	begin
+	end else if (!i_rx_en)
+	begin
 		assert(!o_mem_valid);
-	else if (!i_reset && o_mem_valid)
+	end else if (o_mem_valid)
 		assert(o_mem_strb != 0);
+
+	always @(posedge i_clk)
+	if (!i_reset && o_mem_valid && $past(o_mem_valid))
+	begin
+		if (!$changed(o_mem_addr))
+			assert(0 == (o_mem_strb & $past(o_mem_strb)));
+	end
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////

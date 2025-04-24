@@ -11,7 +11,9 @@ i2cscope
 netscope
 netuart
 routescope
+routestat
 rxedidscope
+satapscope
 satalscope
 satarscope
 satatscope
