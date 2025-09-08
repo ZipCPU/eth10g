@@ -60,13 +60,11 @@ should be sufficient for most individual needs.  Should you find this license
 insufficient to meet your needs, other licenses can be purchased from
 Gisselquist Technology, LLC.
 
-## Status
+## Rev #1 Status
 
 As of 30 November, 2023:
 
 - The initial PCB for this project has been built and testing has completed.  Several issues have been found, which are now scheduled to be fixed in the next revision.
-
-- The project RTL is mostly assembled.  The only significant component not yet integrated is the SATA.
 
 - Components assembled, attached, and demonstrated to be working include:
 
@@ -112,6 +110,8 @@ As of 30 November, 2023:
 
   - The 10Gb Ethernet component.  All connections are up and running in our test setup.  The router itself appears to be working as well.
 
+    - Network throughput at/near 10Gb/s has been measured _through the router_
+
   - This open source [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller).  While I haven't (yet) measured its performance, I'm expecting this controller to a 2x lower latency when compared with Xilinx's MIG controller.
 
   - [The CPU-based virtual packet FIFOs](rtl/net/cpunet.v) are fully integrated, and appear to be working.
@@ -120,7 +120,6 @@ As of 30 November, 2023:
 - Only one component remains to be integrated and tested:
 
   - [The SATA Controller](https://github.com/ZipCPU/wbsata).  This component needs some more development time at present.
-
 
 The next steps for this project include:
 
