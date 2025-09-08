@@ -49,19 +49,19 @@ all:	data
 #
 CLOCKS  := allclocks.txt siclk.txt sirefclk.txt
 BASE    := global.txt wbdown.txt icape.txt
-AUX     := version.txt			# pwrcount.txt rtccount.txt buserr.txt
+AUX     := version.txt pwrcount.txt rtccount.txt	# buserr.txt
 IO      := gpio.txt spio.txt
 DBGBUS  := wbuconsole.txt		# smibus.txt
-MEMORY  := bkram.txt ddr3.txt		# flash.txt # bkrom.txt
-DISKDR  := # sata.txt # sdio.txt emmc.txt		# cruviemmc.txt
-CPU     := zipmaster.txt		# smiconsole.txt
+MEMORY  := bkram.txt ddr3.txt flash.txt # bkrom.txt
+DISKDR  := sdio.txt emmc.txt		# sata.txt #	# cruviemmc.txt
+CPU     := zipmaster.txt		# smiconsole.txt -- no more
 ## NETWORK := netled.txt		# No network, just network LED testing
 ## NETWORK := netduplex.txt		# Pass through test, no routing
 NETWORK := netrouter.txt cpunet.txt netstats.txt	# Full router, virtual FIFOs, CPU FIFO
-GFX     := # hdmi.txt cec.txt edid.txt
+GFX     := hdmi.txt cec.txt edid.txt
 SCOPES  := routescope.txt i2cscope.txt gatescope.txt netscope.txt # satascope.txt sdioscope.txt cpunetscope.txt hdmiclrscope.txt rxedidscope.txt smiscope.txt flashscope.txt fanscope.txt cfgscope.txt emmcscope.txt
-LDSCRIPT:= mem_bkram_only.txt mem_full.txt # mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
-OTHER   := i2ccpu.txt fan.txt sirefclkcounter.txt	# netclk.txt
+LDSCRIPT:= mem_bkram_only.txt mem_full.txt mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
+OTHER   := i2ccpu.txt fan.txt sirefclkcounter.txt netclk.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\
 	$(SCOPES) $(LDSCRIPT) $(OTHER)

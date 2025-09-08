@@ -163,7 +163,7 @@ module	zipcore #(
 	// as described herein will work, this just makes sure XST implements
 	// that logic.
 	//
-	(* ram_style = "distributed" *)
+	// (* ram_style = "distributed" *)
 	reg	[31:0]	regset	[0:(OPT_USERMODE)? 31:15];
 
 	// Condition codes
@@ -842,7 +842,7 @@ module	zipcore #(
 	// Op register addresses
 	// {{{
 	generate if (OPT_PIPELINED)
-	begin : OP_REG_ADVANEC
+	begin : OP_REG_ADVANCE
 		// {{{
 		reg	[4:0]	r_op_R;
 		reg	[4:0]	r_op_Aid, r_op_Bid;

@@ -1,0 +1,62 @@
+################################################################################
+##
+## Filename:	autodata/pwrcount.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2024-2025, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=pwrcount
+@NADDR=1
+@ACCESS=PWRCOUNT_ACCESS
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb32
+@MAIN.DEFNS=
+	reg	[31:0]	r_pwrcount_data;
+@MAIN.INSERT=
+	initial	r_@$(PREFIX)_data = 32'h0;
+	always @(posedge i_clk)
+	if (r_@$(PREFIX)_data[31])
+		r_@$(PREFIX)_data[30:0] <= r_@$(PREFIX)_data[30:0] + 1'b1;
+	else
+		r_@$(PREFIX)_data[31:0] <= r_@$(PREFIX)_data[31:0] + 1'b1;
+
+	assign	@$(SLAVE.PREFIX)_stall = 1'b0;
+	assign	@$(SLAVE.PREFIX)_ack   = @$(SLAVE.PREFIX)_stb;
+	assign	@$(SLAVE.PREFIX)_idata = r_@$(PREFIX)_data;
+@REGS.N=1
+@REGS.0= 0 R_PWRCOUNT PWRCOUNT
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=unsigned
+@BDEF.OSVAL= static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+@LD.DEFNS=@$(BDEF.IONAME) = @$[0x%08x](REGBASE);

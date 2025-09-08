@@ -130,6 +130,7 @@ module	zipsystem #(
 		// {{{
 		parameter [0:0]	OPT_PIPELINED=1,
 		parameter [0:0]	OPT_EARLY_BRANCHING=OPT_PIPELINED,
+		parameter [0:0]	OPT_WRAP=1,
 		// OPT_LGICACHE
 		// {{{
 		parameter	OPT_LGICACHE=10,
@@ -1376,6 +1377,7 @@ module	zipsystem #(
 		.BUS_WIDTH(BUS_WIDTH),
 		.OPT_PIPELINED(OPT_PIPELINED),
 		.OPT_EARLY_BRANCHING(OPT_EARLY_BRANCHING),
+		.OPT_WRAP(OPT_WRAP),
 		.OPT_LGICACHE(OPT_LGICACHE),
 		.OPT_LGDCACHE(OPT_LGDCACHE),
 		.OPT_MPY(OPT_MPY),

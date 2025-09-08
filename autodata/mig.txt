@@ -1,6 +1,6 @@
 ################################################################################
 ##
-## Filename:	autodata/sdram.txt
+## Filename:	autodata/mig.txt
 ## {{{
 ## Project:	10Gb Ethernet switch
 ##

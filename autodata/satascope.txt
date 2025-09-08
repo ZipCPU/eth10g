@@ -2,7 +2,7 @@
 ##
 ## Filename:	autodata/satascope.txt
 ## {{{
-## Project:	KIMOS, a Mercury KX2 demonstration project
+## Project:	10Gb Ethernet switch
 ##
 ## Purpose:	Describes how to connect the various debugging ports of the
 ##		SATA controller to compressed wishbone scopes.
