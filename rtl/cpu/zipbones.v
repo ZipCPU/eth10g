@@ -48,6 +48,7 @@ module	zipbones #(
 		// {{{
 		parameter [0:0]	OPT_PIPELINED=1,
 		parameter [0:0]	OPT_EARLY_BRANCHING=OPT_PIPELINED,
+		parameter [0:0]	OPT_WRAP=1,
 		// OPT_LGICACHE
 		// {{{
 		parameter	OPT_LGICACHE = 2,
