@@ -253,7 +253,7 @@ set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]]	## MGTX115_RX3_N
 ## {{{
 ## #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
 ## The flash clock pin is (also on) CCLK_0 / C8
-#set_property -dict {PACKAGE_PIN B26 IOSTANDARD LVCMOS18} [get_ports o_flash_sck]
+set_property -dict {PACKAGE_PIN B26 IOSTANDARD LVCMOS18} [get_ports o_flash_sck]
 set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_flash_cs_n]
 
 set_property -dict {PACKAGE_PIN B24 IOSTANDARD LVCMOS18} [get_ports io_flash_dat[0]]

@@ -50,9 +50,10 @@
 @STARTUP_SCRIPT="micron.hex"
 @TOP.PORTLIST=
 		// Top level Quad-SPI I/O ports
-		o_@$(PREFIX)_cs_n, io_@$(PREFIX)_dat
+		o_@$(PREFIX)_sck, o_@$(PREFIX)_cs_n, io_@$(PREFIX)_dat
 @TOP.IODECL=
 	// Quad SPI flash
+	output	wire		o_@$(PREFIX)_sck;
 	output	wire		o_@$(PREFIX)_cs_n;
 	inout	wire	[3:0]	io_@$(PREFIX)_dat;
 @TOP.DEFNS=

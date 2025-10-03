@@ -76,7 +76,7 @@ module	toplevel(
 		o_hdmitx_clk_p, o_hdmitx_clk_n,
 		o_hdmitx_p, o_hdmitx_n,
 		// Top level Quad-SPI I/O ports
-		o_flash_cs_n, io_flash_dat,
+		o_flash_sck, o_flash_cs_n, io_flash_dat,
 		// GPIO ports
 		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
@@ -219,6 +219,7 @@ i_sd_cd_n,
 	output	wire		o_hdmitx_clk_p, o_hdmitx_clk_n;
 	output	wire	[2:0]	o_hdmitx_p, o_hdmitx_n;
 	// Quad SPI flash
+	output	wire		o_flash_sck;
 	output	wire		o_flash_cs_n;
 	inout	wire	[3:0]	io_flash_dat;
 	// GPIO wires
