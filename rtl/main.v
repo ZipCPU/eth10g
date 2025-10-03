@@ -712,6 +712,7 @@ module	main(i_clk, i_reset,
 	wire	[DDR3_CONTROLLERAUX_WIDTH-1:0]	ddr3_controller_aux_out;
 	wire	[31:0]	ddr3_controller_debug;
 	wire	ign_ddr3_controller_calib_complete;
+	wire	ign_ddr3_controller_uart;
 	// Verilator lint_on  UNUSED
 	reg	[NETPORTS-1:0]	r_netreset;
 	// Incoming 10Gb packet signaling
@@ -3265,7 +3266,7 @@ module	main(i_clk, i_reset,
 		.OPT_CFG(1'b0)
 `endif
 		// }}}
-	) flashi(
+	) u_flash (
 		// {{{
 		.i_clk(i_clk),
 		.i_reset(i_reset),
@@ -3547,7 +3548,7 @@ module	main(i_clk, i_reset,
 		.MW(32),
 		.ADDRESS_WIDTH(25+$clog2(512/8)),
 		.DMA_DW(512),
-		.OPT_SERDES(1'b0),
+		.OPT_SERDES(1'b1),
 		.OPT_EMMC(1'b1),
 		.OPT_DMA(1'b0),
 		.OPT_DDR(1'b0),
@@ -3795,6 +3796,7 @@ module	main(i_clk, i_reset,
 		.o_calib_complete(ign_ddr3_controller_calib_complete),
 		.i_user_self_refresh(1'b0),
 		// Debug port (unused)
+		.uart_tx(ign_ddr3_controller_uart),
 		.o_debug1(ddr3_controller_debug)
 		// Verilator lint_off PINCONNECTEMPTY
 		// .o_debug2(),

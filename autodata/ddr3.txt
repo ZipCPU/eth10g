@@ -269,6 +269,7 @@
 	wire	[@$(DEVID)AUX_WIDTH-1:0]	@$(PREFIX)_aux_out;
 	wire	[31:0]	@$(PREFIX)_debug;
 	wire	ign_@$(PREFIX)_calib_complete;
+	wire	ign_@$(PREFIX)_uart;
 	// Verilator lint_on  UNUSED
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
@@ -329,6 +330,7 @@
 		.o_calib_complete(ign_@$(PREFIX)_calib_complete),
 		.i_user_self_refresh(1'b0),
 		// Debug port (unused)
+		.uart_tx(ign_@$(PREFIX)_uart),
 		.o_debug1(@$(PREFIX)_debug)
 		// Verilator lint_off PINCONNECTEMPTY
 		// .o_debug2(),

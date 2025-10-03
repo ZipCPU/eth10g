@@ -43,7 +43,7 @@
 @NAME=eMMC Card
 @$NUMIO=8
 @CARD_DETECT=1'b0
-@OPT_SERDES=1'b0
+@OPT_SERDES=1'b1
 @OPT_DDR=1'b0
 @OPT_DMA=1'b0
 @OPT_EMMC=1'b1
@@ -54,7 +54,9 @@
 @INT.EMMC.WIRE= @$(PREFIX)_int
 @INT.EMMC.PIC= altpic
 @SDIO.CLKDECL=
+		o_@$(PREFIX)_clk,
 @SDIO.IOCLK=
+	output	wire	o_@$(PREFIX)_clk;
 @SDIO.CDETDECL=
 @SDIO.IOCDET=
 @SDIO.DSDECL=
@@ -70,64 +72,7 @@
 
 	assign	i_@$(TOP.IOPREFIX)_cd_n = 1'b0;
 @SDIO.CLKASSIGN=
-	STARTUPE2 #(
-		// {{{
-		// Leave PROG_USR false to avoid activating the program
-		// event security feature.  Notes state that such a feature
-		// requires encrypted bitstreams.
-		.PROG_USR("FALSE"),
-		// Sets the configuration clock frequency (in ns) for
-		// simulation.
-		.SIM_CCLK_FREQ(0.0)
-		// }}}
-	) STARTUPE2_inst (
-		// CFGCLK, 1'b output: Config main clock output -- no connect
-		.CFGCLK(su_@$(PREFIX)_nc[0]),
-		// CFGMCLK, 1'b output: Config internal oscillator clock output
-		.CFGMCLK(su_@$(PREFIX)_nc[1]),
-		// EOS, 1'b: Active high output indicating the End Of Startup.
-		.EOS(su_@$(PREFIX)_nc[2]),
-		// PREQ, 1'b output: PROGRAM request to fabric output
-		//	Only enabled if PROG_USR is set.  This lets the fabric
-		//	know that a request has been made (either JTAG or pin
-		//	pulled low) to program the device
-		.PREQ(su_@$(PREFIX)_nc[3]),
-		// CLK, 1'b input: User start-up clock input
-		.CLK(1'b0),
-		// GSR, 1'b input: Global Set/Reset input
-		.GSR(1'b0),
-		// GTS, 1'b input: Global 3-state input
-		.GTS(1'b0),
-		// KEYCLEARB, 1'b input: Clear AES Decrypter Key from BBRAM
-		.KEYCLEARB(1'b0),
-		// PACK, 1-bit input: PROGRAM acknowledge input
-		//	This pin is only enabled if PROG_USR is set.  This
-		//	allows the FPGA to acknowledge a request for reprogram
-		//	to allow the FPGA to get itself into a reprogrammable
-		//	state first.
-		.PACK(1'b0),
-		// USRCLKO, 1-bit input: User CCLK input -- This is why I
-		// am using this module at all--I need to drive the CCLK pin
-		// as part of the (current) eMMC design
-		.USRCCLKO(w_@$(PREFIX)_ck),
-		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
-		//	An active high here places the clock into a high
-		//	impedence state.  Since we wish to use the clock as an
-		//	active output always, we drive this pin low.
-		.USRCCLKTS(1'b0),
-		// USRDONEO, 1'b input: User DONE pin output control
-		//	Set this to "high" to make sure that the DONE LED pin
-		//	is high.
-		.USRDONEO(1'b1),
-		// USRDONETS, 1'b input: User DONE 3-state enable output
-		//	This enables the FPGA DONE pin to be active.  Setting
-		//	this high sets the DONE pin to high impedence (normal
-		//	DONE pin operation).  Setting it low allows the output
-		//	of this pin to be driven by USRDONE0 above.
-		.USRDONETS(1'b1)
-	);
-
-	// }}}
+	assign	o_@$(TOP.IOPREFIX)_clk = w_@$(PREFIX)_ck;
 @REGS.N=5
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	EMMCCARD

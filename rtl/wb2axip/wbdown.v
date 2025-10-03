@@ -728,7 +728,7 @@ module wbdown #(
 				r_shift<= (i_wsel[SMALL_DW/8-1:0] != 0) ? 1
 							: i_subaddr;
 			end else begin
-				r_shift<= (i_wsel[WIDE_DW/8-1:WIDE_DW/8-SMALL_DW]!= 0)
+				r_shift<= (i_wsel[WIDE_DW/8-1:WIDE_DW/8-SMALL_DW/8]!= 0)
 						? 1 : i_subaddr;
 			end
 

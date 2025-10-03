@@ -592,6 +592,10 @@ module	vidpipe #(
 	//
 	// Convert from HDMI to an AXI (video) stream
 	// {{{
+	// Verilator lint_off UNUSED
+	wire		ign_pkt_valid, ign_pkt_hdr, ign_pkt_last;
+	wire	[7:0]	ign_pkt_data;
+	// Verilator lint_on  UNUSED
 
 	// hdmi2vga: Convert first to VGA
 	hdmi2vga
@@ -600,6 +604,11 @@ module	vidpipe #(
 		.i_clk(i_pixclk), .i_reset(pix_reset),
 		.i_hdmi_red(i_hdmi_red), .i_hdmi_grn(i_hdmi_grn),
 			.i_hdmi_blu(i_hdmi_blu),
+		//
+		.M_DI_VALID(ign_pkt_valid),
+		.M_DI_HDR(ign_pkt_hdr),
+		.M_DI_DATA(ign_pkt_data),
+		.M_DI_LAST(ign_pkt_last),
 		//
 		.o_pix_valid(vga_valid),
 		.o_vsync(vga_vsync), .o_hsync(vga_hsync),
@@ -901,8 +910,10 @@ module	vidpipe #(
 	) u_framebuf (
 		// {{{
 		.i_clk(i_clk), .i_pixclk(i_pixclk), .i_reset(pix_reset_sys),
-		.i_cfg_en(cfg_ovly_enable_sys),
+		.i_pix_en(cfg_ovly_enable),
+		.i_wb_en(cfg_ovly_enable_sys),
 		.i_height(cfg_mem_height), .i_mem_words(cfg_mem_words),
+		.i_width(cfg_mem_width_sys),
 		.i_baseaddr(cfg_framebase),
 		// Wishbone (DMA) bus master
 		// {{{
@@ -1040,6 +1051,9 @@ module	vidpipe #(
 	//
 	// axis2hdmi: Convert our AXI Video stream to HDMI
 	// {{{
+	// Verilator lint_off UNUSED
+	wire	ign_pkt_ready;
+	// Verilator lint_on  UNUSED
 
 	axishdmi #(
 		.HW(LGDIM), .VW(LGDIM),
@@ -1051,6 +1065,14 @@ module	vidpipe #(
 		// {{{
 		.i_valid(out_valid), .o_ready(out_ready),
 		.i_hlast(out_hlast), .i_vlast(out_vlast), .i_rgb_pix(out_data),
+		// }}}
+		// Incoming AXI stream packet interface
+		// {{{
+		.i_pkt_valid(1'b0),
+		.o_pkt_ready(ign_pkt_ready),
+		.i_pkt_hdr( 1'b0),
+		.i_pkt_data(8'b0),
+		.i_pkt_last(1'b0),
 		// }}}
 		// Video mode information
 		// {{{

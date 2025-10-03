@@ -43,10 +43,13 @@
 `default_nettype	none
 // }}}
 module	axisbroadcast #(
+		// {{{
 		parameter	C_AXIS_DATA_WIDTH = 16,
 		parameter	NM = 4,	// Number of (outgoing) master ports
 		parameter	LGFIFO = 4	// Size of outgoing FIFOs
+		// }}}
 	) (
+		// {{{
 		input	wire	S_AXI_ACLK, S_AXI_ARESETN,
 		input	wire					S_AXIS_TVALID,
 		output	wire					S_AXIS_TREADY,
@@ -54,6 +57,7 @@ module	axisbroadcast #(
 		output	wire	[NM-1:0]			M_AXIS_TVALID,
 		input	wire	[NM-1:0]			M_AXIS_TREADY,
 		output	wire	[NM*C_AXIS_DATA_WIDTH-1:0]	M_AXIS_TDATA
+		// }}}
 	);
 
 	// Local declarations

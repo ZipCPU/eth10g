@@ -146,8 +146,13 @@ module	addrdecode #(
 	begin : SINGLE_SLAVE
 		// {{{
 		assign request[0] = i_valid;
+
 		// }}}
-	end else begin : LCL_NOSEL
+		wire	unused;
+		assign	unused = &{ 1'b0, prerequest };
+		// Verilator lint_on  UNUSED
+		// }}}
+	end else begin : GENERAL_CASE
 		// {{{
 		reg	[NS-1:0]	r_request;
 
@@ -167,7 +172,7 @@ module	addrdecode #(
 	// request[NS]
 	// {{{
 	generate if (OPT_NONESEL)
-	begin : OPT_NONESEL_REQUEST
+	begin : GENERATE_NONSEL_SLAVE
 		reg	r_request_NS, r_none_sel;
 
 		always @(*)
@@ -188,7 +193,7 @@ module	addrdecode #(
 		end
 
 		assign request[NS] = r_request_NS;
-	end else begin : NO_NONESEL_REQUEST
+	end else begin : NO_NONESEL_SLAVE
 		assign request[NS] = 1'b0;
 	end endgenerate
 	// }}}
@@ -196,7 +201,7 @@ module	addrdecode #(
 	// o_valid, o_addr, o_data, o_decode, o_stall
 	// {{{
 	generate if (OPT_REGISTERED)
-	begin : GEN_REGISTERED_OUTS
+	begin : GEN_REG_OUTPUTS
 
 		// o_valid
 		// {{{
@@ -247,7 +252,7 @@ module	addrdecode #(
 		always @(*)
 			o_stall = (o_valid && i_stall);
 		// }}}
-	end else begin : COMB_OUTPUTS
+	end else begin : GEN_COMBINATORIAL_OUTPUTS
 
 		always @(*)
 		begin
@@ -409,7 +414,7 @@ module	addrdecode #(
 	generate if (!OPT_NONESEL && ACCESS_ALLOWED[0]
 			&& SLAVE_MASK == 0 && NS == 1)
 	begin
-		
+
 		always @(*)
 			cover(f_reached[0]);
 

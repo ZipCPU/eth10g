@@ -89,6 +89,7 @@ i_sd_cd_n,
 		io_sd_cmd, io_sd_dat,
 		// eMMC Card
 
+		o_emmc_clk,
 
 
 		i_emmc_ds,
@@ -239,6 +240,7 @@ i_sd_cd_n,
 	// eMMC Card
 	// {{{
 
+	output	wire	o_emmc_clk;
 
 	input	wire		i_emmc_ds;
 
@@ -331,7 +333,7 @@ i_sd_cd_n,
 	wire [15-1:0]	set_hdmi_delay, actual_hdmi_delay;
 	wire		w_flash_sck, w_flash_cs_n;
 	wire	[1:0]	flash_bmod;
-	wire	[3:0]	flash_dat;
+	wire	[3:0]	i_flash_dat, o_flash_dat;
 	// GPIO declarations.  The two wire busses are just virtual lists of
 	// input (or output) ports.
 	wire	[16-1:0]	i_gpio;
@@ -501,7 +503,7 @@ i_sd_cd_n,
 		pix_reset_n, pxrx_locked,
 		w_pxclk_sel,
 		// Quad SPI flash
-		w_flash_cs_n, w_flash_sck, flash_dat, io_flash_dat, flash_bmod,
+		w_flash_cs_n, w_flash_sck, o_flash_dat, i_flash_dat, flash_bmod,
 		// GPIO wires
 		i_gpio, o_gpio,
 		// SDIO SD Card
@@ -949,106 +951,15 @@ i_sd_cd_n,
 	//	0?	Normal serial mode, one bit in one bit out
 	//	10	Quad SPI mode, going out
 	//	11	Quad SPI mode coming from the device (read mode)
-	assign io_flash_dat = (!flash_bmod[1])?({2'b11,1'bz,flash_dat[0]})
-				:((flash_bmod[0])?(4'bzzzz):(flash_dat[3:0]));
-	assign	o_flash_cs_n = w_flash_cs_n;
-
-	/*
-	IOBUF flash_dat0 (
+	xqflex #(
+		.OPT_CLOCK(1'b1), .OPT_PHASE(1'b1)
+	) u_xqflex (
+		.i_clk(s_clk), .i_cs_n(w_flash_cs_n), .i_sck(w_flash_sck),
+		.i_dat(o_flash_dat), .o_dat(i_flash_dat), .i_bmod(flash_bmod),
 		// {{{
-		.I(o_flash_dat[0]),
-		.T(flash_bmod == 2'b11),
-		.O(i_flash_dat[0]),
-		.IO(io_flash_dat[0])
-		// }}}
+		.o_cs_n(o_flash_cs_n), .o_sck(o_flash_sck), .io_dat(io_flash_dat)
 	);
 
-	IOBUF flash_dat1 (
-		// {{{
-		.I(o_flash_dat[1]),
-		.T(flash_bmod != 2'b10),
-		.O(i_flash_dat[1]),
-		.IO(io_flash_dat[1])
-		// }}}
-	);
-
-	IOBUF flash_dat2 (
-		// {{{
-		.I(!flash_bmod[1] || o_flash_dat[2]),
-		.T(flash_bmod == 2'b11),
-		.O(i_flash_dat[2]),
-		.IO(io_flash_dat[2])
-		// }}}
-	);
-
-	IOBUF flash_dat3 (
-		// {{{
-		.I(!flash_bmod[1] || o_flash_dat[3]),
-		.T(flash_bmod == 2'b11),
-		.O(i_flash_dat[3]),
-		.IO(io_flash_dat[3])
-		// }}}
-	);
-	*/
-
-	// The following primitive is necessary in many designs order to gain
-	// access to the o_flash_sck pin.  It's not necessary on the Arty,
-	// simply because they provide two pins that can drive the QSPI
-	// clock pin.
-	wire	[3:0]	su_nc;	// Startup primitive, no connect
-	STARTUPE2 #(
-		// Leave PROG_USR false to avoid activating the program
-		// event security feature.  Notes state that such a feature
-		// requires encrypted bitstreams.
-		.PROG_USR("FALSE"),
-		// Sets the configuration clock frequency (in ns) for
-		// simulation.
-		.SIM_CCLK_FREQ(0.0)
-	) STARTUPE2_inst (
-		// CFGCLK, 1'b output: Config main clock output -- no connect
-		.CFGCLK(su_nc[0]),
-		// CFGMCLK, 1'b output: Config internal oscillator clock output
-		.CFGMCLK(su_nc[1]),
-		// EOS, 1'b: Active high output indicating the End Of Startup.
-		.EOS(su_nc[2]),
-		// PREQ, 1'b output: PROGRAM request to fabric output
-		//	Only enabled if PROG_USR is set.  This lets the fabric
-		//	know that a request has been made (either JTAG or pin
-		//	pulled low) to program the device
-		.PREQ(su_nc[3]),
-		// CLK, 1'b input: User start-up clock input
-		.CLK(1'b0),
-		// GSR, 1'b input: Global Set/Reset input
-		.GSR(1'b0),
-		// GTS, 1'b input: Global 3-state input
-		.GTS(1'b0),
-		// KEYCLEARB, 1'b input: Clear AES Decrypter Key from BBRAM
-		.KEYCLEARB(1'b0),
-		// PACK, 1-bit input: PROGRAM acknowledge input
-		//	This pin is only enabled if PROG_USR is set.  This
-		//	allows the FPGA to acknowledge a request for reprogram
-		//	to allow the FPGA to get itself into a reprogrammable
-		//	state first.
-		.PACK(1'b0),
-		// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
-		// module at all.
-		.USRCCLKO(w_flash_sck),
-		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
-		//	An active high here places the clock into a high
-		//	impedence state.  Since we wish to use the clock as an
-		//	active output always, we drive this pin low.
-		.USRCCLKTS(1'b0),
-		// USRDONEO, 1'b input: User DONE pin output control
-		//	Set this to "high" to make sure that the DONE LED pin
-		//	is high.
-		.USRDONEO(1'b1),
-		// USRDONETS, 1'b input: User DONE 3-state enable output
-		//	This enables the FPGA DONE pin to be active.  Setting
-		//	this active high sets the DONE pin to high impedence,
-		//	setting it low allows the output of this pin to be as
-		//	stated above.
-		.USRDONETS(1'b1)
-	);
 	// }}}
 
 	////////////////////////////////////////////////////////////////////////
@@ -1127,7 +1038,7 @@ i_sd_cd_n,
 
 
 	sdfrontend #(
-		.OPT_SERDES(1'b0),
+		.OPT_SERDES(1'b1),
 		.OPT_DDR(1'b0),
 		.NUMIO(8),
 		.BUSY_CLOCKS(16),
@@ -1173,64 +1084,7 @@ i_sd_cd_n,
 	);
 
 
-	STARTUPE2 #(
-		// {{{
-		// Leave PROG_USR false to avoid activating the program
-		// event security feature.  Notes state that such a feature
-		// requires encrypted bitstreams.
-		.PROG_USR("FALSE"),
-		// Sets the configuration clock frequency (in ns) for
-		// simulation.
-		.SIM_CCLK_FREQ(0.0)
-		// }}}
-	) STARTUPE2_inst (
-		// CFGCLK, 1'b output: Config main clock output -- no connect
-		.CFGCLK(su_emmc_nc[0]),
-		// CFGMCLK, 1'b output: Config internal oscillator clock output
-		.CFGMCLK(su_emmc_nc[1]),
-		// EOS, 1'b: Active high output indicating the End Of Startup.
-		.EOS(su_emmc_nc[2]),
-		// PREQ, 1'b output: PROGRAM request to fabric output
-		//	Only enabled if PROG_USR is set.  This lets the fabric
-		//	know that a request has been made (either JTAG or pin
-		//	pulled low) to program the device
-		.PREQ(su_emmc_nc[3]),
-		// CLK, 1'b input: User start-up clock input
-		.CLK(1'b0),
-		// GSR, 1'b input: Global Set/Reset input
-		.GSR(1'b0),
-		// GTS, 1'b input: Global 3-state input
-		.GTS(1'b0),
-		// KEYCLEARB, 1'b input: Clear AES Decrypter Key from BBRAM
-		.KEYCLEARB(1'b0),
-		// PACK, 1-bit input: PROGRAM acknowledge input
-		//	This pin is only enabled if PROG_USR is set.  This
-		//	allows the FPGA to acknowledge a request for reprogram
-		//	to allow the FPGA to get itself into a reprogrammable
-		//	state first.
-		.PACK(1'b0),
-		// USRCLKO, 1-bit input: User CCLK input -- This is why I
-		// am using this module at all--I need to drive the CCLK pin
-		// as part of the (current) eMMC design
-		.USRCCLKO(w_emmc_ck),
-		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
-		//	An active high here places the clock into a high
-		//	impedence state.  Since we wish to use the clock as an
-		//	active output always, we drive this pin low.
-		.USRCCLKTS(1'b0),
-		// USRDONEO, 1'b input: User DONE pin output control
-		//	Set this to "high" to make sure that the DONE LED pin
-		//	is high.
-		.USRDONEO(1'b1),
-		// USRDONETS, 1'b input: User DONE 3-state enable output
-		//	This enables the FPGA DONE pin to be active.  Setting
-		//	this high sets the DONE pin to high impedence (normal
-		//	DONE pin operation).  Setting it low allows the output
-		//	of this pin to be driven by USRDONE0 above.
-		.USRDONETS(1'b1)
-	);
-
-	// }}}
+	assign	o_emmc_clk = w_emmc_ck;
 
 	assign	w_emmc_ds = i_emmc_ds;
 

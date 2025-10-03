@@ -58,10 +58,10 @@
 @TOP.DEFNS=
 	wire		w_@$(PREFIX)_sck, w_@$(PREFIX)_cs_n;
 	wire	[1:0]	@$(PREFIX)_bmod;
-	wire	[3:0]	@$(PREFIX)_dat;
+	wire	[3:0]	i_@$(PREFIX)_dat, o_@$(PREFIX)_dat;
 @TOP.MAIN=
 		// Quad SPI flash
-		w_@$(PREFIX)_cs_n, w_@$(PREFIX)_sck, @$(PREFIX)_dat, io_@$(PREFIX)_dat, @$(PREFIX)_bmod
+		w_@$(PREFIX)_cs_n, w_@$(PREFIX)_sck, o_@$(PREFIX)_dat, i_@$(PREFIX)_dat, @$(PREFIX)_bmod
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -75,106 +75,15 @@
 	//	0?	Normal serial mode, one bit in one bit out
 	//	10	Quad SPI mode, going out
 	//	11	Quad SPI mode coming from the device (read mode)
-	assign io_@$(PREFIX)_dat = (!@$(PREFIX)_bmod[1])?({2'b11,1'bz,@$(PREFIX)_dat[0]})
-				:((@$(PREFIX)_bmod[0])?(4'bzzzz):(@$(PREFIX)_dat[3:0]));
-	assign	o_@$(PREFIX)_cs_n = w_@$(PREFIX)_cs_n;
-
-	/*
-	IOBUF @$(PREFIX)_dat0 (
+	xqflex #(
+		.OPT_CLOCK(1'b1), .OPT_PHASE(1'b1)
+	) u_xqflex (
+		.i_clk(s_clk), .i_cs_n(w_@$(PREFIX)_cs_n), .i_sck(w_@$(PREFIX)_sck),
+		.i_dat(o_@$(PREFIX)_dat), .o_dat(i_@$(PREFIX)_dat), .i_bmod(@$(PREFIX)_bmod),
 		// {{{
-		.I(o_@$(PREFIX)_dat[0]),
-		.T(@$(PREFIX)_bmod == 2'b11),
-		.O(i_@$(PREFIX)_dat[0]),
-		.IO(io_@$(PREFIX)_dat[0])
-		// }}}
+		.o_cs_n(o_@$(PREFIX)_cs_n), .o_sck(o_@$(PREFIX)_sck), .io_dat(io_@$(PREFIX)_dat)
 	);
 
-	IOBUF @$(PREFIX)_dat1 (
-		// {{{
-		.I(o_@$(PREFIX)_dat[1]),
-		.T(@$(PREFIX)_bmod != 2'b10),
-		.O(i_@$(PREFIX)_dat[1]),
-		.IO(io_@$(PREFIX)_dat[1])
-		// }}}
-	);
-
-	IOBUF @$(PREFIX)_dat2 (
-		// {{{
-		.I(!@$(PREFIX)_bmod[1] || o_@$(PREFIX)_dat[2]),
-		.T(@$(PREFIX)_bmod == 2'b11),
-		.O(i_@$(PREFIX)_dat[2]),
-		.IO(io_@$(PREFIX)_dat[2])
-		// }}}
-	);
-
-	IOBUF @$(PREFIX)_dat3 (
-		// {{{
-		.I(!@$(PREFIX)_bmod[1] || o_@$(PREFIX)_dat[3]),
-		.T(@$(PREFIX)_bmod == 2'b11),
-		.O(i_@$(PREFIX)_dat[3]),
-		.IO(io_@$(PREFIX)_dat[3])
-		// }}}
-	);
-	*/
-
-	// The following primitive is necessary in many designs order to gain
-	// access to the o_@$(PREFIX)_sck pin.  It's not necessary on the Arty,
-	// simply because they provide two pins that can drive the QSPI
-	// clock pin.
-	wire	[3:0]	su_nc;	// Startup primitive, no connect
-	STARTUPE2 #(
-		// Leave PROG_USR false to avoid activating the program
-		// event security feature.  Notes state that such a feature
-		// requires encrypted bitstreams.
-		.PROG_USR("FALSE"),
-		// Sets the configuration clock frequency (in ns) for
-		// simulation.
-		.SIM_CCLK_FREQ(0.0)
-	) STARTUPE2_inst (
-		// CFGCLK, 1'b output: Config main clock output -- no connect
-		.CFGCLK(su_nc[0]),
-		// CFGMCLK, 1'b output: Config internal oscillator clock output
-		.CFGMCLK(su_nc[1]),
-		// EOS, 1'b: Active high output indicating the End Of Startup.
-		.EOS(su_nc[2]),
-		// PREQ, 1'b output: PROGRAM request to fabric output
-		//	Only enabled if PROG_USR is set.  This lets the fabric
-		//	know that a request has been made (either JTAG or pin
-		//	pulled low) to program the device
-		.PREQ(su_nc[3]),
-		// CLK, 1'b input: User start-up clock input
-		.CLK(1'b0),
-		// GSR, 1'b input: Global Set/Reset input
-		.GSR(1'b0),
-		// GTS, 1'b input: Global 3-state input
-		.GTS(1'b0),
-		// KEYCLEARB, 1'b input: Clear AES Decrypter Key from BBRAM
-		.KEYCLEARB(1'b0),
-		// PACK, 1-bit input: PROGRAM acknowledge input
-		//	This pin is only enabled if PROG_USR is set.  This
-		//	allows the FPGA to acknowledge a request for reprogram
-		//	to allow the FPGA to get itself into a reprogrammable
-		//	state first.
-		.PACK(1'b0),
-		// USRCLKO, 1-bit input: User CCLK input -- This is why I am using this
-		// module at all.
-		.USRCCLKO(w_@$(PREFIX)_sck),
-		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
-		//	An active high here places the clock into a high
-		//	impedence state.  Since we wish to use the clock as an
-		//	active output always, we drive this pin low.
-		.USRCCLKTS(1'b0),
-		// USRDONEO, 1'b input: User DONE pin output control
-		//	Set this to "high" to make sure that the DONE LED pin
-		//	is high.
-		.USRDONEO(1'b1),
-		// USRDONETS, 1'b input: User DONE 3-state enable output
-		//	This enables the FPGA DONE pin to be active.  Setting
-		//	this active high sets the DONE pin to high impedence,
-		//	setting it low allows the output of this pin to be as
-		//	stated above.
-		.USRDONETS(1'b1)
-	);
 	// }}}
 @MAIN.PORTLIST=
 		// The Universal QSPI Flash
@@ -208,7 +117,7 @@
 		.OPT_CFG(1'b0)
 `endif
 		// }}}
-	) @$(PREFIX)i(
+	) u_@$(PREFIX) (
 		// {{{
 		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)),
 		.i_reset(@$(SLAVE.BUS.CLOCK.RESET)),

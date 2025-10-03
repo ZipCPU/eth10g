@@ -263,7 +263,7 @@ module	qflexpress #(
 	reg	[3:0]	m_dat;
 
 	reg	[32+(OPT_ADDR32 ? 8:0)+4*(OPT_ODDR ? 0:1)-1:0]	data_pipe;
-	reg	pre_ack = 1'b0;
+	reg	pre_ack;
 	wire	actual_sck;
 
 	reg	r_last_cfg;
@@ -902,6 +902,7 @@ module	qflexpress #(
 	// risking losing XIP mode or any other mode we might be in, we'll
 	// keep track of whether this operation should be ack'd upon
 	// completion
+	initial	pre_ack = 1'b0;
 	always @(posedge i_clk)
 	if ((i_reset)||(!bus_cyc))
 		pre_ack <= 1'b0;

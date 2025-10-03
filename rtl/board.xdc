@@ -264,7 +264,7 @@ set_property -dict {PACKAGE_PIN A22 IOSTANDARD LVCMOS18} [get_ports io_flash_dat
 
 ## eMMC
 ## {{{
-#set_property -dict {PACKAGE_PIN D23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
+set_property -dict {PACKAGE_PIN D23 IOSTANDARD LVCMOS18} [get_ports o_emmc_clk]
 set_property -dict {PACKAGE_PIN E22 IOSTANDARD LVCMOS18} [get_ports io_emmc_cmd]
 
 set_property -dict {PACKAGE_PIN A24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[0]]
