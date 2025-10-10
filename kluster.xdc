@@ -622,7 +622,7 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 set_property CONFIG_MODE SPIx4 [current_design]
 set_property BITSTREAM.CONFIG.CONFIGRATE 26 [current_design]
 set_property CONFIG_VOLTAGE 1.8 [current_design]
-# set_property CFGBVS GND [current_design];	## Current design has CFGBVS connected to ground
+set_property CFGBVS GND [current_design];	## Current design has CFGBVS connected to ground
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## set_property INTERNAL_VREF 0.750 [get_iobanks 32];	# Rev2 has a proper VREF

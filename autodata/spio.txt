@@ -47,7 +47,7 @@
 @INT.SPIO.PIC=syspic
 @NLED=8
 @NBTN=5
-@NSW=8
+@NSW=4
 @TOP.PORTLIST=
 		// SPIO interface
 		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led
