@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <strings.h>
 #include <ctype.h>
@@ -403,11 +404,11 @@ void	SCOPE::writevcd(FILE *fp) {
 						//
 						dnow   = dstep * (addrv+1);
 						now_ns = (uint64_t)(dnow * 1e9 + 0.5);
-						fprintf(fp, "#%llu\n", now_ns);
+						fprintf(fp, "#%" PRIu64 "\n", now_ns);
 						fprintf(fp, "0\'T\n");
 					}
 					// But ... with nothing to write out.
-					addrv += (m_data[i]&0x7fffffffull) + 1ull;
+					addrv += (m_data[i]&0x7fffffffu) + 1u;
 				} continue;
 			}
 
@@ -419,7 +420,7 @@ void	SCOPE::writevcd(FILE *fp) {
 			// Convert to nanoseconds, and to integers.
 			now_ns = (uint64_t)(dnow * 1e9 + 0.5);
 
-			fprintf(fp, "#%llu\n", now_ns);
+			fprintf(fp, "#%" PRIu64 "\n", now_ns);
 
 			if ((int64_t)(addrv-alen) == (int64_t)offset) {
 				fprintf(fp, "1\'T\n");
