@@ -637,11 +637,46 @@ set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pi
 ## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in mem_flash_bkram
 ## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in emmcscope
+## No XDC.INSERT tag in sdioscope
+## From satapscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/satapscopei/new_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/satapscopei/qd_data*}] 8
+## No XDC.INSERT tag in mem_flash_bkram
+## From satalscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satalscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+## From satarscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+## From satarefcounter
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v*}] 8.0
+## From satarxck
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/q_v*}] 8.0
 ## From netlock
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
+## No XDC.INSERT tag in satatscope
 ## From netdbg
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
@@ -673,6 +708,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 ## From siclk
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
 set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
+## From satatxck
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v*}] 8.0
 ## No XDC.INSERT tag in buildtime
 ## No XDC.INSERT tag in REGDEFS
 ## No XDC.INSERT tag in zip_alt_mtc
@@ -707,6 +744,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_h
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_hdmirx_*/the_deserdes/delay*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
 ## No XDC.INSERT tag in SIM
+## No XDC.INSERT tag in flashdbg
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in DEFAULT
