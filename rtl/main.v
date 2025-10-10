@@ -381,7 +381,7 @@ module	main(i_clk, i_reset,
 	input	wire	i_hdmirx_cec, i_hdmitx_cec;
 	output	wire	o_hdmirx_cec, o_hdmitx_cec;
 	// SPIO interface
-	input	wire	[8-1:0]	i_sw;
+	input	wire	[4-1:0]	i_sw;
 	input	wire	[5-1:0]	i_btn;
 	output	wire	[8-1:0]	o_led;
 	// I2C Port declarations
@@ -2589,7 +2589,7 @@ module	main(i_clk, i_reset,
 	//
 
 	spio #(
-		.NBTN(5), .NLEDS(8), .NSW(8)
+		.NBTN(5), .NLEDS(8), .NSW(4)
 	) spioi(
 		.i_clk(i_clk), .i_reset(i_reset),
 		.i_wb_cyc(wb32_spio_cyc), .i_wb_stb(wb32_spio_stb), .i_wb_we(wb32_spio_we),

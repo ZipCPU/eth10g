@@ -228,13 +228,13 @@ set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]];	## MGTX115_RX3_N
 ## uSD
 ## {{{
 #set_property -dict {PACKAGE_PIN AE21 IOSTANDARD LVCMOS18} [get_ports i_sdcard_clk_fb]
-#set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n];		## SDCARD.CD
-#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk];		## SDCARD.CLK
-#set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
-#set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
-#set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
-#set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[2]]
-#set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
+set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n];		## SDCARD.CD
+set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk];		## SDCARD.CLK
+set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
+set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
+set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
+set_property -dict {PACKAGE_PIN AD23 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[2]]
+set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[3]]
 
 #set_property -dict {PACKAGE_PIN AD25} [get_ports o_uhs_ck_p];		## Also called SDCARD.RCLK_P
 #set_property -dict {PACKAGE_PIN AE25} [get_ports o_uhs_ck_p];		## Also called SDCARD.RCLK_N
@@ -622,7 +622,7 @@ set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVCMOS33} [get_ports o_tp[3]];		#
 set_property CONFIG_MODE SPIx4 [current_design]
 set_property BITSTREAM.CONFIG.CONFIGRATE 26 [current_design]
 set_property CONFIG_VOLTAGE 1.8 [current_design]
-# set_property CFGBVS GND [current_design];	## Current design has CFGBVS connected to ground
+set_property CFGBVS GND [current_design];	## Current design has CFGBVS connected to ground
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
 ## set_property INTERNAL_VREF 0.750 [get_iobanks 32];	# Rev2 has a proper VREF
@@ -696,6 +696,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_h
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_pipe*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_r*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pix_reset_sys_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.r_pix_reset*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.u_pix2wb/a_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.u_pix2wb/o_b_data*}] 5
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.u_pix2wb/a_req*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_framebuf/GEN_ASYNC_FIFO.u_pix2wb/b_pipe*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_mem2pix/cmap*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_mem2pix/cmap*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/pixloc/*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_hdmi2vga/bitsync/*async/sync_valid*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/pre_wb_data*}] 5
@@ -713,7 +715,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_h
 ## No XDC.INSERT tag in zip_alt_mic
 ## No XDC.INSERT tag in gpio
 ## From sdio
-set_property -dict { PULLTYPE PULLUP } [get_ports io_sd_cmd]
+set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0

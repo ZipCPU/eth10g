@@ -83,10 +83,10 @@ module	toplevel(
 		o_hdmirx_hpd_n,
 		// SDIO SD Card
 
-o_sd_clk,
-i_sd_cd_n,
+o_sdcard_clk,
+i_sdcard_cd_n,
 
-		io_sd_cmd, io_sd_dat,
+		io_sdcard_cmd, io_sdcard_dat,
 		// eMMC Card
 
 		o_emmc_clk,
@@ -203,7 +203,7 @@ i_sd_cd_n,
 	// CEC wires
 	inout	wire		io_hdmirx_cec, io_hdmitx_cec;
 	// SPIO interface
-	input	wire	[8-1:0]	i_sw;
+	input	wire	[4-1:0]	i_sw;
 	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
 	output	wire	[8-1:0]	o_led;
 	inout	wire	io_hdmirx_scl, io_hdmirx_sda;
@@ -230,13 +230,13 @@ i_sd_cd_n,
 	// SDIO SD Card
 	// {{{
 
-	output	wire		o_sd_clk;
+	output	wire		o_sdcard_clk;
 
 
-	input	wire		i_sd_cd_n;
+	input	wire		i_sdcard_cd_n;
 
-	inout	wire		io_sd_cmd;
-	inout	wire	[4-1:0]	io_sd_dat;
+	inout	wire		io_sdcard_cmd;
+	inout	wire	[4-1:0]	io_sdcard_dat;
 	// }}}
 	// eMMC Card
 	// {{{
@@ -508,7 +508,7 @@ i_sd_cd_n,
 		// GPIO wires
 		i_gpio, o_gpio,
 		// SDIO SD Card
-		!i_sd_cd_n,
+		!i_sdcard_cd_n,
 		//
 		w_sdio_cfg_ddr,
 		w_sdio_cfg_ds,
@@ -1026,14 +1026,14 @@ i_sd_cd_n,
 		// IO ports
 		.o_ck(w_sdio_ck),
 		.i_ds(w_sdio_ds),
-		.io_cmd(io_sd_cmd),
-		.io_dat(io_sd_dat),
+		.io_cmd(io_sdcard_cmd),
+		.io_dat(io_sdcard_dat),
 		.o_debug(w_sdio_debug)
 		// }}}
 	);
 
 
-	assign	o_sd_clk = w_sdio_ck;
+	assign	o_sdcard_clk = w_sdio_ck;
 
 	assign	w_sdio_ds    = 1'b0;
 
