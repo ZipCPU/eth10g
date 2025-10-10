@@ -6,24 +6,20 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 #set_property -dict { PACKAGE_PIN F6 } [get_ports i_clk_150mhz_p];	## 150MHz_REFCLK_P
 #set_property -dict { PACKAGE_PIN F5 } [get_ports i_clk_150mhz_n];	## 150MHz_REFCLK_N
-#create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_ports i_clk_150mhz_p]
+create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_ports i_clk_150mhz_p]
 
 #set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p];	## 156.25MHz_REFCLK_P
 #set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n];	## 156.25MHz_REFCLK_N
-#create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
+create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
 
 #set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p];		## SI5324_REFCLK_P
 #set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n];		## SI5324_REFCLK_P
 ## SIREF clock is declared in autodata/siclk.txt
-#create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk_si_p]
+create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk_si_p]
 
 # 66 MHz clock input
 #set_property -dict { PACKAGE_PIN E23 } [get_ports i_emcclk];					## FPGA_EMCCLK
 #create_clock -period 15.14 -name EMCCLK -waveform { 0.0 7.57 } -add [get_ports i_clk_66mhz]
-
-# 52MHz clock input
-#set_property -dict { PACKAGE_PIN F23 IOSTANDARD LVCMOS18 } [get_ports i_clk_52mhz]
-#create_clock -period 19.22 -name INITREF -waveform { 0.0 9.61 } -add [get_ports i_clk_52mhz]
 
 #set_property -dict { PACKAGE_PIN R21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_p]
 #set_property -dict { PACKAGE_PIN P21 IOSTANDARD TMDS_33 } [get_ports o_siref_clk_n]
