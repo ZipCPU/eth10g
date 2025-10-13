@@ -65,6 +65,7 @@
 `define	I2CCPU_ACCESS
 `define	I2CDMA_ACCESS
 `define	I2CSCOPE_SCOPC
+`define	ETH_ROUTER
 `define	SPIO_ACCESS
 `define	EDID_ACCESS
 `define	PWRCOUNT_ACCESS
@@ -83,7 +84,6 @@
 `define	BKRAM_ACCESS
 `define	DDR3_CONTROLLER_ACCESS
 `define	SATA_ACCESS
-`define	ETH_ROUTER
 //
 //
 // The list of those things that have @DEPENDS tags
@@ -194,6 +194,10 @@ module	main(i_clk, i_reset,
 		// CEC ports
 		i_hdmirx_cec, o_hdmirx_cec,
 		i_hdmitx_cec, o_hdmitx_cec,
+		i_gnet_rx_clk, i_gnet_rx_data,
+		i_gnet_tx_clk, o_gnet_tx_data,
+		i_gnet_phy_fault,o_gnet_linkup,o_gnet_activity,
+		i_gnet_los, i_gnet_phy_locked,
 		// SPIO interface
 		i_sw, i_btn, o_led,
 			i_edid_sda, i_edid_scl,
@@ -263,6 +267,10 @@ module	main(i_clk, i_reset,
 		i_sdio_ad_data,
 		o_sdio_hwreset_n, o_sdio_1p8v, i_sdio_1p8v,
 		i_sdio_debug,
+		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we,
+		o_sata_drp_addr,
+		o_sata_drp_data, o_sata_drp_sel,
+		i_sata_drp_stall, i_sata_drp_ack, i_sata_drp_data,
 		// eMMC Card
 		i_emmc_detect,
 		//
@@ -310,6 +318,7 @@ module	main(i_clk, i_reset,
 		o_ddr3_controller_leveling_calib,
 		o_ddr3_controller_reset,
 		i_sata_phy_ready, i_sata_phy_init_err,
+		o_sata_phy_reset,
 		//
 		i_sata_txphy_clk, i_sata_txphy_ready,
 			o_sata_txphy_elecidle, o_sata_txphy_cominit,
@@ -323,11 +332,7 @@ module	main(i_clk, i_reset,
 		i_sata_rxphy_error, i_sata_rxphy_syncd,
 			i_sata_rxphy_elecidle, i_sata_rxphy_cominit,
 			i_sata_rxphy_comwake, o_sata_rxphy_cdrhold,
-		i_sata_phy_refclk, i_sata_phy_debug,
-		i_gnet_rx_clk, i_gnet_rx_data,
-		i_gnet_tx_clk, o_gnet_tx_data,
-		i_gnet_phy_fault,o_gnet_linkup,o_gnet_activity,
-		i_gnet_los, i_gnet_phy_locked
+		i_sata_phy_refclk, i_sata_phy_debug
 	// }}}
 	);
 ////////////////////////////////////////////////////////////////////////////////
@@ -338,6 +343,12 @@ module	main(i_clk, i_reset,
 // As they aren't connected to the toplevel at all, it would
 // be best to use localparam over parameter, but here we don't
 // check
+	localparam	NETDEVS  = 4;
+`ifdef	CPUNET_ACCESS
+	localparam	NETPORTS = 4+1;
+`else
+	localparam	NETPORTS = 4;
+`endif
 	localparam	ICAPE_LGDIV=3;
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -400,12 +411,6 @@ module	main(i_clk, i_reset,
 		DDR3_CONTROLLERCMD_LEN = 4 + 3 + DDR3_CONTROLLERBA_BITS + DDR3_CONTROLLERROW_BITS;
 
 
-	localparam	NETDEVS  = 4;
-`ifdef	CPUNET_ACCESS
-	localparam	NETPORTS = 4+1;
-`else
-	localparam	NETPORTS = 4;
-`endif
 // }}}
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -436,6 +441,20 @@ module	main(i_clk, i_reset,
 	// }}}
 	input	wire	i_hdmirx_cec, i_hdmitx_cec;
 	output	wire	o_hdmirx_cec, o_hdmitx_cec;
+	// 10Gb Ethernet
+	// {{{
+	input	wire	[NETDEVS-1:0]	i_gnet_rx_clk;
+	input	wire [32*NETDEVS-1:0]	i_gnet_rx_data;
+	input	wire	[NETDEVS-1:0]	i_gnet_tx_clk;
+	output	wire [32*NETDEVS-1:0]	o_gnet_tx_data;
+	input	wire	[NETDEVS-1:0]	i_gnet_phy_fault;
+	output	wire [NETDEVS-1:0]	o_gnet_linkup;
+	output	wire [NETDEVS-1:0]	o_gnet_activity;
+	// Verilator lint_off UNUSED
+	input	wire	[NETDEVS-1:0]	i_gnet_los;
+	input	wire	[NETDEVS:0]	i_gnet_phy_locked;
+	// Verilator lint_on  UNUSED
+	// }}}
 	// SPIO interface
 	input	wire	[4-1:0]	i_sw;
 	input	wire	[5-1:0]	i_btn;
@@ -524,6 +543,12 @@ module	main(i_clk, i_reset,
 	input	wire	[31:0]	i_sdio_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
+	output	wire		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we;
+	output	wire	[10:0]	o_sata_drp_addr;
+	output	wire	[31:0]	o_sata_drp_data;
+	output	wire	[3:0]	o_sata_drp_sel;
+	input	wire		i_sata_drp_stall, i_sata_drp_ack;
+	input	wire	[31:0]	i_sata_drp_data;
 	// eMMC Card declarations
 	// {{{
 	input	wire		i_emmc_detect;
@@ -590,6 +615,7 @@ module	main(i_clk, i_reset,
 				i_sata_phy_init_err;
 				// Verilator lint_on  UNUSED
 		//
+	output	wire		o_sata_phy_reset;
 	input	wire		i_sata_txphy_clk,
 				i_sata_txphy_ready;
 	output	wire		o_sata_txphy_elecidle,
@@ -613,20 +639,6 @@ module	main(i_clk, i_reset,
 	// Verilator lint_off UNUSED
 	input	wire		i_sata_phy_refclk;
 	input	wire	[31:0]	i_sata_phy_debug;
-	// Verilator lint_on  UNUSED
-	// }}}
-	// 10Gb Ethernet
-	// {{{
-	input	wire	[NETDEVS-1:0]	i_gnet_rx_clk;
-	input	wire [32*NETDEVS-1:0]	i_gnet_rx_data;
-	input	wire	[NETDEVS-1:0]	i_gnet_tx_clk;
-	output	wire [32*NETDEVS-1:0]	o_gnet_tx_data;
-	input	wire	[NETDEVS-1:0]	i_gnet_phy_fault;
-	output	wire [NETDEVS-1:0]	o_gnet_linkup;
-	output	wire [NETDEVS-1:0]	o_gnet_activity;
-	// Verilator lint_off UNUSED
-	input	wire	[NETDEVS-1:0]	i_gnet_los;
-	input	wire	[NETDEVS:0]	i_gnet_phy_locked;
 	// Verilator lint_on  UNUSED
 	// }}}
 // }}}
@@ -706,6 +718,31 @@ module	main(i_clk, i_reset,
 	reg	[2*NETDEVS-1:0]		netdbg_netleds;
 	// Verilator lint_off UNUSED
 	wire	[32*NETDEVS-1:0]	netdbg_wide;
+	// Verilator lint_on  UNUSED
+	// Incoming 10Gb packet signaling
+	// {{{
+	wire	[NETDEVS-1:0]		gnet_rx_valid,
+					gnet_rx_ready,
+					gnet_rx_last,
+					gnet_rx_abort;
+	wire	[128*NETDEVS-1:0]	gnet_rx_data;
+	wire	[4*NETDEVS-1:0]	gnet_rx_bytes;
+	// }}}
+	// Outoging 10Gb packet signaling
+	// {{{
+	wire	[NETDEVS-1:0]		gnet_tx_valid,
+					gnet_tx_ready,
+					gnet_tx_last,
+					gnet_tx_abort;
+	wire	[128*NETDEVS-1:0]	gnet_tx_data;
+	wire	[4*NETDEVS-1:0]	gnet_tx_bytes;
+	// }}}
+	genvar	g_gnet;
+	// Verilator lint_off UNUSED
+	wire	[32*NETDEVS-1:0]	gnet_net_debug;
+	wire	[32-1:0]		gnet_route_debug;
+	wire	[32-1:0]		net_pkt_debug;
+	wire	[32*NETDEVS-1:0]	netgate_debug;
 	// Verilator lint_on  UNUSED
 	wire	[8-1:0]	w_led;
 	// EDID I2C Controller
@@ -837,39 +874,13 @@ module	main(i_clk, i_reset,
 	// Internal SATA declarations
 	// {{{
 			// Verilator lint_off UNUSED
-	wire		w_sata_phy_reset,
-			w_sata_link_ready;
+	wire		w_sata_link_ready;
 	wire	[31:0]	w_sata_dbg_reset,
 			w_sata_dbg_link,
 			w_sata_dbg_tran;
 			// Verilator lint_on  UNUSED
 	// }}}
 	reg	[NETPORTS-1:0]	r_netreset;
-	// Incoming 10Gb packet signaling
-	// {{{
-	wire	[NETDEVS-1:0]		gnet_rx_valid,
-					gnet_rx_ready,
-					gnet_rx_last,
-					gnet_rx_abort;
-	wire	[128*NETDEVS-1:0]	gnet_rx_data;
-	wire	[4*NETDEVS-1:0]	gnet_rx_bytes;
-	// }}}
-	// Outoging 10Gb packet signaling
-	// {{{
-	wire	[NETDEVS-1:0]		gnet_tx_valid,
-					gnet_tx_ready,
-					gnet_tx_last,
-					gnet_tx_abort;
-	wire	[128*NETDEVS-1:0]	gnet_tx_data;
-	wire	[4*NETDEVS-1:0]	gnet_tx_bytes;
-	// }}}
-	genvar	g_gnet;
-	// Verilator lint_off UNUSED
-	wire	[32*NETDEVS-1:0]	gnet_net_debug;
-	wire	[32-1:0]		gnet_route_debug;
-	wire	[32-1:0]		net_pkt_debug;
-	wire	[32*NETDEVS-1:0]	netgate_debug;
-	// Verilator lint_on  UNUSED
 
 // }}}
 	////////////////////////////////////////////////////////////////////////
@@ -907,6 +918,15 @@ module	main(i_clk, i_reset,
 	wire	[63:0]	wbwide_i2cdma_sel;
 	wire		wbwide_i2cdma_stall, wbwide_i2cdma_ack, wbwide_i2cdma_err;
 	wire	[511:0]	wbwide_i2cdma_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wbwide, component gnet
+	// Verilator lint_off UNUSED
+	wire		wbwide_gnet_cyc, wbwide_gnet_stb, wbwide_gnet_we;
+	wire	[24:0]	wbwide_gnet_addr;
+	wire	[511:0]	wbwide_gnet_data;
+	wire	[63:0]	wbwide_gnet_sel;
+	wire		wbwide_gnet_stall, wbwide_gnet_ack, wbwide_gnet_err;
+	wire	[511:0]	wbwide_gnet_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component wbu_arbiter
 	// Verilator lint_off UNUSED
@@ -971,15 +991,6 @@ module	main(i_clk, i_reset,
 	wire		wbwide_sata_stall, wbwide_sata_ack, wbwide_sata_err;
 	wire	[511:0]	wbwide_sata_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus wbwide, component gnet
-	// Verilator lint_off UNUSED
-	wire		wbwide_gnet_cyc, wbwide_gnet_stb, wbwide_gnet_we;
-	wire	[24:0]	wbwide_gnet_addr;
-	wire	[511:0]	wbwide_gnet_data;
-	wire	[63:0]	wbwide_gnet_sel;
-	wire		wbwide_gnet_stall, wbwide_gnet_ack, wbwide_gnet_err;
-	wire	[511:0]	wbwide_gnet_idata;
-	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wbwide, component wbdown
 	// Verilator lint_off UNUSED
 	wire		wbwide_wbdown_cyc, wbwide_wbdown_stb, wbwide_wbdown_we;
@@ -1022,7 +1033,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component wbdown
 	// Verilator lint_off UNUSED
 	wire		wb32_wbdown_cyc, wb32_wbdown_stb, wb32_wbdown_we;
-	wire	[11:0]	wb32_wbdown_addr;
+	wire	[12:0]	wb32_wbdown_addr;
 	wire	[31:0]	wb32_wbdown_data;
 	wire	[3:0]	wb32_wbdown_sel;
 	wire		wb32_wbdown_stall, wb32_wbdown_ack, wb32_wbdown_err;
@@ -1031,7 +1042,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component buildtime
 	// Verilator lint_off UNUSED
 	wire		wb32_buildtime_cyc, wb32_buildtime_stb, wb32_buildtime_we;
-	wire	[11:0]	wb32_buildtime_addr;
+	wire	[12:0]	wb32_buildtime_addr;
 	wire	[31:0]	wb32_buildtime_data;
 	wire	[3:0]	wb32_buildtime_sel;
 	wire		wb32_buildtime_stall, wb32_buildtime_ack, wb32_buildtime_err;
@@ -1040,7 +1051,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component gpio
 	// Verilator lint_off UNUSED
 	wire		wb32_gpio_cyc, wb32_gpio_stb, wb32_gpio_we;
-	wire	[11:0]	wb32_gpio_addr;
+	wire	[12:0]	wb32_gpio_addr;
 	wire	[31:0]	wb32_gpio_data;
 	wire	[3:0]	wb32_gpio_sel;
 	wire		wb32_gpio_stall, wb32_gpio_ack, wb32_gpio_err;
@@ -1049,7 +1060,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component netdbg
 	// Verilator lint_off UNUSED
 	wire		wb32_netdbg_cyc, wb32_netdbg_stb, wb32_netdbg_we;
-	wire	[11:0]	wb32_netdbg_addr;
+	wire	[12:0]	wb32_netdbg_addr;
 	wire	[31:0]	wb32_netdbg_data;
 	wire	[3:0]	wb32_netdbg_sel;
 	wire		wb32_netdbg_stall, wb32_netdbg_ack, wb32_netdbg_err;
@@ -1058,7 +1069,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component netlock
 	// Verilator lint_off UNUSED
 	wire		wb32_netlock_cyc, wb32_netlock_stb, wb32_netlock_we;
-	wire	[11:0]	wb32_netlock_addr;
+	wire	[12:0]	wb32_netlock_addr;
 	wire	[31:0]	wb32_netlock_data;
 	wire	[3:0]	wb32_netlock_sel;
 	wire		wb32_netlock_stall, wb32_netlock_ack, wb32_netlock_err;
@@ -1067,7 +1078,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component netreset
 	// Verilator lint_off UNUSED
 	wire		wb32_netreset_cyc, wb32_netreset_stb, wb32_netreset_we;
-	wire	[11:0]	wb32_netreset_addr;
+	wire	[12:0]	wb32_netreset_addr;
 	wire	[31:0]	wb32_netreset_data;
 	wire	[3:0]	wb32_netreset_sel;
 	wire		wb32_netreset_stall, wb32_netreset_ack, wb32_netreset_err;
@@ -1076,7 +1087,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component pwrcount
 	// Verilator lint_off UNUSED
 	wire		wb32_pwrcount_cyc, wb32_pwrcount_stb, wb32_pwrcount_we;
-	wire	[11:0]	wb32_pwrcount_addr;
+	wire	[12:0]	wb32_pwrcount_addr;
 	wire	[31:0]	wb32_pwrcount_data;
 	wire	[3:0]	wb32_pwrcount_sel;
 	wire		wb32_pwrcount_stall, wb32_pwrcount_ack, wb32_pwrcount_err;
@@ -1085,7 +1096,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component rtccount
 	// Verilator lint_off UNUSED
 	wire		wb32_rtccount_cyc, wb32_rtccount_stb, wb32_rtccount_we;
-	wire	[11:0]	wb32_rtccount_addr;
+	wire	[12:0]	wb32_rtccount_addr;
 	wire	[31:0]	wb32_rtccount_data;
 	wire	[3:0]	wb32_rtccount_sel;
 	wire		wb32_rtccount_stall, wb32_rtccount_ack, wb32_rtccount_err;
@@ -1094,7 +1105,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component satarefcounter
 	// Verilator lint_off UNUSED
 	wire		wb32_satarefcounter_cyc, wb32_satarefcounter_stb, wb32_satarefcounter_we;
-	wire	[11:0]	wb32_satarefcounter_addr;
+	wire	[12:0]	wb32_satarefcounter_addr;
 	wire	[31:0]	wb32_satarefcounter_data;
 	wire	[3:0]	wb32_satarefcounter_sel;
 	wire		wb32_satarefcounter_stall, wb32_satarefcounter_ack, wb32_satarefcounter_err;
@@ -1103,7 +1114,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component satarxck
 	// Verilator lint_off UNUSED
 	wire		wb32_satarxck_cyc, wb32_satarxck_stb, wb32_satarxck_we;
-	wire	[11:0]	wb32_satarxck_addr;
+	wire	[12:0]	wb32_satarxck_addr;
 	wire	[31:0]	wb32_satarxck_data;
 	wire	[3:0]	wb32_satarxck_sel;
 	wire		wb32_satarxck_stall, wb32_satarxck_ack, wb32_satarxck_err;
@@ -1112,7 +1123,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component satatxck
 	// Verilator lint_off UNUSED
 	wire		wb32_satatxck_cyc, wb32_satatxck_stb, wb32_satatxck_we;
-	wire	[11:0]	wb32_satatxck_addr;
+	wire	[12:0]	wb32_satatxck_addr;
 	wire	[31:0]	wb32_satatxck_data;
 	wire	[3:0]	wb32_satatxck_sel;
 	wire		wb32_satatxck_stall, wb32_satatxck_ack, wb32_satatxck_err;
@@ -1121,7 +1132,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component siclk
 	// Verilator lint_off UNUSED
 	wire		wb32_siclk_cyc, wb32_siclk_stb, wb32_siclk_we;
-	wire	[11:0]	wb32_siclk_addr;
+	wire	[12:0]	wb32_siclk_addr;
 	wire	[31:0]	wb32_siclk_data;
 	wire	[3:0]	wb32_siclk_sel;
 	wire		wb32_siclk_stall, wb32_siclk_ack, wb32_siclk_err;
@@ -1130,7 +1141,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component sirefclk
 	// Verilator lint_off UNUSED
 	wire		wb32_sirefclk_cyc, wb32_sirefclk_stb, wb32_sirefclk_we;
-	wire	[11:0]	wb32_sirefclk_addr;
+	wire	[12:0]	wb32_sirefclk_addr;
 	wire	[31:0]	wb32_sirefclk_data;
 	wire	[3:0]	wb32_sirefclk_sel;
 	wire		wb32_sirefclk_stall, wb32_sirefclk_ack, wb32_sirefclk_err;
@@ -1139,7 +1150,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component sirefclkcounter
 	// Verilator lint_off UNUSED
 	wire		wb32_sirefclkcounter_cyc, wb32_sirefclkcounter_stb, wb32_sirefclkcounter_we;
-	wire	[11:0]	wb32_sirefclkcounter_addr;
+	wire	[12:0]	wb32_sirefclkcounter_addr;
 	wire	[31:0]	wb32_sirefclkcounter_data;
 	wire	[3:0]	wb32_sirefclkcounter_sel;
 	wire		wb32_sirefclkcounter_stall, wb32_sirefclkcounter_ack, wb32_sirefclkcounter_err;
@@ -1148,7 +1159,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component spio
 	// Verilator lint_off UNUSED
 	wire		wb32_spio_cyc, wb32_spio_stb, wb32_spio_we;
-	wire	[11:0]	wb32_spio_addr;
+	wire	[12:0]	wb32_spio_addr;
 	wire	[31:0]	wb32_spio_data;
 	wire	[3:0]	wb32_spio_sel;
 	wire		wb32_spio_stall, wb32_spio_ack, wb32_spio_err;
@@ -1157,7 +1168,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component version
 	// Verilator lint_off UNUSED
 	wire		wb32_version_cyc, wb32_version_stb, wb32_version_we;
-	wire	[11:0]	wb32_version_addr;
+	wire	[12:0]	wb32_version_addr;
 	wire	[31:0]	wb32_version_data;
 	wire	[3:0]	wb32_version_sel;
 	wire		wb32_version_stall, wb32_version_ack, wb32_version_err;
@@ -1166,7 +1177,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component i2c
 	// Verilator lint_off UNUSED
 	wire		wb32_i2cs_cyc, wb32_i2cs_stb, wb32_i2cs_we;
-	wire	[11:0]	wb32_i2cs_addr;
+	wire	[12:0]	wb32_i2cs_addr;
 	wire	[31:0]	wb32_i2cs_data;
 	wire	[3:0]	wb32_i2cs_sel;
 	wire		wb32_i2cs_stall, wb32_i2cs_ack, wb32_i2cs_err;
@@ -1175,7 +1186,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component i2cdma
 	// Verilator lint_off UNUSED
 	wire		wb32_i2cdma_cyc, wb32_i2cdma_stb, wb32_i2cdma_we;
-	wire	[11:0]	wb32_i2cdma_addr;
+	wire	[12:0]	wb32_i2cdma_addr;
 	wire	[31:0]	wb32_i2cdma_data;
 	wire	[3:0]	wb32_i2cdma_sel;
 	wire		wb32_i2cdma_stall, wb32_i2cdma_ack, wb32_i2cdma_err;
@@ -1184,7 +1195,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component netclk
 	// Verilator lint_off UNUSED
 	wire		wb32_netclk_cyc, wb32_netclk_stb, wb32_netclk_we;
-	wire	[11:0]	wb32_netclk_addr;
+	wire	[12:0]	wb32_netclk_addr;
 	wire	[31:0]	wb32_netclk_data;
 	wire	[3:0]	wb32_netclk_sel;
 	wire		wb32_netclk_stall, wb32_netclk_ack, wb32_netclk_err;
@@ -1193,7 +1204,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component wb32_sio
 	// Verilator lint_off UNUSED
 	wire		wb32_sio_cyc, wb32_sio_stb, wb32_sio_we;
-	wire	[11:0]	wb32_sio_addr;
+	wire	[12:0]	wb32_sio_addr;
 	wire	[31:0]	wb32_sio_data;
 	wire	[3:0]	wb32_sio_sel;
 	wire		wb32_sio_stall, wb32_sio_ack, wb32_sio_err;
@@ -1202,7 +1213,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component edid
 	// Verilator lint_off UNUSED
 	wire		wb32_edids_cyc, wb32_edids_stb, wb32_edids_we;
-	wire	[11:0]	wb32_edids_addr;
+	wire	[12:0]	wb32_edids_addr;
 	wire	[31:0]	wb32_edids_data;
 	wire	[3:0]	wb32_edids_sel;
 	wire		wb32_edids_stall, wb32_edids_ack, wb32_edids_err;
@@ -1211,7 +1222,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component flashcfg
 	// Verilator lint_off UNUSED
 	wire		wb32_flashcfg_cyc, wb32_flashcfg_stb, wb32_flashcfg_we;
-	wire	[11:0]	wb32_flashcfg_addr;
+	wire	[12:0]	wb32_flashcfg_addr;
 	wire	[31:0]	wb32_flashcfg_data;
 	wire	[3:0]	wb32_flashcfg_sel;
 	wire		wb32_flashcfg_stall, wb32_flashcfg_ack, wb32_flashcfg_err;
@@ -1220,7 +1231,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component emmcscope
 	// Verilator lint_off UNUSED
 	wire		wb32_emmcscope_cyc, wb32_emmcscope_stb, wb32_emmcscope_we;
-	wire	[11:0]	wb32_emmcscope_addr;
+	wire	[12:0]	wb32_emmcscope_addr;
 	wire	[31:0]	wb32_emmcscope_data;
 	wire	[3:0]	wb32_emmcscope_sel;
 	wire		wb32_emmcscope_stall, wb32_emmcscope_ack, wb32_emmcscope_err;
@@ -1229,7 +1240,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component flashdbg
 	// Verilator lint_off UNUSED
 	wire		wb32_flashdbg_cyc, wb32_flashdbg_stb, wb32_flashdbg_we;
-	wire	[11:0]	wb32_flashdbg_addr;
+	wire	[12:0]	wb32_flashdbg_addr;
 	wire	[31:0]	wb32_flashdbg_data;
 	wire	[3:0]	wb32_flashdbg_sel;
 	wire		wb32_flashdbg_stall, wb32_flashdbg_ack, wb32_flashdbg_err;
@@ -1238,7 +1249,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component gatescope
 	// Verilator lint_off UNUSED
 	wire		wb32_gatescope_cyc, wb32_gatescope_stb, wb32_gatescope_we;
-	wire	[11:0]	wb32_gatescope_addr;
+	wire	[12:0]	wb32_gatescope_addr;
 	wire	[31:0]	wb32_gatescope_data;
 	wire	[3:0]	wb32_gatescope_sel;
 	wire		wb32_gatescope_stall, wb32_gatescope_ack, wb32_gatescope_err;
@@ -1247,7 +1258,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component i2cscope
 	// Verilator lint_off UNUSED
 	wire		wb32_i2cscope_cyc, wb32_i2cscope_stb, wb32_i2cscope_we;
-	wire	[11:0]	wb32_i2cscope_addr;
+	wire	[12:0]	wb32_i2cscope_addr;
 	wire	[31:0]	wb32_i2cscope_data;
 	wire	[3:0]	wb32_i2cscope_sel;
 	wire		wb32_i2cscope_stall, wb32_i2cscope_ack, wb32_i2cscope_err;
@@ -1256,7 +1267,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component netscope
 	// Verilator lint_off UNUSED
 	wire		wb32_netscope_cyc, wb32_netscope_stb, wb32_netscope_we;
-	wire	[11:0]	wb32_netscope_addr;
+	wire	[12:0]	wb32_netscope_addr;
 	wire	[31:0]	wb32_netscope_data;
 	wire	[3:0]	wb32_netscope_sel;
 	wire		wb32_netscope_stall, wb32_netscope_ack, wb32_netscope_err;
@@ -1265,7 +1276,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component routescope
 	// Verilator lint_off UNUSED
 	wire		wb32_routescope_cyc, wb32_routescope_stb, wb32_routescope_we;
-	wire	[11:0]	wb32_routescope_addr;
+	wire	[12:0]	wb32_routescope_addr;
 	wire	[31:0]	wb32_routescope_data;
 	wire	[3:0]	wb32_routescope_sel;
 	wire		wb32_routescope_stall, wb32_routescope_ack, wb32_routescope_err;
@@ -1274,7 +1285,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satalscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satalscope_cyc, wb32_satalscope_stb, wb32_satalscope_we;
-	wire	[11:0]	wb32_satalscope_addr;
+	wire	[12:0]	wb32_satalscope_addr;
 	wire	[31:0]	wb32_satalscope_data;
 	wire	[3:0]	wb32_satalscope_sel;
 	wire		wb32_satalscope_stall, wb32_satalscope_ack, wb32_satalscope_err;
@@ -1283,7 +1294,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satapscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satapscope_cyc, wb32_satapscope_stb, wb32_satapscope_we;
-	wire	[11:0]	wb32_satapscope_addr;
+	wire	[12:0]	wb32_satapscope_addr;
 	wire	[31:0]	wb32_satapscope_data;
 	wire	[3:0]	wb32_satapscope_sel;
 	wire		wb32_satapscope_stall, wb32_satapscope_ack, wb32_satapscope_err;
@@ -1292,7 +1303,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satarscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satarscope_cyc, wb32_satarscope_stb, wb32_satarscope_we;
-	wire	[11:0]	wb32_satarscope_addr;
+	wire	[12:0]	wb32_satarscope_addr;
 	wire	[31:0]	wb32_satarscope_data;
 	wire	[3:0]	wb32_satarscope_sel;
 	wire		wb32_satarscope_stall, wb32_satarscope_ack, wb32_satarscope_err;
@@ -1301,7 +1312,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satatscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satatscope_cyc, wb32_satatscope_stb, wb32_satatscope_we;
-	wire	[11:0]	wb32_satatscope_addr;
+	wire	[12:0]	wb32_satatscope_addr;
 	wire	[31:0]	wb32_satatscope_data;
 	wire	[3:0]	wb32_satatscope_sel;
 	wire		wb32_satatscope_stall, wb32_satatscope_ack, wb32_satatscope_err;
@@ -1310,7 +1321,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component sdioscope
 	// Verilator lint_off UNUSED
 	wire		wb32_sdioscope_cyc, wb32_sdioscope_stb, wb32_sdioscope_we;
-	wire	[11:0]	wb32_sdioscope_addr;
+	wire	[12:0]	wb32_sdioscope_addr;
 	wire	[31:0]	wb32_sdioscope_data;
 	wire	[3:0]	wb32_sdioscope_sel;
 	wire		wb32_sdioscope_stall, wb32_sdioscope_ack, wb32_sdioscope_err;
@@ -1319,7 +1330,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component uart
 	// Verilator lint_off UNUSED
 	wire		wb32_uart_cyc, wb32_uart_stb, wb32_uart_we;
-	wire	[11:0]	wb32_uart_addr;
+	wire	[12:0]	wb32_uart_addr;
 	wire	[31:0]	wb32_uart_data;
 	wire	[3:0]	wb32_uart_sel;
 	wire		wb32_uart_stall, wb32_uart_ack, wb32_uart_err;
@@ -1328,7 +1339,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component emmc
 	// Verilator lint_off UNUSED
 	wire		wb32_emmc_cyc, wb32_emmc_stb, wb32_emmc_we;
-	wire	[11:0]	wb32_emmc_addr;
+	wire	[12:0]	wb32_emmc_addr;
 	wire	[31:0]	wb32_emmc_data;
 	wire	[3:0]	wb32_emmc_sel;
 	wire		wb32_emmc_stall, wb32_emmc_ack, wb32_emmc_err;
@@ -1337,7 +1348,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component fan
 	// Verilator lint_off UNUSED
 	wire		wb32_fan_cyc, wb32_fan_stb, wb32_fan_we;
-	wire	[11:0]	wb32_fan_addr;
+	wire	[12:0]	wb32_fan_addr;
 	wire	[31:0]	wb32_fan_data;
 	wire	[3:0]	wb32_fan_sel;
 	wire		wb32_fan_stall, wb32_fan_ack, wb32_fan_err;
@@ -1346,7 +1357,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component sata
 	// Verilator lint_off UNUSED
 	wire		wb32_sata_cyc, wb32_sata_stb, wb32_sata_we;
-	wire	[11:0]	wb32_sata_addr;
+	wire	[12:0]	wb32_sata_addr;
 	wire	[31:0]	wb32_sata_data;
 	wire	[3:0]	wb32_sata_sel;
 	wire		wb32_sata_stall, wb32_sata_ack, wb32_sata_err;
@@ -1355,7 +1366,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component sdio
 	// Verilator lint_off UNUSED
 	wire		wb32_sdio_cyc, wb32_sdio_stb, wb32_sdio_we;
-	wire	[11:0]	wb32_sdio_addr;
+	wire	[12:0]	wb32_sdio_addr;
 	wire	[31:0]	wb32_sdio_data;
 	wire	[3:0]	wb32_sdio_sel;
 	wire		wb32_sdio_stall, wb32_sdio_ack, wb32_sdio_err;
@@ -1364,7 +1375,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component cfg
 	// Verilator lint_off UNUSED
 	wire		wb32_cfg_cyc, wb32_cfg_stb, wb32_cfg_we;
-	wire	[11:0]	wb32_cfg_addr;
+	wire	[12:0]	wb32_cfg_addr;
 	wire	[31:0]	wb32_cfg_data;
 	wire	[3:0]	wb32_cfg_sel;
 	wire		wb32_cfg_stall, wb32_cfg_ack, wb32_cfg_err;
@@ -1373,7 +1384,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component cpunet
 	// Verilator lint_off UNUSED
 	wire		wb32_cpunets_cyc, wb32_cpunets_stb, wb32_cpunets_we;
-	wire	[11:0]	wb32_cpunets_addr;
+	wire	[12:0]	wb32_cpunets_addr;
 	wire	[31:0]	wb32_cpunets_data;
 	wire	[3:0]	wb32_cpunets_sel;
 	wire		wb32_cpunets_stall, wb32_cpunets_ack, wb32_cpunets_err;
@@ -1382,7 +1393,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component gnet
 	// Verilator lint_off UNUSED
 	wire		wb32_gnet_cyc, wb32_gnet_stb, wb32_gnet_we;
-	wire	[11:0]	wb32_gnet_addr;
+	wire	[12:0]	wb32_gnet_addr;
 	wire	[31:0]	wb32_gnet_data;
 	wire	[3:0]	wb32_gnet_sel;
 	wire		wb32_gnet_stall, wb32_gnet_ack, wb32_gnet_err;
@@ -1391,7 +1402,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component ddr3_phy
 	// Verilator lint_off UNUSED
 	wire		wb32_ddr3_phy_cyc, wb32_ddr3_phy_stb, wb32_ddr3_phy_we;
-	wire	[11:0]	wb32_ddr3_phy_addr;
+	wire	[12:0]	wb32_ddr3_phy_addr;
 	wire	[31:0]	wb32_ddr3_phy_data;
 	wire	[3:0]	wb32_ddr3_phy_sel;
 	wire		wb32_ddr3_phy_stall, wb32_ddr3_phy_ack, wb32_ddr3_phy_err;
@@ -1400,7 +1411,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component netstats
 	// Verilator lint_off UNUSED
 	wire		wb32_netstats_cyc, wb32_netstats_stb, wb32_netstats_we;
-	wire	[11:0]	wb32_netstats_addr;
+	wire	[12:0]	wb32_netstats_addr;
 	wire	[31:0]	wb32_netstats_data;
 	wire	[3:0]	wb32_netstats_sel;
 	wire		wb32_netstats_stall, wb32_netstats_ack, wb32_netstats_err;
@@ -1409,7 +1420,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component wb32_dio
 	// Verilator lint_off UNUSED
 	wire		wb32_dio_cyc, wb32_dio_stb, wb32_dio_we;
-	wire	[11:0]	wb32_dio_addr;
+	wire	[12:0]	wb32_dio_addr;
 	wire	[31:0]	wb32_dio_data;
 	wire	[3:0]	wb32_dio_sel;
 	wire		wb32_dio_stall, wb32_dio_ack, wb32_dio_err;
@@ -1418,11 +1429,20 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component hdmi
 	// Verilator lint_off UNUSED
 	wire		wb32_hdmi_cyc, wb32_hdmi_stb, wb32_hdmi_we;
-	wire	[11:0]	wb32_hdmi_addr;
+	wire	[12:0]	wb32_hdmi_addr;
 	wire	[31:0]	wb32_hdmi_data;
 	wire	[3:0]	wb32_hdmi_sel;
 	wire		wb32_hdmi_stall, wb32_hdmi_ack, wb32_hdmi_err;
 	wire	[31:0]	wb32_hdmi_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32, component satadrp
+	// Verilator lint_off UNUSED
+	wire		wb32_satadrp_cyc, wb32_satadrp_stb, wb32_satadrp_we;
+	wire	[12:0]	wb32_satadrp_addr;
+	wire	[31:0]	wb32_satadrp_data;
+	wire	[3:0]	wb32_satadrp_sel;
+	wire		wb32_satadrp_stall, wb32_satadrp_ack, wb32_satadrp_err;
+	wire	[31:0]	wb32_satadrp_idata;
 	// Verilator lint_on UNUSED
 	// }}}
 	// Bus wbu
@@ -1524,7 +1544,6 @@ module	main(i_clk, i_reset,
 	) wbwide_xbar(
 		.i_clk(i_clk), .i_reset(i_reset),
 		.i_mcyc({
-			wbwide_gnet_cyc,
 			wbwide_sata_cyc,
 			wbwide_emmc_cyc,
 			wbwide_sdio_cyc,
@@ -1532,11 +1551,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_cyc,
 			wbwide_zip_cyc,
 			wbwide_wbu_arbiter_cyc,
+			wbwide_gnet_cyc,
 			wbwide_i2cdma_cyc,
 			wbwide_i2cm_cyc
 		}),
 		.i_mstb({
-			wbwide_gnet_stb,
 			wbwide_sata_stb,
 			wbwide_emmc_stb,
 			wbwide_sdio_stb,
@@ -1544,11 +1563,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_stb,
 			wbwide_zip_stb,
 			wbwide_wbu_arbiter_stb,
+			wbwide_gnet_stb,
 			wbwide_i2cdma_stb,
 			wbwide_i2cm_stb
 		}),
 		.i_mwe({
-			wbwide_gnet_we,
 			wbwide_sata_we,
 			wbwide_emmc_we,
 			wbwide_sdio_we,
@@ -1556,11 +1575,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_we,
 			wbwide_zip_we,
 			wbwide_wbu_arbiter_we,
+			wbwide_gnet_we,
 			wbwide_i2cdma_we,
 			wbwide_i2cm_we
 		}),
 		.i_maddr({
-			wbwide_gnet_addr,
 			wbwide_sata_addr,
 			wbwide_emmc_addr,
 			wbwide_sdio_addr,
@@ -1568,11 +1587,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_addr,
 			wbwide_zip_addr,
 			wbwide_wbu_arbiter_addr,
+			wbwide_gnet_addr,
 			wbwide_i2cdma_addr,
 			wbwide_i2cm_addr
 		}),
 		.i_mdata({
-			wbwide_gnet_data,
 			wbwide_sata_data,
 			wbwide_emmc_data,
 			wbwide_sdio_data,
@@ -1580,11 +1599,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_data,
 			wbwide_zip_data,
 			wbwide_wbu_arbiter_data,
+			wbwide_gnet_data,
 			wbwide_i2cdma_data,
 			wbwide_i2cm_data
 		}),
 		.i_msel({
-			wbwide_gnet_sel,
 			wbwide_sata_sel,
 			wbwide_emmc_sel,
 			wbwide_sdio_sel,
@@ -1592,11 +1611,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_sel,
 			wbwide_zip_sel,
 			wbwide_wbu_arbiter_sel,
+			wbwide_gnet_sel,
 			wbwide_i2cdma_sel,
 			wbwide_i2cm_sel
 		}),
 		.o_mstall({
-			wbwide_gnet_stall,
 			wbwide_sata_stall,
 			wbwide_emmc_stall,
 			wbwide_sdio_stall,
@@ -1604,11 +1623,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_stall,
 			wbwide_zip_stall,
 			wbwide_wbu_arbiter_stall,
+			wbwide_gnet_stall,
 			wbwide_i2cdma_stall,
 			wbwide_i2cm_stall
 		}),
 		.o_mack({
-			wbwide_gnet_ack,
 			wbwide_sata_ack,
 			wbwide_emmc_ack,
 			wbwide_sdio_ack,
@@ -1616,11 +1635,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_ack,
 			wbwide_zip_ack,
 			wbwide_wbu_arbiter_ack,
+			wbwide_gnet_ack,
 			wbwide_i2cdma_ack,
 			wbwide_i2cm_ack
 		}),
 		.o_mdata({
-			wbwide_gnet_idata,
 			wbwide_sata_idata,
 			wbwide_emmc_idata,
 			wbwide_sdio_idata,
@@ -1628,11 +1647,11 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_idata,
 			wbwide_zip_idata,
 			wbwide_wbu_arbiter_idata,
+			wbwide_gnet_idata,
 			wbwide_i2cdma_idata,
 			wbwide_i2cm_idata
 		}),
 		.o_merr({
-			wbwide_gnet_err,
 			wbwide_sata_err,
 			wbwide_emmc_err,
 			wbwide_sdio_err,
@@ -1640,6 +1659,7 @@ module	main(i_clk, i_reset,
 			wbwide_cpunetm_err,
 			wbwide_zip_err,
 			wbwide_wbu_arbiter_err,
+			wbwide_gnet_err,
 			wbwide_i2cdma_err,
 			wbwide_i2cm_err
 		}),
@@ -1755,77 +1775,77 @@ module	main(i_clk, i_reset,
 	// Our goal here is to make certain that all of
 	// the slave bus inputs match the SIO bus wires
 	assign	wb32_buildtime_cyc = wb32_sio_cyc;
-	assign	wb32_buildtime_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h0);  // 0x000
+	assign	wb32_buildtime_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h0);  // 0x0000
 	assign	wb32_buildtime_we  = wb32_sio_we;
 	assign	wb32_buildtime_data= wb32_sio_data;
 	assign	wb32_buildtime_sel = wb32_sio_sel;
 	assign	wb32_gpio_cyc = wb32_sio_cyc;
-	assign	wb32_gpio_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h1);  // 0x004
+	assign	wb32_gpio_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h1);  // 0x0004
 	assign	wb32_gpio_we  = wb32_sio_we;
 	assign	wb32_gpio_data= wb32_sio_data;
 	assign	wb32_gpio_sel = wb32_sio_sel;
 	assign	wb32_netdbg_cyc = wb32_sio_cyc;
-	assign	wb32_netdbg_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h2);  // 0x008
+	assign	wb32_netdbg_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h2);  // 0x0008
 	assign	wb32_netdbg_we  = wb32_sio_we;
 	assign	wb32_netdbg_data= wb32_sio_data;
 	assign	wb32_netdbg_sel = wb32_sio_sel;
 	assign	wb32_netlock_cyc = wb32_sio_cyc;
-	assign	wb32_netlock_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h3);  // 0x00c
+	assign	wb32_netlock_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h3);  // 0x000c
 	assign	wb32_netlock_we  = wb32_sio_we;
 	assign	wb32_netlock_data= wb32_sio_data;
 	assign	wb32_netlock_sel = wb32_sio_sel;
 	assign	wb32_netreset_cyc = wb32_sio_cyc;
-	assign	wb32_netreset_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h4);  // 0x010
+	assign	wb32_netreset_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h4);  // 0x0010
 	assign	wb32_netreset_we  = wb32_sio_we;
 	assign	wb32_netreset_data= wb32_sio_data;
 	assign	wb32_netreset_sel = wb32_sio_sel;
 	assign	wb32_pwrcount_cyc = wb32_sio_cyc;
-	assign	wb32_pwrcount_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h5);  // 0x014
+	assign	wb32_pwrcount_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h5);  // 0x0014
 	assign	wb32_pwrcount_we  = wb32_sio_we;
 	assign	wb32_pwrcount_data= wb32_sio_data;
 	assign	wb32_pwrcount_sel = wb32_sio_sel;
 	assign	wb32_rtccount_cyc = wb32_sio_cyc;
-	assign	wb32_rtccount_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h6);  // 0x018
+	assign	wb32_rtccount_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h6);  // 0x0018
 	assign	wb32_rtccount_we  = wb32_sio_we;
 	assign	wb32_rtccount_data= wb32_sio_data;
 	assign	wb32_rtccount_sel = wb32_sio_sel;
 	assign	wb32_satarefcounter_cyc = wb32_sio_cyc;
-	assign	wb32_satarefcounter_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h7);  // 0x01c
+	assign	wb32_satarefcounter_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h7);  // 0x001c
 	assign	wb32_satarefcounter_we  = wb32_sio_we;
 	assign	wb32_satarefcounter_data= wb32_sio_data;
 	assign	wb32_satarefcounter_sel = wb32_sio_sel;
 	assign	wb32_satarxck_cyc = wb32_sio_cyc;
-	assign	wb32_satarxck_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h8);  // 0x020
+	assign	wb32_satarxck_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h8);  // 0x0020
 	assign	wb32_satarxck_we  = wb32_sio_we;
 	assign	wb32_satarxck_data= wb32_sio_data;
 	assign	wb32_satarxck_sel = wb32_sio_sel;
 	assign	wb32_satatxck_cyc = wb32_sio_cyc;
-	assign	wb32_satatxck_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h9);  // 0x024
+	assign	wb32_satatxck_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'h9);  // 0x0024
 	assign	wb32_satatxck_we  = wb32_sio_we;
 	assign	wb32_satatxck_data= wb32_sio_data;
 	assign	wb32_satatxck_sel = wb32_sio_sel;
 	assign	wb32_siclk_cyc = wb32_sio_cyc;
-	assign	wb32_siclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'ha);  // 0x028
+	assign	wb32_siclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'ha);  // 0x0028
 	assign	wb32_siclk_we  = wb32_sio_we;
 	assign	wb32_siclk_data= wb32_sio_data;
 	assign	wb32_siclk_sel = wb32_sio_sel;
 	assign	wb32_sirefclk_cyc = wb32_sio_cyc;
-	assign	wb32_sirefclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'hb);  // 0x02c
+	assign	wb32_sirefclk_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'hb);  // 0x002c
 	assign	wb32_sirefclk_we  = wb32_sio_we;
 	assign	wb32_sirefclk_data= wb32_sio_data;
 	assign	wb32_sirefclk_sel = wb32_sio_sel;
 	assign	wb32_sirefclkcounter_cyc = wb32_sio_cyc;
-	assign	wb32_sirefclkcounter_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'hc);  // 0x030
+	assign	wb32_sirefclkcounter_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'hc);  // 0x0030
 	assign	wb32_sirefclkcounter_we  = wb32_sio_we;
 	assign	wb32_sirefclkcounter_data= wb32_sio_data;
 	assign	wb32_sirefclkcounter_sel = wb32_sio_sel;
 	assign	wb32_spio_cyc = wb32_sio_cyc;
-	assign	wb32_spio_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'hd);  // 0x034
+	assign	wb32_spio_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'hd);  // 0x0034
 	assign	wb32_spio_we  = wb32_sio_we;
 	assign	wb32_spio_data= wb32_sio_data;
 	assign	wb32_spio_sel = wb32_sio_sel;
 	assign	wb32_version_cyc = wb32_sio_cyc;
-	assign	wb32_version_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'he);  // 0x038
+	assign	wb32_version_stb = wb32_sio_stb && (wb32_sio_addr[ 3: 0] ==  4'he);  // 0x0038
 	assign	wb32_version_we  = wb32_sio_we;
 	assign	wb32_version_data= wb32_sio_data;
 	assign	wb32_version_sel = wb32_sio_sel;
@@ -1883,31 +1903,31 @@ module	main(i_clk, i_reset,
 	assign	wb32_dio_idata = r_wb32_dio_data;
 
 	assign	wb32_i2cs_cyc = wb32_dio_cyc;
-	assign	wb32_i2cs_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h0);  // 0x000 - 0x00f
+	assign	wb32_i2cs_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h0);  // 0x0000 - 0x000f
 	assign	wb32_i2cs_we  = wb32_dio_we;
 	assign	wb32_i2cs_addr= wb32_dio_addr;
 	assign	wb32_i2cs_data= wb32_dio_data;
 	assign	wb32_i2cs_sel = wb32_dio_sel;
 	assign	wb32_i2cdma_cyc = wb32_dio_cyc;
-	assign	wb32_i2cdma_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h1);  // 0x040 - 0x04f
+	assign	wb32_i2cdma_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h1);  // 0x0040 - 0x004f
 	assign	wb32_i2cdma_we  = wb32_dio_we;
 	assign	wb32_i2cdma_addr= wb32_dio_addr;
 	assign	wb32_i2cdma_data= wb32_dio_data;
 	assign	wb32_i2cdma_sel = wb32_dio_sel;
 	assign	wb32_netclk_cyc = wb32_dio_cyc;
-	assign	wb32_netclk_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h2);  // 0x080 - 0x093
+	assign	wb32_netclk_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h2);  // 0x0080 - 0x0093
 	assign	wb32_netclk_we  = wb32_dio_we;
 	assign	wb32_netclk_addr= wb32_dio_addr;
 	assign	wb32_netclk_data= wb32_dio_data;
 	assign	wb32_netclk_sel = wb32_dio_sel;
 	assign	wb32_sio_cyc = wb32_dio_cyc;
-	assign	wb32_sio_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h3);  // 0x0c0 - 0x0ff
+	assign	wb32_sio_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h7) ==  3'h3);  // 0x00c0 - 0x00ff
 	assign	wb32_sio_we  = wb32_dio_we;
 	assign	wb32_sio_addr= wb32_dio_addr;
 	assign	wb32_sio_data= wb32_dio_data;
 	assign	wb32_sio_sel = wb32_dio_sel;
 	assign	wb32_edids_cyc = wb32_dio_cyc;
-	assign	wb32_edids_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h4) ==  3'h4);  // 0x100 - 0x1ff
+	assign	wb32_edids_stb = wb32_dio_stb && ((wb32_dio_addr[ 6: 4] &  3'h4) ==  3'h4);  // 0x0100 - 0x01ff
 	assign	wb32_edids_we  = wb32_dio_we;
 	assign	wb32_edids_addr= wb32_dio_addr;
 	assign	wb32_edids_data= wb32_dio_data;
@@ -1982,67 +2002,70 @@ module	main(i_clk, i_reset,
 `ifdef	VIDPIPE_ACCESS
 	assign	wb32_hdmi_err= 1'b0;
 `endif	// VIDPIPE_ACCESS
+	assign	wb32_satadrp_err= 1'b0;
 	//
 	// Connect the wb32 bus components together using the wbxbar()
 	//
 	//
 	wbxbar #(
-		.NM(1), .NS(24), .AW(12), .DW(32),
+		.NM(1), .NS(25), .AW(13), .DW(32),
 		.SLAVE_ADDR({
-			// Address width    = 12
+			// Address width    = 13
 			// Address LSBs     = 2
-			{ 12'h800 }, //       hdmi: 0x2000
-			{ 12'h400 }, //   wb32_dio: 0x1000
-			{ 12'h380 }, //   netstats: 0x0e00
-			{ 12'h300 }, //   ddr3_phy: 0x0c00
-			{ 12'h280 }, //       gnet: 0x0a00
-			{ 12'h240 }, //     cpunet: 0x0900
-			{ 12'h220 }, //        cfg: 0x0880
-			{ 12'h200 }, //       sdio: 0x0800
-			{ 12'h1e0 }, //       sata: 0x0780
-			{ 12'h1c0 }, //        fan: 0x0700
-			{ 12'h1a0 }, //       emmc: 0x0680
-			{ 12'h180 }, //       uart: 0x0600
-			{ 12'h160 }, //  sdioscope: 0x0580
-			{ 12'h140 }, // satatscope: 0x0500
-			{ 12'h120 }, // satarscope: 0x0480
-			{ 12'h100 }, // satapscope: 0x0400
-			{ 12'h0e0 }, // satalscope: 0x0380
-			{ 12'h0c0 }, // routescope: 0x0300
-			{ 12'h0a0 }, //   netscope: 0x0280
-			{ 12'h080 }, //   i2cscope: 0x0200
-			{ 12'h060 }, //  gatescope: 0x0180
-			{ 12'h040 }, //   flashdbg: 0x0100
-			{ 12'h020 }, //  emmcscope: 0x0080
-			{ 12'h000 }  //   flashcfg: 0x0000
+			{ 13'h1000 }, //    satadrp: 0x4000
+			{ 13'h0800 }, //       hdmi: 0x2000
+			{ 13'h0400 }, //   wb32_dio: 0x1000
+			{ 13'h0380 }, //   netstats: 0x0e00
+			{ 13'h0300 }, //   ddr3_phy: 0x0c00
+			{ 13'h0280 }, //       gnet: 0x0a00
+			{ 13'h0240 }, //     cpunet: 0x0900
+			{ 13'h0220 }, //        cfg: 0x0880
+			{ 13'h0200 }, //       sdio: 0x0800
+			{ 13'h01e0 }, //       sata: 0x0780
+			{ 13'h01c0 }, //        fan: 0x0700
+			{ 13'h01a0 }, //       emmc: 0x0680
+			{ 13'h0180 }, //       uart: 0x0600
+			{ 13'h0160 }, //  sdioscope: 0x0580
+			{ 13'h0140 }, // satatscope: 0x0500
+			{ 13'h0120 }, // satarscope: 0x0480
+			{ 13'h0100 }, // satapscope: 0x0400
+			{ 13'h00e0 }, // satalscope: 0x0380
+			{ 13'h00c0 }, // routescope: 0x0300
+			{ 13'h00a0 }, //   netscope: 0x0280
+			{ 13'h0080 }, //   i2cscope: 0x0200
+			{ 13'h0060 }, //  gatescope: 0x0180
+			{ 13'h0040 }, //   flashdbg: 0x0100
+			{ 13'h0020 }, //  emmcscope: 0x0080
+			{ 13'h0000 }  //   flashcfg: 0x0000
 		}),
 		.SLAVE_MASK({
-			// Address width    = 12
+			// Address width    = 13
 			// Address LSBs     = 2
-			{ 12'hc00 }, //       hdmi
-			{ 12'hf80 }, //   wb32_dio
-			{ 12'hf80 }, //   netstats
-			{ 12'hf80 }, //   ddr3_phy
-			{ 12'hfc0 }, //       gnet
-			{ 12'hfe0 }, //     cpunet
-			{ 12'hfe0 }, //        cfg
-			{ 12'hfe0 }, //       sdio
-			{ 12'hfe0 }, //       sata
-			{ 12'hfe0 }, //        fan
-			{ 12'hfe0 }, //       emmc
-			{ 12'hfe0 }, //       uart
-			{ 12'hfe0 }, //  sdioscope
-			{ 12'hfe0 }, // satatscope
-			{ 12'hfe0 }, // satarscope
-			{ 12'hfe0 }, // satapscope
-			{ 12'hfe0 }, // satalscope
-			{ 12'hfe0 }, // routescope
-			{ 12'hfe0 }, //   netscope
-			{ 12'hfe0 }, //   i2cscope
-			{ 12'hfe0 }, //  gatescope
-			{ 12'hfe0 }, //   flashdbg
-			{ 12'hfe0 }, //  emmcscope
-			{ 12'hfe0 }  //   flashcfg
+			{ 13'h1800 }, //    satadrp
+			{ 13'h1c00 }, //       hdmi
+			{ 13'h1f80 }, //   wb32_dio
+			{ 13'h1f80 }, //   netstats
+			{ 13'h1f80 }, //   ddr3_phy
+			{ 13'h1fc0 }, //       gnet
+			{ 13'h1fe0 }, //     cpunet
+			{ 13'h1fe0 }, //        cfg
+			{ 13'h1fe0 }, //       sdio
+			{ 13'h1fe0 }, //       sata
+			{ 13'h1fe0 }, //        fan
+			{ 13'h1fe0 }, //       emmc
+			{ 13'h1fe0 }, //       uart
+			{ 13'h1fe0 }, //  sdioscope
+			{ 13'h1fe0 }, // satatscope
+			{ 13'h1fe0 }, // satarscope
+			{ 13'h1fe0 }, // satapscope
+			{ 13'h1fe0 }, // satalscope
+			{ 13'h1fe0 }, // routescope
+			{ 13'h1fe0 }, //   netscope
+			{ 13'h1fe0 }, //   i2cscope
+			{ 13'h1fe0 }, //  gatescope
+			{ 13'h1fe0 }, //   flashdbg
+			{ 13'h1fe0 }, //  emmcscope
+			{ 13'h1fe0 }  //   flashcfg
 		}),
 		.OPT_DBLBUFFER(1'b1)
 	) wb32_xbar(
@@ -2079,6 +2102,7 @@ module	main(i_clk, i_reset,
 		}),
 		// Slave connections
 		.o_scyc({
+			wb32_satadrp_cyc,
 			wb32_hdmi_cyc,
 			wb32_dio_cyc,
 			wb32_netstats_cyc,
@@ -2105,6 +2129,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_cyc
 		}),
 		.o_sstb({
+			wb32_satadrp_stb,
 			wb32_hdmi_stb,
 			wb32_dio_stb,
 			wb32_netstats_stb,
@@ -2131,6 +2156,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_stb
 		}),
 		.o_swe({
+			wb32_satadrp_we,
 			wb32_hdmi_we,
 			wb32_dio_we,
 			wb32_netstats_we,
@@ -2157,6 +2183,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_we
 		}),
 		.o_saddr({
+			wb32_satadrp_addr,
 			wb32_hdmi_addr,
 			wb32_dio_addr,
 			wb32_netstats_addr,
@@ -2183,6 +2210,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_addr
 		}),
 		.o_sdata({
+			wb32_satadrp_data,
 			wb32_hdmi_data,
 			wb32_dio_data,
 			wb32_netstats_data,
@@ -2209,6 +2237,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_data
 		}),
 		.o_ssel({
+			wb32_satadrp_sel,
 			wb32_hdmi_sel,
 			wb32_dio_sel,
 			wb32_netstats_sel,
@@ -2235,6 +2264,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_sel
 		}),
 		.i_sstall({
+			wb32_satadrp_stall,
 			wb32_hdmi_stall,
 			wb32_dio_stall,
 			wb32_netstats_stall,
@@ -2261,6 +2291,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_stall
 		}),
 		.i_sack({
+			wb32_satadrp_ack,
 			wb32_hdmi_ack,
 			wb32_dio_ack,
 			wb32_netstats_ack,
@@ -2287,6 +2318,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_ack
 		}),
 		.i_sdata({
+			wb32_satadrp_idata,
 			wb32_hdmi_idata,
 			wb32_dio_idata,
 			wb32_netstats_idata,
@@ -2313,6 +2345,7 @@ module	main(i_clk, i_reset,
 			wb32_flashcfg_idata
 		}),
 		.i_serr({
+			wb32_satadrp_err,
 			wb32_hdmi_err,
 			wb32_dio_err,
 			wb32_netstats_err,
@@ -3206,6 +3239,164 @@ module	main(i_clk, i_reset,
 		.i_rxcec(i_hdmirx_cec), .o_rxcec(o_hdmirx_cec)
 	);
 	// }}}
+`ifdef	ETH_ROUTER
+	// {{{
+	generate for(g_gnet=0; g_gnet<NETDEVS; g_gnet=g_gnet+1)
+	begin : GEN_ETHERNET_DECODE
+		netpath
+		u_netpath (
+			// {{{
+			.i_sys_clk(i_clk),
+			.i_fast_clk(i_clk200),
+			.i_reset_n(!i_reset),
+			.i_rx_clk(i_gnet_rx_clk[g_gnet]),
+			.i_tx_clk(i_gnet_tx_clk[g_gnet]),
+			.o_link_up(o_gnet_linkup[g_gnet]),
+			.o_activity(o_gnet_activity[g_gnet]),
+			// PHY interface
+			// {{{
+			.i_phy_fault(i_gnet_phy_fault[g_gnet]),
+			.i_raw_data(i_gnet_rx_data[32*g_gnet+:32]
+							^ 32'hffff_ffff),
+			//
+			.o_raw_data(o_gnet_tx_data[32*g_gnet+:32]),
+			// }}}
+			// Incoming (received) packet AXIN source
+			// {{{
+			.M_VALID(gnet_rx_valid[g_gnet]),
+			.M_READY(gnet_rx_ready[g_gnet]),
+			.M_DATA( gnet_rx_data[128*g_gnet+: 128]),
+			.M_BYTES(gnet_rx_bytes[4*g_gnet+: 4]),
+			.M_LAST( gnet_rx_last[g_gnet]),
+			.M_ABORT(gnet_rx_abort[g_gnet]),
+			// }}}
+			// Outgoing (transmit) packet AXIN sink
+			// {{{
+			.S_VALID(gnet_tx_valid[g_gnet]),
+			.S_READY(gnet_tx_ready[g_gnet]),
+			.S_DATA( gnet_tx_data[128*g_gnet+: 128]),
+			.S_BYTES(gnet_tx_bytes[4*g_gnet+: 4]),
+			.S_LAST( gnet_tx_last[g_gnet]),
+			.S_ABORT(gnet_tx_abort[g_gnet]),
+			// }}}
+			.o_pkt_debug(netgate_debug[32*g_gnet +: 32]),
+			.o_debug(gnet_net_debug[32*g_gnet +: 32])
+			// }}}
+		);
+	end endgenerate
+
+	assign	net_pkt_debug = netgate_debug[32*2 +: 32];
+
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Instantiate the core of the router itself
+	// {{{
+
+	routecore #(
+		// {{{
+		.NETH(NETPORTS),
+`ifdef	CPUNET_ACCESS
+		.OPT_CPUNET(1'b1),
+`else
+		.OPT_CPUNET(1'b0),
+`endif
+		.DEF_BASEADDR(0),
+		.DEF_MEMSIZE(0),
+		.BUSDW(512),
+		.AW(25),
+		.OPT_VFIFO(4'b1100)
+`ifdef	CPUNET_ACCESS
+		// This *should* work, but ... doesn't
+		, .OPT_NEVER({ 5'h10, 5'h08, 5'h04, 5'h1f, 5'h1f }),
+		.OPT_ALWAYS({ 5'h00, 5'h00, 5'h00, 5'h00, 5'h00 })
+//
+		// This should force a "right" answer
+		// , .OPT_NEVER({ 5'h10, 5'h1f, 5'h1f, 5'h1f, 5'h1f }),
+		// .OPT_ALWAYS({ 5'h00, 5'h04, 5'h08, 5'h00, 5'h00 })
+`endif
+		// }}}
+	) u_router (
+		// {{{
+		.i_clk(i_clk), .i_reset(i_reset),
+`ifdef	NETRESET_ACCESS
+		.ETH_RESET(r_netreset),
+`else
+		.ETH_RESET({(NETPORTS){i_reset}}),
+`endif
+		// Incoming (RX) packet interface
+		// {{{
+`ifdef	CPUNET_ACCESS
+		.RX_VALID({ cpunet_tx_valid, gnet_rx_valid }),
+		.RX_READY({ cpunet_tx_ready, gnet_rx_ready }),
+		.RX_DATA({  cpunet_tx_data,  gnet_rx_data  }),
+		.RX_BYTES({ cpunet_tx_bytes, gnet_rx_bytes }),
+		.RX_LAST({  cpunet_tx_last,  gnet_rx_last  }),
+		.RX_ABORT({ cpunet_tx_abort, gnet_rx_abort }),
+`else
+		.RX_VALID(gnet_rx_valid),
+		.RX_READY(gnet_rx_ready),
+		.RX_DATA( gnet_rx_data),
+		.RX_BYTES(gnet_rx_bytes),
+		.RX_LAST( gnet_rx_last),
+		.RX_ABORT(gnet_rx_abort),
+`endif
+		// }}}
+		// VFIFO control interface
+		.i_ctrl_cyc(wb32_gnet_cyc), .i_ctrl_stb(wb32_gnet_stb), .i_ctrl_we(wb32_gnet_we),
+			.i_ctrl_addr(wb32_gnet_addr[6-1:0]),
+			.i_ctrl_data(wb32_gnet_data), // 32 bits wide
+			.i_ctrl_sel(wb32_gnet_sel),  // 32/8 bits wide
+		.o_ctrl_stall(wb32_gnet_stall),.o_ctrl_ack(wb32_gnet_ack), .o_ctrl_data(wb32_gnet_idata),
+		// VFIFO memory interface
+		.o_vfifo_cyc(wbwide_gnet_cyc), .o_vfifo_stb(wbwide_gnet_stb), .o_vfifo_we(wbwide_gnet_we),
+			.o_vfifo_addr(wbwide_gnet_addr[25-1:0]),
+			.o_vfifo_data(wbwide_gnet_data), // 512 bits wide
+			.o_vfifo_sel(wbwide_gnet_sel),  // 512/8 bits wide
+		.i_vfifo_stall(wbwide_gnet_stall), .i_vfifo_ack(wbwide_gnet_ack), .i_vfifo_data(wbwide_gnet_idata), .i_vfifo_err(wbwide_gnet_err),
+		// Outgoing (TX) packet interface
+		// {{{
+`ifdef	CPUNET_ACCESS
+		.TX_VALID({ cpunet_rx_valid, gnet_tx_valid }),
+		.TX_READY({ cpunet_rx_ready, gnet_tx_ready }),
+		.TX_DATA({  cpunet_rx_data,  gnet_tx_data  }),
+		.TX_BYTES({ cpunet_rx_bytes, gnet_tx_bytes }),
+		.TX_LAST({  cpunet_rx_last,  gnet_tx_last  }),
+		.TX_ABORT({ cpunet_rx_abort, gnet_tx_abort }),
+`else
+		.TX_VALID(gnet_tx_valid),
+		.TX_READY(gnet_tx_ready),
+		.TX_DATA( gnet_tx_data),
+		.TX_BYTES(gnet_tx_bytes),
+		.TX_LAST( gnet_tx_last),
+		.TX_ABORT(gnet_tx_abort),
+`endif
+		// }}}
+		.o_debug(gnet_route_debug)
+		// }}}
+	);
+
+	// }}}
+	// }}}
+`else	// ETH_ROUTER
+	// {{{
+	// Null bus master
+	// {{{
+	// }}}
+	// Null bus slave
+	// {{{
+
+	//
+	// In the case that there is no wb32_gnet peripheral
+	// responding on the wb32 bus
+	assign	wb32_gnet_ack   = 1'b0;
+	assign	wb32_gnet_err   = (wb32_gnet_stb);
+	assign	wb32_gnet_stall = 0;
+	assign	wb32_gnet_idata = 0;
+
+	// }}}
+	// }}}
+`endif	// ETH_ROUTER
+
 	////////////////////////////////////////////////////////////////////////
 	//
 	// WBUBUS "wbu_arbiter" master->slave connection
@@ -3715,7 +3906,7 @@ module	main(i_clk, i_reset,
 
 	wbdown #(
 		// {{{
-		.ADDRESS_WIDTH(12+$clog2(32/8)),
+		.ADDRESS_WIDTH(13+$clog2(32/8)),
 		.WIDE_DW(512),
 		.SMALL_DW(32),
 		.OPT_LITTLE_ENDIAN(1'b0),
@@ -3730,7 +3921,7 @@ module	main(i_clk, i_reset,
 		.i_wcyc(  wbwide_wbdown_cyc),
 		.i_wstb(  wbwide_wbdown_stb),
 		.i_wwe(   wbwide_wbdown_we),
-		.i_waddr( wbwide_wbdown_addr[8-1:0]),
+		.i_waddr( wbwide_wbdown_addr[9-1:0]),
 		.i_wdata( wbwide_wbdown_data),
 		.i_wsel(  wbwide_wbdown_sel),
 		.o_wstall(wbwide_wbdown_stall),
@@ -3743,7 +3934,7 @@ module	main(i_clk, i_reset,
 		.o_scyc(  wb32_wbdown_cyc),
 		.o_sstb(  wb32_wbdown_stb),
 		.o_swe(   wb32_wbdown_we),
-		.o_saddr( wb32_wbdown_addr[12-1:0]),
+		.o_saddr( wb32_wbdown_addr[13-1:0]),
 		.o_sdata( wb32_wbdown_data),
 		.o_ssel(  wb32_wbdown_sel),
 		.i_sstall(wb32_wbdown_stall),
@@ -4281,6 +4472,16 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// SDIO_ACCESS
 
+	assign	o_sata_drp_cyc  = wb32_satadrp_cyc;
+	assign	o_sata_drp_stb  = wb32_satadrp_stb;
+	assign	o_sata_drp_we   = wb32_satadrp_we;
+	assign	o_sata_drp_addr = wb32_satadrp_addr[10:0];
+	assign	o_sata_drp_data = wb32_satadrp_data;
+	assign	o_sata_drp_sel  = wb32_satadrp_sel;
+	//
+	assign	wb32_satadrp_stall = i_sata_drp_stall;
+	assign	wb32_satadrp_ack   = i_sata_drp_ack;
+	assign	wb32_satadrp_idata = i_sata_drp_data;
 	wbdown #(
 		// {{{
 		.ADDRESS_WIDTH(23+$clog2(32/8)),
@@ -4651,7 +4852,7 @@ module	main(i_clk, i_reset,
 		.o_txphy_comwake(	o_sata_txphy_comwake),
 		.i_txphy_comfinish(	i_sata_txphy_comfinish),
 		//
-		.o_phy_reset(	w_sata_phy_reset),
+		.o_phy_reset(	o_sata_phy_reset),
 		.i_phy_ready(	i_sata_phy_ready),
 		//
 		.i_rxphy_elecidle(	i_sata_rxphy_elecidle),
@@ -4715,164 +4916,6 @@ module	main(i_clk, i_reset,
 		r_netreset = {(NETPORTS){i_reset)};
 	// }}}
 `endif	// NETRESET_ACCESS
-
-`ifdef	ETH_ROUTER
-	// {{{
-	generate for(g_gnet=0; g_gnet<NETDEVS; g_gnet=g_gnet+1)
-	begin : GEN_ETHERNET_DECODE
-		netpath
-		u_netpath (
-			// {{{
-			.i_sys_clk(i_clk),
-			.i_fast_clk(i_clk200),
-			.i_reset_n(!i_reset),
-			.i_rx_clk(i_gnet_rx_clk[g_gnet]),
-			.i_tx_clk(i_gnet_tx_clk[g_gnet]),
-			.o_link_up(o_gnet_linkup[g_gnet]),
-			.o_activity(o_gnet_activity[g_gnet]),
-			// PHY interface
-			// {{{
-			.i_phy_fault(i_gnet_phy_fault[g_gnet]),
-			.i_raw_data(i_gnet_rx_data[32*g_gnet+:32]
-							^ 32'hffff_ffff),
-			//
-			.o_raw_data(o_gnet_tx_data[32*g_gnet+:32]),
-			// }}}
-			// Incoming (received) packet AXIN source
-			// {{{
-			.M_VALID(gnet_rx_valid[g_gnet]),
-			.M_READY(gnet_rx_ready[g_gnet]),
-			.M_DATA( gnet_rx_data[128*g_gnet+: 128]),
-			.M_BYTES(gnet_rx_bytes[4*g_gnet+: 4]),
-			.M_LAST( gnet_rx_last[g_gnet]),
-			.M_ABORT(gnet_rx_abort[g_gnet]),
-			// }}}
-			// Outgoing (transmit) packet AXIN sink
-			// {{{
-			.S_VALID(gnet_tx_valid[g_gnet]),
-			.S_READY(gnet_tx_ready[g_gnet]),
-			.S_DATA( gnet_tx_data[128*g_gnet+: 128]),
-			.S_BYTES(gnet_tx_bytes[4*g_gnet+: 4]),
-			.S_LAST( gnet_tx_last[g_gnet]),
-			.S_ABORT(gnet_tx_abort[g_gnet]),
-			// }}}
-			.o_pkt_debug(netgate_debug[32*g_gnet +: 32]),
-			.o_debug(gnet_net_debug[32*g_gnet +: 32])
-			// }}}
-		);
-	end endgenerate
-
-	assign	net_pkt_debug = netgate_debug[32*2 +: 32];
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Instantiate the core of the router itself
-	// {{{
-
-	routecore #(
-		// {{{
-		.NETH(NETPORTS),
-`ifdef	CPUNET_ACCESS
-		.OPT_CPUNET(1'b1),
-`else
-		.OPT_CPUNET(1'b0),
-`endif
-		.DEF_BASEADDR(0),
-		.DEF_MEMSIZE(0),
-		.BUSDW(512),
-		.AW(25),
-		.OPT_VFIFO(4'b1100)
-`ifdef	CPUNET_ACCESS
-		// This *should* work, but ... doesn't
-		, .OPT_NEVER({ 5'h10, 5'h08, 5'h04, 5'h1f, 5'h1f }),
-		.OPT_ALWAYS({ 5'h00, 5'h00, 5'h00, 5'h00, 5'h00 })
-//
-		// This should force a "right" answer
-		// , .OPT_NEVER({ 5'h10, 5'h1f, 5'h1f, 5'h1f, 5'h1f }),
-		// .OPT_ALWAYS({ 5'h00, 5'h04, 5'h08, 5'h00, 5'h00 })
-`endif
-		// }}}
-	) u_router (
-		// {{{
-		.i_clk(i_clk), .i_reset(i_reset),
-`ifdef	NETRESET_ACCESS
-		.ETH_RESET(r_netreset),
-`else
-		.ETH_RESET({(NETPORTS){i_reset}}),
-`endif
-		// Incoming (RX) packet interface
-		// {{{
-`ifdef	CPUNET_ACCESS
-		.RX_VALID({ cpunet_tx_valid, gnet_rx_valid }),
-		.RX_READY({ cpunet_tx_ready, gnet_rx_ready }),
-		.RX_DATA({  cpunet_tx_data,  gnet_rx_data  }),
-		.RX_BYTES({ cpunet_tx_bytes, gnet_rx_bytes }),
-		.RX_LAST({  cpunet_tx_last,  gnet_rx_last  }),
-		.RX_ABORT({ cpunet_tx_abort, gnet_rx_abort }),
-`else
-		.RX_VALID(gnet_rx_valid),
-		.RX_READY(gnet_rx_ready),
-		.RX_DATA( gnet_rx_data),
-		.RX_BYTES(gnet_rx_bytes),
-		.RX_LAST( gnet_rx_last),
-		.RX_ABORT(gnet_rx_abort),
-`endif
-		// }}}
-		// VFIFO control interface
-		.i_ctrl_cyc(wb32_gnet_cyc), .i_ctrl_stb(wb32_gnet_stb), .i_ctrl_we(wb32_gnet_we),
-			.i_ctrl_addr(wb32_gnet_addr[6-1:0]),
-			.i_ctrl_data(wb32_gnet_data), // 32 bits wide
-			.i_ctrl_sel(wb32_gnet_sel),  // 32/8 bits wide
-		.o_ctrl_stall(wb32_gnet_stall),.o_ctrl_ack(wb32_gnet_ack), .o_ctrl_data(wb32_gnet_idata),
-		// VFIFO memory interface
-		.o_vfifo_cyc(wbwide_gnet_cyc), .o_vfifo_stb(wbwide_gnet_stb), .o_vfifo_we(wbwide_gnet_we),
-			.o_vfifo_addr(wbwide_gnet_addr[25-1:0]),
-			.o_vfifo_data(wbwide_gnet_data), // 512 bits wide
-			.o_vfifo_sel(wbwide_gnet_sel),  // 512/8 bits wide
-		.i_vfifo_stall(wbwide_gnet_stall), .i_vfifo_ack(wbwide_gnet_ack), .i_vfifo_data(wbwide_gnet_idata), .i_vfifo_err(wbwide_gnet_err),
-		// Outgoing (TX) packet interface
-		// {{{
-`ifdef	CPUNET_ACCESS
-		.TX_VALID({ cpunet_rx_valid, gnet_tx_valid }),
-		.TX_READY({ cpunet_rx_ready, gnet_tx_ready }),
-		.TX_DATA({  cpunet_rx_data,  gnet_tx_data  }),
-		.TX_BYTES({ cpunet_rx_bytes, gnet_tx_bytes }),
-		.TX_LAST({  cpunet_rx_last,  gnet_tx_last  }),
-		.TX_ABORT({ cpunet_rx_abort, gnet_tx_abort }),
-`else
-		.TX_VALID(gnet_tx_valid),
-		.TX_READY(gnet_tx_ready),
-		.TX_DATA( gnet_tx_data),
-		.TX_BYTES(gnet_tx_bytes),
-		.TX_LAST( gnet_tx_last),
-		.TX_ABORT(gnet_tx_abort),
-`endif
-		// }}}
-		.o_debug(gnet_route_debug)
-		// }}}
-	);
-
-	// }}}
-	// }}}
-`else	// ETH_ROUTER
-	// {{{
-	// Null bus master
-	// {{{
-	// }}}
-	// Null bus slave
-	// {{{
-
-	//
-	// In the case that there is no wb32_gnet peripheral
-	// responding on the wb32 bus
-	assign	wb32_gnet_ack   = 1'b0;
-	assign	wb32_gnet_err   = (wb32_gnet_stb);
-	assign	wb32_gnet_stall = 0;
-	assign	wb32_gnet_idata = 0;
-
-	// }}}
-	// }}}
-`endif	// ETH_ROUTER
 
 	// }}}
 endmodule // main.v

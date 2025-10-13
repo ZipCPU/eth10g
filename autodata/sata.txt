@@ -60,7 +60,8 @@
 	// @$(PREFIX) Definitions
 	// {{{
 	wire	s_@$(REFCK);
-	wire	@$(PREFIX)_phy_ready, @$(PREFIX)_phy_init_err;
+	wire	@$(PREFIX)_phy_ready, @$(PREFIX)_phy_init_err,
+		@$(PREFIX)_phy_reset;
 	//
 	wire		@$(PREFIX)_txphy_clk, @$(PREFIX)_txphy_ready,
 			@$(PREFIX)_txphy_elecidle, @$(PREFIX)_txphy_cominit,
@@ -82,6 +83,7 @@
 	// }}}
 @TOP.MAIN=
 		@$(PREFIX)_phy_ready, @$(PREFIX)_phy_init_err,
+		@$(PREFIX)_phy_reset,
 		//
 		@$(PREFIX)_txphy_clk, @$(PREFIX)_txphy_ready,
 			@$(PREFIX)_txphy_elecidle, @$(PREFIX)_txphy_cominit,
@@ -111,15 +113,16 @@
 	) u_@$(PREFIX) (
 		.i_wb_clk(s_clk), .i_reset(s_reset), .i_ref_clk200(s_clk200),
 		.i_ref_sata_clk(s_@$(REFCK)),
+		.i_user_reset(	@$(PREFIX)_phy_reset),
 		.o_ready(	@$(PREFIX)_phy_ready),
 		.o_init_err(	@$(PREFIX)_phy_init_err),
-		// WB DRP control (inactive)
+		// WB DRP control
 		// {{{
-		.i_wb_cyc(1'b0), .i_wb_stb(1'b0), .i_wb_we(1'b0),
-			.i_wb_addr(9'h0), .i_wb_data(32'h0), .i_wb_sel(4'h0),
-		.o_wb_stall(ign_@$(PREFIX)_stall),
-			.o_wb_ack(ign_@$(PREFIX)_ack),
-			.o_wb_data(ign_@$(PREFIX)_data),
+		.i_wb_cyc(sata_drp_cyc), .i_wb_stb(sata_drp_stb),
+			.i_wb_we(sata_drp_we), .i_wb_addr(sata_drp_addr),
+			.i_wb_data(sata_drp_data), .i_wb_sel(sata_drp_sel),
+		.o_wb_stall(sata_drp_stall),
+			.o_wb_ack(sata_drp_ack), .o_wb_data(sata_drp_idata),
 		// }}}
 		// Transmitter control
 		// {{{
@@ -156,6 +159,7 @@
 	// }}}
 @MAIN.PORTLIST=
 		i_@$(PREFIX)_phy_ready, i_@$(PREFIX)_phy_init_err,
+		o_@$(PREFIX)_phy_reset,
 		//
 		i_@$(PREFIX)_txphy_clk, i_@$(PREFIX)_txphy_ready,
 			o_@$(PREFIX)_txphy_elecidle, o_@$(PREFIX)_txphy_cominit,
@@ -180,6 +184,7 @@
 				i_@$(PREFIX)_phy_init_err;
 				// Verilator lint_on  UNUSED
 		//
+	output	wire		o_@$(PREFIX)_phy_reset;
 	input	wire		i_@$(PREFIX)_txphy_clk,
 				i_@$(PREFIX)_txphy_ready;
 	output	wire		o_@$(PREFIX)_txphy_elecidle,
@@ -211,8 +216,7 @@
 	// Internal SATA declarations
 	// {{{
 			// Verilator lint_off UNUSED
-	wire		w_@$(PREFIX)_phy_reset,
-			w_@$(PREFIX)_link_ready;
+	wire		w_@$(PREFIX)_link_ready;
 	wire	[31:0]	w_@$(PREFIX)_dbg_reset,
 			w_@$(PREFIX)_dbg_link,
 			w_@$(PREFIX)_dbg_tran;
@@ -242,7 +246,7 @@
 		.o_txphy_comwake(	o_@$(PREFIX)_txphy_comwake),
 		.i_txphy_comfinish(	i_@$(PREFIX)_txphy_comfinish),
 		//
-		.o_phy_reset(	w_@$(PREFIX)_phy_reset),
+		.o_phy_reset(	o_@$(PREFIX)_phy_reset),
 		.i_phy_ready(	i_@$(PREFIX)_phy_ready),
 		//
 		.i_rxphy_elecidle(	i_@$(PREFIX)_rxphy_elecidle),
@@ -260,13 +264,14 @@
 		.o_dbg_tran(w_@$(PREFIX)_dbg_tran)
 		// }}}
 	);
-@REGS.N=5
+@REGS.N=6
 @REGS.NOTE=// SATA/@$(PREFIX) control port registers
 @REGS.0=0 R_SATA SATA
 @REGS.1=1 R_LBALO LBALO
 @REGS.2=2 R_LBAHI LBAHI
 @REGS.3=3 R_SATACOUNT SATACOUNT
-@REGS.4=6 R_SATAADDR  SATAADDR
+@REGS.4=5 R_SATAPHY   SATAPHY
+@REGS.5=6 R_SATAADDR  SATAADDR SATADMA
 @RTL.MAKE.GROUP=@$(DEVID)
 @RTL.MAKE.SUBD=sata
 @RTL.MAKE.FILES= sata_controller.v satadma_mm2s.v satadma_rxgears.v satadma_s2mm.v satadma_txgears.v sata_link.v satalnk_align.v satalnk_fsm.v satalnk_rmcont.v satalnk_rxpacket.v satalnk_txpacket.v sata_pextend.v sata_phyinit.v sata_reset.v satarx_crc.v satarx_framer.v satarx_scrambler.v sata_transport.v satatrn_fsm.v satatrn_rxregfis.v satatrn_txarb.v satatrn_wbarbiter.v satatx_crc.v satatx_framer.v satatx_scrambler.v
@@ -278,9 +283,11 @@
 	// SATA data structure
 	// {{{
 typedef	struct	@$(DEVID)_S {
-	unsigned	s_cmd, s_lbalo, s_lbahi, s_count;
-	unsigned	s_skip[2];
-	unsigned	s_addrlo, s_addrhi;
+	volatile unsigned	s_cmd, s_lbalo, s_lbahi, s_count;
+	volatile unsigned	s_unused;
+	volatile unsigned	s_phy;
+	volatile unsigned	*s_dma;
+	unsigned		s_unused_tail;
 } @$(DEVID);
 	// }}}
 #endif
@@ -296,6 +303,8 @@ create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_por
 create_clock -name SATARX -period 26.6664 [get_pins u_@$(PREFIX)/u_gtx_channel/RXOUTCLK]
 create_clock -name SATATX -period 26.6664 [get_pins u_@$(PREFIX)/u_gtx_channel/TXOUTCLK]
 ##
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
+##
 set_max_delay -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/gtx_reset_pipe*}] 4
 set_max_delay -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/gtx_reset_pipe*}] 4
 ##
@@ -304,6 +313,9 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_gtx_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_user_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/tx_link_reset*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/tx_reset*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/phy_reset_n*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/wgray_cross*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_tx_afifo/rgray_cross*}] 10
@@ -329,6 +341,15 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/rgray_cross*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/u_reg_afifo/GEN_REGISTERED_READ.o_rd_data*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_fsm/o_s2mm_request*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/rx_reset_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/qpll_reset*}] -to [get_pins u_@$(PREFIX)/u_gtx_channel/TXPD[0]] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/qpll_reset*}] -to [get_pins u_@$(PREFIX)/u_gtx_channel/TXPD[1]] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/tx_gate*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txarb/txgate_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/rx_fifo/r_empty*}] -to [get_cells -hier -filter {NAME=~ @$(LINKP)/link_fsm/o_debug*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/rx_fifo/r_empty*}] -to [get_cells -hier -filter {NAME=~ @$(LINKP)/link_fsm/link_state*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_s2mm/o_busy*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/rx_reset_xpipe*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/deframer/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_tran_abort_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_tran_abort_xpipe*}] 10
@@ -339,3 +360,68 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/li
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/aux_clk*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/phyck_msb_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/aux_clk*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/phyck_msb_xpipe*}] 10
 ##
+@PREFIX=satadrp
+@DEVID=SATADRP
+@$NADDR=2048
+@SLAVE.BUS=wb32
+@SLAVE.TYPE=OTHER
+@TOP.PORTLIST=
+@TOP.IODECL=
+@TOP.MAIN=
+		sata_drp_cyc, sata_drp_stb, sata_drp_we, sata_drp_addr,
+		sata_drp_data, sata_drp_sel, sata_drp_stall, sata_drp_ack,
+		sata_drp_idata
+@TOP.DEFNS=
+	// @$(PREFIX) Definitions
+	// {{{
+	wire		sata_drp_cyc, sata_drp_stb, sata_drp_we,
+			sata_drp_stall, sata_drp_ack;
+	wire	[10:0]	sata_drp_addr;
+	wire	[31:0]	sata_drp_data, sata_drp_idata;
+	wire	[3:0]	sata_drp_sel;
+	// }}}
+##
+@MAIN.PORTLIST=
+		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we,
+		o_sata_drp_addr,
+		o_sata_drp_data, o_sata_drp_sel,
+		i_sata_drp_stall, i_sata_drp_ack, i_sata_drp_data
+@MAIN.IODECL=
+	output	wire		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we;
+	output	wire	[10:0]	o_sata_drp_addr;
+	output	wire	[31:0]	o_sata_drp_data;
+	output	wire	[3:0]	o_sata_drp_sel;
+	input	wire		i_sata_drp_stall, i_sata_drp_ack;
+	input	wire	[31:0]	i_sata_drp_data;
+@MAIN.INSERT=
+	assign	o_sata_drp_cyc  = @$(SLAVE.PREFIX)_cyc;
+	assign	o_sata_drp_stb  = @$(SLAVE.PREFIX)_stb;
+	assign	o_sata_drp_we   = @$(SLAVE.PREFIX)_we;
+	assign	o_sata_drp_addr = @$(SLAVE.PREFIX)_addr[10:0];
+	assign	o_sata_drp_data = @$(SLAVE.PREFIX)_data;
+	assign	o_sata_drp_sel  = @$(SLAVE.PREFIX)_sel;
+	//
+	assign	@$(SLAVE.PREFIX)_stall = i_sata_drp_stall;
+	assign	@$(SLAVE.PREFIX)_ack   = i_sata_drp_ack;
+	assign	@$(SLAVE.PREFIX)_idata = i_sata_drp_data;
+@REGS.N=2
+@REGS.NOTE=// SATA DRP/@$(PREFIX) control port registers
+@REGS.0=0 R_PLLDRP PLLDRP
+@REGS.1=512 R_GTXDRP GTXDRP
+@BDEF.DEFN=
+#ifndef	@$(DEVID)_H
+#define	@$(DEVID)_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// SATA DRP data structure
+	// {{{
+typedef	struct	@$(DEVID)_S {
+	unsigned	d_pll[512];
+	unsigned	d_gtx[512];
+} @$(DEVID);
+	// }}}
+#endif
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME)=((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));

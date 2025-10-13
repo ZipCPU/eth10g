@@ -204,6 +204,8 @@ public:
 		// SIM.TICK from cec
 		m_core->i_hdmirx_cec = m_core->o_hdmirx_cec;
 		m_core->i_hdmitx_cec = m_core->o_hdmitx_cec;
+		// SIM.TICK from gnet
+		m_core->i_gnet_phy_fault= 0;
 		// SIM.TICK from zip
 #ifdef	INCLUDE_ZIPCPU
 		// ZipCPU Sim instruction support
@@ -296,8 +298,6 @@ public:
 			m_core->i_emmc_ad_data = 0;
 		} }
 #endif
-		// SIM.TICK from gnet
-		m_core->i_gnet_phy_fault= 0;
 	}
 
 	// Evaluating clock siclk

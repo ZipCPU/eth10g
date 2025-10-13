@@ -114,7 +114,8 @@
 #define	R_LBALO           	0x02000784	// 02000780, wbregs names: LBALO
 #define	R_LBAHI           	0x02000788	// 02000780, wbregs names: LBAHI
 #define	R_SATACOUNT       	0x0200078c	// 02000780, wbregs names: SATACOUNT
-#define	R_SATAADDR        	0x02000798	// 02000780, wbregs names: SATAADDR
+#define	R_SATAPHY         	0x02000794	// 02000780, wbregs names: SATAPHY
+#define	R_SATAADDR        	0x02000798	// 02000780, wbregs names: SATAADDR, SATADMA
 // SDIO SD Card addresses
 #define	R_SDIO_CTRL       	0x02000800	// 02000800, wbregs names: SDCARD
 #define	R_SDIO_DATA       	0x02000804	// 02000800, wbregs names: SDDATA
@@ -284,6 +285,9 @@
 #define	R_VIDGCAP         	0x02002048	// 02002000, wbregs names: VIDGCAP
 #define	R_VIDBCAP         	0x0200204c	// 02002000, wbregs names: VIDBCAP
 #define	R_CMAP            	0x02002800	// 02002000, wbregs names: CMAP
+// SATA DRP/satadrp control port registers
+#define	R_PLLDRP          	0x02004000	// 02004000, wbregs names: PLLDRP
+#define	R_GTXDRP          	0x02004800	// 02004000, wbregs names: GTXDRP
 #define	R_BKRAM           	0x04000000	// 04000000, wbregs names: RAM
 #define	R_FLASH           	0x06000000	// 06000000, wbregs names: FLASH
 #define	R_DDR3_CONTROLLER 	0x40000000	// 40000000, wbregs names: DDR3_CONTROLLER, DDR3, SDRAM

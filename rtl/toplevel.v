@@ -62,6 +62,11 @@ module	toplevel(
 			o_i2c_mxrst_n,
 		// cec ports
 		io_hdmirx_cec, io_hdmitx_cec,
+			i_gnet_los, o_gnettx_disable,
+			o_gnet_linkup, o_gnet_activity,
+			o_gnet_p, o_gnet_n,
+			i_gnet_p, i_gnet_n,
+			i_clk_156mhz_p, i_clk_156mhz_n,
 		// SPIO interface
 		i_sw, i_nbtn_u, i_nbtn_l, i_nbtn_c, i_nbtn_r, i_nbtn_d, o_led,
 			io_hdmirx_scl, io_hdmirx_sda,
@@ -102,12 +107,7 @@ i_sdcard_cd_n,
 		o_ddr3_odt, o_ddr3_dm,
 		io_ddr3_dqs_p, io_ddr3_dqs_n, io_ddr3_dq,
 		i_sata_p, i_sata_n, o_sata_p, o_sata_n,
-		i_clk_150mhz_p, i_clk_150mhz_n,
-			i_gnet_los, o_gnettx_disable,
-			o_gnet_linkup, o_gnet_activity,
-			o_gnet_p, o_gnet_n,
-			i_gnet_p, i_gnet_n,
-			i_clk_156mhz_p, i_clk_156mhz_n);
+		i_clk_150mhz_p, i_clk_150mhz_n);
 	//
 	// Declaring any top level parameters.
 	//
@@ -117,6 +117,12 @@ i_sdcard_cd_n,
 	// the @MAIN.PARAM key should be sufficient, so the @TOP.PARAM
 	// key may be left undefined.
 	//
+	localparam	NETDEVS  = 4;
+`ifdef	CPUNET_ACCESS
+	localparam	NETPORTS = 4+1;
+`else
+	localparam	NETPORTS = 4;
+`endif
 	localparam	ICAPE_LGDIV=3;
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -179,12 +185,6 @@ i_sdcard_cd_n,
 		DDR3_CONTROLLERCMD_LEN = 4 + 3 + DDR3_CONTROLLERBA_BITS + DDR3_CONTROLLERROW_BITS;
 
 
-	localparam	NETDEVS  = 4;
-`ifdef	CPUNET_ACCESS
-	localparam	NETPORTS = 4+1;
-`else
-	localparam	NETPORTS = 4;
-`endif
 	//
 	// Declaring our input and output ports.  We listed these above,
 	// now we are declaring them here.
@@ -204,6 +204,14 @@ i_sdcard_cd_n,
 	output	wire	o_i2c_mxrst_n;
 	// CEC wires
 	inout	wire		io_hdmirx_cec, io_hdmitx_cec;
+	// 10Gb Ethernet
+	input	wire	[4-1:0]	i_gnet_los;
+	output	wire	[4-1:0]	o_gnettx_disable;
+	output	wire	[4-1:0]	o_gnet_linkup;
+	output	wire	[4-1:0]	o_gnet_activity;
+	output	wire	[4-1:0]	o_gnet_p, o_gnet_n;
+	input	wire	[4-1:0]	i_gnet_p, i_gnet_n;
+	input	wire			i_clk_156mhz_p, i_clk_156mhz_n;
 	// SPIO interface
 	input	wire	[4-1:0]	i_sw;
 	input	wire	i_nbtn_c, i_nbtn_d, i_nbtn_l, i_nbtn_r, i_nbtn_u;
@@ -269,14 +277,6 @@ i_sdcard_cd_n,
 	input	wire	i_sata_p, i_sata_n;
 	output	wire	o_sata_p, o_sata_n;
 	input	wire	i_clk_150mhz_p, i_clk_150mhz_n;
-	// 10Gb Ethernet
-	input	wire	[4-1:0]	i_gnet_los;
-	output	wire	[4-1:0]	o_gnettx_disable;
-	output	wire	[4-1:0]	o_gnet_linkup;
-	output	wire	[4-1:0]	o_gnet_activity;
-	output	wire	[4-1:0]	o_gnet_p, o_gnet_n;
-	input	wire	[4-1:0]	i_gnet_p, i_gnet_n;
-	input	wire			i_clk_156mhz_p, i_clk_156mhz_n;
 
 
 	//
@@ -300,6 +300,12 @@ i_sdcard_cd_n,
 	// CEC declarations.
 	wire	i_hdmirx_cec, i_hdmitx_cec;
 	wire	o_hdmirx_cec, o_hdmitx_cec;
+	// 10Gb Ethernet
+	wire	[4-1:0]		gnet_rx_clk, gnet_tx_clk;
+	wire	[32*4-1:0]	gnet_rx_data;
+	wire	[32*4-1:0]	gnet_tx_data;
+	wire	[4-1:0]		gnet_phy_fault;
+	wire	[4:0]		gnet_locked;
 	wire	[8-1:0]	w_led;
 	wire	[5-1:0]	w_btn;
 	// I2CCPU definitions
@@ -379,6 +385,14 @@ i_sdcard_cd_n,
 	wire	[31:0]	w_sdio_debug;
 	// }}}
 
+	// satadrp Definitions
+	// {{{
+	wire		sata_drp_cyc, sata_drp_stb, sata_drp_we,
+			sata_drp_stall, sata_drp_ack;
+	wire	[10:0]	sata_drp_addr;
+	wire	[31:0]	sata_drp_data, sata_drp_idata;
+	wire	[3:0]	sata_drp_sel;
+	// }}}
 	// eMMC Card definitions
 	// {{{
 	wire		w_emmc_hwreset_n, w_emmc_1p8v;
@@ -449,7 +463,8 @@ i_sdcard_cd_n,
 	// sata Definitions
 	// {{{
 	wire	s_clk_150mhz;
-	wire	sata_phy_ready, sata_phy_init_err;
+	wire	sata_phy_ready, sata_phy_init_err,
+		sata_phy_reset;
 	//
 	wire		sata_txphy_clk, sata_txphy_ready,
 			sata_txphy_elecidle, sata_txphy_cominit,
@@ -469,12 +484,6 @@ i_sdcard_cd_n,
 	wire	[31:0]	ign_sata_data;
 	// Verilator lint_on  UNUSED
 	// }}}
-	// 10Gb Ethernet
-	wire	[4-1:0]		gnet_rx_clk, gnet_tx_clk;
-	wire	[32*4-1:0]	gnet_rx_data;
-	wire	[32*4-1:0]	gnet_tx_data;
-	wire	[4-1:0]		gnet_phy_fault;
-	wire	[4:0]		gnet_locked;
 
 
 	//
@@ -505,6 +514,10 @@ i_sdcard_cd_n,
 		// CEC wires
 		i_hdmirx_cec, o_hdmirx_cec,
 		i_hdmitx_cec, o_hdmitx_cec,
+		gnet_rx_clk, gnet_rx_data,
+		gnet_tx_clk, gnet_tx_data,
+		gnet_phy_fault, o_gnet_linkup, o_gnet_activity,
+		i_gnet_los, gnet_locked,
 		i_sw, w_btn, w_led,
 		// I2CCPU
 		i_edid_sda, i_edid_scl,
@@ -567,6 +580,9 @@ i_sdcard_cd_n,
 		w_sdio_ad_data,
 		w_sdio_hwreset_n, w_sdio_1p8v, 1'b0,
 		w_sdio_debug,
+		sata_drp_cyc, sata_drp_stb, sata_drp_we, sata_drp_addr,
+		sata_drp_data, sata_drp_sel, sata_drp_stall, sata_drp_ack,
+		sata_drp_idata,
 		// eMMC Card
 		!i_emmc_cd_n,
 		//
@@ -614,6 +630,7 @@ i_sdcard_cd_n,
 	ddr3_controller_write_leveling_calib,
 	ddr3_controller_reset,
 		sata_phy_ready, sata_phy_init_err,
+		sata_phy_reset,
 		//
 		sata_txphy_clk, sata_txphy_ready,
 			sata_txphy_elecidle, sata_txphy_cominit,
@@ -626,11 +643,7 @@ i_sdcard_cd_n,
 		sata_rxphy_error, sata_rxphy_syncd,
 			sata_rxphy_elecidle, sata_rxphy_cominit,
 			sata_rxphy_comwake, sata_rxphy_cdrhold,
-		sata_phy_refclk, sata_phy_debug,
-		gnet_rx_clk, gnet_rx_data,
-		gnet_tx_clk, gnet_tx_data,
-		gnet_phy_fault, o_gnet_linkup, o_gnet_activity,
-		i_gnet_los, gnet_locked);
+		sata_phy_refclk, sata_phy_debug);
 
 
 	//
@@ -714,6 +727,28 @@ i_sdcard_cd_n,
 	// CEC logic
 	IOBUF hdmirx_cec (.T(o_hdmirx_cec), .I(1'b0), .O(i_hdmirx_cec), .IO(io_hdmirx_cec));
 	IOBUF hdmitx_cec (.T(o_hdmitx_cec), .I(1'b0), .O(i_hdmitx_cec), .IO(io_hdmitx_cec));
+
+	assign	o_gnettx_disable = -1;
+
+	xgtxphy #(
+		.NDEV(4)
+	) u_gnet_gtx_phy (
+		// {{{
+		.i_wb_clk(s_clk),
+		.o_phy_fault(gnet_phy_fault),
+		.o_lock_status(gnet_locked),
+		//
+		.S_CLK(  gnet_tx_clk),
+		.S_DATA( gnet_tx_data),
+		//
+		.M_CLK(  gnet_rx_clk),
+		.M_DATA( gnet_rx_data),
+		//
+		.i_refck_p(i_clk_156mhz_p), .i_refck_n(i_clk_156mhz_n),
+		.i_rx_p(i_gnet_p), .i_rx_n(i_gnet_n),
+		.o_tx_p(o_gnet_p), .o_tx_n(o_gnet_n)
+		// }}}
+	);
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -1227,15 +1262,16 @@ i_sdcard_cd_n,
 	) u_sata (
 		.i_wb_clk(s_clk), .i_reset(s_reset), .i_ref_clk200(s_clk200),
 		.i_ref_sata_clk(s_clk_150mhz),
+		.i_user_reset(	sata_phy_reset),
 		.o_ready(	sata_phy_ready),
 		.o_init_err(	sata_phy_init_err),
-		// WB DRP control (inactive)
+		// WB DRP control
 		// {{{
-		.i_wb_cyc(1'b0), .i_wb_stb(1'b0), .i_wb_we(1'b0),
-			.i_wb_addr(9'h0), .i_wb_data(32'h0), .i_wb_sel(4'h0),
-		.o_wb_stall(ign_sata_stall),
-			.o_wb_ack(ign_sata_ack),
-			.o_wb_data(ign_sata_data),
+		.i_wb_cyc(sata_drp_cyc), .i_wb_stb(sata_drp_stb),
+			.i_wb_we(sata_drp_we), .i_wb_addr(sata_drp_addr),
+			.i_wb_data(sata_drp_data), .i_wb_sel(sata_drp_sel),
+		.o_wb_stall(sata_drp_stall),
+			.o_wb_ack(sata_drp_ack), .o_wb_data(sata_drp_idata),
 		// }}}
 		// Transmitter control
 		// {{{
@@ -1270,28 +1306,6 @@ i_sdcard_cd_n,
 		.o_debug(sata_phy_debug)
 	);
 	// }}}
-
-	assign	o_gnettx_disable = -1;
-
-	xgtxphy #(
-		.NDEV(4)
-	) u_gnet_gtx_phy (
-		// {{{
-		.i_wb_clk(s_clk),
-		.o_phy_fault(gnet_phy_fault),
-		.o_lock_status(gnet_locked),
-		//
-		.S_CLK(  gnet_tx_clk),
-		.S_DATA( gnet_tx_data),
-		//
-		.M_CLK(  gnet_rx_clk),
-		.M_DATA( gnet_rx_data),
-		//
-		.i_refck_p(i_clk_156mhz_p), .i_refck_n(i_clk_156mhz_n),
-		.i_rx_p(i_gnet_p), .i_rx_n(i_gnet_n),
-		.o_tx_p(o_gnet_p), .o_tx_n(o_gnet_n)
-		// }}}
-	);
 
 
 

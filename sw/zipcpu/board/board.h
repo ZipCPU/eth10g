@@ -300,6 +300,36 @@ typedef	struct	WBSCOPE_S {
 #endif
 
 
+
+typedef	struct	PKTVFIFO_S {
+	char		*v_base;
+	unsigned	v_memsize;
+	volatile char	*v_wrptr, *v_rdptr;
+} PKTVFIFO;
+
+typedef	struct	PKTVFIFODBG_S {
+	volatile unsigned	vdbg_pktcount, vdbg_bytecount,
+				vdbg_fifopkts, vdbg_fifobytes;
+} PKTVFIFODBG;
+
+typedef	struct	ROUTETBLDBG_S {
+	volatile unsigned	vtbl_lookup[2];
+	volatile unsigned	vtbl_request[2];
+} ROUTETBLDBG;
+
+struct	ROUTER_S {
+	PKTVFIFO	vfif[4];
+	PKTVFIFODBG	vdbg[4];
+	ROUTETBLDBG	vtbl[4+1];
+	unsigned	v_adhoc_debug[5];
+	unsigned	v_unused_align;
+	unsigned	v_never, v_always;
+	unsigned	v_unused[3];
+	unsigned	v_debug_select;
+};
+
+
+
 #define	SPIO_BTNC	0x01000
 #define	SPIO_BTND	0x00800
 #define	SPIO_BTNL	0x00400
@@ -513,6 +543,20 @@ struct SDIO_S;
 // }}}
 
 
+#ifndef	SATADRP_H
+#define	SATADRP_H
+	////////////////////////////////////////////////////////////////////////
+	//
+	// SATA DRP data structure
+	// {{{
+typedef	struct	SATADRP_S {
+	unsigned	d_pll[512];
+	unsigned	d_gtx[512];
+} SATADRP;
+	// }}}
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // eMMC Card constants
@@ -559,42 +603,14 @@ typedef	struct	NETSTAT_S {
 	// SATA data structure
 	// {{{
 typedef	struct	SATA_S {
-	unsigned	s_cmd, s_lbalo, s_lbahi, s_count;
-	unsigned	s_skip[2];
-	unsigned	s_addrlo, s_addrhi;
+	volatile unsigned	s_cmd, s_lbalo, s_lbahi, s_count;
+	volatile unsigned	s_unused;
+	volatile unsigned	s_phy;
+	volatile unsigned	*s_dma;
+	unsigned		s_unused_tail;
 } SATA;
 	// }}}
 #endif
-
-
-
-typedef	struct	PKTVFIFO_S {
-	char		*v_base;
-	unsigned	v_memsize;
-	volatile char	*v_wrptr, *v_rdptr;
-} PKTVFIFO;
-
-typedef	struct	PKTVFIFODBG_S {
-	volatile unsigned	vdbg_pktcount, vdbg_bytecount,
-				vdbg_fifopkts, vdbg_fifobytes;
-} PKTVFIFODBG;
-
-typedef	struct	ROUTETBLDBG_S {
-	volatile unsigned	vtbl_lookup[2];
-	volatile unsigned	vtbl_request[2];
-} ROUTETBLDBG;
-
-struct	ROUTER_S {
-	PKTVFIFO	vfif[4];
-	PKTVFIFODBG	vdbg[4];
-	ROUTETBLDBG	vtbl[4+1];
-	unsigned	v_adhoc_debug[5];
-	unsigned	v_unused_align;
-	unsigned	v_never, v_always;
-	unsigned	v_unused[3];
-	unsigned	v_debug_select;
-};
-
 
 
 #ifdef	NETCLK_ACCESS
@@ -663,6 +679,9 @@ static volatile WBSCOPE *const _i2cscope = ((WBSCOPE *)0x02000200);
 #define	_BOARD_HAS_ROUTESCOPE
 static volatile WBSCOPE *const _routescope = ((WBSCOPE *)0x02000300);
 #endif	// ROUTESCOPE_SCOPC
+#ifdef	ETH_ROUTER
+static struct ROUTER_S *const _gnet = ((struct ROUTER_S *)0x02000a00);
+#endif	// ETH_ROUTER
 #ifdef	SPIO_ACCESS
 #define	_BOARD_HAS_SPIO
 static volatile unsigned *const _spio = ((unsigned *)0x020010f4);
@@ -738,6 +757,8 @@ static volatile unsigned *const _gpio = ((unsigned *)0x020010c4);
 #define	_BOARD_HAS_SDIO
 static volatile struct SDIO_S *const _sdio = ((struct SDIO_S *)0x02000800);
 #endif	// SDIO_ACCESS
+#define	_BOARD_HAS_SATADRP
+static volatile SATADRP *const _satadrp=((SATADRP *)0x02004000);
 #ifdef	EMMC_ACCESS
 #define	_BOARD_HAS_EMMC
 static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x02000680);
@@ -760,9 +781,6 @@ static volatile SATA *const _sata=((SATA *)0x02000780);
 #ifdef	NETRESET_ACCESS
 static volatile unsigned *const _netreset = ((unsigned *)0x020010d0);
 #endif	// NETRESET_ACCESS
-#ifdef	ETH_ROUTER
-static struct ROUTER_S *const _gnet = ((struct ROUTER_S *)0x02000a00);
-#endif	// ETH_ROUTER
 //
 // Interrupt assignments (2 PICs)
 //
