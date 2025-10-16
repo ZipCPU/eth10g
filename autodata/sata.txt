@@ -336,6 +336,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_afifo/rgray_cross*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/phy_reset_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/rx_linkup*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/*reset*}] 10
 ##
@@ -352,7 +353,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/rx
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(TPATH)/u_s2mm/o_busy*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/rx_reset_xpipe*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/deframer/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_tran_abort_xpipe*}] 10
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_tran_abort_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txfifo/o_fill*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/u_txfifo/rd_addr*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/o_link_up*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_link_up_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/link_fsm/o_error*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_link_up_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/link_fsm/o_ready*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/wb_link_up_xpipe*}] 10
