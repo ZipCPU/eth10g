@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2023-2025, Gisselquist Technology, LLC
+## Copyright (C) 2023-2026, Gisselquist Technology, LLC
 ## {{{
 ## This file is part of the ETH10G project.
 ##
@@ -249,7 +249,7 @@
 @MIXING=thedesign/u_hdmi/u_overlay/ALPHA_MIXING
 @XDC.INSERT=
 create_clock -period 13.5 -name HDMIRX -waveform { 0.0 6.75 } -add [get_ports i_hdmirx_clk_p ]
-set_clock_groups -name HDMI -group [HDMIRX]
+set_clock_groups -name HDMI -group { HDMIRX }
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 set_clock_groups -name EXHDMI -physically_exclusive -group SICLK -group HDMI
 ##

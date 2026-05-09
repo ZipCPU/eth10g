@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2023-2025, Gisselquist Technology, LLC
+## Copyright (C) 2023-2026, Gisselquist Technology, LLC
 ## {{{
 ## This file is part of the ETH10G project.
 ##
@@ -85,6 +85,6 @@
 @BDEF.OSVAL= static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
-set_clock_groups -name SICLK -group [SIREF]
+set_clock_groups -name SICLK -group { SIREF }
 ## create_clock -period 5.2 -name SIREF -waveform {0.0 2.6 } -add [get_ports i_clk_si_p]
 set_false_path -from [get_pins {thedesign/u_@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins {thedesign/u_@$(PREFIX)/q_v_reg/D}]

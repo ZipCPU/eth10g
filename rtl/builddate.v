@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	builddate.v
+// Filename:	rtl/builddate.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2025, Gisselquist Technology, LLC
+// Copyright (C) 2023-2026, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -28,7 +28,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the 1000 4 20 24 27 30 46 120 131 132 144 1000ROOT)/doc directory.  Run make with no
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 // }}}

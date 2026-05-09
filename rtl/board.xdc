@@ -743,7 +743,7 @@ create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_cl
 ## No XDC.INSERT tag in wb32
 ## From siclk
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
-set_clock_groups -name SICLK -group [SIREF]
+set_clock_groups -name SICLK -group { SIREF }
 set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
 ## From satatxck
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v*}] 8.0
@@ -756,7 +756,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 ## No XDC.INSERT tag in wbu
 ## From hdmi
 create_clock -period 13.5 -name HDMIRX -waveform { 0.0 6.75 } -add [get_ports i_hdmirx_clk_p ]
-set_clock_groups -name HDMI -group [HDMIRX]
+set_clock_groups -name HDMI -group { HDMIRX }
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
 set_clock_groups -name EXHDMI -physically_exclusive -group SICLK -group HDMI
 set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_xpxclk/prepx/u_bufg/*]
@@ -847,7 +847,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_front
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 
 ## No XDC.INSERT tag in zip_jiffies
-## No XDC.INSERT tag in sdslav
+## From sdslav
+create_clock -period 20.0 -name SDSLVCK -waveform { 0.0 10.0 } -add [get_ports i_sdslav_clk]
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
 ## No XDC.INSERT tag in zip_alt_upc

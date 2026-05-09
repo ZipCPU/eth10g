@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rtl/sdslave/sdtfrvalue.v
+// Filename:	rtl/sdspi/sdtfrvalue.v
 // {{{
-// Project:	SD-Card controller
+// Project:	10Gb Ethernet switch
 //
 // Purpose:	Illustrates a slow method of moving data across clock domains,
 //		together with a formal proof of the same.  This is the "faster"
@@ -14,12 +14,13 @@
 // }}}
 // Copyright (C) 2016-2026, Gisselquist Technology, LLC
 // {{{
-// This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as published
-// by the Free Software Foundation, either version 3 of the License, or (at
-// your option) any later version.
+// This file is part of the ETH10G project.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
+// The ETH10G project contains free software and gateware, licensed under the
+// terms of the 3rd version of the GNU General Public License as published by
+// the Free Software Foundation.
+//
+// This project is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.
