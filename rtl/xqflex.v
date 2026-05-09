@@ -54,7 +54,7 @@ module	xqflex #(
 		input	wire		i_cs_n,
 		input	wire	[1:0]	i_sck,
 		input	wire	[3:0]	i_dat,
-		input	wire	[3:0]	o_dat,
+		output	wire	[3:0]	o_dat,
 		input	wire	[1:0]	i_bmod,
 
 		inout	wire		o_cs_n,
@@ -94,7 +94,7 @@ module	xqflex #(
 
 		always @(posedge i_clk)
 		if (gk < 4)
-			r_pin <= i_data[(gk < 4) ? gk : 0];
+			r_pin <= i_dat[(gk < 4) ? gk : 0];
 		else if (gk == 4)
 			r_pin <= i_cs_n;
 		else

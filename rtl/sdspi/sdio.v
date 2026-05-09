@@ -71,6 +71,18 @@ module	sdio #(
 		parameter [0:0]	OPT_CRCTOKEN = 1'b1,
 		parameter	LGTIMEOUT = 23,
 		parameter [0:0]	OPT_ISTREAM = 0, OPT_OSTREAM = 0,
+		parameter [4:0]	DEF_SAMPLE_SHIFT = 5'h18,
+		// Boot parameters
+		parameter	SWIDE_AW = ADDRESS_WIDTH
+					+ ((OPT_ISTREAM||OPT_OSTREAM)? 1:0),
+		parameter [0:0]		OPT_BOOTEN   = 1'b1,
+		parameter [0:0]		OPT_AUTOBOOT = 1'b1,
+		parameter [0:0]		BOOT_TOKEN   = 1'b1,
+		parameter [3:0]	BOOT_MODE = 4'b0010,	// No DS, SDR, 8b
+		parameter [SWIDE_AW-1:0] BOOT_ADDR=0,
+		parameter [31:0]	BOOT_BLOCKS=32'd256,
+		parameter [7:0]		BOOT_SPEED=8'd4,
+		//
 		parameter	SW = 32
 		// }}}
 	) (
@@ -123,6 +135,7 @@ module	sdio #(
 		// But these ones ...
 		output	wire		o_cfg_ddr, o_cfg_ds, o_cfg_dscmd,
 		output	wire	[4:0]	o_cfg_sample_shift,
+		output	wire		o_expect_token,
 		output	reg	[7:0]	o_sdclk,
 		//
 		output	wire		o_cmd_en, o_cmd_tristate,
@@ -149,12 +162,22 @@ module	sdio #(
 
 	// Local declarations
 	// {{{
+	// Force the bottom bits of the sample shift to zero when unused.
+	// This is primarily a synthesis optimization, since these bits won't
+	// be used in the front end anyway.
+	localparam [4:0]	L_SAMPLE_SHIFT = (OPT_SERDES) ? DEF_SAMPLE_SHIFT
+				: (OPT_DDR) ? { DEF_SAMPLE_SHIFT[4:2], 2'b00 }
+					: { DEF_SAMPLE_SHIFT[4:3], 3'b000 };
+
 	wire			soft_reset;
 
 	wire			cfg_clk90, cfg_clk_shutdown, cfg_expect_ack,
 				cfg_cmd_pp, cfg_data_pp;
 	wire	[7:0]		cfg_ckspeed;
 	wire	[1:0]		cfg_width;
+	wire			w_cmd_en, w_cmd_tristate, w_boot_cmd,
+				w_boot_tok;
+	wire	[1:0]		w_cmd_data;
 
 	wire			clk_stb, clk_half, clk_clk90;
 	wire	[7:0]		clk_wide, clk_ckspd;
@@ -194,7 +217,7 @@ module	sdio #(
 	wire	[31:0]	s2sd_data;
 		//
 	wire			dma_busy, dma_abort, dma_err;
-	wire	[ADDRESS_WIDTH+((OPT_ISTREAM||OPT_OSTREAM) ? 1:0)-1:0] dma_addr;
+	wire	[SWIDE_AW-1:0]	dma_addr;
 	wire	[LGFIFO:0]	dma_len;
 	// }}}
 	// }}}
@@ -208,11 +231,20 @@ module	sdio #(
 		.OPT_DDR(OPT_DDR),
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
 		.OPT_DMA(OPT_DMA),
-		.DMA_AW(ADDRESS_WIDTH + ((OPT_ISTREAM||OPT_OSTREAM) ? 1:0)),
+		.DMA_AW(SWIDE_AW),
 		.OPT_EMMC(OPT_EMMC),
 			.OPT_HWRESET(OPT_HWRESET), .OPT_1P8V(OPT_1P8V),
 		.OPT_STREAM(OPT_ISTREAM || OPT_OSTREAM),
-		.OPT_CRCTOKEN(OPT_CRCTOKEN)
+		.OPT_CRCTOKEN(OPT_CRCTOKEN),
+		.DEF_SAMPLE_SHIFT(L_SAMPLE_SHIFT),
+		// Boot parameters
+		.OPT_BOOTEN(OPT_BOOTEN && OPT_EMMC && OPT_DMA),
+		.OPT_AUTOBOOT(OPT_AUTOBOOT),
+		.BOOT_TOKEN(BOOT_TOKEN && OPT_CRCTOKEN),
+		.BOOT_MODE(BOOT_MODE),
+		.BOOT_ADDR(BOOT_ADDR),
+		.BOOT_BLOCKS(BOOT_BLOCKS),
+		.BOOT_SPEED(BOOT_SPEED)
 		// }}}
 	) u_control (
 		// {{{
@@ -291,6 +323,13 @@ module	sdio #(
 		//
 		.i_rx_done(rx_done), .i_rx_err(rx_err), .i_rx_ercode(rx_ercode),
 		// }}}
+		// Boot interface
+		// {{{
+		.i_boot_ack(i_crcack && OPT_CRCTOKEN),
+		.i_boot_nak(i_crcnak && OPT_CRCTOKEN),
+		.o_boot_tok(w_boot_tok),
+		.o_boot_cmden(w_boot_cmd),
+		// }}}
 		.i_card_detect(i_card_detect),
 		.i_card_busy(i_card_busy),
 		.o_hwreset_n(o_hwreset_n),
@@ -316,6 +355,8 @@ module	sdio #(
 	end
 
 	assign	o_rx_en = rx_en && rx_active;
+	assign	o_expect_token = w_boot_tok || o_data_en;
+
 
 	sdckgen #(
 		.OPT_SERDES(OPT_SERDES),
@@ -355,9 +396,10 @@ module	sdio #(
 		.o_busy(cmd_busy), .o_done(cmd_done), .o_err(cmd_err),
 			.o_ercode(cmd_ercode),
 		//
-		.o_cmd_en(o_cmd_en), .o_cmd_data(o_cmd_data),
-			.o_cmd_tristate(o_cmd_tristate),
-		.i_cmd_strb(i_cmd_strb), .i_cmd_data(i_cmd_data),
+		.o_cmd_en(w_cmd_en), .o_cmd_data(w_cmd_data),
+			.o_cmd_tristate(w_cmd_tristate),
+		.i_cmd_strb(i_cmd_strb), .i_cmd_data(i_cmd_data
+				| {(2){w_boot_cmd}}),
 			.i_cmd_collision(i_cmd_collision),
 		.S_ASYNC_VALID(S_AC_VALID), .S_ASYNC_DATA(S_AC_DATA),
 		//
@@ -369,10 +411,15 @@ module	sdio #(
 		// }}}
 	);
 
+	assign	o_cmd_en       = w_cmd_en || w_boot_cmd;
+	assign	o_cmd_tristate = w_cmd_tristate && !w_boot_cmd;
+	assign	o_cmd_data     = w_cmd_data & {(2){!w_boot_cmd}};
+
 	sdtxframe #(
 		// {{{
 		.OPT_SERDES(OPT_SERDES || OPT_DDR),
 		.OPT_CRCTOKEN(OPT_CRCTOKEN),
+		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN),
 		.NUMIO(NUMIO)
 		// .MW(MW)
 		// }}}
@@ -405,6 +452,7 @@ module	sdio #(
 	sdrxframe #(
 		// {{{
 		.OPT_DS(OPT_SERDES), .NUMIO(NUMIO),
+		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN),
 		.LGLEN(LGFIFO),
 		.MW(MW),
 		.LGTIMEOUT(LGTIMEOUT)

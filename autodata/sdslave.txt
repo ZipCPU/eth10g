@@ -1,0 +1,210 @@
+################################################################################
+##
+## Filename:	autodata/sdslave.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Implement the slave protocol from an SD card, driving the bus
+##		based upon requests from the SDIO port.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023-2025, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=sdslav
+@DEVID=SDSLAVE
+@ACCESS=@$(DEVID)_ACCESS
+@MASTER.TYPE=DMA
+@MASTER.BUS=wbwide
+@MASTER.ANSPREFIX=dma_
+@TOP.PORTLIST=
+		i_@$(PREFIX)_clk,
+		io_@$(PREFIX)_cmd,
+		io_@$(PREFIX)_dat
+@TOP.IODECL=
+	input	wire		i_@$(PREFIX)_clk;
+	inout	wire		io_@$(PREFIX)_cmd;
+	inout	wire	[3:0]	io_@$(PREFIX)_dat;
+@TOP.DEFNS=
+	// @$(DEVID)/@$(PREFIX) definitions
+	// {{{
+	wire		w_@$(PREFIX)_clk;
+	wire		w_@$(PREFIX)_tx_cmd,
+			w_@$(PREFIX)_cmd_tristate;
+	wire	[15:0]	w_@$(PREFIX)_data;
+	wire	[7:0]	w_@$(PREFIX)_tx_data_tristate;
+	wire	[1:0]	w_@$(PREFIX)_tx_ds;
+
+	wire		w_@$(PREFIX)_rx_cmd,
+			w_@$(PREFIX)_rx_cmd_collision;
+	wire	[15:0]	w_@$(PREFIX)_rx_dat;
+
+	wire		ign_@$(PREFIX)_ds;
+	// }}}
+@TOP.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// @$(DEVID) front end
+	// {{{
+
+	BUFG u_@$(PREFIX)ck (
+		.I(i_@$(PREFIX)_clk),
+		.O(w_@$(PREFIX)_clk)
+	);
+
+	sdsfrontend #(
+		.OPT_DS(1'b0), .NUMIO(4)
+	) u_@$(PREFIX) (
+		// {{{
+		.i_tx_cmd(w_@$(PREFIX)_tx_cmd),
+		.i_tx_cmd_tristate(w_@$(PREFIX)_cmd_tristate),
+		//
+		.i_tx_data(w_@$(PREFIX)_data),
+		.i_tx_data_tristate(w_@$(PREFIX)_tx_data_tristate),
+		.i_tx_ds(w_@$(PREFIX)_tx_ds),
+		//
+		.o_rx_cmd(w_@$(PREFIX)_rx_cmd),
+		.o_cmd_collision(w_@$(PREFIX)_rx_cmd_collision),
+		.o_rx_dat(w_@$(PREFIX)_rx_dat),
+		//
+		.i_ck(w_@$(PREFIX)_clk),
+		.o_ds(ign_@$(PREFIX)_ds),
+		.io_cmd(io_@$(PREFIX)_cmd),
+		.io_dat(io_@$(PREFIX)_dat)
+		// }}}
+	);
+
+	// }}}
+@TOP.MAIN=
+		// @$(DEVID)
+		w_@$(PREFIX)_clk,
+		w_@$(PREFIX)_tx_cmd,
+		w_@$(PREFIX)_cmd_tristate,
+		w_@$(PREFIX)_data,
+		w_@$(PREFIX)_tx_data_tristate,
+		w_@$(PREFIX)_tx_ds,
+
+		w_@$(PREFIX)_rx_cmd,
+		w_@$(PREFIX)_rx_cmd_collision,
+		w_@$(PREFIX)_rx_dat
+@MAIN.PORTLIST=
+		i_@$(PREFIX)_clk,
+		o_@$(PREFIX)_cmd,	o_@$(PREFIX)_cmd_tristate,
+		o_@$(PREFIX)_data,	o_@$(PREFIX)_data_tristate,
+		o_@$(PREFIX)_ds,
+
+		i_@$(PREFIX)_cmd,
+		i_@$(PREFIX)_collision,
+		i_@$(PREFIX)_data
+@MAIN.IODECL=
+	// @$(PREFIX) Port declarations
+	// {{{
+	input	wire		i_@$(PREFIX)_clk;
+	output	wire		o_@$(PREFIX)_cmd,
+				o_@$(PREFIX)_cmd_tristate;
+	output	wire	[15:0]	o_@$(PREFIX)_data;
+	output	wire	[7:0]	o_@$(PREFIX)_data_tristate;
+	output	wire	[1:0]	o_@$(PREFIX)_ds;
+
+	input	wire		i_@$(PREFIX)_cmd,
+				i_@$(PREFIX)_collision;
+	input	wire	[15:0]	i_@$(PREFIX)_data;
+	// }}}
+@MAIN.DEFNS=
+	// @$(DEVID) Controller
+	// {{{
+	// Verilator lint_off UNUSED
+	wire	ign_@$(PREFIX)_ds_tristate;
+	// Verilator lint_on  UNUSED
+	// }}}
+@MAIN.INSERT=
+	////////////////////////////////////////////////////////////////////////
+	//
+	// The @$(DEVID) Controller
+	// {{{
+
+	sdslave #(
+		.ADDRESS_WIDTH(@$(MASTER.BUS.AWID)
+			+ $clog2(@$(MASTER.BUS.WIDTH)/8)),
+		.DW(@$(MASTER.BUS.WIDTH)),
+		.OPT_DDR(1'b0), .NUMIO(4)
+	) u_@$(PREFIX) (
+		// {{{
+		.i_clk(@$(MASTER.BUS.CLOCK.WIRE)),
+			.i_reset(@$(MASTER.BUS.CLOCK.RESET)),
+		@$(MASTER.ANSIPORTLIST),
+		.i_sd_clk(i_@$(PREFIX)_clk),
+		//
+		.i_cmd(i_@$(PREFIX)_cmd),
+		.o_cmd(o_@$(PREFIX)_cmd),
+		.o_cmd_tristate(o_@$(PREFIX)_cmd_tristate),
+		//
+		.i_dat(i_@$(PREFIX)_data),
+		.o_dat(o_@$(PREFIX)_data),
+		.o_dat_tristate(o_@$(PREFIX)_data_tristate),
+		//
+		.o_ds(o_@$(PREFIX)_ds),
+		.o_ds_tristate(ign_@$(PREFIX)_ds_tristate)
+		// }}}
+	);
+
+	// Verilator lint_off UNUSED
+	wire	unused_@$(PREFIX);
+	assign	unused_@$(PREFIX) = &{ 1'b0, ign_@$(PREFIX)_ds_tristate,
+			i_@$(PREFIX)_collision };
+	// Verilator lint_on  UNUSED
+	// }}}
+@MAIN.ALT=
+	assign	o_@$(PREFIX)_tx_cmd  = 1'b0;
+	assign	o_@$(PREFIX)_tx_data = 16'h0;
+	assign	o_@$(PREFIX)_cmd_tristate = 1'b1;
+	assign	o_@$(PREFIX)_ds = 2'b0;
+
+	// Verilator lint_off UNUSED
+	wire	unused_@$(PREFIX);
+	assign	unused_@$(PREFIX) = &{ 1'b0, ign_@$(PREFIX)_ds_tristate,
+				i_@$(PREFIX)_clk, i_@$(PREFIX)_rx_cmd,
+				i_@$(PREFIX)_rx_data };
+	// Verilator lint_on  UNUSED
+##
+## regdefs.h / regdefs.cpp
+##
+## board.h
+##
+## Makefile insert info
+##
+@RTL.MAKE.GROUP=@$(DEVID)
+@RTL.MAKE.SUBD=sdspi
+@RTL.MAKE.FILES=sdscmd.v sdsdma.v sdsfsm.v sdslave.v sdsrxframe.v sdstxframe.v sdtfrvalue.v
+##
+## Makefile insert info
+##
+# @SIM.CLOCK=clk
+# @SIM.TICK=
+##

@@ -79,9 +79,11 @@
 	xqflex #(
 		.OPT_CLOCK(1'b1), .OPT_PHASE(1'b1)
 	) u_xqflex (
-		.i_clk(s_clk), .i_cs_n(w_@$(PREFIX)_cs_n), .i_sck(w_@$(PREFIX)_sck),
-		.i_dat(o_@$(PREFIX)_dat), .o_dat(i_@$(PREFIX)_dat), .i_bmod(@$(PREFIX)_bmod),
 		// {{{
+		.i_clk(s_clk), .i_cs_n(w_@$(PREFIX)_cs_n),
+		.i_sck({ (@$(CLKDIV)==0) ? 1'b0 : w_@$(PREFIX)_sck,
+			w_@$(PREFIX)_sck }),
+		.i_dat(o_@$(PREFIX)_dat), .o_dat(i_@$(PREFIX)_dat), .i_bmod(@$(PREFIX)_bmod),
 		.o_cs_n(o_@$(PREFIX)_cs_n), .o_sck(o_@$(PREFIX)_sck), .io_dat(io_@$(PREFIX)_dat)
 	);
 
@@ -101,6 +103,7 @@
 	wire		@$(PREFIX)_dbg_trigger;
 	wire	[31:0]	@$(PREFIX)_debug;
 	// Verilator lint_on  UNUSED
+@CLKDIV=1
 @MAIN.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -108,7 +111,7 @@
 	// {{{
 	qflexpress #(
 		// {{{
-		.LGFLASHSZ(@$LGFLASHSZ), .OPT_CLKDIV(1),
+		.LGFLASHSZ(@$LGFLASHSZ), .OPT_CLKDIV(@$(CLKDIV)),
 		.OPT_ENDIANSWAP(0),
 		.NDUMMY(@$(NDUMMY)), .RDDELAY(@$(RDDELAY)),
 		.OPT_STARTUP_FILE(@$(STARTUP_SCRIPT)),

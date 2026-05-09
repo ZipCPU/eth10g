@@ -240,7 +240,8 @@ module	sdrxframe #(
 				s2_data <= sync_sreg[23:8];
 			else
 				s2_data <= sync_sreg[15:0];
-		default: if (sync_fill[0])	// WIDTH_1W
+		// WIDTH_1W:
+		default: if (sync_fill[0])
 				s2_data <= sync_sreg[16:1];
 			else
 				s2_data <= sync_sreg[15:0];
@@ -391,7 +392,7 @@ module	sdrxframe #(
 		for(ik=0; ik<MW/8; ik=ik+1)
 		begin
 			swap_strb[ik] = mem_strb[MW/8-1-ik];
-			swap_data[ik*8 +: 8] = mem_strb[MW-ik*8 +: 8];
+			swap_data[ik*8 +: 8] = mem_data[MW-8-ik*8 +: 8];
 		end
 
 		assign	o_mem_strb  = swap_strb;

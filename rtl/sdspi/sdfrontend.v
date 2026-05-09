@@ -59,6 +59,8 @@ module	sdfrontend #(
 		parameter [0:0]	OPT_DS = OPT_SERDES,
 		parameter [0:0]	OPT_COLLISION = 1'b0,
 		parameter [0:0]	OPT_CRCTOKEN = 1'b1,
+		// As per the eMMC spec, BUSY_CLOCKS need be no more than 2
+		// 4 is likely overkill.
 		parameter 	BUSY_CLOCKS = 4,
 		parameter	HWBIAS = (OPT_SERDES ? 7 : 0),
 		parameter	NUMIO = 8
@@ -71,6 +73,7 @@ module	sdfrontend #(
 		input	wire		i_cfg_ddr,
 		input	wire		i_cfg_ds, i_cfg_dscmd,
 		input	wire	[4:0]	i_sample_shift,
+		input	wire		i_expect_token,
 		// Control signals
 		// Tx path
 		// {{{
@@ -128,9 +131,10 @@ module	sdfrontend #(
 
 	// Local declarations
 	// {{{
+	localparam	LGBUSY = $clog2(BUSY_CLOCKS+1);
 	genvar		gk;
-	reg		dat0_busy, wait_for_busy;
-	reg	[$clog2(BUSY_CLOCKS+1)-1:0]	busy_count;
+	reg		dat0_busy, wait_for_busy, pending_ack;
+	reg	[LGBUSY-1:0]	busy_count;
 	wire		raw_cmd;
 	wire	[NUMIO-1:0]	raw_iodat;
 	wire		w_cmd_collision;
@@ -139,7 +143,7 @@ module	sdfrontend #(
 	wire	[NUMIO-1:0]	io_dat_tristate, i_dat, o_dat;
 `endif
 	reg		last_ck, sync_ack, sync_nak;
-	wire	[7:0]	w_pedges, next_pedge, next_nedge, next_dedge;
+	wire	[7:0]	next_pedge, next_nedge, next_dedge;
 	wire		async_ack, async_nak;
 	reg	[4:0]	acknak_sreg;
 
@@ -151,6 +155,14 @@ module	sdfrontend #(
 	initial	last_ck = 1'b0;
 	always @(posedge i_clk)
 		last_ck <= i_sdclk[0];
+
+	always @(posedge i_clk)
+	if (i_reset)
+		pending_ack <= 1'b0;
+	else if (i_expect_token)
+		pending_ack <= 1'b1;
+	else if (o_crcack || o_crcnak)
+		pending_ack <= 1'b0;
 
 	assign	next_pedge = ~{ last_ck, i_sdclk[7:1] } &  i_sdclk[7:0];
 	assign	next_nedge =  { last_ck, i_sdclk[7:1] } & ~i_sdclk[7:0];
@@ -277,14 +289,14 @@ module	sdfrontend #(
 		// CRC TOKEN detection
 		// {{{
 		always @(posedge i_clk)
-		if(i_reset || i_data_en || i_cfg_ds || !OPT_CRCTOKEN)
+		if(i_reset || i_expect_token || i_cfg_ds || !OPT_CRCTOKEN)
 			acknak_sreg <= -1;
 		else if (acknak_sreg[4] && sample_pck)
 			acknak_sreg <= { acknak_sreg[3:0], raw_iodat[0] };
 
 		initial	{ sync_ack, sync_nak } = 2'b00;
 		always @(posedge i_clk)
-		if(i_reset || i_data_en || i_cfg_ds || !OPT_CRCTOKEN)
+		if(i_reset || i_expect_token || i_cfg_ds || !OPT_CRCTOKEN)
 		begin
 			sync_ack <= 1'b0;
 			sync_nak <= 1'b0;
@@ -341,15 +353,15 @@ module	sdfrontend #(
 		// {{{
 		initial	busy_count = 0;
 		always @(posedge i_clk)
-		if (i_reset || i_cmd_en || i_data_en)
-			busy_count <= BUSY_CLOCKS;
+		if (i_reset || i_cmd_en || i_data_en || pending_ack)
+			busy_count <= BUSY_CLOCKS[LGBUSY-1:0];
 		else if (sample_pck && busy_count > 0)
 			busy_count <= busy_count-1;
 		// }}}
 
 		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
-		if (i_reset || i_data_en)
+		if (i_reset || i_data_en || pending_ack)
 		begin
 			// *MUST* clear busy on i_data_en, else we'd overwrite
 			// the busy bit anyway by transmitting
@@ -596,7 +608,7 @@ module	sdfrontend #(
 		if (i_data_en)
 			ck_psreg <= 0;
 		else
-			ck_psreg <= wide_pedge[HWBIAS+5:0];
+			ck_psreg <= { 1'b0, wide_pedge[HWBIAS+5:0] };
 
 		initial	sample_pck = 0;
 		always @(*)
@@ -616,7 +628,7 @@ module	sdfrontend #(
 		if (i_reset || i_cmd_en || r_last_cmd_enabled || i_cfg_dscmd)
 			pck_sreg <= 0;
 		else
-			pck_sreg <= wide_cmdedge[HWBIAS + 5:0];
+			pck_sreg <= { 1'b0, wide_cmdedge[HWBIAS + 5:0] };
 
 		always @(*)
 		if (i_cmd_en || r_last_cmd_enabled || i_cfg_dscmd)
@@ -677,11 +689,11 @@ module	sdfrontend #(
 
 		// dat0_busy, wait_for_busy, busy_delay
 		// {{{
-		initial	busy_count = (OPT_CRCTOKEN) ? 3'h0 : 3'h4;
+		initial	busy_count = BUSY_CLOCKS[LGBUSY-1:0];
 		always @(posedge i_clk)
-		if (i_reset || i_cmd_en || i_data_en)
+		if (i_reset || i_data_en || i_cmd_en || pending_ack)
 			// Clock periods to wait until busy is active
-			busy_count <= BUSY_CLOCKS;
+			busy_count <= BUSY_CLOCKS[LGBUSY-1:0];
 		else if (sample_pck != 0 && busy_count > 0)
 			busy_count <= busy_count - 1;
 
@@ -695,7 +707,7 @@ module	sdfrontend #(
 
 		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
-		if (i_reset || i_data_en)
+		if (i_reset || i_data_en || pending_ack)
 		begin
 			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
@@ -789,6 +801,7 @@ module	sdfrontend #(
 		wire	unused_ddr;
 		assign	unused_ddr = &{ 1'b0, i_hsclk,
 				i_cfg_ds, i_ds, i_tx_data[23:0],
+				pck_sreg[6], ck_psreg[6],
 				i_sdclk[6:4], i_sdclk[2:0],
 				i_sample_shift[1:0] };
 		// Verilator lint_on  UNUSED
@@ -815,6 +828,7 @@ module	sdfrontend #(
 		// wire	[7:0]	next_ck_sreg, next_ck_psreg;
 		reg	[HWBIAS+24:0]	ck_sreg, ck_psreg;
 		wire	[7:0]	wide_cmd_data;
+		reg	[7:0]	r_wide_cmd_data;
 		reg	[7:0]	sample_ck, sample_pck;
 		reg	[1:0]	r_cmd_data;
 		reg		busy_strb;
@@ -910,7 +924,7 @@ module	sdfrontend #(
 		for(gk=0; gk<NUMIO; gk=gk+1)
 		begin : GEN_WIDE_DATIO
 			// {{{
-			reg	[7:0]	out_pin;
+			reg	[7:0]	out_pin, r_in;
 			wire	[7:0]	in_pin;
 			integer		ik;
 			reg	[1:0]	lcl_data;
@@ -936,17 +950,20 @@ module	sdfrontend #(
 				.o_raw(raw_iodat[gk]), .o_wide(in_pin)
 			);
 
+			always @(posedge i_clk)
+				r_in <= in_pin;
+
 			if (gk == 0)
 			begin : GEN_START_SIGNAL
 				always @(*)
 				begin
 					start_io[1] = (|sample_pck[7:4])
-						&&(0 == (sample_pck[7:4]&in_pin[7:4]));
+						&&(0 == (sample_pck[7:4]&r_in[7:4]));
 					start_io[0] = (|sample_pck[3:0])
-						&&(0 == (sample_pck[3:0]&in_pin[3:0]));
+						&&(0 == (sample_pck[3:0]&r_in[3:0]));
 
-					itok[1] = |(sample_pck[7:4] & in_pin[7:4]);
-					itok[0] = |(sample_pck[3:0] & in_pin[3:0]);
+					itok[1] = |(sample_pck[7:4] & r_in[7:4]);
+					itok[0] = |(sample_pck[3:0] & r_in[3:0]);
 				end
 
 				assign	busy_pin = !in_pin[0];
@@ -954,8 +971,8 @@ module	sdfrontend #(
 
 			always @(*)
 			begin
-				lcl_data[1] = |(sample_ck[7:4]&in_pin[7:4]);
-				lcl_data[0] = |(sample_ck[3:0]&in_pin[3:0]);
+				lcl_data[1] = |(sample_ck[7:4]&r_in[7:4]);
+				lcl_data[0] = |(sample_ck[3:0]&r_in[3:0]);
 			end
 
 			assign	w_rx_data[8+gk] = lcl_data[1];
@@ -1050,9 +1067,10 @@ module	sdfrontend #(
 
 		// busy_count: SD clock cycles to wait before busy is asserted
 		// {{{
+		initial	busy_count = BUSY_CLOCKS[LGBUSY-1:0];
 		always @(posedge i_clk)
-		if (i_reset || i_cmd_en || i_data_en)
-			busy_count <= BUSY_CLOCKS;
+		if (i_reset || i_cmd_en || i_data_en || pending_ack)
+			busy_count <= BUSY_CLOCKS[LGBUSY-1:0];
 		else if (busy_strb != 0 && busy_count > 0)
 			busy_count <= busy_count - 1;
 		// }}}
@@ -1069,7 +1087,7 @@ module	sdfrontend #(
 
 		initial	{ dat0_busy, wait_for_busy } = 2'b01;
 		always @(posedge i_clk)
-		if (i_reset || i_data_en)
+		if (i_reset || i_data_en || pending_ack)
 		begin
 			dat0_busy <= 1'b0;
 			wait_for_busy <= 1'b1;
@@ -1100,7 +1118,7 @@ module	sdfrontend #(
 		always @(posedge i_clk)
 		if(i_reset || i_rx_en || i_cfg_ds || !OPT_CRCTOKEN)
 			acknak_sreg <= 0;
-		else if (i_data_en)
+		else if (i_data_en || i_expect_token)
 			acknak_sreg <= -1;
 		else if (acknak_sreg[4])
 		begin
@@ -1142,8 +1160,11 @@ module	sdfrontend #(
 		else
 			pck_sreg <= wide_cmdedge[HWBIAS+23:0];
 
+		// This delays the clock edge by one cycle.  If you do that,
+		// you also need to delay everything depending upon it.
 		always @(posedge i_clk)
-		if (i_reset || i_cfg_dscmd || i_cmd_en || r_last_cmd_enabled || !r_cmd_tristate)
+		if (i_reset || i_cfg_dscmd || i_cmd_en || !r_cmd_tristate)
+					// r_last_cmd_enabled
 			cmd_sample_ck <= 0;
 		else
 			// Verilator lint_off WIDTH
@@ -1190,13 +1211,16 @@ module	sdfrontend #(
 			// Verilator lint_on  UNUSED
 		end
 
+		always @(posedge i_clk)
+			r_wide_cmd_data <= wide_cmd_data;
+
 		// resp_started
 		// {{{
 		always @(posedge i_clk)
 		if (i_reset || i_cmd_en || i_cfg_dscmd || !r_cmd_tristate)
 			resp_started <= 1'b0;
-		else if (((|cmd_sample_ck[7:4])&&((cmd_sample_ck[7:4] & wide_cmd_data[7:4])==0))
-			||((|cmd_sample_ck[3:0])&&((cmd_sample_ck[3:0] & wide_cmd_data[3:0])==0)))
+		else if (((|cmd_sample_ck[7:4])&&((cmd_sample_ck[7:4] & r_wide_cmd_data[7:4])==0))
+			||((|cmd_sample_ck[3:0])&&((cmd_sample_ck[3:0] & r_wide_cmd_data[3:0])==0)))
 			resp_started <= 1'b1;
 		// }}}
 
@@ -1211,10 +1235,10 @@ module	sdfrontend #(
 			r_cmd_strb[0] <= (|cmd_sample_ck[7:4])
 						&&(|cmd_sample_ck[3:0]);
 		end else begin
-			r_cmd_strb[1] <= (((|cmd_sample_ck[7:4])&&((cmd_sample_ck[7:4] & wide_cmd_data[7:4])==0))
-				||((|cmd_sample_ck[3:0])&&((cmd_sample_ck[3:0] & wide_cmd_data[3:0])==0)));
+			r_cmd_strb[1] <= (((|cmd_sample_ck[7:4])&&((cmd_sample_ck[7:4] & r_wide_cmd_data[7:4])==0))
+				||((|cmd_sample_ck[3:0])&&((cmd_sample_ck[3:0] & r_wide_cmd_data[3:0])==0)));
 			r_cmd_strb[0] <= (|cmd_sample_ck[7:4])
-				&& ((cmd_sample_ck[7:4] & wide_cmd_data[7:4])==0)
+				&& ((cmd_sample_ck[7:4] & r_wide_cmd_data[7:4])==0)
 				&& (|cmd_sample_ck[3:0]);
 		end
 
@@ -1228,15 +1252,15 @@ module	sdfrontend #(
 			if (resp_started)
 			begin
 				if (|cmd_sample_ck[7:4])
-					w_cmd_data[1] = |(cmd_sample_ck[7:4] & wide_cmd_data[7:4]);
+					w_cmd_data[1] = |(cmd_sample_ck[7:4] & r_wide_cmd_data[7:4]);
 				else
-					w_cmd_data[1] = |(cmd_sample_ck[3:0] & wide_cmd_data[3:0]);
+					w_cmd_data[1] = |(cmd_sample_ck[3:0] & r_wide_cmd_data[3:0]);
 			end else begin // if (!resp_started)
 				w_cmd_data[1] = 1'b0;
 			end
 
 			w_cmd_data[0] = |(cmd_sample_ck[3:0]
-						& wide_cmd_data[3:0]);
+						& r_wide_cmd_data[3:0]);
 		end
 
 		always @(posedge i_clk)
@@ -1277,8 +1301,8 @@ module	sdfrontend #(
 						i_cmd_data[0] };
 			if (!i_cmd_en)
 			begin
-				r_debug[26] <= wide_cmd_data[7];
-				r_debug[25] <= wide_cmd_data[0];
+				r_debug[26] <= r_wide_cmd_data[7];
+				r_debug[25] <= r_wide_cmd_data[0];
 			end
 
 			r_debug[24:20] <= { i_data_tristate, i_tx_data[3:0] };
@@ -1337,7 +1361,7 @@ module	sdfrontend #(
 	// TX ACK/NAK handling
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || i_data_en || !i_cfg_ds || !OPT_DS || !OPT_CRCTOKEN)
+	if (i_reset || i_expect_token || !i_cfg_ds || !OPT_DS || !OPT_CRCTOKEN)
 	begin
 		{ ck_ack, pipe_ack } <= 0;
 		{ ck_nak, pipe_nak } <= 0;
@@ -1348,7 +1372,7 @@ module	sdfrontend #(
 
 	initial	ackd = 0;
 	always @(posedge i_clk)
-	if (i_reset || i_data_en || !OPT_CRCTOKEN)
+	if (i_reset || i_expect_token || !OPT_CRCTOKEN)
 	begin
 		ackd <= 0;
 	end else if (sync_ack || sync_nak || ck_ack || ck_nak)
@@ -1460,7 +1484,7 @@ module	sdfrontend #(
 			wire		acknak_reset;
 			reg	[4:0]	atok_sreg;
 
-			assign		acknak_reset = i_reset || i_data_en;
+			assign		acknak_reset = i_reset||i_expect_token;
 
 			always @(posedge i_ds or posedge acknak_reset)
 			if (acknak_reset)

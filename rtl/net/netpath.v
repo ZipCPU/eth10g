@@ -240,6 +240,10 @@ module	netpath #(
 	wire	stat_gate_valid, stat_tx_valid, stat_crc_valid, stat_src_valid;
 	wire	[LGPKTLN+1:0]	stat_gate_data, stat_tx_data,
 				stat_crc_data, stat_src_data;
+
+	wire		fast_dbg_valid, fast_dbgfifo_full, dbgfifo_empty;
+	wire	[30:0]	fast_dbg_data;
+	wire	[30:0]	dbgfifo_data;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -765,10 +769,6 @@ module	netpath #(
 	//
 	// Debug output
 	// {{{
-	wire		fast_dbg_valid, fast_dbgfifo_full, dbgfifo_empty;
-	wire	[30:0]	fast_dbg_data;
-	wire	[30:0]	dbgfifo_data;
-
 	netdbggen
 	u_gendebug (
 		.i_clk(i_fast_clk), .i_reset(!fast_reset_n),

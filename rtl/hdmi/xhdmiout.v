@@ -104,7 +104,7 @@ module	xhdmiout (
 	// {{{
 	localparam	DLY = 0;
 	generate if (DLY != 0)
-	begin
+	begin : GEN_DIGDELAY
 		reg	[(DLY-1):0]	r_word, d_word;
 
 		always @(posedge i_clk)

@@ -125,6 +125,7 @@ module	xgtxphy #(
 		// }}}
 	) u_gtxck (
 		// {{{
+		// Verilator lint_off PINCONNECTEMPTY
 		// QPLL	Ports
 		// {{{
 		.QPLLDMONITOR(),		//  7:0 -- IGNORED
@@ -169,6 +170,7 @@ module	xgtxphy #(
 		.DRPDO(),			// 15:0
 		.DRPRDY()
 		// }}}
+		// Verilator lint_on  PINCONNECTEMPTY
 		// }}}
 	);
 	// }}}
@@ -556,6 +558,7 @@ module	xgtxphy #(
 			// }}}
 		) u_xgtx (
 			// {{{
+			// Verilator lint_off PINCONNECTEMPTY
 			.CPLLFBCLKLOST(),
 			.CPLLLOCK(),
 			.CPLLREFCLKLOST(),
@@ -873,6 +876,7 @@ module	xgtxphy #(
 			.PMARSVDIN2(5'h0),
 			.EYESCANRESET(eye_scan_reset)
 			// }}}
+			// Verilator lint_on  PINCONNECTEMPTY
 			// }}}
 		);
 

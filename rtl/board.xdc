@@ -726,6 +726,8 @@ create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_cl
 ## No XDC.INSERT tag in rtccount
 ## No XDC.INSERT tag in pwrcount
 ## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in netreset
+## No XDC.INSERT tag in alt
 ## No XDC.INSERT tag in ddr3_phy
 ## From cfg
 ## No XDC.INSERT tag in version
@@ -741,6 +743,7 @@ create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_cl
 ## No XDC.INSERT tag in wb32
 ## From siclk
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets s_siclk]
+set_clock_groups -name SICLK -group [SIREF]
 set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
 ## From satatxck
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v*}] 8.0
@@ -752,7 +755,10 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 ## No XDC.INSERT tag in prebus
 ## No XDC.INSERT tag in wbu
 ## From hdmi
+create_clock -period 13.5 -name HDMIRX -waveform { 0.0 6.75 } -add [get_ports i_hdmirx_clk_p ]
+set_clock_groups -name HDMI -group [HDMIRX]
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_xpxclk/o_hdmirx_clk]
+set_clock_groups -name EXHDMI -physically_exclusive -group SICLK -group HDMI
 set_false_path -from [get_pins u_xpxclk/prepx/r_sel_reg/C] -to [get_pins u_xpxclk/prepx/u_bufg/*]
 set_false_path -from [get_pins u_xpxclk/lclpx/r_sel_reg/C] -to [get_pins u_xpxclk/lclpx/u_bufg/*]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/a_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_hdmi/u_sys2px/o_b_data*}] 5
@@ -841,6 +847,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_front
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 
 ## No XDC.INSERT tag in zip_jiffies
+## No XDC.INSERT tag in sdslav
 ## No XDC.INSERT tag in syspic
 ## No XDC.INSERT tag in zip_alt_uoc
 ## No XDC.INSERT tag in zip_alt_upc
@@ -892,10 +899,11 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/deframer/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_tran_abort_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/o_fill*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/rd_addr*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/wr_addr*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/r_empty*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_tran_abort_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/o_link_up*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_link_up_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/link_fsm/o_error*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_link_up_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/link_fsm/o_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_link_up_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/aux_clk*}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/phyck_msb_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_init/aux_clk*}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/phyck_msb_xpipe*}] 10
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in netreset

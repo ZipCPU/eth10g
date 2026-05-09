@@ -127,14 +127,14 @@ module	crc_axin #(
 
 	wire					skd_valid, skd_ready,
 							skd_last, skd_abort;
-	wire [DW-1:0]			skd_data;
-	wire [$clog2(DW/8):0]	skd_bytes;
+	wire	[DW-1:0]		skd_data;
+	wire	[$clog2(DW/8):0]	skd_bytes;
 
-	wire [$clog2(DW/8):0]	crc_index;
-	reg [CRC_BITS-1:0]		crc_value;
-	reg	 [DW-1:0]			last_axin_data;
-	wire [2*DW-1:0]			wide_word;
-	reg [2*DW-1:0]			end_word;
+	wire	[$clog2(DW/8):0]	crc_index;
+	reg	[CRC_BITS-1:0]		crc_value;
+	reg	 [DW-1:0]		last_axin_data;
+	wire	[2*DW-1:0]		wide_word;
+	reg	[2*DW-1:0]		end_word;
 
 	// }}}
 

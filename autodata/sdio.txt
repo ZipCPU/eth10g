@@ -102,6 +102,7 @@
 	wire		w_@$(PREFIX)_cfg_ddr;
 	wire		w_@$(PREFIX)_cfg_ds, w_@$(PREFIX)_cfg_dscmd;
 	wire	[4:0]	w_@$(PREFIX)_cfg_sample_shift;
+	wire		w_@$(PREFIX)_expect_token;
 	wire		w_@$(PREFIX)_cmd_tristate;
 	wire		w_@$(PREFIX)_data_tristate;
 		//
@@ -133,6 +134,15 @@
 @TOP.DEFNS=
 @$(SDIO.TOP.DEFNS)
 @SDIO.FRONTEND=
+`ifdef	VERILATOR
+	wire		v_@$(PREFIX)_cmd_tristate,
+			v_o_@$(PREFIX)_cmd,
+			v_i_@$(PREFIX)_cmd;
+	wire	[@$(NUMIO)-1:0]	v_@$(PREFIX)_dat_tristate,
+			v_o_@$(PREFIX)_dat,
+			v_i_@$(PREFIX)_dat;
+`endif
+
 	sdfrontend #(
 		.OPT_SERDES(@$(OPT_SERDES)),
 		.OPT_DDR(@$(OPT_DDR)),
@@ -147,6 +157,7 @@
 		.i_cfg_ds(w_@$(PREFIX)_cfg_ds),
 		.i_cfg_dscmd(w_@$(PREFIX)_cfg_dscmd),
 		.i_sample_shift(w_@$(PREFIX)_cfg_sample_shift),
+		.i_expect_token(w_@$(PREFIX)_expect_token),
 		.i_cmd_tristate(w_@$(PREFIX)_cmd_tristate),
 		.i_data_tristate(w_@$(PREFIX)_data_tristate),
 		// Run-time inputs
@@ -173,11 +184,39 @@
 		// IO ports
 		.o_ck(w_@$(PREFIX)_ck),
 		.i_ds(w_@$(PREFIX)_ds),
+`ifdef	VERILATOR
+		.io_cmd_tristate(v_@$(PREFIX)_cmd_tristate),
+		.o_cmd(v_o_@$(PREFIX)_cmd),
+		.i_cmd(v_i_@$(PREFIX)_cmd),
+
+		.io_dat_tristate(v_@$(PREFIX)_dat_tristate),
+		.o_dat(v_o_@$(PREFIX)_dat),
+		.i_dat(v_i_@$(PREFIX)_dat),
+`else
 		.io_cmd(io_@$(TOP.IOPREFIX)_cmd),
 		.io_dat(io_@$(TOP.IOPREFIX)_dat),
+`endif
 		.o_debug(w_@$(PREFIX)_debug)
 		// }}}
 	);
+
+`ifdef	VERILATOR
+	genvar gv_@$(PREFIX);
+
+	assign	io_@$(TOP.IOPREFIX)_cmd = v_@$(PREFIX)_cmd_tristate
+			? 1'bz : v_o_@$(PREFIX)_cmd;
+
+	generate for (gv_@$(PREFIX)=0; gv_@$(PREFIX) < @$(NUMIO);
+			gv_@$(PREFIX) = gv_@$(PREFIX)+1)
+	begin : GEN_@$(DEVID)_IO
+		assign	io_@$(TOP.IOPREFIX)_dat[gv_@$(PREFIX)]
+				= v_@$(PREFIX)_dat_tristate[gv_@$(PREFIX)]
+				? 1'bz : v_o_@$(PREFIX)_cmd;
+
+		assign	v_i_@$(PREFIX)_dat[gv_@$(PREFIX)]
+				= io_@$(TOP.IOPREFIX)_dat[gv_@$(PREFIX)];
+	end endgenerate
+`endif
 @TOP.INSERT=
 @$(SDIO.FRONTEND)
 
@@ -191,6 +230,7 @@
 		w_@$(PREFIX)_cfg_ds,
 		w_@$(PREFIX)_cfg_dscmd,
 		w_@$(PREFIX)_cfg_sample_shift,
+		w_@$(PREFIX)_expect_token,
 		w_@$(PREFIX)_cmd_tristate,
 		w_@$(PREFIX)_data_tristate,
 		//
@@ -226,6 +266,7 @@
 		o_@$(PREFIX)_cfg_ds,
 		o_@$(PREFIX)_cfg_dscmd,
 		o_@$(PREFIX)_cfg_sample_shift,
+		o_@$(PREFIX)_expect_token,
 		o_@$(PREFIX)_cmd_tristate,
 		o_@$(PREFIX)_data_tristate,
 		//
@@ -260,6 +301,7 @@
 	output	wire		o_@$(PREFIX)_cfg_ds;
 	output	wire		o_@$(PREFIX)_cfg_dscmd;
 	output	wire	[4:0]	o_@$(PREFIX)_cfg_sample_shift;
+	output	wire		o_@$(PREFIX)_expect_token;
 	output	wire		o_@$(PREFIX)_cmd_tristate;
 	output	wire		o_@$(PREFIX)_data_tristate;
 		//
@@ -364,6 +406,7 @@
 		.o_cfg_ds(o_@$(PREFIX)_cfg_ds),
 		.o_cfg_dscmd(o_@$(PREFIX)_cfg_dscmd),
 		.o_cfg_sample_shift(o_@$(PREFIX)_cfg_sample_shift),
+		.o_expect_token(o_@$(PREFIX)_expect_token),
 		.o_cmd_tristate(o_@$(PREFIX)_cmd_tristate),
 		.o_data_tristate(o_@$(PREFIX)_data_tristate),
 		//

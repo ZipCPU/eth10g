@@ -103,12 +103,12 @@ module	xhdmiin_deserdes #(
 	// Optionally delay the incoming signal
 	// {{{
 	generate if (IOBDELAY == "NONE")
-	begin
+	begin : NO_IOBDELAYS
 
 		assign w_hs_wire         = i_pin;
 		assign w_hs_delayed_wire = 1'b0;
 
-	end else begin
+	end else begin : GEN_PRGDELAY
 
 		assign w_hs_wire = 1'b0;
 
@@ -129,7 +129,9 @@ module	xhdmiin_deserdes #(
 			.LD(1'b1),
 			.LDPIPEEN(1'b0),
 			.REGRST(1'b0),
+			// Verilator lint_off PINCONNECTEMPTY
 			.DATAIN(),
+			// Verilator lint_on  PINCONNECTEMPTY
 			.DATAOUT(w_hs_delayed_wire),
 			.INC(1'b0),
 			.IDATAIN(i_pin)
@@ -159,7 +161,10 @@ module	xhdmiin_deserdes #(
 	) lowserdes(
 		// {{{
 		.BITSLIP(1'b0),
-		.CE1(lcl_ce), .CE2(),
+		.CE1(lcl_ce),
+		// Verilator lint_off PINCONNECTEMPTY
+		.CE2(),
+		// Verilator lint_on  PINCONNECTEMPTY
 		.CLK(i_hsclk), .CLKB(!i_hsclk),	// HS clocks
 		.CLKDIV(i_clk), .CLKDIVP(1'b0),
 		.D(w_hs_wire), .DDLY(w_hs_delayed_wire), .DYNCLKDIVSEL(1'b0), .DYNCLKSEL(1'b0),
@@ -199,6 +204,7 @@ module	xhdmiin_deserdes #(
 	) hiserdes(
 		// {{{
 		.BITSLIP(1'b0),
+		// Verilator lint_off PINCONNECTEMPTY
 		.CE1(lcl_ce), .CE2(),
 		.CLK(i_hsclk), .CLKB(!i_hsclk),	// HS clocks
 		.CLKDIV(i_clk), .CLKDIVP(1'b0),
@@ -217,13 +223,14 @@ module	xhdmiin_deserdes #(
 		.RST(async_reset),
 		.SHIFTIN1(master_to_slave[0]), .SHIFTIN2(master_to_slave[1]),
 		.SHIFTOUT1(), .SHIFTOUT2()
+		// Verilator lint_on  PINCONNECTEMPTY
 		// }}}
 	);
 
 	// (Optionally) bit reverse our incoming data (we don't need to do this)
 	// {{{
 	generate if (OPT_BITREVERSE)
-	begin
+	begin : GEN_BITREVERSE
 		wire	[9:0]	w_brev;
 
 		assign	w_brev[9] = w_word[0];
@@ -238,7 +245,7 @@ module	xhdmiin_deserdes #(
 		assign	w_brev[0] = w_word[9];
 
 		assign	w_use_this_word = w_brev;
-	end else begin
+	end else begin : NO_BITREVERSE
 		assign	w_use_this_word = w_word; // w_brev;
 	end endgenerate
 	// }}}
@@ -248,15 +255,15 @@ module	xhdmiin_deserdes #(
 	// Turns out ... we don't need to do this here.
 	localparam	[3:0]	DLY = 0;
 	generate if (DLY != 0)
-	begin
+	begin : GEN_DIGDELAY
 		reg	[(DLY-1):0]	r_word;
 		always @(posedge i_clk)
 			r_word <= w_use_this_word[(DLY-1):0];
 		always @(posedge i_clk)
 			o_word <= { r_word[(DLY-1):0],w_use_this_word[9:(DLY)]};
-	end else
+	end else begin : NO_DIGDELAY
 		always @(posedge i_clk)
 			o_word <= w_use_this_word;
-	endgenerate
+	end endgenerate
 	// }}}
 endmodule
