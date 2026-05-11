@@ -172,10 +172,10 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN AC23 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[19]];		## CM4_I2S_FS
 #set_property -dict {PACKAGE_PIN Y21  IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[20]];		## CM4_I2S_DIN
 #set_property -dict {PACKAGE_PIN W20  IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[21]];		## CM4_I2S_DOUT
-#set_property -dict {PACKAGE_PIN AB24 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[22]];		## CM4_SDSLV_CLK
+#set_property -dict {PACKAGE_PIN W26 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[22]];		## CM4_SDSLV_CLK
 #set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[23]];		## CM4_SDSLV_CMD
 #set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[24]];		## CM4_SDSLV_D[0]
-#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[25]];		## CM4_SDSLV_D[1]
+#set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[25]];		## CM4_SDSLV_D[1]
 #set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[26]];		## CM4_SDSLV_D[2]
 #set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[27]];		## CM4_SDSLV_D[3]
 ## }}}
@@ -213,12 +213,12 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 
 ## SDSLV
 ## {{{
-#set_property -dict {PACKAGE_PIN AB24 IOSTANDARD LVCMOS18} [get_ports i_sdslv_clk];		## CM4_SDSLV_CLK
-#set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_sdslv_cmd];		## CM4_SDSLV_CMD
-#set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_sdslv_dat[0]];		## CM4_SDSLV_D[0]
-#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports io_sdslv_dat[1]];		## CM4_SDSLV_D[1]
-#set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_sdslv_dat[2]];		## CM4_SDSLV_D[2]
-#set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_sdslv_dat[3]];		## CM4_SDSLV_D[3]
+#set_property -dict {PACKAGE_PIN W26 IOSTANDARD LVCMOS18} [get_ports i_sdslav_clk];		## CM4_SDSLV_CLK
+#set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_sdslav_cmd];		## CM4_SDSLV_CMD
+#set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[0]];		## CM4_SDSLV_D[0]
+#set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[1]];		## CM4_SDSLV_D[1]
+#set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[2]];		## CM4_SDSLV_D[2]
+#set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[3]];		## CM4_SDSLV_D[3]
 ## }}}
 
 ## uSD

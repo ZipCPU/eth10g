@@ -211,4 +211,5 @@
 ## XDC insert
 @XDC.INSERT=
 create_clock -period 20.0 -name SDSLVCK -waveform { 0.0 10.0 } -add [get_ports i_@$(PREFIX)_clk]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {i_sdslav_clk}];
 ##
