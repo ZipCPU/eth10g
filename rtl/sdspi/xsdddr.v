@@ -130,6 +130,7 @@ module	xsdddr #(
 
 		assign	o_mine = r_mine;
 `ifdef	OPENSIM
+		// {{{
 		reg		r_p, r_n;
 		reg	[1:0]	r_in;
 
@@ -141,6 +142,7 @@ module	xsdddr #(
 			r_in <= { r_p, r_n };
 
 		assign	o_wide = r_in;
+		// }}}
 `else
 		IDDR #(
 			.DDR_CLK_EDGE("SAME_EDGE_PIPELINED"),

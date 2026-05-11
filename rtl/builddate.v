@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rtl/builddate.v
+// Filename: 	builddate.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -28,7 +28,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+// with this program.  (It's in the 1000 4 20 24 27 30 46 120 131 132 144 1000ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 // }}}
@@ -39,7 +39,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
 `ifndef	DATESTAMP
-`define DATESTAMP 32'h20260509
-`define BUILDTIME 32'h00104642
+`define DATESTAMP 32'h20260511
+`define BUILDTIME 32'h00093322
 `endif
 //

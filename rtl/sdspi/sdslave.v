@@ -347,6 +347,7 @@ module	sdslave #(
 	//	 64-127	16-31	STATUS		64B
 	//	128-191	32-47	TUNING		64B
 	//
+	integer		ik;
 	reg		lcl_valid, lcl_last;
 	reg	[3:0]	lcl_addr;
 	reg	[31:0]	lcl_ram	[0:63];
@@ -431,6 +432,9 @@ module	sdslave #(
 		lcl_ram[61] = $random;
 		lcl_ram[62] = $random;
 		lcl_ram[63] = $random;
+`else
+		for(ik=0; ik<64; ik=ik+1)
+			lcl_ram[ik] = 0;
 `endif
 	end
 
