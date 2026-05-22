@@ -101,6 +101,8 @@
 	always @(posedge s_clk or negedge sysclk_locked)
 	if (!sysclk_locked)
 		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
+	else if (!w_i2c_muxreset)
+		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
 	else
 		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
 

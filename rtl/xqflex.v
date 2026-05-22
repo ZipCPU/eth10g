@@ -45,8 +45,11 @@
 `endif
 // }}}
 module	xqflex #(
+		// {{{
 		parameter [0:0]		OPT_CLOCK = 1'b0,
+					DDR_CLOCK = 1'b1,
 		parameter [0:0]		OPT_PHASE = 1'b1
+		// }}}
 	) (
 		// {{{
 		input	wire		i_clk,
@@ -77,6 +80,11 @@ module	xqflex #(
 		end else begin : BIDIR_WIRES
 			reg	r_z;
 
+			// bmod enumeration
+			// -----------------
+			// 2'b00	NORMAL_SPI (pin[1] is high-z,o.w. drivn)
+			// 2'b10	QUAD_WRITE	All data pins driven
+			// 2'b11	QUAD_READ	All data pins in high-z
 			initial	r_z = 1'b1;
 			always @(posedge i_clk)
 			if (!i_bmod[1])
@@ -129,7 +137,7 @@ module	xqflex #(
 			assign	p = (gk < 4) ? i_dat[gk]
 					: (gk == 4) ? i_cs_n
 					: (i_sck && OPT_CLOCK);
-			assign	n = (gk < 5) ? p : 1'b0;
+			assign	n = (gk < 5 || !DDR_CLOCK) ? p : 1'b0;
 
 			ODDR #(
 				// {{{

@@ -250,6 +250,7 @@ module	wbi2ccpu #(
 	reg			i2c_ckedge;
 	wire			i2c_stretch;
 	reg	[11:0]		i2c_ckcount, ckcount;
+	reg			abort_jump;
 	reg	[BAW-1:0]	abort_address, jump_target;
 	reg			r_wait, soft_halt_request, r_halted, r_err,
 				r_aborted;
@@ -319,7 +320,9 @@ module	wbi2ccpu #(
 		case(bus_read_addr)
 		ADR_CONTROL:	bus_read_data <= w_control;
 		ADR_OVERRIDE:	bus_read_data[15:0] <= {
-					r_scl, r_sda, i_i2c_scl, i_i2c_sda,
+					(r_manual ? r_scl : o_i2c_scl),
+					(r_manual ? r_sda : o_i2c_sda),
+					i_i2c_scl, i_i2c_sda,
 					r_manual, r_aborted, ovw_data };
 		ADR_ADDRESS:	bus_read_data[BAW-1:0] <= pf_insn_addr;
 		ADR_CKCOUNT:	bus_read_data[11:0] <= ckcount;
@@ -509,7 +512,7 @@ module	wbi2ccpu #(
 
 		// Abort an I2C command
 		// {{{
-		if (i2c_abort)
+		if (i2c_abort && abort_jump && !soft_halt_request)
 		begin
 			cpu_new_pc   <= 1'b1;
 			pf_jump_addr <= abort_address;
@@ -645,12 +648,20 @@ module	wbi2ccpu #(
 	// {{{
 	always @(posedge i_clk)
 	if (i_reset)
+	begin
 		abort_address <= RESET_ADDRESS;
-	else if (bus_jump)
+		abort_jump <= 1'b0;
+	end else if (bus_jump)
+	begin
 		abort_address <= bus_write_data[BAW-1:0];
-	else if (pf_valid && pf_ready && !imm_cycle && pf_insn[7:4]== CMD_ABORT)
+		abort_jump <= 1'b0;
+	end else if (pf_valid && pf_ready && !imm_cycle
+					&& pf_insn[7:4]== CMD_ABORT)
 			// || pf_insn == { CMD_START, CMD_SEND })
+	begin
 		abort_address <= pf_insn_addr + 1;
+		abort_jump <= 1'b1;
+	end
 	// }}}
 
 	// jump_target
@@ -700,7 +711,7 @@ module	wbi2ccpu #(
 		if (insn_valid && s_tready && insn[11:8] == CMD_STOP
 				&& soft_halt_request)
 			r_halted <= 1'b1;
-		if (soft_halt_request && i2c_abort)
+		if ((soft_halt_request || !abort_jump) && i2c_abort)
 			r_halted <= 1'b1;
 		if (pf_valid && pf_ready && pf_illegal)
 			r_halted <= 1'b1;

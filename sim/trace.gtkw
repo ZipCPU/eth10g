@@ -1,0 +1,183 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Mon May  8 18:50:36 2023
+[*]
+[dumpfile] "/home/dan/bizness/symbioticeda/eth10g/trunk/sim/trace.vcd"
+[dumpfile_mtime] "Mon May  8 18:49:55 2023"
+[dumpfile_size] 110281307
+[savefile] "/home/dan/bizness/symbioticeda/eth10g/trunk/sim/trace.gtkw"
+[timestart] 59840000
+[size] 1920 1013
+[pos] -1 -1
+*-23.700001 79912499 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.main.
+[treeopen] TOP.main.swic.
+[treeopen] TOP.main.swic.DMA.
+[treeopen] TOP.main.swic.DMA.dma_controller.
+[sst_width] 343
+[signals_width] 235
+[sst_expanded] 1
+[sst_vpaned_height] 292
+@800200
+-CPU DBG
+@28
+TOP.main.cpu_sim_cyc
+TOP.main.cpu_sim_stb
+TOP.main.cpu_sim_we
+@22
+TOP.main.cpu_sim_addr[6:0]
+TOP.main.cpu_sim_data[31:0]
+@28
+TOP.main.cpu_sim_stall
+TOP.main.cpu_sim_ack
+@22
+TOP.main.cpu_sim_idata[31:0]
+@1000200
+-CPU DBG
+@c00200
+-CPU Bus
+@28
+TOP.main.wbwide_zip_cyc
+TOP.main.wbwide_zip_stb
+TOP.main.wbwide_zip_we
+@22
+TOP.main.wbwide_zip_addr[19:0]
+TOP.main.wbwide_zip_data[511:0]
+TOP.main.wbwide_zip_sel[63:0]
+@28
+TOP.main.wbwide_zip_stall
+@22
+TOP.main.wbwide_zip_idata[511:0]
+@28
+TOP.main.wbwide_zip_ack
+TOP.main.wbwide_zip_err
+@1401200
+-CPU Bus
+@800200
+-BKRAM
+@28
+TOP.main.wbwide_bkram_cyc
+TOP.main.wbwide_bkram_stb
+TOP.main.wbwide_bkram_we
+@22
+TOP.main.wbwide_bkram_addr[19:0]
+TOP.main.wbwide_bkram_data[511:0]
+TOP.main.wbwide_bkram_sel[63:0]
+@28
+TOP.main.wbwide_bkram_stall
+TOP.main.wbwide_bkram_ack
+@22
+TOP.main.wbwide_bkram_idata[511:0]
+@28
+TOP.main.wbwide_bkram_err
+@1000200
+-BKRAM
+@c00200
+-Flash
+@28
+TOP.main.wbwide_wbflashdn_cyc
+TOP.main.wbwide_wbflashdn_stb
+TOP.main.wbwide_wbflashdn_we
+@22
+TOP.main.wbwide_wbflashdn_addr[19:0]
+TOP.main.wbwide_wbflashdn_data[511:0]
+TOP.main.wbwide_wbflashdn_sel[63:0]
+@28
+TOP.main.wbwide_wbflashdn_stall
+@22
+TOP.main.wbwide_wbflashdn_idata[511:0]
+@28
+TOP.main.wbwide_wbflashdn_err
+@1401200
+-Flash
+@800200
+-DMA
+@28
+TOP.main.swic.sys_cyc
+TOP.main.swic.dmac_stb
+TOP.main.swic.sys_we
+@22
+TOP.main.swic.dmac_data[31:0]
+@28
+TOP.main.swic.dmac_stall
+TOP.main.swic.dmac_ack
+@200
+-
+@28
+TOP.main.swic.dc_cyc
+TOP.main.swic.dc_stb
+TOP.main.swic.dc_we
+@22
+TOP.main.swic.dc_addr[19:0]
+TOP.main.swic.dc_data[511:0]
+TOP.main.swic.dc_sel[63:0]
+@28
+TOP.main.swic.dc_stall
+TOP.main.swic.dc_ack
+@22
+TOP.main.swic.ext_idata[511:0]
+@28
+TOP.main.swic.dc_err
+@200
+-
+@28
+TOP.main.swic.DMA.dma_controller.u_arbiter.o_a_stall
+TOP.main.swic.DMA.dma_controller.u_arbiter.o_b_stall
+TOP.main.swic.DMA.dma_controller.u_arbiter.r_a_owner
+@22
+TOP.main.swic.DMA.dma_controller.u_arbiter.o_adr[19:0]
+@28
+TOP.main.swic.DMA.dma_controller.mm2s_inc
+TOP.main.swic.DMA.dma_controller.u_controller.o_mm2s_size[1:0]
+TOP.main.swic.DMA.dma_controller.u_controller.o_s2mm_size[1:0]
+TOP.main.swic.DMA.dma_controller.u_mm2s.o_rd_stb
+@22
+TOP.main.swic.DMA.dma_controller.u_mm2s.o_rd_addr[19:0]
+@28
+TOP.main.swic.DMA.dma_controller.s2mm_inc
+TOP.main.swic.DMA.dma_controller.u_mm2s.r_inc
+TOP.main.swic.DMA.dma_controller.u_s2mm.r_inc
+TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_stb
+@c00023
+TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+@29
+(0)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(1)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(2)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(3)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(4)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(5)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(6)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(7)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(8)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(9)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(10)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(11)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(12)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(13)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(14)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(15)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(16)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(17)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(18)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+(19)TOP.main.swic.DMA.dma_controller.u_s2mm.o_wr_addr[19:0]
+@1401201
+-group_end
+@1000200
+-DMA
+@28
+TOP.main.u_bkram.i_wb_cyc
+TOP.main.u_bkram.i_wb_stb
+TOP.main.u_bkram.i_wb_we
+@22
+TOP.main.u_bkram.i_wb_addr[11:0]
+TOP.main.u_bkram.i_wb_data[511:0]
+TOP.main.u_bkram.i_wb_sel[63:0]
+@28
+TOP.main.u_bkram.o_wb_stall
+TOP.main.u_bkram.o_wb_ack
+@22
+TOP.main.u_bkram.o_wb_data[511:0]
+[pattern_trace] 1
+[pattern_trace] 0

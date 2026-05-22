@@ -73,7 +73,8 @@ module	toplevel(
 		// GPIO ports
 		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
-		o_hdmirx_hpd_n,
+		o_hdmirx_hpd_n
+		o_sdcard_en, o_sdcard_vsel, o_sdcard_mux, o_sdcard_wp,
 		// SDIO SD Card
 
 o_sdcard_clk,
@@ -216,6 +217,10 @@ i_sdcard_cd_n,
 	output	wire	[3:0]	o_tp;
 	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
 	input	wire		i_si5324_int;
+	output	wire	o_sdcard_en;			// SDCARD.EN
+	output	wire	o_sdcard_vsel;			// SDCARD.VSEL
+	output	wire	o_sdcard_mux;			// SDCARD.MUX-SEL
+	output	wire	o_sdcard_wp;			// SDCARD.WP
 	// SDIO SD Card
 	// {{{
 
@@ -316,7 +321,8 @@ i_sdcard_cd_n,
 	// GPIO declarations.  The two wire busses are just virtual lists of
 	// input (or output) ports.
 	wire	[16-1:0]	i_gpio;
-	wire	[8-1:0]	o_gpio;
+	wire	[12-1:0]	o_gpio;
+	wire	w_i2c_muxreset = !o_gpio[8];
 	// SDIO SD Card definitions
 	// {{{
 	wire		w_sdio_hwreset_n, w_sdio_1p8v;
@@ -658,6 +664,8 @@ i_sdcard_cd_n,
 	always @(posedge s_clk or negedge sysclk_locked)
 	if (!sysclk_locked)
 		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
+	else if (!w_i2c_muxreset)
+		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= 0;
 	else
 		{ r_i2c_mxrst_n, r_i2c_mxrst_dly } <= { r_i2c_mxrst_dly, 1'b1 };
 
@@ -851,6 +859,11 @@ i_sdcard_cd_n,
 	assign	o_hdmirx_hpd_n = !o_gpio[5];
 	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
 	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
+	assign	w_i2c_muxreset = !o_gpio[6];
+	assign	o_sdcard_en    = !o_gpio[7];		// SDCARD.EN
+	assign	o_sdcard_mux   =  o_gpio[8];		// SDCARD.MUX-SEL
+	assign	o_sdcard_wp    = !o_gpio[9];		// SDCARD.WP
+	assign	o_sdcard_vsel  = !w_sdcard_1p8v;	// SDCARD.VSEL
 	// }}}
 
 `ifdef	VERILATOR

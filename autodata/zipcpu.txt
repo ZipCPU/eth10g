@@ -100,6 +100,7 @@
 		cpu_prof_stb,
 		cpu_prof_addr,
 		cpu_prof_ticks,
+		cpu_break,
 `endif
 		@$(CPURESET)
 @MAIN.IODECL=
@@ -115,6 +116,7 @@
 	output	wire		cpu_prof_stb;
 	output	wire	[@$(MASTER.BUS.AWID)+$clog2(@$(MASTER.BUS.WIDTH)/8)-1:0]	cpu_prof_addr;
 	output	wire [31:0]	cpu_prof_ticks;
+	output	wire		cpu_break;
 `endif
 	input	wire		@$(CPURESET);
 @MAIN.PARAM=
@@ -240,6 +242,9 @@
 	assign	cpu_sim_ack   =  cpu_sim_cyc && raw_cpu_dbg_ack;
 	assign	cpu_sim_idata = wbu_zip_idata;
 
+`ifdef	VERILATOR
+	assign	cpu_break = swic.cpu_break;
+`endif
 	// Keep Verilator happy
 	// {{{
 	// Verilator lint_off UNUSED
@@ -330,8 +335,6 @@
 
 #define	OPT_PIPELINED
 #define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT__core__DOT_ ## A)
-
-#define	cpu_break 	VVAR(_swic__DOT__cpu_break)
 // }}}
 @SIM.DEFNS=
 	int	m_cpu_bombed;

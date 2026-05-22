@@ -178,6 +178,7 @@ module	main(i_clk, i_reset,
 		cpu_prof_stb,
 		cpu_prof_addr,
 		cpu_prof_ticks,
+		cpu_break,
 `endif
 		i_cpu_reset,
 		i_siclk,
@@ -405,6 +406,7 @@ module	main(i_clk, i_reset,
 	output	wire		cpu_prof_stb;
 	output	wire	[25+$clog2(512/8)-1:0]	cpu_prof_addr;
 	output	wire [31:0]	cpu_prof_ticks;
+	output	wire		cpu_break;
 `endif
 	input	wire		i_cpu_reset;
 	input	wire	i_siclk;
@@ -417,7 +419,7 @@ module	main(i_clk, i_reset,
 	output	wire	[3:0]	o_flash_dat;
 	input	wire	[3:0]	i_flash_dat;
 	output	wire	[1:0]	o_flash_mod;
-	localparam	NGPI = 16, NGPO=8;
+	localparam	NGPI = 16, NGPO=12;
 	// GPIO ports
 	input	wire	[(NGPI-1):0]	i_gpio;
 	output	wire	[(NGPO-1):0]	o_gpio;
@@ -3007,6 +3009,9 @@ module	main(i_clk, i_reset,
 	assign	cpu_sim_ack   =  cpu_sim_cyc && raw_cpu_dbg_ack;
 	assign	cpu_sim_idata = wbu_zip_idata;
 
+`ifdef	VERILATOR
+	assign	cpu_break = swic.cpu_break;
+`endif
 	// Keep Verilator happy
 	// {{{
 	// Verilator lint_off UNUSED
@@ -3463,7 +3468,7 @@ module	main(i_clk, i_reset,
 	//	HDMI RX as *not* present
 	//	*TRACE* defaults to OFF
 	//	*ERROR* defaults to NONE (0)
-	localparam [NGPO-1:0]	INITIAL_GPIO = 8'h20;
+	localparam [NGPO-1:0]	INITIAL_GPIO = 12'h020;
 
 	wbgpio	#(
 		.NIN(NGPI), .NOUT(NGPO), .DEFAULT(INITIAL_GPIO)
@@ -3896,7 +3901,7 @@ module	main(i_clk, i_reset,
 		.LGMEMSZ(19),
 		.DW(512),
 		.EXTRACLOCK(1)
-	) bkrami(
+	) u_bkram (
 		.i_clk(i_clk),
 		.i_reset(i_reset),
 		.i_wb_cyc(wbwide_bkram_cyc), .i_wb_stb(wbwide_bkram_stb), .i_wb_we(wbwide_bkram_we),

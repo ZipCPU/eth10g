@@ -41,7 +41,7 @@
 @NADDR=1
 @ACCESS=@$(DEVID)_ACCESS
 @NGPI=16
-@NGPO=8
+@NGPO=12
 @SLAVE.TYPE=SINGLE
 @SLAVE.BUS=wb32
 # @SINGLE.OUTPUTS= o_gpio
@@ -53,17 +53,23 @@
 		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
 		o_hdmirx_hpd_n
+		o_sdcard_en, o_sdcard_vsel, o_sdcard_mux, o_sdcard_wp
 @TOP.IODECL=
 	// GPIO wires
 	input	wire		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n;
 	output	wire	[3:0]	o_tp;
 	output	wire		o_si5324_rst, o_hdmirx_hpd_n;
 	input	wire		i_si5324_int;
+	output	wire	o_sdcard_en;			// SDCARD.EN
+	output	wire	o_sdcard_vsel;			// SDCARD.VSEL
+	output	wire	o_sdcard_mux;			// SDCARD.MUX-SEL
+	output	wire	o_sdcard_wp;			// SDCARD.WP
 @TOP.DEFNS=
 	// GPIO declarations.  The two wire busses are just virtual lists of
 	// input (or output) ports.
 	wire	[@$(NGPI)-1:0]	i_@$(PREFIX);
 	wire	[@$(NGPO)-1:0]	o_@$(PREFIX);
+	wire	w_i2c_muxreset = !o_gpio[8];
 @TOP.MAIN=
 		// GPIO wires
 		i_@$(PREFIX), o_@$(PREFIX)
@@ -89,6 +95,11 @@
 	assign	o_hdmirx_hpd_n = !o_gpio[5];
 	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
 	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
+	assign	w_i2c_muxreset = !o_gpio[6];
+	assign	o_sdcard_en    = !o_gpio[7];		// SDCARD.EN
+	assign	o_sdcard_mux   =  o_gpio[8];		// SDCARD.MUX-SEL
+	assign	o_sdcard_wp    = !o_gpio[9];		// SDCARD.WP
+	assign	o_sdcard_vsel  = !w_sdcard_1p8v;	// SDCARD.VSEL
 	// }}}
 @MAIN.PORTLIST=
 		// GPIO ports
@@ -114,7 +125,7 @@
 	//	HDMI RX as *not* present
 	//	*TRACE* defaults to OFF
 	//	*ERROR* defaults to NONE (0)
-	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 8'h20;
+	localparam [NGPO-1:0]	INITIAL_@$(DEVID) = 12'h020;
 
 	wbgpio	#(
 		.NIN(NGPI), .NOUT(NGPO), .DEFAULT(INITIAL_@$(DEVID))
@@ -153,8 +164,12 @@
 #define	GPIO_TP3		0x000000008
 #define	GPIO_SIRESET		0x000000010
 #define	GPIO_HDMIRXD		0x000000020
-#define	GPIO_TRACE		0x000000040	// SIM ONLY
-#define	GPIO_ERROR		0x000000080	// SIM ONLY
+#define	GPIO_I2CRESET		0x000000040
+#define	GPIO_SDOFF		0x000000080
+#define	GPIO_SDMUX		0x000000100
+#define	GPIO_SDWP		0x000000200
+#define	GPIO_TRACE		0x000000400	// SIM ONLY
+#define	GPIO_ERROR		0x000000800	// SIM ONLY
 //
 #define	GPIO_TP0_SET		GPIO_SET(GPIO_TP0)
 #define	GPIO_TP0_CLR		GPIO_CLR(GPIO_TP0)
@@ -168,6 +183,14 @@
 #define	GPIO_SIRESET_CLR	GPIO_CLR(GPIO_SIRESET)
 #define	GPIO_HDMIRXD_SET	GPIO_SET(GPIO_HDMIRXD)
 #define	GPIO_HDMIRXD_CLR	GPIO_CLR(GPIO_HDMIRXD)
+#define	GPIO_I2CRESET_SET	GPIO_SET(GPIO_I2CRESET)	//  I2C Reset
+#define	GPIO_I2CRESET_CLR	GPIO_CLR(GPIO_I2CRESET)	// (I2c Run)
+#define	GPIO_SDOFF_SET		GPIO_SET(GPIO_SDOFF)	// SD Power *OFF*
+#define	GPIO_SDOFF_CLR		GPIO_CLR(GPIO_SDOFF)	// SD Power *ON*
+#define	GPIO_SDMUX_SET		GPIO_SET(GPIO_SDMUX)	// SDIO
+#define	GPIO_SDMUX_CLR		GPIO_CLR(GPIO_SDMUX)	// SD.UHS
+#define	GPIO_SDWP_SET		GPIO_SET(GPIO_SDWP)	// SD.Write protect
+#define	GPIO_SDWP_CLR		GPIO_CLR(GPIO_SDWP)
 #define	GPIO_TRACE_SET		GPIO_SET(GPIO_TRACE)
 #define	GPIO_TRACE_CLR		GPIO_CLR(GPIO_TRACE)
 #define	GPIO_ERROR_SET		GPIO_SET(GPIO_ERROR)
@@ -184,4 +207,4 @@
 @SIM.INIT=
 		m_core->i_gpio = 16;
 @SIM.TICK=
-		pausetrace((m_core->o_@$(PREFIX) & 0x040) ? false:true);
+		pausetrace((m_core->o_@$(PREFIX) & 0x0400) ? false:true);

@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <libelf.h>
 #include <assert.h>
@@ -227,7 +228,7 @@ assert(n != 0);
 
 		// Now, let's read in our section ...
 		if (lseek(fd, phdr.p_offset, SEEK_SET) < 0) {
-			fprintf(stderr, "Could not seek to file position %08lx\n", phdr.p_offset);
+			fprintf(stderr, "Could not seek to file position %08" PRIx64 "\n", phdr.p_offset);
 			perror("O/S Err:");
 			exit(EXIT_FAILURE);
 		} if (phdr.p_filesz > phdr.p_memsz)

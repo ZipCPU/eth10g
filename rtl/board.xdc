@@ -45,7 +45,7 @@ set_property -dict {PACKAGE_PIN F18 IOSTANDARD LVCMOS33} [get_ports o_wbu_uart_c
 set_property -dict {PACKAGE_PIN E25 IOSTANDARD LVCMOS18} [get_ports i_sw[0]]
 set_property -dict {PACKAGE_PIN E26 IOSTANDARD LVCMOS18} [get_ports i_sw[1]]
 set_property -dict {PACKAGE_PIN D25 IOSTANDARD LVCMOS18} [get_ports i_sw[2]]
-set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports i_sw[3]]
+set_property -dict {PACKAGE_PIN F22 IOSTANDARD LVCMOS18} [get_ports i_sw[3]]
 ## Switches 4-8 do not appear to be present on v2
 ## #set_property -dict {PACKAGE_PIN D24 IOSTANDARD LVCMOS18} [get_ports i_sw[4]]
 ## #set_property -dict {PACKAGE_PIN D23 IOSTANDARD LVCMOS18} [get_ports i_sw[5]]
@@ -241,10 +241,10 @@ set_property -dict {PACKAGE_PIN AB21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_d
 #set_property -dict {PACKAGE_PIN G4}   [get_ports i_uhs_sd_p];		## SDCARD_PERX_P
 #set_property -dict {PACKAGE_PIN G3}   [get_ports i_uhs_sd_n];		## SDCARD_PERX_N
 
-#set_property -dict {PACKAGE_PIN Y20  IOSTANDARD LVCMOS18} [get_ports o_sdcard_wp]
-#set_property -dict {PACKAGE_PIN AF23 IOSTANDARD LVCMOS18} [get_ports o_sdcard_en];	## Powers the card
-#set_property -dict {PACKAGE_PIN AE23 IOSTANDARD LVCMOS18} [get_ports o_sdcard_mux];	## Controls RCLK/D[1:0] MX
-#set_property -dict {PACKAGE_PIN AF22 IOSTANDARD LVCMOS18} [get_ports o_sdcard_vsel];	## 0=1.8V, 1=3.3V
+set_property -dict {PACKAGE_PIN Y20  IOSTANDARD LVCMOS18} [get_ports o_sdcard_wp]
+set_property -dict {PACKAGE_PIN AF23 IOSTANDARD LVCMOS18} [get_ports o_sdcard_en];	## Powers the card
+set_property -dict {PACKAGE_PIN AE23 IOSTANDARD LVCMOS18} [get_ports o_sdcard_mux];	## Controls RCLK/D[1:0] MX
+set_property -dict {PACKAGE_PIN AF22 IOSTANDARD LVCMOS18} [get_ports o_sdcard_vsel];	## 0=1.8V, 1=3.3V
 ## }}}
 
 ## Flash
@@ -273,7 +273,7 @@ set_property -dict {PACKAGE_PIN C24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[
 set_property -dict {PACKAGE_PIN C21 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
 set_property -dict {PACKAGE_PIN D24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
 set_property -dict {PACKAGE_PIN B21 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
-set_property -dict {PACKAGE_PIN F22 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
+set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 ## }}}
 
 ## SATA

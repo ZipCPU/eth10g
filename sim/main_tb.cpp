@@ -85,8 +85,6 @@
 
 #define	OPT_PIPELINED
 #define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT__core__DOT_ ## A)
-
-#define	cpu_break 	VVAR(_swic__DOT__cpu_break)
 // }}}
 #ifndef VVAR
 #ifdef  ROOT_VERILATOR
@@ -100,7 +98,7 @@
 #endif
 #endif
 
-#define	block_ram	VVAR(_bkrami__DOT__mem)
+#define	block_ram	VVAR(_u_bkram__DOT__mem)
 class	MAINTB : public TESTB<Vmain> {
 public:
 		// SIM.DEFNS
@@ -218,7 +216,7 @@ public:
 			m_core->o_flash_mod);
 #endif // FLASH_ACCESS
 		// SIM.TICK from gpio
-		pausetrace((m_core->o_gpio & 0x040) ? false:true);
+		pausetrace((m_core->o_gpio & 0x0400) ? false:true);
 		// SIM.TICK from sdio
 #ifdef	SDIO_ACCESS
 		{ unsigned	tmp, tmp_async;
