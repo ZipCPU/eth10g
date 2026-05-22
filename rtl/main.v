@@ -3468,7 +3468,7 @@ module	main(i_clk, i_reset,
 	//	HDMI RX as *not* present
 	//	*TRACE* defaults to OFF
 	//	*ERROR* defaults to NONE (0)
-	localparam [NGPO-1:0]	INITIAL_GPIO = 12'h020;
+	localparam [NGPO-1:0]	INITIAL_GPIO = 12'h0a0;
 
 	wbgpio	#(
 		.NIN(NGPI), .NOUT(NGPO), .DEFAULT(INITIAL_GPIO)
@@ -3521,10 +3521,10 @@ module	main(i_clk, i_reset,
 		.OPT_EMMC(1'b0),
 		.OPT_DMA(1'b1),
 		.OPT_DDR(1'b1),
-		.OPT_HWRESET(1'b0),
+		.OPT_HWRESET(1'b1),
 		.OPT_CARD_DETECT(1'b1),
 		.OPT_CRCTOKEN(1),
-		.OPT_1P8V(1'b0),
+		.OPT_1P8V(1'b1),
 `ifdef	VERILATOR
 		.LGTIMEOUT(18),
 `else

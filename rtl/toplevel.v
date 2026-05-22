@@ -526,7 +526,7 @@ i_sdcard_cd_n,
 		w_sdio_ac_data,
 		w_sdio_ad_valid,
 		w_sdio_ad_data,
-		w_sdio_hwreset_n, w_sdio_1p8v, 1'b0,
+		w_sdio_hwreset_n, w_sdio_1p8v, w_sdio_1p8v,
 		w_sdio_debug,
 		// eMMC Card
 		!i_emmc_cd_n,
@@ -559,7 +559,7 @@ i_sdcard_cd_n,
 		w_emmc_ac_data,
 		w_emmc_ad_valid,
 		w_emmc_ad_data,
-		w_emmc_hwreset_n, w_emmc_1p8v, 1'b0,
+		w_emmc_hwreset_n, w_emmc_1p8v, w_emmc_1p8v,
 		w_emmc_debug,
 		// SDSLAVE
 		w_sdslav_clk,
@@ -859,9 +859,9 @@ i_sdcard_cd_n,
 	assign	o_hdmirx_hpd_n = !o_gpio[5];
 	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
 	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
-	assign	w_i2c_muxreset = 1'b0 && !o_gpio[6];
-	assign	o_sdcard_en    = !o_gpio[7];		// SDCARD.EN
-	assign	o_sdcard_mux   =  o_gpio[8];		// SDCARD.MUX-SEL
+	assign	w_i2c_muxreset = !o_gpio[6];
+	assign	o_sdcard_en    = w_sdio_hwreset_n;	// SDCARD.EN
+	assign	o_sdcard_mux   = 1'b0 && o_gpio[8];	// SDCARD.MUX-SEL(BRKN)
 	assign	o_sdcard_wp    = !o_gpio[9];		// SDCARD.WP
 	assign	o_sdcard_vsel  = !w_sdio_1p8v;	// SDCARD.VSEL
 	// }}}
