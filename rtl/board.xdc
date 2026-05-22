@@ -12,7 +12,8 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p];	## 156.25MHz_REFCLK_P
 set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n];	## 156.25MHz_REFCLK_N
-create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
+# create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
+create_clock -period 3.2 -name NETREF -waveform { 0.0 1.6 } -add [get_ports i_clk_156mhz_p]
 
 set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p];		## SI5324_REFCLK_P
 set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n];		## SI5324_REFCLK_P
@@ -99,8 +100,8 @@ set_property -dict {PACKAGE_PIN AD26 IOSTANDARD LVCMOS18} [get_ports io_temp_sda
 set_property -dict {PACKAGE_PIN V24  IOSTANDARD LVCMOS18} [get_ports i_si5324_int];		## Si5324_INIT_LS
 set_property -dict {PACKAGE_PIN V22  IOSTANDARD LVCMOS18} [get_ports o_si5324_rst];		## Si5324_RST_LS
 
-#set_property -dict {PACKAGE_PIN AB25 IOSTANDARD LVCMOS18} [get_ports io_cm4_sda];		## CM4_SDA
-#set_property -dict {PACKAGE_PIN V23  IOSTANDARD LVCMOS18} [get_ports io_cm4_scl];		## CM4_SCL
+#set_property -dict {PACKAGE_PIN AB25 IOSTANDARD LVCMOS18} [get_ports io_cm4_sda];		## CM4_SDA, CM4_GPIO00
+#set_property -dict {PACKAGE_PIN V23  IOSTANDARD LVCMOS18} [get_ports io_cm4_scl];		## CM4_SCL, CM4_GPIO01
 ## }}}
 
 ## ETH10G
@@ -184,43 +185,43 @@ set_property -dict {PACKAGE_PIN J3} [get_ports i_gnet_n[3]];	## MGTX115_RX3_N
 
 ## CM4-UART
 ## {{{
-#set_property -dict {PACKAGE_PIN U25  IOSTANDARD LVCMOS18} [get_ports i_cm4_uart];		## CM4_UART_TX
-#set_property -dict {PACKAGE_PIN W26  IOSTANDARD LVCMOS18} [get_ports o_cm4_uart];		## CM4_UART_RX
-#set_property -dict {PACKAGE_PIN Y22  IOSTANDARD LVCMOS18} [get_ports i_cm4_cts_n]
-#set_property -dict {PACKAGE_PIN W25  IOSTANDARD LVCMOS18} [get_ports i_cm4_rts_n]
+#set_property -dict {PACKAGE_PIN U25  IOSTANDARD LVCMOS18} [get_ports i_cm4_uart];		## CM4_UART_TX, CM4_GPIO14
+#set_property -dict {PACKAGE_PIN AB24  IOSTANDARD LVCMOS18} [get_ports o_cm4_uart];		## CM4_UART_RX, CM4_GPIO15
+#set_property -dict {PACKAGE_PIN Y22  IOSTANDARD LVCMOS18} [get_ports i_cm4_cts_n];		## CM4_UART_CTS, CM4_GPIO16
+#set_property -dict {PACKAGE_PIN W25  IOSTANDARD LVCMOS18} [get_ports i_cm4_rts_n];		## CM4_UART_RTS, CM4_GPIO17
 ## }}}
 
 ## CM4-SPI
 ## {{{
-#set_property -dict {PACKAGE_PIN W23  IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_cs[1]];		## CM4_CS[1]
-#set_property -dict {PACKAGE_PIN W24  IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_cs[0]];		## CM4_CS[0]
-#set_property -dict {PACKAGE_PIN Y26  IOSTANDARD LVCMOS18} [get_ports o_cm4_spi_miso];		## CM4_MISO
-#set_property -dict {PACKAGE_PIN Y25  IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_mosi];		## CM4_MOSI
-#set_property -dict {PACKAGE_PIN AA25 IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_sck];		## CM4_SCK
+#set_property -dict {PACKAGE_PIN W23  IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_cs[1]];		## CM4_CS[1], CM4_GPIO07
+#set_property -dict {PACKAGE_PIN W24  IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_cs[0]];		## CM4_CS[0], CM4_GPIO08
+#set_property -dict {PACKAGE_PIN Y26  IOSTANDARD LVCMOS18} [get_ports o_cm4_spi_miso];		## CM4_MISO, CM4_GPIO09
+#set_property -dict {PACKAGE_PIN Y25  IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_mosi];		## CM4_MOSI, CM4_GPIO10
+#set_property -dict {PACKAGE_PIN AA25 IOSTANDARD LVCMOS18} [get_ports i_cm4_spi_sck];		## CM4_SCK, CM4_GPIO11
 ## }}}
 
 ## CM4-PWM
 ## {{{
-#set_property -dict {PACKAGE_PIN U22  IOSTANDARD LVCMOS18} [get_ports i_cm4_pwm[0]];		## CM4_PWM[0]
-#set_property -dict {PACKAGE_PIN AC26 IOSTANDARD LVCMOS18} [get_ports i_cm4_pwm[1]];		## CM4_PWM[1]
+#set_property -dict {PACKAGE_PIN U22  IOSTANDARD LVCMOS18} [get_ports i_cm4_pwm[0]];		## CM4_PWM[0], CM4_GPIO12
+#set_property -dict {PACKAGE_PIN AC26 IOSTANDARD LVCMOS18} [get_ports i_cm4_pwm[1]];		## CM4_PWM[1], CM4_GPIO13
 ## }}}
 
 ## I2S-Slv
 ## {{{
-#set_property -dict {PACKAGE_PIN Y23  IOSTANDARD LVCMOS18} [get_ports i_i2s_clk];		## CM4_I2S_CLK
-#set_property -dict {PACKAGE_PIN AC23 IOSTANDARD LVCMOS18} [get_ports i_i2s_fs];			## CM4_I2S_FS
-#set_property -dict {PACKAGE_PIN Y21  IOSTANDARD LVCMOS18} [get_ports i_i2s_din];		## CM4_I2S_DIN
-#set_property -dict {PACKAGE_PIN W20  IOSTANDARD LVCMOS18} [get_ports o_i2s_dout];		## CM4_I2S_DOUT
+#set_property -dict {PACKAGE_PIN Y23  IOSTANDARD LVCMOS18} [get_ports i_i2s_clk];		## CM4_I2S_CLK, CM4_GPIO18
+#set_property -dict {PACKAGE_PIN AC23 IOSTANDARD LVCMOS18} [get_ports i_i2s_fs];			## CM4_I2S_FS, CM4_GPIO19
+#set_property -dict {PACKAGE_PIN Y21  IOSTANDARD LVCMOS18} [get_ports i_i2s_din];		## CM4_I2S_DIN, CM4_GPIO20
+#set_property -dict {PACKAGE_PIN W20  IOSTANDARD LVCMOS18} [get_ports o_i2s_dout];		## CM4_I2S_DOUT, CM4_GPIO21
 ## }}}
 
 ## SDSLV
 ## {{{
-set_property -dict {PACKAGE_PIN W26 IOSTANDARD LVCMOS18} [get_ports i_sdslav_clk];		## CM4_SDSLV_CLK
-set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_sdslav_cmd];		## CM4_SDSLV_CMD
-set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[0]];		## CM4_SDSLV_D[0]
-set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[1]];		## CM4_SDSLV_D[1]
-set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[2]];		## CM4_SDSLV_D[2]
-set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[3]];		## CM4_SDSLV_D[3]
+set_property -dict {PACKAGE_PIN W26 IOSTANDARD LVCMOS18} [get_ports i_sdslav_clk];		## CM4_SDSLV_CLK, CM4_GPIO22
+set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_sdslav_cmd];		## CM4_SDSLV_CMD, CM4_GPIO23
+set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[0]];		## CM4_SDSLV_D[0], CM4_GPIO24
+set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[1]];		## CM4_SDSLV_D[1], CM4_GPIO25
+set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[2]];		## CM4_SDSLV_D[2], CM4_GPIO26
+set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[3]];		## CM4_SDSLV_D[3], CM4_GPIO27
 ## }}}
 
 ## uSD
