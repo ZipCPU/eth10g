@@ -322,7 +322,6 @@ i_sdcard_cd_n,
 	// input (or output) ports.
 	wire	[16-1:0]	i_gpio;
 	wire	[12-1:0]	o_gpio;
-	wire	w_i2c_muxreset = !o_gpio[8];
 	// SDIO SD Card definitions
 	// {{{
 	wire		w_sdio_hwreset_n, w_sdio_1p8v;
