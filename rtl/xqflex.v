@@ -47,7 +47,6 @@
 module	xqflex #(
 		// {{{
 		parameter [0:0]		OPT_CLOCK = 1'b0,
-					DDR_CLOCK = 1'b1,
 		parameter [0:0]		OPT_PHASE = 1'b1
 		// }}}
 	) (
@@ -136,8 +135,8 @@ module	xqflex #(
 
 			assign	p = (gk < 4) ? i_dat[gk]
 					: (gk == 4) ? i_cs_n
-					: (i_sck && OPT_CLOCK);
-			assign	n = (gk < 5 || !DDR_CLOCK) ? p : 1'b0;
+					: (i_sck[1] && OPT_CLOCK);
+			assign	n = (gk < 5) ? p : (i_sck[0] && OPT_CLOCK);
 
 			ODDR #(
 				// {{{
