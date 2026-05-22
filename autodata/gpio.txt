@@ -69,6 +69,7 @@
 	// input (or output) ports.
 	wire	[@$(NGPI)-1:0]	i_@$(PREFIX);
 	wire	[@$(NGPO)-1:0]	o_@$(PREFIX);
+	wire	w_i2c_muxreset;
 @TOP.MAIN=
 		// GPIO wires
 		i_@$(PREFIX), o_@$(PREFIX)
