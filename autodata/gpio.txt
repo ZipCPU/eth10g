@@ -52,7 +52,7 @@
 		// @$(DEVID) ports
 		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
-		o_hdmirx_hpd_n
+		o_hdmirx_hpd_n,
 		o_sdcard_en, o_sdcard_vsel, o_sdcard_mux, o_sdcard_wp
 @TOP.IODECL=
 	// GPIO wires
