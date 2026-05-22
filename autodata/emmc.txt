@@ -97,3 +97,7 @@ struct @$(DEVID)_S;
 @RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
 @SIM.CLOCK=clk
 @SIM.FILE="emmc.img"
+@XDC.INSERT=
+set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets i_@$(PREFIX)_ds]
+@$(XDC.SERDES)

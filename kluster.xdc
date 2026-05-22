@@ -249,7 +249,6 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 
 ## Flash
 ## {{{
-## #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
 ## The flash clock pin is (also on) CCLK_0 / C8
 #set_property -dict {PACKAGE_PIN B26 IOSTANDARD LVCMOS18} [get_ports o_flash_sck]
 #set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_flash_cs_n]

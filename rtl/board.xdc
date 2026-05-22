@@ -249,7 +249,6 @@ set_property -dict {PACKAGE_PIN AF22 IOSTANDARD LVCMOS18} [get_ports o_sdcard_vs
 
 ## Flash
 ## {{{
-## #set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports o_flash_sel]
 ## The flash clock pin is (also on) CCLK_0 / C8
 set_property -dict {PACKAGE_PIN B26 IOSTANDARD LVCMOS18} [get_ports o_flash_sck]
 set_property -dict {PACKAGE_PIN C23 IOSTANDARD LVCMOS18} [get_ports o_flash_cs_n]
@@ -706,6 +705,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_front
 ## No XDC.INSERT tag in wbflashdn
 ## From emmc
 set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets i_emmc_ds]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
