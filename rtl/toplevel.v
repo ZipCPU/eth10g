@@ -73,7 +73,7 @@ module	toplevel(
 		// GPIO ports
 		i_pi_reset_n, i_soft_reset, i_hdmitx_hpd_n,
 		o_tp, o_si5324_rst, i_si5324_int,
-		o_hdmirx_hpd_n
+		o_hdmirx_hpd_n,
 		o_sdcard_en, o_sdcard_vsel, o_sdcard_mux, o_sdcard_wp,
 		// SDIO SD Card
 
@@ -863,7 +863,7 @@ i_sdcard_cd_n,
 	assign	o_sdcard_en    = !o_gpio[7];		// SDCARD.EN
 	assign	o_sdcard_mux   =  o_gpio[8];		// SDCARD.MUX-SEL
 	assign	o_sdcard_wp    = !o_gpio[9];		// SDCARD.WP
-	assign	o_sdcard_vsel  = !w_sdcard_1p8v;	// SDCARD.VSEL
+	assign	o_sdcard_vsel  = !w_sdio_1p8v;	// SDCARD.VSEL
 	// }}}
 
 `ifdef	VERILATOR

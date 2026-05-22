@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 		"+--------------------+\n");
 
 #ifdef	_BOARD_HAS_I2CSCOPE
-	_i2cscope->s_ctrl = 0x0400ffffu;
+	_i2cscope->s_ctrl = 0x00ffffu | WBSCOPE_DISABLE;
 
 	// Now wait for the scope to prime
 	while(0 == (_i2cscope->s_ctrl & 0x10000000u))

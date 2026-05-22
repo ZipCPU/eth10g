@@ -99,7 +99,7 @@
 	assign	o_sdcard_en    = !o_gpio[7];		// SDCARD.EN
 	assign	o_sdcard_mux   =  o_gpio[8];		// SDCARD.MUX-SEL
 	assign	o_sdcard_wp    = !o_gpio[9];		// SDCARD.WP
-	assign	o_sdcard_vsel  = !w_sdcard_1p8v;	// SDCARD.VSEL
+	assign	o_sdcard_vsel  = !w_sdio_1p8v;	// SDCARD.VSEL
 	// }}}
 @MAIN.PORTLIST=
 		// GPIO ports
