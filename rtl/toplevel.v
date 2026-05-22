@@ -859,7 +859,7 @@ i_sdcard_cd_n,
 	assign	o_hdmirx_hpd_n = !o_gpio[5];
 	// o_trace = o_gpio[6]; // But this is for simulation only, so ignore
 	// o_error = o_gpio[7]; // SIM ONLY: Internal error detection
-	assign	w_i2c_muxreset = !o_gpio[6];
+	assign	w_i2c_muxreset = 1'b0 && !o_gpio[6];
 	assign	o_sdcard_en    = !o_gpio[7];		// SDCARD.EN
 	assign	o_sdcard_mux   =  o_gpio[8];		// SDCARD.MUX-SEL
 	assign	o_sdcard_wp    = !o_gpio[9];		// SDCARD.WP
