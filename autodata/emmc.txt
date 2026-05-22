@@ -48,6 +48,7 @@
 @OPT_DMA=1'b0
 @OPT_EMMC=1'b1
 @OPT_1P8V=1'b0
+@HW1P8V=1'b1
 @TOP.IOPREFIX=emmc
 @ACCESS=EMMC_ACCESS
 @INT.SDCARD.WIRE=
@@ -72,6 +73,7 @@
 	wire	i_@$(TOP.IOPREFIX)_cd_n;
 
 	assign	i_@$(TOP.IOPREFIX)_cd_n = 1'b0;
+	assign	o_@$(TOP.IOPREFIX)_reset_n = w_@$(PREFIX)_hwreset_n;
 @SDIO.CLKASSIGN=
 	assign	o_@$(TOP.IOPREFIX)_clk = w_@$(PREFIX)_ck;
 @REGS.N=5

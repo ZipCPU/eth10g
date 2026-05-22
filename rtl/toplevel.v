@@ -399,6 +399,7 @@ i_sdcard_cd_n,
 	wire	i_emmc_cd_n;
 
 	assign	i_emmc_cd_n = 1'b0;
+	assign	o_emmc_reset_n = w_emmc_hwreset_n;
 	// SDSLAVE/sdslav definitions
 	// {{{
 	wire		w_sdslav_clk;
@@ -559,7 +560,7 @@ i_sdcard_cd_n,
 		w_emmc_ac_data,
 		w_emmc_ad_valid,
 		w_emmc_ad_data,
-		w_emmc_hwreset_n, w_emmc_1p8v, w_emmc_1p8v,
+		w_emmc_hwreset_n, w_emmc_1p8v, 1'b1,
 		w_emmc_debug,
 		// SDSLAVE
 		w_sdslav_clk,

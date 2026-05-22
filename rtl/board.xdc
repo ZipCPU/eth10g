@@ -273,6 +273,7 @@ set_property -dict {PACKAGE_PIN C21 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[
 set_property -dict {PACKAGE_PIN D24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
 set_property -dict {PACKAGE_PIN B21 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
 set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
+#set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports o_emmc_reset_n]
 ## }}}
 
 ## SATA
