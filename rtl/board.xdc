@@ -653,6 +653,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 ## No XDC.INSERT tag in gatescope
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in routescope
+## No XDC.INSERT tag in busscope
 ## No XDC.INSERT tag in wbu_arbiter
 ## No XDC.INSERT tag in spio
 ## No XDC.INSERT tag in netscope

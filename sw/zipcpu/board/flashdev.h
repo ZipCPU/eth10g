@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	sw/zipcpu/board/blink.c
+// Filename:	sw/zipcpu/board/flashdev.h
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	Verify that all of the LEDs work, and in particular LED #0.
-//		LED #0 is special, since it didn't work in initial testing.
-//	Therefore we'll constantly blink it.
+// Purpose:	Flash driver (header).  The flash drive attempts to
+//		encapsulates the erasing and programming (i.e. writing)
+//	necessary to set the values in a flash device.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -37,48 +37,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-#include <stdint.h>
-#include "board.h"
-#include "zipcpu.h"
-#include "zipsys.h"
+#ifndef	FLASHDEV_H
+#define	FLASHDEV_H
 
-int	main(int argc, char **argv) {
-	unsigned	fsm = 0, step = 0;
-#ifdef	R_RTCCOUNT
-	unsigned	now, last;
-	now = last = _rtccount;
-#else
-	_zip->z_tma = TMR_INTERVAL | 50000000;
-	_zip->z_pic = DALLPIC;
-	_zip->z_pic = EINT(SYSINT_TMA);
+extern	unsigned fl_flashid(void);
+extern	void	fl_take_offline(void);
+extern	void	fl_place_online(void);
+extern	void	fl_restore_quadio(void);
+extern	void	flwait(void);
+extern	int	fl_erase_sector(const unsigned sector, const int verify_erase);
+extern	int	fl_page_program(const unsigned addr, const unsigned len,
+		const char *data, const int verify_write);
+
+extern	int	fl_write(const unsigned addr, const unsigned len,
+		const char *data, const int verify);
 #endif
-	while(1) {
-		step = 0;
-#ifdef	R_RTCCOUNT
-		last = now; now = _rtccount;
-		step = (last ^ now) >> 31;
-#else
-		step = (_zip->z_pic & SYSINT_TMA) ? 1:0;
-		_zip->z_pic = SYSINT_TMA;
-#endif
-		if (!step)
-			continue;
-
-		fsm++; fsm &= 0x01f;
-		if (fsm & 1)
-			// Shut all LEDs off
-			(*_spio) = 0x0ff01;
-		else switch(fsm >> 1) {
-		case 0: (*_spio) = 0x0ff02; break;
-		case 1: (*_spio) = 0x0ff04; break;
-		case 2: (*_spio) = 0x0ff08; break;
-		case 3: (*_spio) = 0x0ff10; break;
-		case 4: (*_spio) = 0x0ff20; break;
-		case 5: (*_spio) = 0x0ff40; break;
-		case 6: (*_spio) = 0x0ff80; break;
-		default:
-			(*_spio) = 0x0ff00; break;
-		}
-	}
-}
-

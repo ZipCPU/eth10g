@@ -1,0 +1,92 @@
+################################################################################
+##
+## Filename:	autodata/busscope.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to connect a (potentially misbehaving) Wishbone 
+##		bus component to a wishbone scope, which would then to be
+##	connected to the bus by autofpga.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2023-2026, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=busscope
+@DEVID=BUSSCOPE
+@TGT3=wbu
+@TGT2=wbwide_zip
+@TGT1=wbwide_wbdown
+@TGT0=wbwide_ddr3_controller
+@TARGET=@$(PREFIX)
+@TRIGGER=@$(TARGET)_debug[31]
+@$LOG_CAPTURE_SIZE=12
+@INCLUDEFILE=wbscopc.txt
+@INT.BUSSCOPE.PIC=altpic
+@INT.BUSSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+	reg	[31:0]	@$(PREFIX)_debug;
+
+	always @(*)
+	begin
+		@$(PREFIX)_debug = {
+			@$(TGT0)_err || wbu_err || genbus.r_wdt_reset,
+			//
+			6'h0,
+			//
+			genbus.r_wdt_reset,
+			@$(TGT3)_cyc,
+			@$(TGT3)_stb,
+			@$(TGT3)_we,
+			@$(TGT3)_stall,
+			@$(TGT3)_ack,
+			@$(TGT3)_err,
+			//
+			@$(TGT2)_cyc,
+			@$(TGT2)_stb,
+			@$(TGT2)_we,
+			@$(TGT2)_stall,
+			@$(TGT2)_ack,
+			@$(TGT2)_err,
+			//
+			@$(TGT1)_cyc,
+			@$(TGT1)_stb,
+			@$(TGT1)_we,
+			@$(TGT1)_stall,
+			@$(TGT1)_ack,
+			@$(TGT1)_err,
+			//
+			@$(TGT0)_cyc,
+			@$(TGT0)_stb,
+			@$(TGT0)_we,
+			@$(TGT0)_stall,
+			@$(TGT0)_ack,
+			@$(TGT0)_err
+			};
+	end

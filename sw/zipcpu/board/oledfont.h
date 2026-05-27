@@ -1,19 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	sw/zipcpu/board/blink.c
+// Filename:	sw/zipcpu/board/oledfont.h
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	Verify that all of the LEDs work, and in particular LED #0.
-//		LED #0 is special, since it didn't work in initial testing.
-//	Therefore we'll constantly blink it.
+// Purpose:
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2023-2026, Gisselquist Technology, LLC
+// Copyright (C) 2025-2026, Gisselquist Technology, LLC
 // {{{
 // This file is part of the ETH10G project.
 //
@@ -36,49 +34,22 @@
 //		http://www.gnu.org/licenses/gpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
+//
+#ifndef	OLEDFONT_H
+#define	OLEDFONT_H
 // }}}
-#include <stdint.h>
-#include "board.h"
-#include "zipcpu.h"
-#include "zipsys.h"
 
-int	main(int argc, char **argv) {
-	unsigned	fsm = 0, step = 0;
-#ifdef	R_RTCCOUNT
-	unsigned	now, last;
-	now = last = _rtccount;
-#else
-	_zip->z_tma = TMR_INTERVAL | 50000000;
-	_zip->z_pic = DALLPIC;
-	_zip->z_pic = EINT(SYSINT_TMA);
+typedef struct	OLEDFONT_S {
+	int	m_height, m_fixed;
+	int	m_ln[256];
+	const char	*m_datp[256];
+} OLEDFONT;
+
+extern	void	init_tall_glyfs(void);
+extern	void	init_short_glyfs(void);
+extern	void	set_fixed(OLEDFONT *f);
+
+extern	OLEDFONT	*tallfontp;
+extern	OLEDFONT	*shortfontp;
+
 #endif
-	while(1) {
-		step = 0;
-#ifdef	R_RTCCOUNT
-		last = now; now = _rtccount;
-		step = (last ^ now) >> 31;
-#else
-		step = (_zip->z_pic & SYSINT_TMA) ? 1:0;
-		_zip->z_pic = SYSINT_TMA;
-#endif
-		if (!step)
-			continue;
-
-		fsm++; fsm &= 0x01f;
-		if (fsm & 1)
-			// Shut all LEDs off
-			(*_spio) = 0x0ff01;
-		else switch(fsm >> 1) {
-		case 0: (*_spio) = 0x0ff02; break;
-		case 1: (*_spio) = 0x0ff04; break;
-		case 2: (*_spio) = 0x0ff08; break;
-		case 3: (*_spio) = 0x0ff10; break;
-		case 4: (*_spio) = 0x0ff20; break;
-		case 5: (*_spio) = 0x0ff40; break;
-		case 6: (*_spio) = 0x0ff80; break;
-		default:
-			(*_spio) = 0x0ff00; break;
-		}
-	}
-}
-
