@@ -12,8 +12,8 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 #set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p];	## 156.25MHz_REFCLK_P
 #set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n];	## 156.25MHz_REFCLK_N
-# create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
-create_clock -period 3.2 -name NETREF -waveform { 0.0 1.6 } -add [get_ports i_clk_156mhz_p]
+create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
+# create_clock -period 3.2 -name NETREF -waveform { 0.0 1.6 } -add [get_ports i_clk_156mhz_p]
 
 #set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p];		## SI5324_REFCLK_P
 #set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n];		## SI5324_REFCLK_P
@@ -46,7 +46,7 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN E25 IOSTANDARD LVCMOS18} [get_ports i_sw[0]]
 #set_property -dict {PACKAGE_PIN E26 IOSTANDARD LVCMOS18} [get_ports i_sw[1]]
 #set_property -dict {PACKAGE_PIN D25 IOSTANDARD LVCMOS18} [get_ports i_sw[2]]
-#set_property -dict {PACKAGE_PIN F22 IOSTANDARD LVCMOS18} [get_ports i_sw[3]]
+#set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports i_sw[3]]
 ## Switches 4-8 do not appear to be present on v2
 ## #set_property -dict {PACKAGE_PIN D24 IOSTANDARD LVCMOS18} [get_ports i_sw[4]]
 ## #set_property -dict {PACKAGE_PIN D23 IOSTANDARD LVCMOS18} [get_ports i_sw[5]]
@@ -66,7 +66,7 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 
 ## LEDs
 ## {{{
-#set_property -dict {PACKAGE_PIN F23 IOSTANDARD LVCMOS18} [get_ports o_led[0]]
+#set_property -dict {PACKAGE_PIN G21 IOSTANDARD LVCMOS18} [get_ports o_led[0]]
 #set_property -dict {PACKAGE_PIN J26 IOSTANDARD LVCMOS18} [get_ports o_led[1]]
 #set_property -dict {PACKAGE_PIN G26 IOSTANDARD LVCMOS18} [get_ports o_led[2]]
 #set_property -dict {PACKAGE_PIN H26 IOSTANDARD LVCMOS18} [get_ports o_led[3]]
@@ -94,7 +94,7 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 ## {{{
 #set_property -dict {PACKAGE_PIN W21  IOSTANDARD LVCMOS18} [get_ports o_i2c_mxrst_n];		## Main_I2C_MUX_RST
 #set_property -dict {PACKAGE_PIN V21  IOSTANDARD LVCMOS18} [get_ports io_i2c_scl];		## Main_I2C_SCL
-#set_property -dict {PACKAGE_PIN AE22 IOSTANDARD LVCMOS18} [get_ports io_i2c_sda];		## MAIN_I2C_SDA
+#set_property -dict {PACKAGE_PIN AE21 IOSTANDARD LVCMOS18} [get_ports io_i2c_sda];		## MAIN_I2C_SDA
 #set_property -dict {PACKAGE_PIN AE26 IOSTANDARD LVCMOS18} [get_ports io_temp_scl];		## TEMP_I2C_SCL_LS
 #set_property -dict {PACKAGE_PIN AD26 IOSTANDARD LVCMOS18} [get_ports io_temp_sda];		## TEMP_I2C_SDA_LS
 #set_property -dict {PACKAGE_PIN V24  IOSTANDARD LVCMOS18} [get_ports i_si5324_int];		## Si5324_INIT_LS
@@ -175,10 +175,10 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN AC23 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[19]];		## CM4_I2S_FS
 #set_property -dict {PACKAGE_PIN Y21  IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[20]];		## CM4_I2S_DIN
 #set_property -dict {PACKAGE_PIN W20  IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[21]];		## CM4_I2S_DOUT
-#set_property -dict {PACKAGE_PIN W26 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[22]];		## CM4_SDSLV_CLK
+#set_property -dict {PACKAGE_PIN AB24 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[22]];		## CM4_SDSLV_CLK
 #set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[23]];		## CM4_SDSLV_CMD
 #set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[24]];		## CM4_SDSLV_D[0]
-#set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[25]];		## CM4_SDSLV_D[1]
+#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[25]];		## CM4_SDSLV_D[1]
 #set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[26]];		## CM4_SDSLV_D[2]
 #set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_cm4_gpio[27]];		## CM4_SDSLV_D[3]
 ## }}}
@@ -186,7 +186,7 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 ## CM4-UART
 ## {{{
 #set_property -dict {PACKAGE_PIN U25  IOSTANDARD LVCMOS18} [get_ports i_cm4_uart];		## CM4_UART_TX, CM4_GPIO14
-#set_property -dict {PACKAGE_PIN AB24  IOSTANDARD LVCMOS18} [get_ports o_cm4_uart];		## CM4_UART_RX, CM4_GPIO15
+#set_property -dict {PACKAGE_PIN W26  IOSTANDARD LVCMOS18} [get_ports o_cm4_uart];		## CM4_UART_RX, CM4_GPIO15
 #set_property -dict {PACKAGE_PIN Y22  IOSTANDARD LVCMOS18} [get_ports i_cm4_cts_n];		## CM4_UART_CTS, CM4_GPIO16
 #set_property -dict {PACKAGE_PIN W25  IOSTANDARD LVCMOS18} [get_ports i_cm4_rts_n];		## CM4_UART_RTS, CM4_GPIO17
 ## }}}
@@ -216,19 +216,19 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 
 ## SDSLV
 ## {{{
-#set_property -dict {PACKAGE_PIN W26 IOSTANDARD LVCMOS18} [get_ports i_sdslav_clk];		## CM4_SDSLV_CLK, CM4_GPIO22
+#set_property -dict {PACKAGE_PIN AB24 IOSTANDARD LVCMOS18} [get_ports i_sdslav_clk];		## CM4_SDSLV_CLK, CM4_GPIO22
 #set_property -dict {PACKAGE_PIN AA23 IOSTANDARD LVCMOS18} [get_ports io_sdslav_cmd];		## CM4_SDSLV_CMD, CM4_GPIO23
 #set_property -dict {PACKAGE_PIN AA24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[0]];		## CM4_SDSLV_D[0], CM4_GPIO24
-#set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[1]];		## CM4_SDSLV_D[1], CM4_GPIO25
+#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[1]];		## CM4_SDSLV_D[1], CM4_GPIO25
 #set_property -dict {PACKAGE_PIN AF24 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[2]];		## CM4_SDSLV_D[2], CM4_GPIO26
 #set_property -dict {PACKAGE_PIN AF25 IOSTANDARD LVCMOS18} [get_ports io_sdslav_dat[3]];		## CM4_SDSLV_D[3], CM4_GPIO27
 ## }}}
 
 ## uSD
 ## {{{
-#set_property -dict {PACKAGE_PIN AE21 IOSTANDARD LVCMOS18} [get_ports i_sdcard_clk_fb]
+#set_property -dict {PACKAGE_PIN AA22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_clk_fb]
 #set_property -dict {PACKAGE_PIN AC22 IOSTANDARD LVCMOS18} [get_ports i_sdcard_cd_n];		## SDCARD.CD
-#set_property -dict {PACKAGE_PIN AD21 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk];		## SDCARD.CLK
+#set_property -dict {PACKAGE_PIN AE22 IOSTANDARD LVCMOS18} [get_ports o_sdcard_clk];		## SDCARD.CLK
 #set_property -dict {PACKAGE_PIN AB22 IOSTANDARD LVCMOS18} [get_ports io_sdcard_cmd]
 #set_property -dict {PACKAGE_PIN AD24 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[0]]
 #set_property -dict {PACKAGE_PIN AC21 IOSTANDARD LVCMOS18} [get_ports io_sdcard_dat[1]]
@@ -273,7 +273,7 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN C21 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[5]]
 #set_property -dict {PACKAGE_PIN D24 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[6]]
 #set_property -dict {PACKAGE_PIN B21 IOSTANDARD LVCMOS18} [get_ports io_emmc_dat[7]]
-#set_property -dict {PACKAGE_PIN C22 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
+#set_property -dict {PACKAGE_PIN F22 IOSTANDARD LVCMOS18} [get_ports i_emmc_ds]
 #set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports o_emmc_reset_n]
 ## }}}
 

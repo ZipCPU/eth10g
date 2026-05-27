@@ -57,6 +57,10 @@
 @INT.EMMC.PIC= altpic
 @SDIO.CLKDECL=
 		o_@$(PREFIX)_clk,
+@SDIO.RSTDECL=
+		o_@$(PREFIX)_reset_n,
+@SDIO.IORST=
+	output	wire	o_@$(PREFIX)_reset_n;
 @SDIO.IOCLK=
 	output	wire	o_@$(PREFIX)_clk;
 @SDIO.CDETDECL=
@@ -102,5 +106,5 @@ struct @$(DEVID)_S;
 @SIM.FILE="emmc.img"
 @XDC.INSERT=
 set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets i_@$(PREFIX)_ds]
+# set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets i_@$(PREFIX)_ds]
 @$(XDC.SERDES)

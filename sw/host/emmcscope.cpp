@@ -83,6 +83,7 @@ public:
 		// OPT_IO=0 => neither SERDES or DDR
 		//	= 1	=> DDR, but not SERDES
 		//	= 2	=> SERDES (not yet defined)
+		//	= 3	=> Controller internals
 		const unsigned	OPT_IO=0;
 
 		switch(OPT_IO) {
@@ -115,7 +116,44 @@ public:
 			register_trace("rx_data",   8, 8);
 			register_trace("io_dat",    8, 0);
 			break;
-		case 2:
+		case 3:
+			//
+			register_trace("w_card_busy",    1, 30);
+			//
+			register_trace("o_cmd_request",  1, 29);
+			register_trace("cmd_busy",       1, 28);
+			register_trace("i_cmd_done",     1, 27);
+			register_trace("i_cmd_err",      1, 26);
+			register_trace("i_cmd_ercode",   2, 24);
+			register_trace("i_cmd_response", 1, 23);
+			//
+			register_trace("i_dma_busy",     1, 22);
+			register_trace("i_dma_err",      1, 21);
+			register_trace("o_dma_abort",    1, 20);
+			//
+			register_trace("o_dma_sd2s",     1, 19);
+			register_trace("o_sd2s_valid",   1, 18);
+			register_trace("i_sd2s_ready",   1, 17);
+			register_trace("o_sd2s_last",    1, 16);
+			//
+			register_trace("o_dma_s2sd",     1, 15);
+			register_trace("i_s2sd_valid",   1, 14);
+			register_trace("o_s2sd_ready",   1, 13);
+			//
+			register_trace("o_tx_mem_valid", 1, 12);
+			register_trace("i_tx_mem_ready", 1, 11);
+			register_trace("o_tx_mem_last",  1, 10);
+			register_trace("o_tx_en",        1,  9);
+			register_trace("tx_request",     1,  8);
+			register_trace("tx_done",        1,  7);
+			register_trace("tx_err",         1,  6);
+			//
+			register_trace("rx_mem_valid", 1, 5);
+			register_trace("rx_done",      1, 4);
+			register_trace("rx_err",       1, 3);
+			register_trace("ercode",       1, 2);
+			register_trace("rx_request",   1, 1);
+			register_trace("o_rx_en",      1, 0);
 			break;
 		default:
 			break;

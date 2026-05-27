@@ -277,7 +277,7 @@ int	main(int argc, char **argv) {
 			exit(-1);
 		}
 	} else if (argc == 1) {
-		const	char *deftty = "/dev/ttyUSB2";
+		const	char *deftty = "/dev/ttyUSB1";
 		// printf("Opening %s\n", deftty);
 		tty = open(deftty, O_RDWR | O_NONBLOCK);
 		if (tty < 0) {

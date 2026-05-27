@@ -78,12 +78,26 @@ int main(int argc, char **argv) {
 "trying to use this program.\n");
 #else
 	FLASHDRVR	*m_flash;
+	unsigned	vc, evc, fl, st;
 	m_fpga = connect_devbus("");
 
 	m_flash = new FLASHDRVR(m_fpga);
 	printf("Flash device ID: 0x%08x\n", m_flash->flashid());
+
+	FLASHDRVR::take_offline(m_fpga);
+	vc  = m_flash->read_status_raw(0x85);	// Volatile configuration
+	evc = m_flash->read_status_raw(0x65);	// Enhanced volatile config
+	fl  = m_flash->read_status_raw(0x70);	// Flag status register
+	st  = m_flash->read_status_raw(0x05);	// Read status register
+	FLASHDRVR::place_online(m_fpga);
+
+	printf("Status Register: 0x%02x\n", st);
+	printf("Flag Register  : 0x%02x\n", fl);
+	printf("Volatile Config: 0x%02x\n", vc);
+	printf("Enhancd Vol Cfg: 0x%02x\n", evc);
+
 	printf("First several words:\n");
-	for(int k=0; k<12; k++)
+	for(int k=0; k<8; k++)
 		printf("\t0x%08x\n", m_fpga->readio(R_FLASH+(k<<2)));
 
 #ifdef	BKROM_ACCESS

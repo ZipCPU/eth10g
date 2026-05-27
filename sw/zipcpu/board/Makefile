@@ -37,7 +37,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink # contest
 all:	$(PROGRAMS)
 #
 #
@@ -56,7 +56,7 @@ SOURCES := $(wildcard *.c)
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
-LDSCRIPT:= board.ld
+LDSCRIPT:= bkram.ld # board.ld
 LFLAGS  := -T $(LDSCRIPT) -L../zlib -L../fatfs
 LBKRAM  := -T bkram.ld -L../zlib
 CFLAGS  := -O3 -I../zlib -I../../../rtl -I../fatfs
@@ -113,10 +113,15 @@ contest: $(OBJDIR)/contest.o $(OBJDIR)/txfns.o board.ld $(LIB)
 
 $(OBJDIR)/hello.o: hello.c
 	$(CC) -O3 -c $< -o $@
+$(OBJDIR)/blink.o: blink.c
+	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/rintftst.o: rintftst.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/gpiotoggle.o: gpiotoggle.c
 #	$(CC) -O3 -c $< -o $@
+
+blink: $(OBJDIR)/blink.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 hello: $(OBJDIR)/hello.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
@@ -128,7 +133,7 @@ qkhdmi: $(OBJDIR)/qkhdmi.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
 
 rdramcfg: $(OBJDIR)/rdramcfg.o board.ld $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(LBKRAM) $< $(LIBS) -o $@
 
 rdsfp: $(OBJDIR)/rdsfp.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@

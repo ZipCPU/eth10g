@@ -127,7 +127,7 @@ public:
 		m_wbu->setup(100);
 		// From flash
 #ifdef	FLASH_ACCESS
-		m_flash = new FLASHSIM(FLASHLGLEN, false, 1, 8);
+		m_flash = new FLASHSIM(FLASHLGLEN, false, 3, 8);
 #endif // FLASH_ACCESS
 		// From gpio
 		m_core->i_gpio = 16;

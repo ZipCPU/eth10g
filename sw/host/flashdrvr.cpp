@@ -84,7 +84,7 @@ const	unsigned FLASH_ADDR_MASK = -1;
 
 static const unsigned	F_RESET = (CFG_USERMODE|0x0ff),
 			F_EMPTY = (CFG_USERMODE|0x000),
-			F_WRR   = (CFG_USERMODE|0x001),
+			F_WRR   = (CFG_USERMODE|0x001),	// Write status reg
 			F_PP    = (OPT_ADDR32)
 					? (CFG_USERMODE|0x012)
 					: (CFG_USERMODE|0x002),
@@ -94,9 +94,9 @@ static const unsigned	F_RESET = (CFG_USERMODE|0x0ff),
 			F_READ  = (OPT_ADDR32)
 					? (CFG_USERMODE|0x013)
 					: (CFG_USERMODE|0x003),
-			F_WRDI  = (CFG_USERMODE|0x004),
-			F_RDSR1 = (CFG_USERMODE|0x005),
-			F_WREN  = (CFG_USERMODE|0x006),
+			F_WRDI  = (CFG_USERMODE|0x004),	// Write disable
+			F_RDSR1 = (CFG_USERMODE|0x005),	// Read status reg
+			F_WREN  = (CFG_USERMODE|0x006),	// Write enable
 			F_MFRID = (CFG_USERMODE|0x09f),
 			F_SE    = (OPT_ADDR32)	// Sector erase
 					? (CFG_USERMODE|0x0dc)
@@ -114,6 +114,7 @@ FLASHDRVR::FLASHDRVR(DEVBUS *fpga) : m_fpga(fpga),
 }
 
 unsigned FLASHDRVR::flashid(void) {
+	// {{{
 #ifndef	FLASH_ACCESS
 	return FLASH_UNKNOWN;
 #elif	!defined(R_FLASHCFG)
@@ -143,16 +144,22 @@ unsigned FLASHDRVR::flashid(void) {
 	return m_id;
 #endif
 }
+// }}}
 
 void	FLASHDRVR::take_offline(void) {
+	// {{{
 	take_offline(m_fpga);
 }
+// }}}
 
 void	FLASHDRVR::place_online(void) {
+	// {{{
 	place_online(m_fpga);
 }
+// }}}
 
 void	FLASHDRVR::take_offline(DEVBUS *fpga) {
+	// {{{
 #ifdef	R_FLASHCFG
 	fpga->writeio(R_FLASHCFG, F_END);
 	fpga->writeio(R_FLASHCFG, F_RESET);
@@ -164,8 +171,10 @@ void	FLASHDRVR::take_offline(DEVBUS *fpga) {
 	fpga->writeio(R_FLASHCFG, F_END);
 #endif
 }
+// }}}
 
 void	FLASHDRVR::place_online(DEVBUS *fpga) {
+	// {{{
 #ifdef	QSPI_FLASH
 	restore_quadio(fpga);
 #elif	defined(DSPI_FLASH)
@@ -174,30 +183,38 @@ void	FLASHDRVR::place_online(DEVBUS *fpga) {
 //	No action required for normal SPI devices
 #endif
 }
+// }}}
 
 void	FLASHDRVR::restore_dualio(void) {
+	// {{{
 	restore_dualio(m_fpga);
 }
+// }}}
 
 void	FLASHDRVR::restore_dualio(DEVBUS *fpga) {
+	// {{{
 	// static const	uint32_t	DUAL_IO_READ     = CFG_USERMODE|0xbb;
 #ifdef	DSPI_FLASH
 #error "This controller doesn't (yet) support Dual-mode"
 #endif
 }
+// }}}
 
 void	FLASHDRVR::restore_quadio(void) {
+	// {{{
 	restore_quadio(m_fpga);
 }
+// }}}
 
 void	FLASHDRVR::restore_quadio(DEVBUS *fpga) {
+	// {{{
 #ifdef	QSPI_FLASH
 	static	const	uint32_t	QUAD_IO_READ     = CFG_USERMODE
 			|(OPT_ADDR32 ? 0xec : 0xeb);
 
 	fpga->writeio(R_FLASHCFG, F_END);
 
-	if (1) { // MICRON_FLASHID == m_id) {
+	if (1) { // MICRON_FLASHID == m_id)
 		// printf("MICRON-flash\n");
 		// Need to enable XIP first for MICRON's flash
 		//
@@ -205,8 +222,9 @@ void	FLASHDRVR::restore_quadio(DEVBUS *fpga) {
 		fpga->writeio(R_FLASHCFG, F_WREN);
 		fpga->writeio(R_FLASHCFG, F_END);
 
-		// Then sending a 0xab, 0x81
+		// Then sending a 0x81 (Write volatile config)
 		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x81);
+		// Then the volatile config (0x83)
 		fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x83);
 		fpga->writeio(R_FLASHCFG, F_END);
 	}
@@ -234,8 +252,10 @@ void	FLASHDRVR::restore_quadio(DEVBUS *fpga) {
 	fpga->writeio(R_FLASHCFG, CFG_USER_CS_n);
 #endif
 }
+// }}}
 
 void	FLASHDRVR::flwait(void) {
+	// {{{
 #ifdef	FLASH_ACCESS
 	const	int	WIP = 1;	// Write in progress bit
 	DEVBUS::BUSW	sr;
@@ -249,8 +269,10 @@ void	FLASHDRVR::flwait(void) {
 	m_fpga->writeio(R_FLASHCFG, F_END);
 #endif
 }
+// }}}
 
-bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase) {
+bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase){
+	// {{{
 #ifdef	FLASH_ACCESS
 	unsigned	flashaddr = sector & FLASH_ADDR_MASK;
 
@@ -307,9 +329,11 @@ bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase) {
 	return false; // No flash preset
 #endif
 }
+// }}}
 
 bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 		const char *data, const bool verify_write) {
+	// {{{
 #ifdef	FLASH_ACCESS
 	DEVBUS::BUSW	buf[SZPAGEW], bswapd[SZPAGEW];
 	unsigned	flashaddr = addr & FLASH_ADDR_MASK;
@@ -396,13 +420,51 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 	return false; // No flash present
 #endif
 }
+// }}}
 
 #ifdef	R_QSPI_VCONF
 #define	VCONF_VALUE	0x8b
 #define	VCONF_VALUE_ALT	0x83
 #endif
 
+unsigned	FLASHDRVR::read_status(unsigned cmd) {
+	// {{{
+	return read_status(m_fpga, cmd);
+}
+// }}}
+
+unsigned	FLASHDRVR::read_status(DEVBUS *fpga, unsigned cmd) {
+	// {{{
+	unsigned	r;
+
+	take_offline(fpga);
+	r = read_status_raw(fpga, cmd);
+	place_online(fpga);
+
+	return	r;
+}
+// }}}
+
+unsigned	FLASHDRVR::read_status_raw(unsigned cmd) {
+	// {{{
+	return read_status_raw(m_fpga, cmd);
+}
+// }}}
+
+unsigned	FLASHDRVR::read_status_raw(DEVBUS *fpga, unsigned cmd) {
+	// {{{
+	unsigned	r;
+
+	fpga->writeio(R_FLASHCFG, CFG_USERMODE | (cmd & 0x0ff));
+	fpga->writeio(R_FLASHCFG, CFG_USERMODE | 0x00);
+	r = fpga->readio(R_FLASHCFG) & 0x0ff;
+	fpga->writeio(R_FLASHCFG, F_END);
+	return	r;
+}
+// }}}
+
 bool	FLASHDRVR::verify_config(void) {
+	// {{{
 #ifndef	FLASH_ACCESS
 	return false;
 #elif	!defined(R_QSPI_VCONF)
@@ -415,8 +477,10 @@ bool	FLASHDRVR::verify_config(void) {
 	return ((cfg == VCONF_VALUE)||(cfg == VCONF_VALUE_ALT));
 #endif
 }
+// }}}
 
-void	FLASHDRVR::set_config(void) {
+void	FLASHDRVR::set_config(void) {	// Disabled within
+	// {{{
 	if (m_id == MICRON_FLASHID) {
 		// There is some delay associated with these commands, but it
 		// should be dwarfed by the communication delay.  If you wish
@@ -438,9 +502,11 @@ void	FLASHDRVR::set_config(void) {
 		// is now a part of our place_online() command
 	}
 }
+// }}}
 
 bool	FLASHDRVR::write(const unsigned addr, const unsigned len,
 		const char *data, const bool verify) {
+	// {{{
 #ifdef	FLASH_ACCESS
 
 	flashid();
@@ -534,3 +600,4 @@ bool	FLASHDRVR::write(const unsigned addr, const unsigned len,
 	return false;
 #endif
 }
+// }}}

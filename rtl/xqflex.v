@@ -131,11 +131,18 @@ module	xqflex #(
 		// {{{
 		if (gk < 5 || OPT_CLOCK)
 		begin : GEN_DATCSN
-			wire	p, n;
+			reg	p;
+			wire	n;
 
-			assign	p = (gk < 4) ? i_dat[gk]
+			always @(*)
+			begin
+				p = (gk < 4) ? i_dat[gk]
 					: (gk == 4) ? i_cs_n
 					: (i_sck[1] && OPT_CLOCK);
+				if (!i_bmod[1] && (gk >= 2) && (gk < 4))
+					p = 1;
+			end
+
 			assign	n = (gk < 5) ? p : (i_sck[0] && OPT_CLOCK);
 
 			ODDR #(

@@ -3392,9 +3392,9 @@ module	main(i_clk, i_reset,
 	// {{{
 	qflexpress #(
 		// {{{
-		.LGFLASHSZ(25), .OPT_CLKDIV(1),
+		.LGFLASHSZ(25), .OPT_CLKDIV(0),
 		.OPT_ENDIANSWAP(0),
-		.NDUMMY(8), .RDDELAY(1),
+		.NDUMMY(8), .RDDELAY(3),
 		.OPT_STARTUP_FILE("micron.hex"),
 `ifdef	FLASHCFG_ACCESS
 		.OPT_CFG(1'b1)
@@ -3507,8 +3507,8 @@ module	main(i_clk, i_reset,
 
 	always @(*)
 	begin
-		sdio_debug = i_sdio_debug;
 		sdio_debug = w_sdio_sdwb_debug;
+		sdio_debug = i_sdio_debug;
 	end
 
 	sdio #(
@@ -3675,8 +3675,8 @@ module	main(i_clk, i_reset,
 
 	always @(*)
 	begin
-		emmc_debug = i_emmc_debug;
 		emmc_debug = w_emmc_sdwb_debug;
+		emmc_debug = i_emmc_debug;
 	end
 
 	sdio #(

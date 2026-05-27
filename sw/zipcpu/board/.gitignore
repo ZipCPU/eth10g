@@ -1,4 +1,5 @@
 *.txt
+blink
 clkcheck
 cputest
 ddr3dbg

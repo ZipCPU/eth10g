@@ -82,6 +82,7 @@ i_sdcard_cd_n,
 
 		io_sdcard_cmd, io_sdcard_dat,
 		// eMMC Card
+		o_emmc_reset_n,
 
 		o_emmc_clk,
 
@@ -234,6 +235,7 @@ i_sdcard_cd_n,
 	// }}}
 	// eMMC Card
 	// {{{
+	output	wire	o_emmc_reset_n;
 
 	output	wire	o_emmc_clk;
 
@@ -831,10 +833,79 @@ i_sdcard_cd_n,
 	) u_xqflex (
 		// {{{
 		.i_clk(s_clk), .i_cs_n(w_flash_cs_n),
-		.i_sck({ (1==0) ? 1'b0 : w_flash_sck,
+		.i_sck({ (0==0) ? 1'b0 : w_flash_sck,
 			w_flash_sck }),
 		.i_dat(o_flash_dat), .o_dat(i_flash_dat), .i_bmod(flash_bmod),
 		.o_cs_n(o_flash_cs_n), .o_sck(o_flash_sck), .io_dat(io_flash_dat)
+		// }}}
+	);
+
+	// UNUSED STARTUPE2
+
+	// The following primitive is necessary in many designs order to gain
+	// access to the o_qspi_sck pin.  It's not necessary on the Arty,
+	// simply because they provide two pins that can drive the QSPI
+	// clock pin.
+	wire	[3:0]	su_nc;	// Startup primitive, no connect
+	STARTUPE2 #(
+		// {{{
+		// Leave PROG_USR false to avoid activating the program
+		// event security feature.  Notes state that such a feature
+		// requires encrypted bitstreams.
+		.PROG_USR("FALSE"),
+		// Sets the configuration clock frequency (in ns) for
+		// simulation.
+		.SIM_CCLK_FREQ(0.0)
+		// }}}
+	) u_STARTUPE2 (
+		// {{{
+		// CFGCLK, 1'b output: Configuration main clock output -- no
+		//	connect
+		.CFGCLK(su_nc[0]),
+		// CFGMCLK, 1'b output: Configuration internal oscillator clock
+		//	output
+		.CFGMCLK(su_nc[1]),
+		// EOS, 1'b output: Active high output indicating the End Of
+		//	Startup.
+		.EOS(su_nc[2]),
+		// PREQ, 1'b output: PROGRAM request to fabric output
+		//	Only enabled if PROG_USR is set.  This lets the fabric
+		//	know that a request has been made (either JTAG or pin
+		//	pulled low) to program the device
+		.PREQ(su_nc[3]),
+		// CLK, 1'b input: User start-up clock input
+		.CLK(1'b0),
+		// GSR, 1'b input: Global Set/Reset input
+		.GSR(1'b0),
+		// GTS, 1'b input: Global 3-state input
+		.GTS(1'b0),
+		// KEYCLEARB, 1'b input: Clear AES Decrypter Key input from
+		//	BBRAM
+		.KEYCLEARB(1'b0),
+		// PACK, 1-bit input: PROGRAM acknowledge input
+		//	This pin is only enabled if PROG_USR is set.  This
+		//	allows the FPGA to acknowledge a request for reprogram
+		//	to allow the FPGA to get itself into a reprogrammable
+		//	state first.
+		.PACK(1'b0),
+		// USRCLKO, 1-bit input: User CCLK output
+		.USRCCLKO(1'b0),	// Alternatively o_qspi_sck
+		// USRCCLKTS, 1'b input: User CCLK 3-state enable input
+		//	An active high here places the clock into a high
+		//	impedence state.  If we wished to use the clock as an
+		//	active output always, we would drive this pin low.
+		.USRCCLKTS(1'b1),
+		// USRDONEO, 1'b input: User DONE pin output control
+		//	Set this to "high" to make sure that the DONE LED pin
+		//	is high.
+		.USRDONEO(1'b1),
+		// USRDONETS, 1'b input: User DONE 3-state enable output
+		//	This enables the FPGA DONE pin to be active.  Setting
+		//	this active high sets the DONE pin to high impedence,
+		//	setting it low allows the output of this pin to be as
+		//	stated above.
+		.USRDONETS(1'b1)
+		// }}}
 	);
 
 	// }}}

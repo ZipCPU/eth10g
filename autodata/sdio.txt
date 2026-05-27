@@ -353,8 +353,8 @@
 
 	always @(*)
 	begin
-		@$(PREFIX)_debug = i_@$(PREFIX)_debug;
 		@$(PREFIX)_debug = w_@$(PREFIX)_sdwb_debug;
+		@$(PREFIX)_debug = i_@$(PREFIX)_debug;
 	end
 
 	sdio #(
