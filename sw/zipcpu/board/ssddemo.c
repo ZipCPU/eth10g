@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include "board.h"
 
-#include "ssdlogo.c"
+#include "ssdlogoh.c"
 
 int main(int argc, char **argv) {
 #ifndef	_BOARD_HAS_I2CCPU
