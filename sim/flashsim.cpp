@@ -87,10 +87,11 @@ FLASHSIM::FLASHSIM(const int lglen, bool debug,
 	m_write_count = 0;
 	m_ireg = m_oreg = 0;
 	m_sreg = 0x01c;
-	m_creg = 0x001;	// Iinitial creg on delivery
+	m_creg = 0x001;	// Initial creg on delivery
 	m_mode = FM_SPI;
 	m_mode_byte = 0;
 	m_idle_throttle = false;
+	m_rddelay = NULL;
 
 	memset(m_mem, 0x0ff, m_membytes);
 }
@@ -833,7 +834,6 @@ int	FLASHSIM::simtick(const int csn, const int sck, const int dat,
 		for(unsigned i=0; i<RDDELAY-1; i++)
 			m_rddelay[i] = m_rddelay[i+1];
 		m_rddelay[RDDELAY-1] = r;
-
 		r = lclr & 0x0f;
 	}
 

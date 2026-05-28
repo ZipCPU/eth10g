@@ -1115,7 +1115,12 @@ i_sdcard_cd_n,
 
 	assign	o_emmc_clk = w_emmc_ck;
 
-	assign	w_emmc_ds = i_emmc_ds;
+	BUFG u_emmc_ds (
+		.I(i_emmc_ds),
+		.O(w_emmc_ds)
+	);
+
+	// assign	w_emmc_ds = i_emmc_ds;
 
 
 	////////////////////////////////////////////////////////////////////////

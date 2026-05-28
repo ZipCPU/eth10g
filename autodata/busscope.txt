@@ -52,7 +52,7 @@
 @INT.BUSSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 	reg	[31:0]	@$(PREFIX)_debug;
-
+@MAIN.INSERT=
 	always @(*)
 	begin
 		@$(PREFIX)_debug = {
@@ -88,5 +88,9 @@
 			@$(TGT0)_stall,
 			@$(TGT0)_ack,
 			@$(TGT0)_err
-			};
+		};
 	end
+
+@$(SCOPE.INSERT)
+@MAIN.ALT=
+	initial	@$(PREFIX)_debug = 32'h0;

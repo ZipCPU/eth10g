@@ -624,43 +624,6 @@ module	main(i_clk, i_reset,
 	// Verilator lint_on  UNUSED
 	reg	[31:0]	busscope_debug;
 
-	always @(*)
-	begin
-		busscope_debug = {
-			wbwide_ddr3_controller_err || wbu_err || genbus.r_wdt_reset,
-			//
-			6'h0,
-			//
-			genbus.r_wdt_reset,
-			wbu_cyc,
-			wbu_stb,
-			wbu_we,
-			wbu_stall,
-			wbu_ack,
-			wbu_err,
-			//
-			wbwide_zip_cyc,
-			wbwide_zip_stb,
-			wbwide_zip_we,
-			wbwide_zip_stall,
-			wbwide_zip_ack,
-			wbwide_zip_err,
-			//
-			wbwide_wbdown_cyc,
-			wbwide_wbdown_stb,
-			wbwide_wbdown_we,
-			wbwide_wbdown_stall,
-			wbwide_wbdown_ack,
-			wbwide_wbdown_err,
-			//
-			wbwide_ddr3_controller_cyc,
-			wbwide_ddr3_controller_stb,
-			wbwide_ddr3_controller_we,
-			wbwide_ddr3_controller_stall,
-			wbwide_ddr3_controller_ack,
-			wbwide_ddr3_controller_err
-			};
-	end
 	wire	[8-1:0]	w_led;
 `ifndef	TIMESYNC
 	reg	[31:0]	r_rtccount_data;
@@ -2724,6 +2687,44 @@ module	main(i_clk, i_reset,
 	// }}}
 	// }}}
 `endif	// ROUTESCOPE_SCOPC
+
+	always @(*)
+	begin
+		busscope_debug = {
+			wbwide_ddr3_controller_err || wbu_err || genbus.r_wdt_reset,
+			//
+			6'h0,
+			//
+			genbus.r_wdt_reset,
+			wbu_cyc,
+			wbu_stb,
+			wbu_we,
+			wbu_stall,
+			wbu_ack,
+			wbu_err,
+			//
+			wbwide_zip_cyc,
+			wbwide_zip_stb,
+			wbwide_zip_we,
+			wbwide_zip_stall,
+			wbwide_zip_ack,
+			wbwide_zip_err,
+			//
+			wbwide_wbdown_cyc,
+			wbwide_wbdown_stb,
+			wbwide_wbdown_we,
+			wbwide_wbdown_stall,
+			wbwide_wbdown_ack,
+			wbwide_wbdown_err,
+			//
+			wbwide_ddr3_controller_cyc,
+			wbwide_ddr3_controller_stb,
+			wbwide_ddr3_controller_we,
+			wbwide_ddr3_controller_stall,
+			wbwide_ddr3_controller_ack,
+			wbwide_ddr3_controller_err
+			};
+	end
 
 `ifdef	BUSSCOPE_SCOPC
 	// {{{

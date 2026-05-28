@@ -203,7 +203,7 @@ static	const	uint32_t
 		SDIO_DMAERR   = 0x01000000,
 		SDIO_HWRESET  = 0x02000000,
 		SDIO_ACK      = 0x04000000,	// Expect a CRC ACK token
-		SDIO_SOFTRESET= 0x52000000,
+		SDIO_RESET    = 0x52000000,
 		// PHY enumerations
 		SDPHY_DDR     = 0x00004100,	// Requires CK90
 		SDPHY_DS      = 0x00004300,	// Requires DDR & CK90
@@ -430,8 +430,18 @@ void	sdio_dump_cid(SDIODRV *dev) {
 	unsigned sn, md;
 
 	sn = dev->d_CID[2];
+#if	defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+	sn = (((sn >> 24)&0x0ff) << 8)
+		| (((sn >> 16) & 0x0ff) << 16)
+		| (((sn >>  8) & 0x0ff) << 24)
+		| (dev->d_CID[3] & 0x0ff);
+	md = ((dev->d_CID[3] >> 16) & 0x0ff)
+		| (dev->d_CID[3] & 0x0f);
+ & 0x0fff;
+#else
 	sn = (sn << 8) | (dev->d_CID[3] >> 24) & 0x0ff;
 	md = (dev->d_CID[3] >>  8) & 0x0fff;
+#endif
 
 	printf("CID:\n"
 "\tManufacturer ID:  0x%02x\n"
@@ -439,6 +449,18 @@ void	sdio_dump_cid(SDIODRV *dev) {
 "\tProduct Name:     %c%c%c%c%c\n"
 "\tProduct Revision: %x.%x\n"
 "\tSerial Number:    0x%0x\n",
+#if	defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+		(dev->d_CID[0]      )&0x0ff,	// MFR ID
+		(dev->d_CID[0] >>  8)&0x0ff,	// APP ID
+		(dev->d_CID[0] >> 16)&0x0ff,
+		(dev->d_CID[0] >> 24)&0x0ff,	// Prod Name[0]
+		(dev->d_CID[1]      )&0x0ff,	// Prod Name[1]
+		(dev->d_CID[1] >>  8)&0x0ff,	// Prod Name[2]
+		(dev->d_CID[1] >> 16)&0x0ff,	// Prod Name[3]
+		(dev->d_CID[1] >> 24)&0x0ff,	// Prod Name[4]
+		(dev->d_CID[2] >>  4)&0x00f,	// Revision Hi
+		(dev->d_CID[2]      )&0x00f,	//   Lo,
+#else
 		(dev->d_CID[0] >> 24)&0x0ff,	// MFR ID
 		(dev->d_CID[0] >> 16)&0x0ff,	// APP ID
 		(dev->d_CID[0] >>  8)&0x0ff,
@@ -447,8 +469,10 @@ void	sdio_dump_cid(SDIODRV *dev) {
 		(dev->d_CID[1] >> 16)&0x0ff,	// Prod Name[2]
 		(dev->d_CID[1] >>  8)&0x0ff,	// Prod Name[3]
 		(dev->d_CID[1]      )&0x0ff,	// Prod Name[4]
-		(dev->d_CID[2] >> 28)&0x00f,	// Revision Hi
-		(dev->d_CID[2] >> 24)&0x00f, sn);	// Lo, and Serial #
+		(dev->d_CID[2] >> 28)&0x00f,	// Revision Hi,
+		(dev->d_CID[2] >> 24)&0x00f,	//   Lo,
+#endif
+			sn);	// and Serial #
 	printf(
 "\tYear of Man.:     %d\n"
 "\tMonth of Man.:    %d\n",
@@ -669,10 +693,17 @@ static	void	sdio_send_tuning_block(SDIODRV *dev) { // CMD19
 	unsigned	phy, vmask = 0, best_eye=0, best_ph=0,
 			first_eye=0, eyesz=0, ph;
 	const	unsigned	pat[16] = {
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+			0x00FF0FFF, 0xCCC3CCFF, 0xFFCC3CC3, 0xEFFEFFFE,
+			0xDDFFDFFF, 0xFBFFFBFF, 0xFF7FFFBF, 0xEFBDF777,
+			0xF0FFF0FF, 0x3CCCFC0F, 0xCFCC33CC, 0xEEFFEFFF,
+			0xFDFFFDFF, 0xFFBFFFDF, 0xFFF7FFBB, 0xDE7B7FF7
+#else
 			0xFF0FFF00, 0xFFCCC3CC, 0xC33CCCFF, 0xFEFFFEEF,
 			0xFFDFFFDD, 0xFFFBFFFB, 0xBFFF7FFF, 0x77F7BDEF,
 			0xFFF0FFF0, 0x0FFCCC3C, 0xCC33CCCF, 0xFFEFFFEE,
 			0xFFFDFFFD, 0xDFFFBFFF, 0xBBFFF7FF, 0xF77F7BDE
+#endif
 		};
 	unsigned	rxv[16];
 
@@ -683,9 +714,7 @@ static	void	sdio_send_tuning_block(SDIODRV *dev) { // CMD19
 	phy |= SECTOR_64B;
 	dev->d_dev->sd_data = 0;
 
-	for(ph = 0; ph<24; ph++) {
-		unsigned	vld, c;
-
+	for(ph = 0; ph<31; ph++) {
 		phy &= ~SDPHY_PHASEMSK;
 		phy |= (ph << 16);
 		dev->d_dev->sd_phy = phy;
@@ -697,19 +726,15 @@ static	void	sdio_send_tuning_block(SDIODRV *dev) { // CMD19
 		// We *must* reset any error flags here, since many of these
 		// phase tests will generate errors in the first place.  This
 		// is just normal.
-		dev->d_dev->sd_data = 0;
-		dev->d_dev->sd_cmd = (SDIO_ERR | SDIO_MEM | SDIO_R1 | SDIO_CMD)
-						+ 19;
+		dev->d_dev->sd_cmd = (SDIO_ERR | SDIO_CMD | SDIO_R1 | SDIO_MEM) + 19;
 
 		sdio_wait_while_busy(dev);
 
-		// if (ph == 4) TRIGGER_SCOPE;
-
-		c = dev->d_dev->sd_cmd;
 		if (SDDEBUG && SDINFO) {
 			// {{{
-			unsigned	r;
+			unsigned	c, r;
 
+			c = dev->d_dev->sd_cmd;
 			r = dev->d_dev->sd_data;
 
 			txstr("CMD19:   SEND_TUNING_COMMAND : \n");
@@ -724,7 +749,7 @@ static	void	sdio_send_tuning_block(SDIODRV *dev) { // CMD19
 		}
 		// }}}
 
-		vld = 1;
+		unsigned vld = 1;
 		for(int k=0; k<16; k++)
 			rxv[k] = dev->d_dev->sd_fifa;
 		for(int k=0; (k<16) && vld; k++) {
@@ -940,10 +965,17 @@ void sdio_read_scr(SDIODRV *dev) {	  // ACMD 51
 
 		uv = dev->d_dev->sd_fifa;
 		if (SDINFO) { txhex(uv); if (k < 4) txstr(":"); }
+#if	defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+		dev->d_SCR[k + 0] = uv & 0x0ff; uv >>= 8;
+		dev->d_SCR[k + 1] = uv & 0x0ff; uv >>= 8;
+		dev->d_SCR[k + 2] = uv & 0x0ff; uv >>= 8;
+		dev->d_SCR[k + 3] = uv;
+#else
 		dev->d_SCR[k + 3] = uv & 0x0ff; uv >>= 8;
 		dev->d_SCR[k + 2] = uv & 0x0ff; uv >>= 8;
 		dev->d_SCR[k + 1] = uv & 0x0ff; uv >>= 8;
 		dev->d_SCR[k + 0] = uv;
+#endif
 	} if (SDINFO) txstr("\n");
 
 	phy &= ~SECTOR_MASK;
@@ -1116,10 +1148,17 @@ void sdio_read_csd(SDIODRV *dev) {	  // CMD 9
 
 		uv = dev->d_dev->sd_fifa;
 		if (SDINFO) { txhex(uv); if (k < 12) txstr(":"); }
+#if	defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+		dev->d_CSD[k + 0] = uv & 0x0ff; uv >>= 8;
+		dev->d_CSD[k + 1] = uv & 0x0ff; uv >>= 8;
+		dev->d_CSD[k + 2] = uv & 0x0ff; uv >>= 8;
+		dev->d_CSD[k + 3] = uv;
+#else
 		dev->d_CSD[k + 3] = uv & 0x0ff; uv >>= 8;
 		dev->d_CSD[k + 2] = uv & 0x0ff; uv >>= 8;
 		dev->d_CSD[k + 1] = uv & 0x0ff; uv >>= 8;
 		dev->d_CSD[k + 0] = uv;
+#endif
 	}
 
 	unsigned	C_SIZE, READ_BL_LEN, CSD_STRUCTURE;
@@ -1322,9 +1361,8 @@ unsigned sdio_switch(SDIODRV *dev, unsigned swcmd, unsigned *ubuf) {  // CMD6
 	sdio_wait_while_busy(dev);
 
 	c = dev->d_dev->sd_cmd;
-	if ((c & SDIO_RXERR) && (c & SDIO_RXECODE)) {
+	if ((c & SDIO_RXERR) && (c & SDIO_RXECODE))
 		fail = 1;
-	}
 	if (SDDEBUG && SDINFO) {
 		// {{{
 		unsigned	r;
@@ -1689,7 +1727,10 @@ SDIODRV *sdio_init(SDIO *dev) {
 
 	// Start by resetting the interface--in case we're being called
 	// to restart from an uncertain state.
-	dv->d_dev->sd_cmd = SDIO_HWRESET | SDIO_REMOVED | SDIO_NULLCMD;
+	dv->d_dev->sd_cmd = SDIO_REMOVED;
+	dv->d_dev->sd_cmd = SDIO_RESET | SDIO_REMOVED;
+
+	dv->d_dev->sd_phy = SPEED_SLOW | SECTOR_512B | (18u << 16);
 	if (SDIO_HWRESET & dv->d_dev->sd_cmd) {
 		// Release the device from reset
 		dv->d_dev->sd_cmd = SDIO_NULLCMD | SDIO_REMOVED;
@@ -1702,12 +1743,12 @@ SDIODRV *sdio_init(SDIO *dev) {
 		while(dv->d_dev->sd_cmd & SDIO_HWRESET)
 			;
 
-		while(dv->d_dev->sd_cmd & SDIO_REMOVED)
+		if (dv->d_dev->sd_cmd & SDIO_REMOVED)
 			dv->d_dev->sd_cmd = SDIO_NULLCMD | SDIO_REMOVED;
 		// zip_break();		We get here.
 	} else {
 		// No hard reset available.  Issue a soft reset
-		dv->d_dev->sd_cmd = SDIO_SOFTRESET;
+		dv->d_dev->sd_cmd = SDIO_RESET;
 		dv->d_dev->sd_cmd = SDIO_REMOVED | SDIO_NULLCMD;
 	}
 
@@ -1717,7 +1758,7 @@ SDIODRV *sdio_init(SDIO *dev) {
 	dv->d_dev->sd_phy = SPEED_SLOW | SECTOR_512B | SDPHY_PHASEMSK;
 
 	while(SPEED_SLOW != (dv->d_dev->sd_phy & SDIOCK_MASK))
-		dv->d_dev->sd_phy = SPEED_SLOW | SECTOR_512B | SDPHY_PHASEMSK;
+		;
 
 	{
 		unsigned	phy;
@@ -1900,6 +1941,20 @@ SDIODRV *sdio_init(SDIO *dev) {
 			} else {
 				unsigned	spd = 0;
 
+#if	defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+				if (0 != (ubuf[3] & 0x0800)) {
+					// SDR104 supported
+					spd = 4;
+				} else if (0 != (ubuf[3] & 0x1000)) {
+					// DDR50 supported
+					spd = 3;
+				} else if (0 != (ubuf[3] & 0x0400)) {
+					// SDR50 supported
+					spd = 2;
+				} else if (0 != (ubuf[3] & 0x0200)) {
+					// SDR25 supported
+					spd = 1;
+#else
 				if (0 && 0 != (ubuf[3] & 0x080000)) {
 					// SDR104 supported
 					spd = 4;
@@ -1912,6 +1967,7 @@ SDIODRV *sdio_init(SDIO *dev) {
 				} else if (0 != (ubuf[3] & 0x020000)) {
 					// SDR25 supported
 					spd = 1;
+#endif
 				} if (0 != (dv->d_dev->sd_cmd & SDIO_ERR))
 					spd = 0;
 
@@ -2220,7 +2276,12 @@ SDIODRV *sdio_init(SDIO *dev) {
 				// If HS mode is available, switch to it
 				// {{{
 				if ((0 == (dv->d_dev->sd_cmd & SDIO_ERR))
-					&& (0 != (ubuf[3] & 0x020000))) {
+#if	defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+					&& (0 != (ubuf[3] & 0x0200))
+#else
+					&& (0 != (ubuf[3] & 0x020000))
+#endif
+				) {
 					// We don't need to read the response,
 					// since we now know it's
 					// supported--just send the request.

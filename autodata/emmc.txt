@@ -68,7 +68,12 @@
 @SDIO.DSDECL=
 		i_@$(PREFIX)_ds,
 @SDIO.DSASSIGN=
-	assign	w_@$(PREFIX)_ds = i_@$(PREFIX)_ds;
+	BUFG u_@$(PREFIX)_ds (
+		.I(i_@$(PREFIX)_ds),
+		.O(w_@$(PREFIX)_ds)
+	);
+
+	// assign	w_@$(PREFIX)_ds = i_@$(PREFIX)_ds;
 @SDIO.IODS=
 	input	wire		i_@$(PREFIX)_ds;
 @TOP.DEFNS=

@@ -14,8 +14,11 @@ obj-zip
 *.vvp
 *.bak
 .swp
+.swo
+.swn
 .*.swp
 .*.swo
+.*.swn
 svn-commit*
 *_tb
 *_tb.dbl

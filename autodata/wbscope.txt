@@ -58,14 +58,14 @@
 	// Verilator lint_off UNUSED
 	wire	@$(PREFIX)_int;
 	// Verilator lint_on  UNUSED
-@MAIN.INSERT=
+@SCOPE.INSERT=
 	@$(CORE) #(
 		// {{{
 		.LGMEM(@$(LOG_CAPTURE_SIZE)),
 		.SYNCHRONOUS(@$(SYNCHRONOUS)),
 		.DEFAULT_HOLDOFF(@$(DEFHOLDOFF))
 		// }}}
-	) @$(PREFIX)i(
+	) u_@$(PREFIX) (
 		// {{{
 		.i_data_clk(@$(DATA_CLOCK)), .i_ce(@$(CAPTURECE)),
 			.i_trigger(@$(TRIGGER)), .i_data(@$(DEBUG)),
@@ -74,6 +74,7 @@
 		.o_interrupt(@$(PREFIX)_int)
 		// }}}
 	);
+@MAIN.INSERT=@$(SCOPE.INSERT)
 @MAIN.ALT=
 @REGS.NOTE=// @$(PREFIX) scope
 @REGS.N=2
