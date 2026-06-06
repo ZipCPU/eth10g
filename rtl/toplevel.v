@@ -649,7 +649,7 @@ i_sdcard_cd_n,
 		sata_rxphy_error, sata_rxphy_syncd,
 			sata_rxphy_elecidle, sata_rxphy_cominit,
 			sata_rxphy_comwake, sata_rxphy_cdrhold,
-		sata_phy_refclk, sata_drp_debug
+		sata_phy_refclk, sata_drp_debug,
 		sata_phy_debug);
 
 
@@ -1334,7 +1334,7 @@ i_sdcard_cd_n,
 	) u_sata (
 		.i_wb_clk(s_clk), .i_reset(s_reset), .i_ref_clk200(s_clk200),
 		.i_ref_sata_clk(s_clk_150mhz),
-		// .i_user_reset(	sata_phy_reset),
+		.i_user_reset(	sata_phy_reset),
 		.o_ready(	sata_phy_ready),
 		.o_init_err(	sata_phy_init_err),
 		// WB DRP control

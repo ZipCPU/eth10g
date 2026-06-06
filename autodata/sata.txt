@@ -96,7 +96,7 @@
 		@$(PREFIX)_rxphy_error, @$(PREFIX)_rxphy_syncd,
 			@$(PREFIX)_rxphy_elecidle, @$(PREFIX)_rxphy_cominit,
 			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold,
-		@$(PREFIX)_phy_refclk, @$(PREFIX)_drp_debug
+		@$(PREFIX)_phy_refclk, @$(PREFIX)_drp_debug,
 		@$(PREFIX)_phy_debug
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
@@ -114,7 +114,7 @@
 	) u_@$(PREFIX) (
 		.i_wb_clk(s_clk), .i_reset(s_reset), .i_ref_clk200(s_clk200),
 		.i_ref_sata_clk(s_@$(REFCK)),
-		// .i_user_reset(	@$(PREFIX)_phy_reset),
+		.i_user_reset(	@$(PREFIX)_phy_reset),
 		.o_ready(	@$(PREFIX)_phy_ready),
 		.o_init_err(	@$(PREFIX)_phy_init_err),
 		// WB DRP control
