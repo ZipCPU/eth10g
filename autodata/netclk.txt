@@ -48,26 +48,48 @@
 @MAIN.DEFNS=
 	genvar	g_@$(PREFIX);
 	wire	[31:0]	w_@$(PREFIX)_rxcounter	[0:@$(NDEV)-1];
-	wire	[31:0]	w_@$(PREFIX)_txcounter;
+	wire	[31:0]	w_@$(PREFIX)_txcounter, w_@$(PREFIX)_refcounter;
 	reg		r_@$(PREFIX)_ack;
 	reg	[31:0]	r_@$(PREFIX)_data;
+	reg		r_@$(PREFIX)_pps;
+	reg	[26:0]	r_@$(PREFIX)_pps_counter;
 @MAIN.INSERT=
+	always @(posedge i_clk)
+	if (r_@$(PREFIX)_pps_counter >= 27'd100_000_000 - 1)
+	begin
+		r_@$(PREFIX)_pps_counter <= 0;
+		r_@$(PREFIX)_pps <= 1;
+	end else begin
+		r_@$(PREFIX)_pps_counter <= r_@$(PREFIX)_pps_counter+1;
+		r_@$(PREFIX)_pps <= 0;
+	end
+
 	generate for(g_@$(PREFIX)=0; g_@$(PREFIX)<@$(NDEV); g_@$(PREFIX)=g_@$(PREFIX)+1)
 	begin : MEASURE_NETCLK
 
-		clkcounter
+		clkcounter #(
+			.CLOCKFREQ_HZ(0)
+		)
 		u_rx@$(PREFIX) (
 			.i_sys_clk(i_clk), .i_tst_clk(i_gnet_rx_clk[g_@$(PREFIX)]),
-			.i_sys_pps(1'b0),
+			.i_sys_pps(r_@$(PREFIX)_pps),
 			.o_sys_counts(w_@$(PREFIX)_rxcounter[g_@$(PREFIX)])
 		);
 
 	end endgenerate
 
-	clkcounter
-	u_tx@$(PREFIX) (
+	clkcounter #(
+		.CLOCKFREQ_HZ(0)
+	) u_tx@$(PREFIX) (
 		.i_sys_clk(i_clk), .i_tst_clk(i_gnet_tx_clk[0]),
-		.i_sys_pps(1'b0), .o_sys_counts(w_@$(PREFIX)_txcounter)
+		.i_sys_pps(r_@$(PREFIX)_pps), .o_sys_counts(w_@$(PREFIX)_txcounter)
+	);
+
+	clkcounter #(
+		.CLOCKFREQ_HZ(0)
+	) u_ref@$(PREFIX) (
+		.i_sys_clk(i_clk), .i_tst_clk(i_gnet_ref_clk),
+		.i_sys_pps(r_@$(PREFIX)_pps), .o_sys_counts(w_@$(PREFIX)_refcounter)
 	);
 
 	always @(posedge i_clk)
@@ -75,8 +97,10 @@
 		if (@$(SLAVE.PREFIX)_addr[2:0] < @$(NDEV))
 			r_@$(PREFIX)_data <= w_@$(PREFIX)_rxcounter[
 				@$(SLAVE.PREFIX)_addr[1:0]];
-		else
+		else if (@$(SLAVE.PREFIX)_addr[2:0] == 3'h4)
 			r_@$(PREFIX)_data <= w_@$(PREFIX)_txcounter;
+		else if (@$(SLAVE.PREFIX)_addr[2:0] == 3'h4)
+			r_@$(PREFIX)_data <= w_@$(PREFIX)_refcounter;
 
 		if (!@$(SLAVE.PREFIX)_stb)
 			r_@$(PREFIX)_data <= 0;
@@ -92,6 +116,7 @@
 @REGS.2=2 R_RXNETCK2  RXNETCLK2 RXNETCK2
 @REGS.3=3 R_RXNETCK3  RXNETCLK3 RXNETCK3
 @REGS.4=4 R_TXNETCLK  TXNETCLK
+@REGS.5=5 R_REFNETCLK REFNETCLK
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=

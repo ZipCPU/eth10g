@@ -446,6 +446,7 @@ i_sdcard_cd_n,
 	wire	ddr3_controller_debug_clk_p, ddr3_controller_debug_clk_n;
 	// }}}
 	// 10Gb Ethernet
+	wire				gnet_ref_clk;
 	wire	[4-1:0]		gnet_rx_clk, gnet_tx_clk;
 	wire	[32*4-1:0]	gnet_rx_data;
 	wire	[32*4-1:0]	gnet_tx_data;
@@ -589,6 +590,7 @@ i_sdcard_cd_n,
 	ddr3_controller_bitslip,
 	ddr3_controller_write_leveling_calib,
 	ddr3_controller_reset,
+		gnet_ref_clk,
 		gnet_rx_clk, gnet_rx_data,
 		gnet_tx_clk, gnet_tx_data,
 		gnet_phy_fault, o_gnet_linkup, o_gnet_activity,
@@ -1252,6 +1254,8 @@ i_sdcard_cd_n,
 		//
 		.M_CLK(  gnet_rx_clk),
 		.M_DATA( gnet_rx_data),
+		//
+		.o_refck(gnet_ref_clk),
 		//
 		.i_refck_p(i_clk_156mhz_p), .i_refck_n(i_clk_156mhz_n),
 		.i_rx_p(i_gnet_p), .i_rx_n(i_gnet_n),

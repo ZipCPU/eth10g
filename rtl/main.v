@@ -279,6 +279,7 @@ module	main(i_clk, i_reset,
 		o_ddr3_controller_bitslip,
 		o_ddr3_controller_leveling_calib,
 		o_ddr3_controller_reset,
+		i_gnet_ref_clk,
 		i_gnet_rx_clk, i_gnet_rx_data,
 		i_gnet_tx_clk, o_gnet_tx_data,
 		i_gnet_phy_fault,o_gnet_linkup,o_gnet_activity,
@@ -536,6 +537,7 @@ module	main(i_clk, i_reset,
 	// }}}
 	// 10Gb Ethernet
 	// {{{
+	input	wire			i_gnet_ref_clk;
 	input	wire	[NETDEVS-1:0]	i_gnet_rx_clk;
 	input	wire [32*NETDEVS-1:0]	i_gnet_rx_data;
 	input	wire	[NETDEVS-1:0]	i_gnet_tx_clk;
@@ -592,9 +594,11 @@ module	main(i_clk, i_reset,
 	//
 	genvar	g_netclk;
 	wire	[31:0]	w_netclk_rxcounter	[0:4-1];
-	wire	[31:0]	w_netclk_txcounter;
+	wire	[31:0]	w_netclk_txcounter, w_netclk_refcounter;
 	reg		r_netclk_ack;
 	reg	[31:0]	r_netclk_data;
+	reg		r_netclk_pps;
+	reg	[26:0]	r_netclk_pps_counter;
 	// FAN/fan Controller
 	// {{{
 	// Verilator lint_off UNUSED
@@ -2242,22 +2246,42 @@ module	main(i_clk, i_reset,
 	//
 `ifdef	NETCLK_ACCESS
 	// {{{
+	always @(posedge i_clk)
+	if (r_netclk_pps_counter >= 27'd100_000_000 - 1)
+	begin
+		r_netclk_pps_counter <= 0;
+		r_netclk_pps <= 1;
+	end else begin
+		r_netclk_pps_counter <= r_netclk_pps_counter+1;
+		r_netclk_pps <= 0;
+	end
+
 	generate for(g_netclk=0; g_netclk<4; g_netclk=g_netclk+1)
 	begin : MEASURE_NETCLK
 
-		clkcounter
+		clkcounter #(
+			.CLOCKFREQ_HZ(0)
+		)
 		u_rxnetclk (
 			.i_sys_clk(i_clk), .i_tst_clk(i_gnet_rx_clk[g_netclk]),
-			.i_sys_pps(1'b0),
+			.i_sys_pps(r_netclk_pps),
 			.o_sys_counts(w_netclk_rxcounter[g_netclk])
 		);
 
 	end endgenerate
 
-	clkcounter
-	u_txnetclk (
+	clkcounter #(
+		.CLOCKFREQ_HZ(0)
+	) u_txnetclk (
 		.i_sys_clk(i_clk), .i_tst_clk(i_gnet_tx_clk[0]),
-		.i_sys_pps(1'b0), .o_sys_counts(w_netclk_txcounter)
+		.i_sys_pps(r_netclk_pps), .o_sys_counts(w_netclk_txcounter)
+	);
+
+	clkcounter #(
+		.CLOCKFREQ_HZ(0)
+	) u_refnetclk (
+		.i_sys_clk(i_clk), .i_tst_clk(i_gnet_ref_clk),
+		.i_sys_pps(r_netclk_pps), .o_sys_counts(w_netclk_refcounter)
 	);
 
 	always @(posedge i_clk)
@@ -2265,8 +2289,10 @@ module	main(i_clk, i_reset,
 		if (wb32_netclk_addr[2:0] < 4)
 			r_netclk_data <= w_netclk_rxcounter[
 				wb32_netclk_addr[1:0]];
-		else
+		else if (wb32_netclk_addr[2:0] == 3'h4)
 			r_netclk_data <= w_netclk_txcounter;
+		else if (wb32_netclk_addr[2:0] == 3'h4)
+			r_netclk_data <= w_netclk_refcounter;
 
 		if (!wb32_netclk_stb)
 			r_netclk_data <= 0;

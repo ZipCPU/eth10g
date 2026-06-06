@@ -69,11 +69,12 @@ int main(int argc, char **argv) {
 			;
 printf("---\n");
 #ifdef	_BOARD_HAS_NETCLK
+		clkreport("NET.REF",   _netclk[5]);
+		clkreport("NET.TX",    _netclk[4]);
 		clkreport("NET.RX[0]", _netclk[0]);
 		clkreport("NET.RX[1]", _netclk[1]);
 		clkreport("NET.RX[2]", _netclk[2]);
 		clkreport("NET.RX[3]", _netclk[3]);
-		clkreport("NET.TX",    _netclk[4]);
 #endif
 #ifdef	_BOARD_HAS_REFCLKCOUNTER
 		clkreport("Si5324 RefClk", (*_sirefclkcounter));
@@ -83,7 +84,7 @@ printf("---\n");
 #endif
 #ifdef	_BOARD_HAS_VIDPIPE
 		clkreport("HDMI.RX",_hdmi->v_hdmifreq);
-		clkreport("Si5324", _hdmi->v_sifreq);
+		clkreport("Vid.Si5324", _hdmi->v_sifreq);
 		clkreport("PixClk", _hdmi->v_pxfreq);
 #endif
 	}

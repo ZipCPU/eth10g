@@ -52,6 +52,8 @@ module	xgtxphy #(
 		// RX path, from PHY to IP
 		output	wire	[NDEV-1:0]	M_CLK,
 		output	wire	[32*NDEV-1:0]	M_DATA,
+		//
+		output	wire			o_refck,
 		// }}}
 		// Pad connections from PHY
 		// {{{
@@ -139,7 +141,7 @@ module	xgtxphy #(
 		.QPLLOUTREFCLK(qpll_refck),
 		// .QPLLOUTRESET(),
 		.QPLLPD(1'b0),
-		.QPLLREFCLKSEL(3'b001),		//  2:0
+		.QPLLREFCLKSEL(3'b001),			//  2:0
 
 		.QPLLRESET(pll_reset),
 
@@ -150,7 +152,7 @@ module	xgtxphy #(
 		.BGPDB(1'b1),
 		.BGRCALOVRD(5'b11111),			//  4:0
 		.RCALENB(1'b1),
-		.PMARSVD(8'h0),			//  7:0
+		.PMARSVD(8'h0),				//  7:0
 		// }}}
 		.REFCLKOUTMONITOR(),
 		.GTGREFCLK(1'b0),
