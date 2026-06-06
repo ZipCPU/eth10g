@@ -14,8 +14,9 @@ netuart
 routescope
 routestat
 rxedidscope
-satapscope
+satadscope
 satalscope
+satapscope
 satarscope
 satatscope
 sdioscope
