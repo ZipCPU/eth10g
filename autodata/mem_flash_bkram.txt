@@ -44,14 +44,14 @@
 @MASTER.BUS=wbwide
 @LD.FILE=nosdram.ld
 @LD.DEFNS=
-/* LD.DEFNS from zipmaster.txt */
+/* LD.DEFNS from @$(PREFIX) */
 _kram  = 0; /* No high-speed kernel RAM */
 _ram   = ORIGIN(bkram);
 _rom   = ORIGIN(flash);
 _top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
 
 @LD.SCRIPT=
-/* LD.SCRIPT from zipmaster.txt */
+/* LD.SCRIPT from @$(PREFIX) */
 SECTIONS
 {
        .rocode @$[0x%08x](zip.RESET_ADDRESS) : ALIGN(4) {

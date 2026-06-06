@@ -640,8 +640,9 @@ set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pi
 ## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in mem_flash_bkram
+## No XDC.INSERT tag in mem_bootrom_bkram
 ## No XDC.INSERT tag in mem_full
+## No XDC.INSERT tag in mem_flash_bkram
 ## No XDC.INSERT tag in mem_bkram_only
 ## No XDC.INSERT tag in emmcscope
 ## No XDC.INSERT tag in sdioscope
@@ -702,6 +703,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_front
 ## No XDC.INSERT tag in clk150
 ## No XDC.INSERT tag in zip_tmb
 ## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in mem_sdram_only
 ## No XDC.INSERT tag in REGISTER
 ## No XDC.INSERT tag in zip_dmac
 ## No XDC.INSERT tag in wbflashdn

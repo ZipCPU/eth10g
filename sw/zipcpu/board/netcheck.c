@@ -501,8 +501,8 @@ int main(int argc, char **argv) {
 			unsigned	ethtype;
 
 #ifdef	_BOARD_HAS_NETLOCK
-			if (netlock != _netlock) {
-				netlock = _netlock;
+			if (netlock != (*_netlock)) {
+				netlock = (*_netlock);
 				printf("NET-LOCK Change: %08x\n", netlock);
 			}
 #endif

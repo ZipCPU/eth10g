@@ -37,7 +37,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink oledchk # contest
 all:	$(PROGRAMS)
 #
 #
@@ -56,7 +56,7 @@ SOURCES := $(wildcard *.c)
 HEADERS :=
 DUMPRTL := -fdump-rtl-all
 DUMPTREE:= -fdump-tree-all
-LDSCRIPT:= bkram.ld # board.ld
+LDSCRIPT:= board.ld
 LFLAGS  := -T $(LDSCRIPT) -L../zlib -L../fatfs
 LBKRAM  := -T bkram.ld -L../zlib
 CFLAGS  := -O3 -I../zlib -I../../../rtl -I../fatfs
@@ -83,7 +83,8 @@ $(OBJDIR)/%.txt: $(OBJDIR)/%.o
 %.txt: %
 	$(OBJDUMP) -S -D $^ > $@
 
-
+OLEDSRC := oledtall.c oledshort.c i2cbuf.c txfns.c oledfb.c
+OLED := $(addprefix $(OBJDIR)/,$(subst .c,.o,$(OLEDSRC)))
 #
 # The CPUTest program here is special--it doesn't use the C library.  Hence,
 # it must have the -fno-builtin flag in order to build, and the -Tartyram.ld
@@ -115,10 +116,15 @@ $(OBJDIR)/hello.o: hello.c
 	$(CC) -O3 -c $< -o $@
 $(OBJDIR)/blink.o: blink.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
+$(OBJDIR)/oledchk.o: oledchk.c
+	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/rintftst.o: rintftst.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/gpiotoggle.o: gpiotoggle.c
 #	$(CC) -O3 -c $< -o $@
+
+oledchk: $(OBJDIR)/oledchk.o board.ld $(OLED) $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OLED) $(LIBS) -o $@
 
 blink: $(OBJDIR)/blink.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@

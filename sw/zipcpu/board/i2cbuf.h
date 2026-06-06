@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	sw/zipcpu/board/spibuf.h
+// Filename:	sw/zipcpu/board/i2cbuf.h
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -35,35 +35,32 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-#ifndef	SPIBUF_H
-#define	SPIBUF_H
+#ifndef	I2CBUF_H
+#define	I2CBUF_H
 // }}}
 
-typedef	struct	SPIBUF_S {
-	int	i_ln, i_bufsz, i_stopped, i_lastp;
+typedef	struct	I2CBUF_S {
+	int	i_ln, i_bufsz, i_half;
 	char	i_b[1];
-} SPIBUF;
+} I2CBUF;
 
-extern	SPIBUF *spib_new(int);
-extern	void spib_clear(SPIBUF *);
-extern	void spib_append(SPIBUF *, char);
-extern	void spib_appendi(SPIBUF *, char);
-extern	void spib_start(SPIBUF *, char);
-extern	void spib_stop(SPIBUF *);
+extern	I2CBUF *i2cb_new(int);
+extern	void i2cb_clear(I2CBUF *);
+extern	void i2cb_append(I2CBUF *, char);
+extern	void i2cb_noop(I2CBUF *);
+extern	void i2cb_start(I2CBUF *);
+extern	void i2cb_stop(I2CBUF *);
 
-extern	void spib_read(SPIBUF *, int);
-extern	void spib_send(SPIBUF *, int, char *);
-extern	void spib_sendc(SPIBUF *, char);
-extern	void spib_txrx(SPIBUF *, int, char *);
-extern	void spib_txrxc(SPIBUF *, char);
-extern	void spib_last(SPIBUF *);
+extern	void i2cb_addr(I2CBUF *, int);
+extern	void i2cb_read(I2CBUF *, int);
+extern	void i2cb_rdlast(I2CBUF *, int);
+extern	void i2cb_send(I2CBUF *, int, char *);
+extern	void i2cb_sendc(I2CBUF *, char);
 
-extern	void spib_wait(SPIBUF *);
-extern	void spib_halt(SPIBUF *);
-extern	void spib_tick(SPIBUF *);
-extern	void spib_target(SPIBUF *);
-extern	void spib_jump(SPIBUF *);
-extern	void spib_channel(SPIBUF *, int);
-extern	void spib_noop(SPIBUF *);
+extern	void i2cb_wait(I2CBUF *);
+extern	void i2cb_halt(I2CBUF *);
+extern	void i2cb_target(I2CBUF *);
+extern	void i2cb_jump(I2CBUF *);
+extern	void i2cb_channel(I2CBUF *, int);
 
 #endif

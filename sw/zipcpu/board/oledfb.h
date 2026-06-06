@@ -40,11 +40,11 @@
 // }}}
 
 extern	OLEDFONT	*fb_font;
-struct	OLEDBW;
+// struct	I2CCPU;
 
 // The OLED "framebuffer"
 typedef	struct	OLED_FB_S {
-	OLEDBW	*dev;
+	I2CCPU	*dev;
 	int	W, H, wrap, dirty;
 	int	x, y;
 	char	b[1];

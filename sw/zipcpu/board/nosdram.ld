@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-* Filename:	board.ld
+* Filename:	nosdram.ld
 * {{{
 * Project:	10Gb Ethernet switch
 *
@@ -65,40 +65,38 @@ MEMORY
 _bkram    = ORIGIN(bkram);
 _flash    = ORIGIN(flash);
 _sdram    = ORIGIN(sdram);
-/* LD.DEFNS from mem_full */
-_kram  = ORIGIN(bkram); /* No high-speed kernel RAM */
-_ram   = ORIGIN(sdram);
+/* LD.DEFNS from mem_flash_bkram */
+_kram  = 0; /* No high-speed kernel RAM */
+_ram   = ORIGIN(bkram);
 _rom   = ORIGIN(flash);
-_top_of_stack = ORIGIN(sdram) + LENGTH(sdram);
+_top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
 
 
 _rtccount = 0x02000358;
 _pwrcount = 0x02000354;
 _uart = 0x02000120;
-/* LD.SCRIPT from mem_full */
+/* LD.SCRIPT from mem_flash_bkram */
 SECTIONS
 {
-       .ramcode 0x06e00000 : ALIGN(4) {
+       .rocode 0x06e00000 : ALIGN(4) {
                _boot_address = .;
                *(.start) *(.boot)
                *(.text.startup)
-        } > flash
-        _kram_start = .;
-        .kernel : ALIGN_WITH_INPUT {
-               *(.kernel)
-                }> bkram AT> flash
-        _kram_end = .;
-        _ram_image_start = . ;
-        .text : ALIGN_WITH_INPUT {
                *(.text*)
                *(.rodata*) *(.strings)
+       } > flash
+       _kram_start = . ;
+       _kram_end = . ;
+       _ram_image_start = . ;
+       .kernel : ALIGN_WITH_INPUT {
+               *(.kernel)
                *(.data) *(COMMON)
-               }> sdram AT> flash
+               }> bkram AT> flash
        _ram_image_end = . ;
        .bss : ALIGN_WITH_INPUT {
                *(.bss)
                _bss_image_end = . ;
-               } > sdram
+               } > bkram
        _top_of_heap = .;
 }
 

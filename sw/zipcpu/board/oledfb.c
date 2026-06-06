@@ -36,28 +36,34 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 #include <stdlib.h>
-#include <txfns.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <zipcpu.h>
+#include "txfns.h"
 #include "board.h"
 #include "oledfont.h"
 #include "oledfb.h"
-#include "spibuf.h"
+#include "i2cbuf.h"
 // }}}
+
+const unsigned	I2CMUX_ADDR	= 0xe8,
+		I2CMUX_WR	= 0,
+		// I2CMUX_RD	= 1,
+		I2CMUX_OLED	= 0x86,
+		OLED_ADDR	= 0x78,
+		OLED_CONTROL	= 0x80,
+		OLED_DATA	= 0x40;
 
 OLEDFONT	*fb_font;
 OLED_FB	*fb;
-SPIBUF	*sb = NULL;
-static const unsigned SPIC_STOPPED = 1;
+I2CBUF	*sb = NULL;
 
 void oled_init(void) {
 	// {{{
 	unsigned sz = sizeof(OLED_FB) + 128*4 - 1;
-
 	fb = (OLED_FB *)malloc(sz);
-#ifdef	_BOARD_HAS_OLEDBW
-	fb->dev = (OLEDBW *)_oled;
+#ifdef	_BOARD_HAS_I2CCPU
+	fb->dev = (I2CCPU *)_i2c;
 #else
 	fb->dev = NULL;
 #endif
@@ -65,80 +71,119 @@ void oled_init(void) {
 	fb->H = 4;
 	fb->wrap = 0;
 	fb->dirty = 0;
-
 	oled_clear();
 }
 // }}}
 
 void oled_hwsetup(void) {
 	// {{{
-	char	cmdbuf[48];
+	char	cmdbuf[96];
 
 	oled_init();
 	if (NULL == sb) {
-		unsigned sz = 64 + 33 * ((fb->W * fb->H + 31)/32);
-		sb = spib_new(sz);
+		unsigned sz = 2*68 + 2 * 33 * ((fb->W * fb->H + 31)/32);
+		sb = i2cb_new(sz);
 		if (NULL == sb) {
-			txstr("ERROR: SPIBUF Alloc failed!\n");
+			txstr("ERROR: I2CBUF Alloc failed!\n");
 			zip_break();
 		}
 	}
 
-	spib_start(sb, 0);
-	cmdbuf[ 0] = 0xae;	// Display off
-	cmdbuf[ 1] = 0xd5;	// Set display clockdiv
-	cmdbuf[ 2] = 0x80;
-	cmdbuf[ 3] = 0xa8;	// Set multiplex ratio
-	cmdbuf[ 4] = 31;	//   Height - 1
-	cmdbuf[ 5] = 0xd3;	// Display offset
-	cmdbuf[ 6] = 0x00;	//   Offset = 0
-	cmdbuf[ 7] = 0x40;	// Display start line = 0
-	cmdbuf[ 8] = 0x8d;	// Charge pump = 0x14 (Internal VCC)
-	cmdbuf[ 9] = 0x14;	//   0x10 for a 3.3V internal source
-	cmdbuf[10] = 0x20;	// Memory mode
-	cmdbuf[11] = 0x01;	//   Vertical addressing mode
-	cmdbuf[12] = 0xa0;	//   SEGREMAP: Col0 mapd to seg0
-	cmdbuf[13] = 0xc0;	//   COMSCANDEC: Map COM0 to COM31
-	cmdbuf[14] = 0xda;	// Set compins = 0x02
-	cmdbuf[15] = 0x02;	//   Sequential COM, disable lft/rht remap
-	cmdbuf[16] = 0x81;	// Set contrast = 0x8f
-	cmdbuf[17] = 0x8f;	//   New contrast
-	cmdbuf[18] = 0xd9;	// Set precharge = 0xf1
-	cmdbuf[19] = 0xf1;	//   New precharge
-	cmdbuf[20] = 0xdb;	// Set SETVCOMDETECT
-	cmdbuf[21] = 0x40;	//   Comm deselect = (not given)
-	cmdbuf[22] = 0xa4;	// DISPLAYALLON_RESUME
-	cmdbuf[23] = 0xa6;	// Normal Display
-	cmdbuf[24] = 0x2e;	// Deactivate scroll
-	cmdbuf[25] = 0x20;	// Set memory addressing mode
-	cmdbuf[26] = 0x00;	//   Horizontal addressing mode
-	cmdbuf[27] = 0x21;	// Set column address
-	cmdbuf[28] = 0x00;	//   Column start address = 0
-	cmdbuf[29] = 0x7f;	//   Column end address = 127
-	cmdbuf[30] = 0x22;	// Set page start and end address
-	cmdbuf[31] = 0x00;	//   Page start address = 00
-	cmdbuf[32] = 0x03;	//   Page end address = 3 (i.e. 32bits high)
-	spib_send(sb, 33, cmdbuf);
-	spib_stop(sb);
-	spib_start(sb, 1);	// Initiate a data transaction
-	cmdbuf[0] = 0;
+	i2cb_clear(sb);
+	i2cb_start(sb);
+	i2cb_addr(sb,  I2CMUX_ADDR|I2CMUX_WR);
+	i2cb_sendc(sb, I2CMUX_OLED);
+	i2cb_start(sb);
+	i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
+
+	cmdbuf[ 0] = OLED_CONTROL;
+	cmdbuf[ 1] = 0xae;	// Display off
+	cmdbuf[ 2] = OLED_CONTROL;
+	cmdbuf[ 3] = 0xd5;	// Set display clockdiv
+	cmdbuf[ 4] = OLED_CONTROL;
+	cmdbuf[ 5] = 0x80;
+	cmdbuf[ 6] = OLED_CONTROL;
+	cmdbuf[ 7] = 0xa8;	// Set multiplex ratio
+	cmdbuf[ 8] = OLED_CONTROL;
+	cmdbuf[ 9] = 31;	//   Height - 1
+	cmdbuf[10] = OLED_CONTROL;
+	cmdbuf[11] = 0xd3;	// Display offset
+	cmdbuf[12] = OLED_CONTROL;
+	cmdbuf[13] = 0x00;	//   Offset = 0
+	cmdbuf[14] = OLED_CONTROL;
+	cmdbuf[15] = 0x40;	// Display start line = 0
+	cmdbuf[16] = OLED_CONTROL;
+	cmdbuf[17] = 0x8d;	// Charge pump = 0x14 (Internal VCC)
+	cmdbuf[18] = OLED_CONTROL;
+	cmdbuf[19] = 0x14;	//   0x10 for a 3.3V internal source
+	cmdbuf[20] = OLED_CONTROL;
+	cmdbuf[21] = 0x20;	// Memory mode
+	cmdbuf[22] = OLED_CONTROL;
+	cmdbuf[23] = 0x01;	//   Vertical addressing mode
+	cmdbuf[24] = OLED_CONTROL;
+	cmdbuf[25] = 0xa0;	//   SEGREMAP: Col0 mapd to seg0
+	cmdbuf[26] = OLED_CONTROL;
+	cmdbuf[27] = 0xc0;	//   COMSCANDEC: Map COM0 to COM31
+	cmdbuf[28] = OLED_CONTROL;
+	cmdbuf[29] = 0xda;	// Set compins = 0x02
+	cmdbuf[30] = OLED_CONTROL;
+	cmdbuf[31] = 0x02;	//   Sequential COM, disable lft/rht remap
+	cmdbuf[32] = OLED_CONTROL;
+	cmdbuf[33] = 0x81;	// Set contrast = 0x8f
+	cmdbuf[34] = OLED_CONTROL;
+	cmdbuf[35] = 0x8f;	//   New contrast
+	cmdbuf[36] = OLED_CONTROL;
+	cmdbuf[37] = 0xd9;	// Set precharge = 0xf1
+	cmdbuf[38] = OLED_CONTROL;
+	cmdbuf[39] = 0xf1;	//   New precharge
+	cmdbuf[40] = OLED_CONTROL;
+	cmdbuf[41] = 0xdb;	// Set SETVCOMDETECT
+	cmdbuf[42] = OLED_CONTROL;
+	cmdbuf[43] = 0x40;	//   Comm deselect = (not given)
+	cmdbuf[44] = OLED_CONTROL;
+	cmdbuf[45] = 0xa4;	// DISPLAYALLON_RESUME
+	cmdbuf[46] = OLED_CONTROL;
+	cmdbuf[47] = 0xa6;	// Normal Display
+	cmdbuf[48] = OLED_CONTROL;
+	cmdbuf[49] = 0x2e;	// Deactivate scroll
+	cmdbuf[50] = OLED_CONTROL;
+	cmdbuf[51] = 0x20;	// Set memory addressing mode
+	cmdbuf[52] = OLED_CONTROL;
+	cmdbuf[53] = 0x00;	//   Horizontal addressing mode	[ LOGO->Vert,1 ]
+	cmdbuf[54] = OLED_CONTROL;
+	cmdbuf[55] = 0x21;	// Set column address
+	cmdbuf[56] = OLED_CONTROL;
+	cmdbuf[57] = 0x00;	//   Column start address = 0
+	cmdbuf[58] = OLED_CONTROL;
+	cmdbuf[59] = 0x7f;	//   Column end address = 127
+	cmdbuf[60] = OLED_CONTROL;
+	cmdbuf[61] = 0x22;	// Set page start and end address
+	cmdbuf[62] = OLED_CONTROL;
+	cmdbuf[63] = 0x00;	//   Page start address = 00
+	cmdbuf[64] = OLED_CONTROL;
+	cmdbuf[65] = 0x03;	//   Page end address = 3 (i.e. 32bits high)
+	i2cb_send(sb, 66, cmdbuf);
 	// for(int k=0; k<128*4; k++)
 	//	// Set the initial screen to all black
-	//	spib_sendc(sb, 0);
+	//	i2cb_sendc(sb, 0);
 	for(int i=0; i<fb->H * fb->W; i++)
 		fb->b[i] = 0;
-	spib_send(sb, fb->H * fb->W, fb->b);
-	spib_stop(sb);
-	spib_start(sb, 0);
-	cmdbuf[0] = 0xa6;	// Normal display
-	cmdbuf[1] = 0xaf;	// Turn the display on
-	spib_send(sb, 2, cmdbuf);
-	spib_stop(sb);
-	spib_halt(sb);
+	i2cb_start(sb);	// Initiate a data transaction
+	i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
+	i2cb_sendc(sb, OLED_DATA);	// All data, from here on out
+	i2cb_send(sb, fb->H * fb->W, fb->b);
+	i2cb_start(sb);
+	cmdbuf[0] = OLED_CONTROL;
+	cmdbuf[1] = 0xa6;	// Normal display	[ Inverse in logo ]
+	cmdbuf[2] = OLED_CONTROL;
+	cmdbuf[3] = 0xaf;	// Turn the display on
+	i2cb_send(sb, 4, cmdbuf);
+	i2cb_stop(sb);
+	i2cb_halt(sb);
 
 	while(oled_busy())
 		;	// Shouldn't be busy, but check anyway
-	fb->dev->o_addr = (unsigned)&sb->i_b;
+	fb->dev->ic_address = (unsigned)&sb->i_b;
 }
 // }}}
 
@@ -316,36 +361,50 @@ void oled_flush(void) {
 		txstr("ERROR: No OLED device\n");
 		return;
 	} if (NULL == sb) {
-		sb = spib_new(64 + 33 * ((fb->W * fb->H + 31)/32));
+		sb = i2cb_new(96 + 33 * ((fb->W * fb->H + 31)/32));
 		if (NULL == sb) {
-			txstr("ERROR: SPIBUF Alloc failed!\n");
+			txstr("ERROR: I2CBUF Alloc failed!\n");
 			return;
 		}
 	}
 
-	if (fb->dev->o_cmd & SPIC_STOPPED) {
+	if (fb->dev->ic_control && I2CC_STOPPED) {
 		// {{{
-		spib_clear(sb);
-		spib_start(sb, 0);
+		i2cb_clear(sb);
+		i2cb_start(sb);
+		i2cb_addr(sb,  I2CMUX_ADDR|I2CMUX_WR);
+		i2cb_sendc(sb, I2CMUX_OLED);
+		i2cb_start(sb);
+		i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
+		cmdbuf[0] = OLED_CONTROL;
+		cmdbuf[0] = 0x21;
 		// Set memory addressing mode
 		// cmdbuf[0] = 0x20;	// But we're always in ...
 		// cmdbuf[1] = 0x00;	// Horizontal addressing mode
 		// Set column address (0x21)
-		cmdbuf[0] = 0x21;
-		cmdbuf[1] = 0x00;	// Column start address = 0
-		cmdbuf[2] = 0x7f;	// Column end   address = 127 (0x3f)
+		cmdbuf[ 0] = OLED_CONTROL;
+		cmdbuf[ 1] = 0x21;
+		cmdbuf[ 2] = OLED_CONTROL;
+		cmdbuf[ 3] = 0x00;	// Column start address = 0
+		cmdbuf[ 4] = OLED_CONTROL;
+		cmdbuf[ 5] = 0x7f;	// Column end   address = 127 (0x3f)
 		// Set page address (0x22)
-		cmdbuf[3] = 0x22;	// Set page start & end address
-		cmdbuf[4] = 0x00;	// Page start address = 0
-		cmdbuf[5] = 0x03;	// Page end   address = 3
+		cmdbuf[ 6] = OLED_CONTROL;
+		cmdbuf[ 7] = 0x22;	// Set page start & end address
+		cmdbuf[ 8] = OLED_CONTROL;
+		cmdbuf[ 9] = 0x00;	// Page start address = 0
+		cmdbuf[10] = OLED_CONTROL;
+		cmdbuf[11] = 0x03;	// Page end   address = 3
 		// Now ... send the command buffer
-		spib_send(sb, 6, cmdbuf);
-		spib_stop(sb);
-		spib_start(sb, 1);
-		spib_send(sb, fb->W * fb->H, fb->b);
-		spib_halt(sb);
+		i2cb_send(sb, 12, cmdbuf);
+		i2cb_start(sb);
+		i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
+		i2cb_sendc(sb, OLED_DATA);
+		i2cb_send(sb, fb->W * fb->H, fb->b);
+		i2cb_stop(sb);
+		i2cb_halt(sb);
 
-		fb->dev->o_addr = (unsigned)&sb->i_b;
+		fb->dev->ic_address = (unsigned)&sb->i_b;
 
 		fb->dirty = 0;
 	}
@@ -358,7 +417,7 @@ int	oled_busy(void) {
 	if (NULL == fb || NULL == fb->dev)
 		return 0;
 
-	if (fb->dev->o_cmd & SPIC_STOPPED)
+	if (fb->dev->ic_control && I2CC_STOPPED)
 		return 0;
 	return 1;
 }

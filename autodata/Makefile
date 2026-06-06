@@ -60,7 +60,7 @@ CPU     := zipmaster.txt
 NETWORK := netrouter.txt cpunet.txt netstats.txt	# Full router, virtual FIFOs, CPU FIFO
 GFX     := # hdmi.txt cec.txt edid.txt
 SCOPES  := busscope.txt routescope.txt i2cscope.txt gatescope.txt netscope.txt sdioscope.txt emmcscope.txt flashscope.txt # cpunetscope.txt hdmiclrscope.txt rxedidscope.txt fanscope.txt cfgscope.txt # satascope.txt
-LDSCRIPT:= mem_bkram_only.txt mem_full.txt mem_flash_bkram.txt # mem_bootrom_bkram.txt mem_sdram_only.txt
+LDSCRIPT:= mem_bkram_only.txt mem_sdram_only.txt mem_flash_bkram.txt mem_full.txt mem_bootrom_bkram.txt
 OTHER   := i2ccpu.txt fan.txt sirefclkcounter.txt netclk.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
 	$(MEMORY) $(DISKDR) $(NETWORK) $(GFX)			\

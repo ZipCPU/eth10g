@@ -7,6 +7,9 @@
 // Purpose:	Instructions for the I2C CPU, to generate a logo output on the
 //		SSD1306.
 //
+//	This file is specific to the KlusterLab v1, where the SSD display was
+//	in a "vertical" orientation.
+//
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
@@ -37,7 +40,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
 //
-
 
 const char i2casm[] = {
 	0x13, 0xe8, 0x30, 0x07, 0x21, 0x30, 0x78, 0x30,

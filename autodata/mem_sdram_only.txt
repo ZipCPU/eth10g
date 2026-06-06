@@ -48,18 +48,18 @@
 @LD.DEFNS=
 /* LD.DEFNS from zipmaster.txt */
 _kram  = 0; /* No high-speed kernel RAM */
-_ram   = ORIGIN(streamram);
+_ram   = ORIGIN(sdram);
 _rom   = 0;
-_top_of_stack = ORIGIN(streamram) + LENGTH(streamram);
+_top_of_stack = ORIGIN(sdram) + LENGTH(sdram);
 
 @LD.SCRIPT=
 /* LD.SCRIPT from zipmaster.txt */
 SECTIONS
 {
-       .rocode ORIGIN(streamram) : ALIGN(4) {
+       .rocode ORIGIN(sdram) : ALIGN(4) {
                _boot_address = .;
                *(.start) *(.boot)
-               } > streamram
+               } > sdram
        _kram_start = . ;
        _kram_end = . ;
        _ram_image_start = . ;
@@ -69,11 +69,11 @@ SECTIONS
                *(.text*)
                *(.rodata*) *(.strings)
                *(.data) *(COMMON)
-               }> streamram
+               }> sdram
        _ram_image_end = . ;
        .bss : ALIGN_WITH_INPUT {
                *(.bss)
                _bss_image_end = . ;
-               } > streamram
+               } > sdram
        _top_of_heap = .;
 }

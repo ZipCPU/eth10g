@@ -46,27 +46,31 @@
 @LD.FILE=board.ld
 @LD.DEFNS=
 /* LD.DEFNS from @$(PREFIX) */
-_kram  = 0; /* No high-speed kernel RAM */
-_ram   = ORIGIN(bkram);
-_rom   = 0;	/* Should be ORIGIN(flash); */
-_top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
+_kram  = ORIGIN(bkram); /* No high-speed kernel RAM */
+_ram   = ORIGIN(sdram);
+_rom   = ORIGIN(flash);
+_top_of_stack = ORIGIN(sdram) + LENGTH(sdram);
 
 @LD.SCRIPT=
 /* LD.SCRIPT from @$(PREFIX) */
 SECTIONS
 {
-       .ramcode ORIGIN(sdram) : ALIGN(4) {
+       .ramcode @$[0x%08x](zip.RESET_ADDRESS) : ALIGN(4) {
                _boot_address = .;
-               _kram_start = .;
-               _kram_end = .;
-       		_ram_image_start = . ;
                *(.start) *(.boot)
-               *(.kernel)
                *(.text.startup)
+        } > flash
+        _kram_start = .;
+        .kernel : ALIGN_WITH_INPUT {
+               *(.kernel)
+                }> bkram AT> flash
+        _kram_end = .;
+        _ram_image_start = . ;
+        .text : ALIGN_WITH_INPUT {
                *(.text*)
                *(.rodata*) *(.strings)
                *(.data) *(COMMON)
-               }> sdram
+               }> sdram AT> flash
        _ram_image_end = . ;
        .bss : ALIGN_WITH_INPUT {
                *(.bss)
