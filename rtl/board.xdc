@@ -4,8 +4,8 @@ set_property -dict { PACKAGE_PIN AC9 IOSTANDARD DIFF_SSTL15 } [get_ports i_clk_2
 set_property -dict { PACKAGE_PIN AD9 IOSTANDARD DIFF_SSTL15 } [get_ports i_clk_200mhz_n]
 create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_clk_200mhz_p]
 
-#set_property -dict { PACKAGE_PIN F6 } [get_ports i_clk_150mhz_p];	## 150MHz_REFCLK_P
-#set_property -dict { PACKAGE_PIN F5 } [get_ports i_clk_150mhz_n];	## 150MHz_REFCLK_N
+set_property -dict { PACKAGE_PIN F6 } [get_ports i_clk_150mhz_p];	## 150MHz_REFCLK_P
+set_property -dict { PACKAGE_PIN F5 } [get_ports i_clk_150mhz_n];	## 150MHz_REFCLK_N
 ## The 150MHz clock will be declared in sata.txt, so it doesn't need to be
 ## declared here or now.
 ## create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_ports i_clk_150mhz_p]
@@ -279,10 +279,10 @@ set_property -dict {PACKAGE_PIN D26 IOSTANDARD LVCMOS18} [get_ports o_emmc_reset
 
 ## SATA
 ## {{{
-#set_property -dict {PACKAGE_PIN B2} [get_ports o_sata_p];	## SATA_TX_C_P
-#set_property -dict {PACKAGE_PIN B1} [get_ports o_sata_n];	## SATA_TX_C_N
-#set_property -dict {PACKAGE_PIN C4} [get_ports i_sata_p];	## SATA_RX_C_P
-#set_property -dict {PACKAGE_PIN C3} [get_ports i_sata_n];	## SATA_RX_C_N
+set_property -dict {PACKAGE_PIN B2} [get_ports o_sata_p];	## SATA_TX_C_P
+set_property -dict {PACKAGE_PIN B1} [get_ports o_sata_n];	## SATA_TX_C_N
+set_property -dict {PACKAGE_PIN C4} [get_ports i_sata_p];	## SATA_RX_C_P
+set_property -dict {PACKAGE_PIN C3} [get_ports i_sata_n];	## SATA_RX_C_N
 ## }}}
 
 ## DDR3
@@ -642,12 +642,45 @@ set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pi
 ## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in mem_bootrom_bkram
 ## No XDC.INSERT tag in mem_full
-## No XDC.INSERT tag in mem_flash_bkram
 ## No XDC.INSERT tag in mem_bkram_only
+## From satapscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/satapscopei/new_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/satapscopei/qd_data*}] 8
+## No XDC.INSERT tag in mem_flash_bkram
+## From satalscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satalscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+## From satarscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+## From satarefcounter
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v*}] 8.0
+## From satarxck
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/q_v*}] 8.0
 ## No XDC.INSERT tag in emmcscope
 ## No XDC.INSERT tag in sdioscope
 ## From netlock
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
+## No XDC.INSERT tag in satatscope
 ## From netdbg
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
@@ -655,77 +688,6 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in routescope
 ## No XDC.INSERT tag in busscope
-## No XDC.INSERT tag in wbu_arbiter
-## No XDC.INSERT tag in spio
-## No XDC.INSERT tag in netscope
-## No XDC.INSERT tag in flashcfg
-## No XDC.INSERT tag in rtccount
-## No XDC.INSERT tag in pwrcount
-## No XDC.INSERT tag in sirefclk
-## No XDC.INSERT tag in ddr3_phy
-## From cfg
-## No XDC.INSERT tag in version
-## No XDC.INSERT tag in zip_alt_mpc
-## No XDC.INSERT tag in clk
-## No XDC.INSERT tag in XDC
-## No XDC.INSERT tag in zip
-## No XDC.INSERT tag in cpunet
-## No XDC.INSERT tag in KEYS
-## No XDC.INSERT tag in wb
-## No XDC.INSERT tag in RESET_ADDRESS
-## No XDC.INSERT tag in wbdown
-## No XDC.INSERT tag in wb32
-## From siclk
-set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
-## No XDC.INSERT tag in buildtime
-## No XDC.INSERT tag in REGDEFS
-## No XDC.INSERT tag in zip_alt_mtc
-## No XDC.INSERT tag in zip_alt_uic
-## No XDC.INSERT tag in clk200
-## No XDC.INSERT tag in prebus
-## No XDC.INSERT tag in wbu
-## No XDC.INSERT tag in SIM
-## No XDC.INSERT tag in flashdbg
-## No XDC.INSERT tag in uart
-## No XDC.INSERT tag in altpic
-## No XDC.INSERT tag in DEFAULT
-## No XDC.INSERT tag in flash
-## No XDC.INSERT tag in zip_alt_mic
-## No XDC.INSERT tag in gpio
-## From sdio
-set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
-
-## No XDC.INSERT tag in zip_alt_moc
-## No XDC.INSERT tag in zip_alt_utc
-## No XDC.INSERT tag in clk150
-## No XDC.INSERT tag in zip_tmb
-## No XDC.INSERT tag in zip_tmc
-## No XDC.INSERT tag in mem_sdram_only
-## No XDC.INSERT tag in REGISTER
-## No XDC.INSERT tag in zip_dmac
-## No XDC.INSERT tag in wbflashdn
-## From emmc
-set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
-
-## No XDC.INSERT tag in zip_jiffies
-## From sdslav
-create_clock -period 20.0 -name SDSLVCK -waveform { 0.0 10.0 } -add [get_ports i_sdslav_clk]
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {i_sdslav_clk}];
-## No XDC.INSERT tag in syspic
-## No XDC.INSERT tag in zip_alt_uoc
-## No XDC.INSERT tag in zip_alt_upc
-## No XDC.INSERT tag in netstats
-## No XDC.INSERT tag in TMA
-## No XDC.INSERT tag in bkram
-## No XDC.INSERT tag in ddr3_controller
-## No XDC.INSERT tag in alt
-## No XDC.INSERT tag in netreset
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
 create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
@@ -760,3 +722,129 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GE
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rgray_r*}] 3.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_afifo/rd_wgray_r*}] 3.0
 create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
+## No XDC.INSERT tag in wbu_arbiter
+## No XDC.INSERT tag in spio
+## No XDC.INSERT tag in netscope
+## No XDC.INSERT tag in flashcfg
+## No XDC.INSERT tag in rtccount
+## No XDC.INSERT tag in pwrcount
+## No XDC.INSERT tag in sirefclk
+## No XDC.INSERT tag in netreset
+## No XDC.INSERT tag in alt
+## No XDC.INSERT tag in ddr3_phy
+## From cfg
+## No XDC.INSERT tag in version
+## No XDC.INSERT tag in zip_alt_mpc
+## No XDC.INSERT tag in clk
+## No XDC.INSERT tag in XDC
+## No XDC.INSERT tag in zip
+## No XDC.INSERT tag in cpunet
+## No XDC.INSERT tag in KEYS
+## No XDC.INSERT tag in wb
+## No XDC.INSERT tag in RESET_ADDRESS
+## No XDC.INSERT tag in wbdown
+## No XDC.INSERT tag in wb32
+## From siclk
+set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
+## From satatxck
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v*}] 8.0
+## No XDC.INSERT tag in buildtime
+## No XDC.INSERT tag in REGDEFS
+## No XDC.INSERT tag in zip_alt_mtc
+## No XDC.INSERT tag in zip_alt_uic
+## No XDC.INSERT tag in clk200
+## No XDC.INSERT tag in prebus
+## No XDC.INSERT tag in wbu
+## No XDC.INSERT tag in SIM
+## No XDC.INSERT tag in flashdbg
+## No XDC.INSERT tag in uart
+## No XDC.INSERT tag in altpic
+## No XDC.INSERT tag in DEFAULT
+## No XDC.INSERT tag in flash
+## No XDC.INSERT tag in zip_alt_mic
+## No XDC.INSERT tag in gpio
+## From sdio
+set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
+
+## No XDC.INSERT tag in satadrp
+## No XDC.INSERT tag in zip_alt_moc
+## No XDC.INSERT tag in zip_alt_utc
+## No XDC.INSERT tag in clk150
+## No XDC.INSERT tag in zip_tmb
+## No XDC.INSERT tag in zip_tmc
+## No XDC.INSERT tag in mem_sdram_only
+## No XDC.INSERT tag in REGISTER
+## No XDC.INSERT tag in zip_dmac
+## No XDC.INSERT tag in wbflashdn
+## From emmc
+set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
+
+## No XDC.INSERT tag in zip_jiffies
+## From sdslav
+create_clock -period 20.0 -name SDSLVCK -waveform { 0.0 10.0 } -add [get_ports i_sdslav_clk]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {i_sdslav_clk}];
+## No XDC.INSERT tag in syspic
+## No XDC.INSERT tag in zip_alt_uoc
+## No XDC.INSERT tag in zip_alt_upc
+## No XDC.INSERT tag in netstats
+## No XDC.INSERT tag in TMA
+## No XDC.INSERT tag in bkram
+## No XDC.INSERT tag in ddr3_controller
+## From sata
+create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_ports i_clk_150mhz_p]
+create_clock -name SATARX -period 26.6664 [get_pins u_sata/u_gtx_channel/RXOUTCLK]
+create_clock -name SATATX -period 26.6664 [get_pins u_sata/u_gtx_channel/TXOUTCLK]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
+set_max_delay -from [get_cells -hier -filter {NAME=~ u_sata/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/gtx_reset_pipe*}] 4
+set_max_delay -from [get_cells -hier -filter {NAME=~ u_sata/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/gtx_reset_pipe*}] 4
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_pll_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_gtx_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_user_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/tx_link_reset*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/tx_reset*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/phy_reset_n*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txgears/GEN_LAST.r_last*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txgears/GEN_LAST.m_last*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txgears/GEN_NEXT.r_next*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txgears/sreg*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_tx_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txgears/fill*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rxregfis/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rxregfis/u_reg_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rxregfis/u_reg_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rxregfis/u_reg_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rxregfis/u_reg_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rxregfis/u_reg_afifo/GEN_REGISTERED_READ.o_rd_data*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rx_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_rx_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/phy_reset_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/rx_linkup*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/*reset*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/mem*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/GEN_REGISTERED_READ.o_rd_data*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_fsm/o_s2mm_request*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/rx_reset_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/qpll_reset*}] -to [get_pins u_sata/u_gtx_channel/TXPD[0]] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/qpll_reset*}] -to [get_pins u_sata/u_gtx_channel/TXPD[1]] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/tx_gate*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/txgate_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/rx_fifo/r_empty*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/link_fsm/o_debug*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/rx_fifo/r_empty*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/link_fsm/link_state*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_s2mm/o_busy*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/rx_reset_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/deframer/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_tran_abort_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/o_fill*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/rd_addr*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/wr_addr*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txfifo/r_empty*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_packet/rx_crc/M_AXIS_TABORT*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_tran_abort_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/o_link_up*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_link_up_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/link_fsm/o_error*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_link_up_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/link_fsm/o_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/wb_link_up_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/aux_clk*}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/phyck_msb_xpipe*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_init/aux_clk*}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/phyck_msb_xpipe*}] 10

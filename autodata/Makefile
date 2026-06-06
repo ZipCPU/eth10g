@@ -53,13 +53,15 @@ AUX     := version.txt pwrcount.txt rtccount.txt	# buserr.txt
 IO      := gpio.txt spio.txt
 DBGBUS  := wbuconsole.txt
 MEMORY  := bkram.txt ddr3.txt flash.txt # bkrom.txt
-DISKDR  := sdio.txt emmc.txt sdslave.txt # sata.txt cruviemmc.txt
+DISKDR  := sdio.txt emmc.txt sdslave.txt sata.txt # cruviemmc.txt
 CPU     := zipmaster.txt
 ## NETWORK := netled.txt		# No network, just network LED testing
 ## NETWORK := netduplex.txt		# Pass through test, no routing
 NETWORK := netrouter.txt cpunet.txt netstats.txt	# Full router, virtual FIFOs, CPU FIFO
 GFX     := # hdmi.txt cec.txt edid.txt
-SCOPES  := busscope.txt routescope.txt i2cscope.txt gatescope.txt netscope.txt sdioscope.txt emmcscope.txt flashscope.txt # cpunetscope.txt hdmiclrscope.txt rxedidscope.txt fanscope.txt cfgscope.txt # satascope.txt
+SCOPES  := busscope.txt routescope.txt i2cscope.txt gatescope.txt netscope.txt sdioscope.txt emmcscope.txt flashscope.txt satascope.txt
+# Unused scopes: cpunetscope.txt hdmiclrscope.txt rxedidscope.txt
+#	fanscope.txt cfgscope.txt
 LDSCRIPT:= mem_bkram_only.txt mem_sdram_only.txt mem_flash_bkram.txt mem_full.txt mem_bootrom_bkram.txt
 OTHER   := i2ccpu.txt fan.txt sirefclkcounter.txt netclk.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\
