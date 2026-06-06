@@ -78,10 +78,6 @@ public:
 	}
 
 	virtual	void	define_traces(void) {
-		register_trace("tx_fsm_state",     4, 27);
-		//
-		register_trace("qpll_refck_lost",  1, 26);
-		//
 		register_trace("wb_cyc",         1, 30);
 		register_trace("wb_stb",         1, 29);
 		register_trace("wb_we",          1, 28);
@@ -111,7 +107,7 @@ int main(int argc, char **argv) {
 		scope->decode_control();
 	} else {
 		scope->print();
-		scope->writevcd("satapscope.vcd");
+		scope->writevcd("satadrpscope.vcd");
 	}
 }
 

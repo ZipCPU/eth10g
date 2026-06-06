@@ -124,6 +124,7 @@
 			.i_wb_data(sata_drp_data), .i_wb_sel(sata_drp_sel),
 		.o_wb_stall(sata_drp_stall),
 			.o_wb_ack(sata_drp_ack), .o_wb_data(sata_drp_idata),
+			.o_wb_ack(sata_drp_err),
 		// }}}
 		// Transmitter control
 		// {{{
@@ -379,12 +380,12 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 @TOP.MAIN=
 		sata_drp_cyc, sata_drp_stb, sata_drp_we, sata_drp_addr,
 		sata_drp_data, sata_drp_sel, sata_drp_stall, sata_drp_ack,
-		sata_drp_idata
+		sata_drp_idata, sata_drp_err
 @TOP.DEFNS=
 	// @$(PREFIX) Definitions
 	// {{{
 	wire		sata_drp_cyc, sata_drp_stb, sata_drp_we,
-			sata_drp_stall, sata_drp_ack;
+			sata_drp_stall, sata_drp_ack, sata_drp_err;
 	wire	[10:0]	sata_drp_addr;
 	wire	[31:0]	sata_drp_data, sata_drp_idata;
 	wire	[3:0]	sata_drp_sel;
@@ -394,7 +395,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we,
 		o_sata_drp_addr,
 		o_sata_drp_data, o_sata_drp_sel,
-		i_sata_drp_stall, i_sata_drp_ack, i_sata_drp_data
+		i_sata_drp_stall, i_sata_drp_ack, i_sata_drp_data,
+		i_sata_drp_err
 @MAIN.IODECL=
 	output	wire		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we;
 	output	wire	[10:0]	o_sata_drp_addr;
@@ -402,6 +404,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 	output	wire	[3:0]	o_sata_drp_sel;
 	input	wire		i_sata_drp_stall, i_sata_drp_ack;
 	input	wire	[31:0]	i_sata_drp_data;
+	input	wire		i_sata_drp_err;
 @MAIN.INSERT=
 	assign	o_sata_drp_cyc  = @$(SLAVE.PREFIX)_cyc;
 	assign	o_sata_drp_stb  = @$(SLAVE.PREFIX)_stb;
@@ -413,6 +416,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 	assign	@$(SLAVE.PREFIX)_stall = i_sata_drp_stall;
 	assign	@$(SLAVE.PREFIX)_ack   = i_sata_drp_ack;
 	assign	@$(SLAVE.PREFIX)_idata = i_sata_drp_data;
+	assign	@$(SLAVE.PREFIX)_err   = i_sata_drp_err;
+@ERROR.WIRE=@$(SLAVE.PREFIX)_err
 @REGS.N=2
 @REGS.NOTE=// SATA DRP/@$(PREFIX) control port registers
 @REGS.0=0 R_PLLDRP PLLDRP

@@ -266,6 +266,7 @@ module	main(i_clk, i_reset,
 		o_sata_drp_addr,
 		o_sata_drp_data, o_sata_drp_sel,
 		i_sata_drp_stall, i_sata_drp_ack, i_sata_drp_data,
+		i_sata_drp_err,
 		// eMMC Card
 		i_emmc_detect,
 		//
@@ -539,6 +540,7 @@ module	main(i_clk, i_reset,
 	output	wire	[3:0]	o_sata_drp_sel;
 	input	wire		i_sata_drp_stall, i_sata_drp_ack;
 	input	wire	[31:0]	i_sata_drp_data;
+	input	wire		i_sata_drp_err;
 	// eMMC Card declarations
 	// {{{
 	input	wire		i_emmc_detect;
@@ -1997,7 +1999,7 @@ module	main(i_clk, i_reset,
 `ifdef	NETSTAT_ACCESS
 	assign	wb32_netstats_err= 1'b0;
 `endif	// NETSTAT_ACCESS
-	assign	wb32_satadrp_err= 1'b0;
+	// info: @ERROR.WIRE for satadrp matches the buses error name, wb32_satadrp_err
 	//
 	// Connect the wb32 bus components together using the wbxbar()
 	//
@@ -4549,6 +4551,7 @@ module	main(i_clk, i_reset,
 	assign	wb32_satadrp_stall = i_sata_drp_stall;
 	assign	wb32_satadrp_ack   = i_sata_drp_ack;
 	assign	wb32_satadrp_idata = i_sata_drp_data;
+	assign	wb32_satadrp_err   = i_sata_drp_err;
 	wbdown #(
 		// {{{
 		.ADDRESS_WIDTH(23+$clog2(32/8)),
