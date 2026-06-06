@@ -76,6 +76,15 @@ printf("---\n");
 		clkreport("NET.RX[2]", _netclk[2]);
 		clkreport("NET.RX[3]", _netclk[3]);
 #endif
+#ifdef	_BOARD_HAS_SATAREFCOUNTER
+		clkreport("SATA RefClk", (*_satarefcounter));
+#endif
+#ifdef	_BOARD_HAS_SATARXCOUNTER
+		clkreport("SATA RX Clk", (*_satarxck));
+#endif
+#ifdef	_BOARD_HAS_SATATXCOUNTER
+		clkreport("SATA TX Clk", (*_satatxck));
+#endif
 #ifdef	_BOARD_HAS_REFCLKCOUNTER
 		clkreport("Si5324 RefClk", (*_sirefclkcounter));
 #endif

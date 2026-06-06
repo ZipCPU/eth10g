@@ -62,6 +62,8 @@ const	REGNAME	raw_bregs[] = {
 	{ R_NETSCOPED       ,	"NETSCOPED"       	},
 	{ R_ROUTESCOPE      ,	"ROUTESCOPE"      	},
 	{ R_ROUTESCOPED     ,	"ROUTESCOPED"     	},
+	{ R_SATADRPSCOPE    ,	"SATADRPSCOPE"    	},
+	{ R_SATADRPSCOPED   ,	"SATADRPSCOPED"   	},
 	{ R_SATALSCOPE      ,	"SATALSCOPE"      	},
 	{ R_SATALSCOPED     ,	"SATALSCOPED"     	},
 	{ R_SATAPSCOPE      ,	"SATAPSCOPE"      	},

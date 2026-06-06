@@ -49,6 +49,18 @@
 @INT.SATATSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 ##
+@PREFIX=satadrpscope
+@DEVID=SATADRPSCOPE
+@DEPENDS=SATA_ACCESS
+@TARGET=i_sata_drp_debug
+@TRIGGER=@$(TARGET)[31]
+@DEBUG=@$(TARGET)[30:0]
+@$LOG_CAPTURE_SIZE=10
+@INCLUDEFILE=wbscopc.txt
+@INT.SATATSCOPE.PIC=altpic
+@INT.SATATSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+##
 @PREFIX=satapscope
 @DEVID=SATAPSCOPE
 @DEPENDS=SATA_ACCESS
@@ -60,8 +72,8 @@
 @INT.SATAPSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/new_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/qd_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/new_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/qd_data*}] 8
 ##
 @PREFIX=satalscope
 @DEVID=SATALSCOPE
@@ -77,20 +89,20 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_s
 @INT.SATALSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/this_addr*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_iflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data_r*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data*}] 8
 ##
 ## This one makes no sense ...
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 ##
 @PREFIX=satarscope
 @DEVID=SATARSCOPE
@@ -106,17 +118,17 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$
 @INT.SATARSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/this_addr*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_iflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data_r*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/@$(PREFIX)i/o_bus_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/@$(PREFIX)i/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 ##
 ##
 ##

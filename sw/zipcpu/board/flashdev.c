@@ -246,19 +246,6 @@ int	fl_erase_sector(const unsigned sector, const int verify_erase){
 	*_flashcfg = F_END;
 
 	// printf("EREG before   : %08x\n", m_fpga->readio(R_QSPI_EREG));
-	printf("Erasing sector: %06x\n", flashaddr);
-	{
-		char	erasemsg[16];
-
-		while(oled_busy())
-			;
-		oled_move(0, 2); fb_font->m_fixed = 0;
-		oled_write("Erasing:\n");
-		set_fixed(fb_font);
-		sprintf(erasemsg, "  0x%08x", flashaddr);
-		oled_write(erasemsg);
-		oled_flush();
-	}
 
 	*_flashcfg = F_SE;
 	if (OPT_ADDR32)
@@ -279,12 +266,6 @@ int	fl_erase_sector(const unsigned sector, const int verify_erase){
 	if (verify_erase) {
 		if (fl_debug)
 			printf("Verifying the erase\n");
-
-		if (0 && !oled_busy()) {
-			oled_move(0, 2); fb_font->m_fixed = 0;
-			oled_write("Verifying Erase\n");
-			oled_flush();
-		}
 
 		for(int i=0; i<NPAGES; i++) {
 			unsigned *fp;
@@ -309,11 +290,6 @@ int	fl_erase_sector(const unsigned sector, const int verify_erase){
 		}
 		if (fl_debug)
 			printf("Erase verified\n");
-		if (!oled_busy()) {
-			oled_move(0, 2); fb_font->m_fixed = 0;
-			oled_write("Erase complete\n");
-			oled_flush();
-		}
 	}
 
 	return 1;
@@ -344,19 +320,6 @@ int	fl_page_program(const unsigned addr, const unsigned len,
 		// fl_place_online();
 		return 1;
 	}
-
-	if (!oled_busy()) {
-		char	msg[16];
-
-		oled_move(0, 2); fb_font->m_fixed = 0;
-		oled_write("Programming:\n");
-		set_fixed(fb_font);
-		sprintf(msg, "  0x%08x", flashaddr);
-		oled_write(msg);
-		oled_flush();
-printf("Programming: %s\n", msg);
-	}
-
 
 	fl_take_offline();
 
@@ -405,10 +368,6 @@ printf("Programming: %s\n", msg);
 	if (verify_write) {
 		int	passed = 1;
 
-		// oled_move(0, 2); fb_font->m_fixed = 0;
-		// oled_write("Verifying\n");
-		// oled_flush();
-
 		// printf("Attempting to verify page\n");
 		// NOW VERIFY THE PAGE
 		memcpy(buf, (void *)addr, len);
@@ -420,23 +379,11 @@ printf("Programming: %s\n", msg);
 				printf("\t(Flash[%3d]) %02x != %02x (Goal[0x%08x])\n",
 					i, bufc[i], data[i], i+addr);
 				passed = 0;
-
-				while(oled_busy())
-					;
-				oled_move(0, 2); fb_font->m_fixed = 0;
-				oled_write("Program FAIL\n");
-				oled_flush();
 			}
 		} if (!passed)
 			return 0;
 		else if (fl_debug)
 			printf(" -- Successfully verified\n");
-
-		if (0 && !oled_busy()) {
-			oled_move(0, 2); fb_font->m_fixed = 0;
-			oled_write("Verified\n");
-			oled_flush();
-		}
 	} return 1;
 }
 // }}}
@@ -448,6 +395,7 @@ printf("Programming: %s\n", msg);
 
 int	fl_write(const unsigned addr, const unsigned len,
 		const char *data, const int verify) {
+	char	msg[64];
 
 	fb_font = shortfontp;
 	oled_move(0, 2); oled_clear_eol();
@@ -480,7 +428,8 @@ int	fl_write(const unsigned addr, const unsigned len,
 			dp = &data[(unsigned)basep-addr];
 			SETSCOPE;
 			for(unsigned i=0; i<ln; i++) {
-				if ((sbuf[i]&dp[i]) != dp[i]) {
+				if ((sbuf[i]&dp[i]) != dp[i]) { // Need erase
+					// {{{
 					if (fl_debug) {
 						printf("\nNEED-ERASE @0x%08x ... 0x%02x != 0x%02x (Goal)\n",
 							i+basep-addr,
@@ -490,7 +439,9 @@ int	fl_write(const unsigned addr, const unsigned len,
 					need_erase = 1;
 					newv = (i&-4)+(unsigned)basep;
 					break;
+					// }}}
 				} else if ((sbuf[i] != dp[i])&&(newv == 0))
+					// Need to program
 					newv = (i&-4)+(unsigned)basep;
 			}
 		}
@@ -502,32 +453,61 @@ int	fl_write(const unsigned addr, const unsigned len,
 		if (0 == need_erase) {
 			if (fl_debug) printf("NO ERASE NEEDED\n");
 		} else {
-			printf("ERASING SECTOR: %08x\n", s);
-			if (!fl_erase_sector(s, verify)) {
-				printf("SECTOR ERASE FAILED!\n");
+			printf("ERASING: %08x\n", s);
+			if (!oled_busy()) {	// Erasing: 0x%08x
+				// {{{
+				oled_move(0, 2);
+				oled_write("Erasing: ");
+				oled_clear_eol();
+				oled_move(64, 2);
+				sprintf(msg, "0x%08x", s);
+				oled_write(msg);
+				oled_flush();
+			}
+			// }}}
+
+			if (!fl_erase_sector(s, verify)) { // Erase failed
+				// {{{
+				printf("ERASE FAILED!\n");
 				free(sbuf);
 
 				fb_font = tallfontp;
 				while(oled_busy())
 					;
-				oled_move(0, 0); fb_font->m_fixed = 0;
+				oled_move(0, 2); fb_font->m_fixed = 0;
 				oled_write("FLASH FAILURE");
 				oled_flush();
 
 				return 0;
+				// }}}
 			} newv = (s<addr) ? addr : s;
 		}
 
 		// Now walk through all of our pages in this sector and write
 		// to them.
-		for(unsigned p=newv; (p<s+SECTORSZB)&&(p<addr+len); p=PAGEOF(p+PGLENB)) {
+		for(unsigned p=newv; (p<s+SECTORSZB)&&(p<addr+len);
+							p=PAGEOF(p+PGLENB)) {
 			unsigned start = p, ln = addr+len-start;
 
 			// BUT! if we cross page boundaries, we need to clip
 			// our results to the page boundary
 			if (PAGEOF(start+len-1)!=PAGEOF(start))
 				ln = PAGEOF(start+PGLENB)-start;
+
+			if (!oled_busy()) {	// Programming: 0x%08x
+				// {{{
+				oled_move(0, 2); // fb_font->m_fixed = 0;
+				oled_write("Programming:"); 
+				oled_clear_eol();
+				oled_move(64, 2);
+				sprintf(msg, "0x%08x", s);
+				oled_write(msg);
+				oled_flush();
+			}
+			// }}}
+
 			if (!fl_page_program(start, ln, &data[p-addr], verify)){
+				// {{{
 				printf("WRITE-PAGE FAILED!\n");
 				free(sbuf);
 
@@ -540,6 +520,7 @@ int	fl_write(const unsigned addr, const unsigned len,
 
 				return 0;
 			}
+			// }}}
 		} if ((need_erase)||(need_program))
 			printf("Sector 0x%08x: DONE%15s\n", s, "");
 	} free(sbuf);
@@ -551,11 +532,14 @@ int	fl_write(const unsigned addr, const unsigned len,
 
 	fl_place_online();
 
+	// OLED: Program complete\n  -- Success
+	// {{{
 	while(oled_busy())
 		;
 	oled_move(0, 2); fb_font->m_fixed = 0;
-	oled_write("Program complete\n  -- Success\n");
+	oled_write("Program complete\n  -- Success");
 	oled_flush();
+	// }}}
 
 	return 1;
 }

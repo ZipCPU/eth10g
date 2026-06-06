@@ -75,7 +75,7 @@
 			@$(PREFIX)_rxphy_elecidle, @$(PREFIX)_rxphy_cominit,
 			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold;
 	wire		@$(PREFIX)_phy_refclk;
-	wire	[31:0]	@$(PREFIX)_phy_debug;
+	wire	[31:0]	@$(PREFIX)_drp_debug, @$(PREFIX)_phy_debug;
 	// Verilator lint_off UNUSED
 	wire		ign_@$(PREFIX)_stall, ign_@$(PREFIX)_ack;
 	wire	[31:0]	ign_@$(PREFIX)_data;
@@ -96,7 +96,8 @@
 		@$(PREFIX)_rxphy_error, @$(PREFIX)_rxphy_syncd,
 			@$(PREFIX)_rxphy_elecidle, @$(PREFIX)_rxphy_cominit,
 			@$(PREFIX)_rxphy_comwake, @$(PREFIX)_rxphy_cdrhold,
-		@$(PREFIX)_phy_refclk, @$(PREFIX)_phy_debug
+		@$(PREFIX)_phy_refclk, @$(PREFIX)_drp_debug
+		@$(PREFIX)_phy_debug
 @TOP.INSERT=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -154,6 +155,7 @@
 		.i_rx_p(i_@$(PREFIX)_p), .i_rx_n(i_@$(PREFIX)_n),
 		// }}}
 		.o_refclk(@$(PREFIX)_phy_refclk),
+		.o_drpdebug(@$(PREFIX)_drp_debug),
 		.o_debug(@$(PREFIX)_phy_debug)
 	);
 	// }}}
@@ -173,7 +175,8 @@
 		i_@$(PREFIX)_rxphy_error, i_@$(PREFIX)_rxphy_syncd,
 			i_@$(PREFIX)_rxphy_elecidle, i_@$(PREFIX)_rxphy_cominit,
 			i_@$(PREFIX)_rxphy_comwake, o_@$(PREFIX)_rxphy_cdrhold,
-		i_@$(PREFIX)_phy_refclk, i_@$(PREFIX)_phy_debug
+		i_@$(PREFIX)_phy_refclk, i_@$(PREFIX)_drp_debug,
+		i_@$(PREFIX)_phy_debug
 @MAIN.IODECL=
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -207,6 +210,7 @@
 	output	wire		o_@$(PREFIX)_rxphy_cdrhold;
 	// Verilator lint_off UNUSED
 	input	wire		i_@$(PREFIX)_phy_refclk;
+	input	wire	[31:0]	i_@$(PREFIX)_drp_debug;
 	input	wire	[31:0]	i_@$(PREFIX)_phy_debug;
 	// Verilator lint_on  UNUSED
 	// }}}

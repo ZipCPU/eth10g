@@ -106,14 +106,18 @@
 `ifdef	ETH_ROUTER
 `define	CPUNET_ACCESS
 `endif	// ETH_ROUTER
-// Deplist for @$(PREFIX)=satapscope
-`ifdef	SATA_ACCESS
-`define	SATAPSCOPE_SCOPC
-`endif	// SATA_ACCESS
 // Deplist for @$(PREFIX)=netreset
 `ifdef	ETH_ROUTER
 `define	NETRESET_ACCESS
 `endif	// ETH_ROUTER
+// Deplist for @$(PREFIX)=satapscope
+`ifdef	SATA_ACCESS
+`define	SATAPSCOPE_SCOPC
+`endif	// SATA_ACCESS
+// Deplist for @$(PREFIX)=satadrpscope
+`ifdef	SATA_ACCESS
+`define	SATADRPSCOPE_SCOPC
+`endif	// SATA_ACCESS
 // Deplist for @$(PREFIX)=satarscope
 `ifdef	SATA_ACCESS
 `define	SATARSCOPE_SCOPC
@@ -332,7 +336,8 @@ module	main(i_clk, i_reset,
 		i_sata_rxphy_error, i_sata_rxphy_syncd,
 			i_sata_rxphy_elecidle, i_sata_rxphy_cominit,
 			i_sata_rxphy_comwake, o_sata_rxphy_cdrhold,
-		i_sata_phy_refclk, i_sata_phy_debug
+		i_sata_phy_refclk, i_sata_drp_debug,
+		i_sata_phy_debug
 	// }}}
 	);
 ////////////////////////////////////////////////////////////////////////////////
@@ -637,6 +642,7 @@ module	main(i_clk, i_reset,
 	output	wire		o_sata_rxphy_cdrhold;
 	// Verilator lint_off UNUSED
 	input	wire		i_sata_phy_refclk;
+	input	wire	[31:0]	i_sata_drp_debug;
 	input	wire	[31:0]	i_sata_phy_debug;
 	// Verilator lint_on  UNUSED
 	// }}}
@@ -657,6 +663,7 @@ module	main(i_clk, i_reset,
 	//
 	wire	i2c_interrupt;	// i2c.INT.I2C.WIRE
 	wire	satapscope_int;	// satapscope.INT.SATAPSCOPE.WIRE
+	wire	satadrpscope_int;	// satadrpscope.INT.SATATSCOPE.WIRE
 	wire	satalscope_int;	// satalscope.INT.SATALSCOPE.WIRE
 	wire	satarscope_int;	// satarscope.INT.SATARSCOPE.WIRE
 	wire	emmcscope_int;	// emmcscope.INT.EMMCSCOPE.WIRE
@@ -1275,6 +1282,15 @@ module	main(i_clk, i_reset,
 	wire	[3:0]	wb32_routescope_sel;
 	wire		wb32_routescope_stall, wb32_routescope_ack, wb32_routescope_err;
 	wire	[31:0]	wb32_routescope_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32, component satadrpscope
+	// Verilator lint_off UNUSED
+	wire		wb32_satadrpscope_cyc, wb32_satadrpscope_stb, wb32_satadrpscope_we;
+	wire	[11:0]	wb32_satadrpscope_addr;
+	wire	[31:0]	wb32_satadrpscope_data;
+	wire	[3:0]	wb32_satadrpscope_sel;
+	wire		wb32_satadrpscope_stall, wb32_satadrpscope_ack, wb32_satadrpscope_err;
+	wire	[31:0]	wb32_satadrpscope_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component satalscope
 	// Verilator lint_off UNUSED
@@ -1932,6 +1948,9 @@ module	main(i_clk, i_reset,
 `ifdef	ROUTESCOPE_SCOPC
 	assign	wb32_routescope_err= 1'b0;
 `endif	// ROUTESCOPE_SCOPC
+`ifdef	SATADRPSCOPE_SCOPC
+	assign	wb32_satadrpscope_err= 1'b0;
+`endif	// SATADRPSCOPE_SCOPC
 `ifdef	SATALSCOPE_SCOPC
 	assign	wb32_satalscope_err= 1'b0;
 `endif	// SATALSCOPE_SCOPC
@@ -1984,64 +2003,66 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(1), .NS(25), .AW(12), .DW(32),
+		.NM(1), .NS(26), .AW(12), .DW(32),
 		.SLAVE_ADDR({
 			// Address width    = 12
 			// Address LSBs     = 2
-			{ 12'h800 }, //    satadrp: 0x2000
-			{ 12'h600 }, //   netstats: 0x1800
-			{ 12'h580 }, //   ddr3_phy: 0x1600
-			{ 12'h540 }, //       gnet: 0x1500
-			{ 12'h500 }, //   wb32_dio: 0x1400
-			{ 12'h4c0 }, //     cpunet: 0x1300
-			{ 12'h480 }, //        cfg: 0x1200
-			{ 12'h440 }, //       sdio: 0x1100
-			{ 12'h400 }, //       sata: 0x1000
-			{ 12'h3c0 }, //        fan: 0x0f00
-			{ 12'h380 }, //       emmc: 0x0e00
-			{ 12'h340 }, //       uart: 0x0d00
-			{ 12'h300 }, //  sdioscope: 0x0c00
-			{ 12'h2c0 }, // satatscope: 0x0b00
-			{ 12'h280 }, // satarscope: 0x0a00
-			{ 12'h240 }, // satapscope: 0x0900
-			{ 12'h200 }, // satalscope: 0x0800
-			{ 12'h1c0 }, // routescope: 0x0700
-			{ 12'h180 }, //   netscope: 0x0600
-			{ 12'h140 }, //   i2cscope: 0x0500
-			{ 12'h100 }, //  gatescope: 0x0400
-			{ 12'h0c0 }, //   flashdbg: 0x0300
-			{ 12'h080 }, //  emmcscope: 0x0200
-			{ 12'h040 }, //   busscope: 0x0100
-			{ 12'h000 }  //   flashcfg: 0x0000
+			{ 12'h800 }, //      satadrp: 0x2000
+			{ 12'h680 }, //     netstats: 0x1a00
+			{ 12'h600 }, //     ddr3_phy: 0x1800
+			{ 12'h580 }, //         gnet: 0x1600
+			{ 12'h540 }, //     wb32_dio: 0x1500
+			{ 12'h500 }, //       cpunet: 0x1400
+			{ 12'h4c0 }, //          cfg: 0x1300
+			{ 12'h480 }, //         sdio: 0x1200
+			{ 12'h440 }, //         sata: 0x1100
+			{ 12'h400 }, //          fan: 0x1000
+			{ 12'h3c0 }, //         emmc: 0x0f00
+			{ 12'h380 }, //         uart: 0x0e00
+			{ 12'h340 }, //    sdioscope: 0x0d00
+			{ 12'h300 }, //   satatscope: 0x0c00
+			{ 12'h2c0 }, //   satarscope: 0x0b00
+			{ 12'h280 }, //   satapscope: 0x0a00
+			{ 12'h240 }, //   satalscope: 0x0900
+			{ 12'h200 }, // satadrpscope: 0x0800
+			{ 12'h1c0 }, //   routescope: 0x0700
+			{ 12'h180 }, //     netscope: 0x0600
+			{ 12'h140 }, //     i2cscope: 0x0500
+			{ 12'h100 }, //    gatescope: 0x0400
+			{ 12'h0c0 }, //     flashdbg: 0x0300
+			{ 12'h080 }, //    emmcscope: 0x0200
+			{ 12'h040 }, //     busscope: 0x0100
+			{ 12'h000 }  //     flashcfg: 0x0000
 		}),
 		.SLAVE_MASK({
 			// Address width    = 12
 			// Address LSBs     = 2
-			{ 12'h800 }, //    satadrp
-			{ 12'hf80 }, //   netstats
-			{ 12'hf80 }, //   ddr3_phy
-			{ 12'hfc0 }, //       gnet
-			{ 12'hfc0 }, //   wb32_dio
-			{ 12'hfc0 }, //     cpunet
-			{ 12'hfc0 }, //        cfg
-			{ 12'hfc0 }, //       sdio
-			{ 12'hfc0 }, //       sata
-			{ 12'hfc0 }, //        fan
-			{ 12'hfc0 }, //       emmc
-			{ 12'hfc0 }, //       uart
-			{ 12'hfc0 }, //  sdioscope
-			{ 12'hfc0 }, // satatscope
-			{ 12'hfc0 }, // satarscope
-			{ 12'hfc0 }, // satapscope
-			{ 12'hfc0 }, // satalscope
-			{ 12'hfc0 }, // routescope
-			{ 12'hfc0 }, //   netscope
-			{ 12'hfc0 }, //   i2cscope
-			{ 12'hfc0 }, //  gatescope
-			{ 12'hfc0 }, //   flashdbg
-			{ 12'hfc0 }, //  emmcscope
-			{ 12'hfc0 }, //   busscope
-			{ 12'hfc0 }  //   flashcfg
+			{ 12'h800 }, //      satadrp
+			{ 12'hf80 }, //     netstats
+			{ 12'hf80 }, //     ddr3_phy
+			{ 12'hfc0 }, //         gnet
+			{ 12'hfc0 }, //     wb32_dio
+			{ 12'hfc0 }, //       cpunet
+			{ 12'hfc0 }, //          cfg
+			{ 12'hfc0 }, //         sdio
+			{ 12'hfc0 }, //         sata
+			{ 12'hfc0 }, //          fan
+			{ 12'hfc0 }, //         emmc
+			{ 12'hfc0 }, //         uart
+			{ 12'hfc0 }, //    sdioscope
+			{ 12'hfc0 }, //   satatscope
+			{ 12'hfc0 }, //   satarscope
+			{ 12'hfc0 }, //   satapscope
+			{ 12'hfc0 }, //   satalscope
+			{ 12'hfc0 }, // satadrpscope
+			{ 12'hfc0 }, //   routescope
+			{ 12'hfc0 }, //     netscope
+			{ 12'hfc0 }, //     i2cscope
+			{ 12'hfc0 }, //    gatescope
+			{ 12'hfc0 }, //     flashdbg
+			{ 12'hfc0 }, //    emmcscope
+			{ 12'hfc0 }, //     busscope
+			{ 12'hfc0 }  //     flashcfg
 		}),
 		.OPT_DBLBUFFER(1'b1)
 	) wb32_xbar(
@@ -2095,6 +2116,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_cyc,
 			wb32_satapscope_cyc,
 			wb32_satalscope_cyc,
+			wb32_satadrpscope_cyc,
 			wb32_routescope_cyc,
 			wb32_netscope_cyc,
 			wb32_i2cscope_cyc,
@@ -2122,6 +2144,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_stb,
 			wb32_satapscope_stb,
 			wb32_satalscope_stb,
+			wb32_satadrpscope_stb,
 			wb32_routescope_stb,
 			wb32_netscope_stb,
 			wb32_i2cscope_stb,
@@ -2149,6 +2172,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_we,
 			wb32_satapscope_we,
 			wb32_satalscope_we,
+			wb32_satadrpscope_we,
 			wb32_routescope_we,
 			wb32_netscope_we,
 			wb32_i2cscope_we,
@@ -2176,6 +2200,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_addr,
 			wb32_satapscope_addr,
 			wb32_satalscope_addr,
+			wb32_satadrpscope_addr,
 			wb32_routescope_addr,
 			wb32_netscope_addr,
 			wb32_i2cscope_addr,
@@ -2203,6 +2228,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_data,
 			wb32_satapscope_data,
 			wb32_satalscope_data,
+			wb32_satadrpscope_data,
 			wb32_routescope_data,
 			wb32_netscope_data,
 			wb32_i2cscope_data,
@@ -2230,6 +2256,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_sel,
 			wb32_satapscope_sel,
 			wb32_satalscope_sel,
+			wb32_satadrpscope_sel,
 			wb32_routescope_sel,
 			wb32_netscope_sel,
 			wb32_i2cscope_sel,
@@ -2257,6 +2284,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_stall,
 			wb32_satapscope_stall,
 			wb32_satalscope_stall,
+			wb32_satadrpscope_stall,
 			wb32_routescope_stall,
 			wb32_netscope_stall,
 			wb32_i2cscope_stall,
@@ -2284,6 +2312,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_ack,
 			wb32_satapscope_ack,
 			wb32_satalscope_ack,
+			wb32_satadrpscope_ack,
 			wb32_routescope_ack,
 			wb32_netscope_ack,
 			wb32_i2cscope_ack,
@@ -2311,6 +2340,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_idata,
 			wb32_satapscope_idata,
 			wb32_satalscope_idata,
+			wb32_satadrpscope_idata,
 			wb32_routescope_idata,
 			wb32_netscope_idata,
 			wb32_i2cscope_idata,
@@ -2338,6 +2368,7 @@ module	main(i_clk, i_reset,
 			wb32_satarscope_err,
 			wb32_satapscope_err,
 			wb32_satalscope_err,
+			wb32_satadrpscope_err,
 			wb32_routescope_err,
 			wb32_netscope_err,
 			wb32_i2cscope_err,
@@ -2501,12 +2532,12 @@ module	main(i_clk, i_reset,
 	// by the ID# in that tag.
 	//
 	assign	alt_int_vector = {
-		busscope_int,
 		routescope_int,
 		i2cscope_int,
 		gatescope_int,
 		sdioscope_int,
 		emmcscope_int,
+		satadrpscope_int,
 		i2c_interrupt,
 		1'b0,
 		1'b0,
@@ -2821,6 +2852,49 @@ module	main(i_clk, i_reset,
 	// }}}
 	// }}}
 `endif	// SATAPSCOPE_SCOPC
+
+`ifdef	SATADRPSCOPE_SCOPC
+	// {{{
+	wbscopc #(
+		// {{{
+		.LGMEM(10),
+		.SYNCHRONOUS(1),
+		.DEFAULT_HOLDOFF(508)
+		// }}}
+	) u_satadrpscope (
+		// {{{
+		.i_data_clk(i_clk), .i_ce(1'b1),
+			.i_trigger(i_sata_drp_debug[31]), .i_data(i_sata_drp_debug[30:0]),
+		.i_wb_clk(i_clk),
+		.i_wb_cyc(wb32_satadrpscope_cyc), .i_wb_stb(wb32_satadrpscope_stb), .i_wb_we(wb32_satadrpscope_we),
+			.i_wb_addr(wb32_satadrpscope_addr[1-1:0]),
+			.i_wb_data(wb32_satadrpscope_data), // 32 bits wide
+			.i_wb_sel(wb32_satadrpscope_sel),  // 32/8 bits wide
+		.o_wb_stall(wb32_satadrpscope_stall),.o_wb_ack(wb32_satadrpscope_ack), .o_wb_data(wb32_satadrpscope_idata),
+		.o_interrupt(satadrpscope_int)
+		// }}}
+	);
+	// }}}
+`else	// SATADRPSCOPE_SCOPC
+	// {{{
+	// Null bus slave
+	// {{{
+
+	//
+	// In the case that there is no wb32_satadrpscope peripheral
+	// responding on the wb32 bus
+	assign	wb32_satadrpscope_ack   = 1'b0;
+	assign	wb32_satadrpscope_err   = (wb32_satadrpscope_stb);
+	assign	wb32_satadrpscope_stall = 0;
+	assign	wb32_satadrpscope_idata = 0;
+
+	// }}}
+	// Null interrupt definitions
+	// {{{
+	assign	satadrpscope_int = 1'b0;	// satadrpscope.INT.SATATSCOPE.WIRE
+	// }}}
+	// }}}
+`endif	// SATADRPSCOPE_SCOPC
 
 `ifdef	SATALSCOPE_SCOPC
 	// {{{

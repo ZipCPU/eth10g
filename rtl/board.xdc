@@ -644,34 +644,35 @@ set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pi
 ## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in mem_bkram_only
 ## From satapscope
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/satapscopei/new_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/satapscopei/qd_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satapscope/new_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satapscope/qd_data*}] 8
+## No XDC.INSERT tag in satadrpscope
 ## No XDC.INSERT tag in mem_flash_bkram
 ## From satalscope
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stopped*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/this_addr*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.q_iflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data_r*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satalscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satalscopei/o_bus_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satalscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_link/link_fsm/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satalscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satalscope/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satalscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 ## From satarscope
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stopped*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/this_addr*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.q_iflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/ASYNC_STATUS.q_oflags*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data_r*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/satarscopei/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/satarscopei/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarscope/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 ## From satarefcounter
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v*}] 8.0
 ## From satarxck

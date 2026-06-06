@@ -72,9 +72,9 @@ _rom   = 0;
 _top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
 
 
-_rtccount = 0x02001458;
-_pwrcount = 0x02001454;
-_uart = 0x02000d00;
+_rtccount = 0x02001558;
+_pwrcount = 0x02001554;
+_uart = 0x02000e00;
 /* LD.SCRIPT from mem_bkram_only */
 SECTIONS
 {

@@ -483,7 +483,7 @@ i_sdcard_cd_n,
 			sata_rxphy_elecidle, sata_rxphy_cominit,
 			sata_rxphy_comwake, sata_rxphy_cdrhold;
 	wire		sata_phy_refclk;
-	wire	[31:0]	sata_phy_debug;
+	wire	[31:0]	sata_drp_debug, sata_phy_debug;
 	// Verilator lint_off UNUSED
 	wire		ign_sata_stall, ign_sata_ack;
 	wire	[31:0]	ign_sata_data;
@@ -649,7 +649,8 @@ i_sdcard_cd_n,
 		sata_rxphy_error, sata_rxphy_syncd,
 			sata_rxphy_elecidle, sata_rxphy_cominit,
 			sata_rxphy_comwake, sata_rxphy_cdrhold,
-		sata_phy_refclk, sata_phy_debug);
+		sata_phy_refclk, sata_drp_debug
+		sata_phy_debug);
 
 
 	//
@@ -1374,6 +1375,7 @@ i_sdcard_cd_n,
 		.i_rx_p(i_sata_p), .i_rx_n(i_sata_n),
 		// }}}
 		.o_refclk(sata_phy_refclk),
+		.o_drpdebug(sata_drp_debug),
 		.o_debug(sata_phy_debug)
 	);
 	// }}}

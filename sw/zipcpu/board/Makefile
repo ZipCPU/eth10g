@@ -37,7 +37,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink oledchk # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink oledchk softload satachk # contest
 all:	$(PROGRAMS)
 #
 #
@@ -59,6 +59,7 @@ DUMPTREE:= -fdump-tree-all
 LDSCRIPT:= board.ld
 LFLAGS  := -T $(LDSCRIPT) -L../zlib -L../fatfs
 LBKRAM  := -T bkram.ld -L../zlib
+LSDRAM  := -T sdram.ld -L../zlib
 CFLAGS  := -O3 -I../zlib -I../../../rtl -I../fatfs
 LIBS    := -lc -lzeth -lgcc
 LIBFAT  := -lfatfs
@@ -118,13 +119,23 @@ $(OBJDIR)/blink.o: blink.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/oledchk.o: oledchk.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
+$(OBJDIR)/satachk.o: satachk.c
+	$(CC) $(CFLAGS) -O3 -c $< -o $@
+$(OBJDIR)/softload.o: softload.c
+	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/rintftst.o: rintftst.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/gpiotoggle.o: gpiotoggle.c
 #	$(CC) -O3 -c $< -o $@
 
+satachk: $(OBJDIR)/satachk.o board.ld $(LIB)
+	$(CC) $(CFLAGS) $(LSDRAM) $<  $(LIBS) -o $@
+
 oledchk: $(OBJDIR)/oledchk.o board.ld $(OLED) $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(OLED) $(LIBS) -o $@
+
+softload: $(OBJDIR)/softload.o board.ld $(OBJDIR)/flashdev.o $(OLED) $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OLED) $(OBJDIR)/flashdev.o $(LIBS) -o $@
 
 blink: $(OBJDIR)/blink.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@

@@ -78,194 +78,197 @@
 // routescope compressed scope
 #define	R_ROUTESCOPE      	0x02000700	// 02000700, wbregs names: ROUTESCOPE
 #define	R_ROUTESCOPED     	0x02000704	// 02000700, wbregs names: ROUTESCOPED
+// satadrpscope compressed scope
+#define	R_SATADRPSCOPE    	0x02000800	// 02000800, wbregs names: SATADRPSCOPE
+#define	R_SATADRPSCOPED   	0x02000804	// 02000800, wbregs names: SATADRPSCOPED
 // satalscope compressed scope
-#define	R_SATALSCOPE      	0x02000800	// 02000800, wbregs names: SATALSCOPE
-#define	R_SATALSCOPED     	0x02000804	// 02000800, wbregs names: SATALSCOPED
+#define	R_SATALSCOPE      	0x02000900	// 02000900, wbregs names: SATALSCOPE
+#define	R_SATALSCOPED     	0x02000904	// 02000900, wbregs names: SATALSCOPED
 // satapscope compressed scope
-#define	R_SATAPSCOPE      	0x02000900	// 02000900, wbregs names: SATAPSCOPE
-#define	R_SATAPSCOPED     	0x02000904	// 02000900, wbregs names: SATAPSCOPED
+#define	R_SATAPSCOPE      	0x02000a00	// 02000a00, wbregs names: SATAPSCOPE
+#define	R_SATAPSCOPED     	0x02000a04	// 02000a00, wbregs names: SATAPSCOPED
 // satarscope compressed scope
-#define	R_SATARSCOPE      	0x02000a00	// 02000a00, wbregs names: SATARSCOPE
-#define	R_SATARSCOPED     	0x02000a04	// 02000a00, wbregs names: SATARSCOPED
+#define	R_SATARSCOPE      	0x02000b00	// 02000b00, wbregs names: SATARSCOPE
+#define	R_SATARSCOPED     	0x02000b04	// 02000b00, wbregs names: SATARSCOPED
 // satatscope compressed scope
-#define	R_SATATSCOPE      	0x02000b00	// 02000b00, wbregs names: SATATSCOPE
-#define	R_SATATSCOPED     	0x02000b04	// 02000b00, wbregs names: SATATSCOPED
+#define	R_SATATSCOPE      	0x02000c00	// 02000c00, wbregs names: SATATSCOPE
+#define	R_SATATSCOPED     	0x02000c04	// 02000c00, wbregs names: SATATSCOPED
 // sdioscope compressed scope
-#define	R_SDIOSCOPE       	0x02000c00	// 02000c00, wbregs names: SDIOSCOPE
-#define	R_SDIOSCOPED      	0x02000c04	// 02000c00, wbregs names: SDIOSCOPED
+#define	R_SDIOSCOPE       	0x02000d00	// 02000d00, wbregs names: SDIOSCOPE
+#define	R_SDIOSCOPED      	0x02000d04	// 02000d00, wbregs names: SDIOSCOPED
 // CONSOLE registers
-#define	R_CONSOLE_FIFO    	0x02000d04	// 02000d00, wbregs names: UFIFO
-#define	R_CONSOLE_UARTRX  	0x02000d08	// 02000d00, wbregs names: RX
-#define	R_CONSOLE_UARTTX  	0x02000d0c	// 02000d00, wbregs names: TX
+#define	R_CONSOLE_FIFO    	0x02000e04	// 02000e00, wbregs names: UFIFO
+#define	R_CONSOLE_UARTRX  	0x02000e08	// 02000e00, wbregs names: RX
+#define	R_CONSOLE_UARTTX  	0x02000e0c	// 02000e00, wbregs names: TX
 // eMMC Card addresses
-#define	R_EMMC_CTRL       	0x02000e00	// 02000e00, wbregs names: EMMCCARD
-#define	R_EMMC_DATA       	0x02000e04	// 02000e00, wbregs names: EMMCDATA
-#define	R_EMMC_FIFOA      	0x02000e08	// 02000e00, wbregs names: EMMCFIFOA, EMMCFIF0, EMMCFIFA
-#define	R_EMMC_FIFOB      	0x02000e0c	// 02000e00, wbregs names: EMMCFIFOB, EMMCFIF1, EMMCFIFB
-#define	R_EMMC_PHY        	0x02000e10	// 02000e00, wbregs names: EMMCPHY
+#define	R_EMMC_CTRL       	0x02000f00	// 02000f00, wbregs names: EMMCCARD
+#define	R_EMMC_DATA       	0x02000f04	// 02000f00, wbregs names: EMMCDATA
+#define	R_EMMC_FIFOA      	0x02000f08	// 02000f00, wbregs names: EMMCFIFOA, EMMCFIF0, EMMCFIFA
+#define	R_EMMC_FIFOB      	0x02000f0c	// 02000f00, wbregs names: EMMCFIFOB, EMMCFIF1, EMMCFIFB
+#define	R_EMMC_PHY        	0x02000f10	// 02000f00, wbregs names: EMMCPHY
 // Fan registers
-#define	R_FAN_FPGAPWM     	0x02000f00	// 02000f00, wbregs names: FAN_FPGAPWM
-#define	R_FAN_SYSPWM      	0x02000f04	// 02000f00, wbregs names: FAN_SYSPWM
-#define	R_FAN_TACH        	0x02000f08	// 02000f00, wbregs names: FAN_TACH
-#define	R_FAN_TEMP        	0x02000f0c	// 02000f00, wbregs names: FAN_TEMP
-#define	R_FAN             	0x02000f10	// 02000f00, wbregs names: FAN_CTRL
-#define	R_FAN_OVW         	0x02000f14	// 02000f00, wbregs names: FAN_OVW, FAN_OVERRIDE
-#define	R_FAN_ADDR        	0x02000f18	// 02000f00, wbregs names: FAN_ADDR, FAN_ADDRESS
-#define	R_FAN_CKCOUNT     	0x02000f1c	// 02000f00, wbregs names: FANCLK, FAN_CKCOUNT
+#define	R_FAN_FPGAPWM     	0x02001000	// 02001000, wbregs names: FAN_FPGAPWM
+#define	R_FAN_SYSPWM      	0x02001004	// 02001000, wbregs names: FAN_SYSPWM
+#define	R_FAN_TACH        	0x02001008	// 02001000, wbregs names: FAN_TACH
+#define	R_FAN_TEMP        	0x0200100c	// 02001000, wbregs names: FAN_TEMP
+#define	R_FAN             	0x02001010	// 02001000, wbregs names: FAN_CTRL
+#define	R_FAN_OVW         	0x02001014	// 02001000, wbregs names: FAN_OVW, FAN_OVERRIDE
+#define	R_FAN_ADDR        	0x02001018	// 02001000, wbregs names: FAN_ADDR, FAN_ADDRESS
+#define	R_FAN_CKCOUNT     	0x0200101c	// 02001000, wbregs names: FANCLK, FAN_CKCOUNT
 // SATA/sata control port registers
-#define	R_SATA            	0x02001000	// 02001000, wbregs names: SATA
-#define	R_LBALO           	0x02001004	// 02001000, wbregs names: LBALO
-#define	R_LBAHI           	0x02001008	// 02001000, wbregs names: LBAHI
-#define	R_SATACOUNT       	0x0200100c	// 02001000, wbregs names: SATACOUNT
-#define	R_SATAPHY         	0x02001014	// 02001000, wbregs names: SATAPHY
-#define	R_SATAADDR        	0x02001018	// 02001000, wbregs names: SATAADDR, SATADMA
+#define	R_SATA            	0x02001100	// 02001100, wbregs names: SATA
+#define	R_LBALO           	0x02001104	// 02001100, wbregs names: LBALO
+#define	R_LBAHI           	0x02001108	// 02001100, wbregs names: LBAHI
+#define	R_SATACOUNT       	0x0200110c	// 02001100, wbregs names: SATACOUNT
+#define	R_SATAPHY         	0x02001114	// 02001100, wbregs names: SATAPHY
+#define	R_SATAADDR        	0x02001118	// 02001100, wbregs names: SATAADDR, SATADMA
 // SDIO SD Card addresses
-#define	R_SDIO_CTRL       	0x02001100	// 02001100, wbregs names: SDCARD
-#define	R_SDIO_DATA       	0x02001104	// 02001100, wbregs names: SDDATA
-#define	R_SDIO_FIFOA      	0x02001108	// 02001100, wbregs names: SDFIFOA, SDFIF0, SDFIFA
-#define	R_SDIO_FIFOB      	0x0200110c	// 02001100, wbregs names: SDFIFOB, SDFIF1, SDFIFB
-#define	R_SDIO_PHY        	0x02001110	// 02001100, wbregs names: SDPHY
+#define	R_SDIO_CTRL       	0x02001200	// 02001200, wbregs names: SDCARD
+#define	R_SDIO_DATA       	0x02001204	// 02001200, wbregs names: SDDATA
+#define	R_SDIO_FIFOA      	0x02001208	// 02001200, wbregs names: SDFIFOA, SDFIF0, SDFIFA
+#define	R_SDIO_FIFOB      	0x0200120c	// 02001200, wbregs names: SDFIFOB, SDFIF1, SDFIFB
+#define	R_SDIO_PHY        	0x02001210	// 02001200, wbregs names: SDPHY
 // FPGA CONFIG REGISTERS: 0x4e0-0x4ff
-#define	R_CFG_CRC         	0x02001200	// 02001200, wbregs names: FPGACRC
-#define	R_CFG_FAR         	0x02001204	// 02001200, wbregs names: FPGAFAR
-#define	R_CFG_FDRI        	0x02001208	// 02001200, wbregs names: FPGAFDRI
-#define	R_CFG_FDRO        	0x0200120c	// 02001200, wbregs names: FPGAFDRO
-#define	R_CFG_CMD         	0x02001210	// 02001200, wbregs names: FPGACMD
-#define	R_CFG_CTL0        	0x02001214	// 02001200, wbregs names: FPGACTL0
-#define	R_CFG_MASK        	0x02001218	// 02001200, wbregs names: FPGAMASK
-#define	R_CFG_STAT        	0x0200121c	// 02001200, wbregs names: FPGASTAT
-#define	R_CFG_LOUT        	0x02001220	// 02001200, wbregs names: FPGALOUT
-#define	R_CFG_COR0        	0x02001224	// 02001200, wbregs names: FPGACOR0
-#define	R_CFG_MFWR        	0x02001228	// 02001200, wbregs names: FPGAMFWR
-#define	R_CFG_CBC         	0x0200122c	// 02001200, wbregs names: FPGACBC
-#define	R_CFG_IDCODE      	0x02001230	// 02001200, wbregs names: FPGAIDCODE
-#define	R_CFG_AXSS        	0x02001234	// 02001200, wbregs names: FPGAAXSS
-#define	R_CFG_COR1        	0x02001238	// 02001200, wbregs names: FPGACOR1
-#define	R_CFG_WBSTAR      	0x02001240	// 02001200, wbregs names: WBSTAR
-#define	R_CFG_TIMER       	0x02001244	// 02001200, wbregs names: CFGTIMER
-#define	R_CFG_BOOTSTS     	0x02001258	// 02001200, wbregs names: BOOTSTS
-#define	R_CFG_CTL1        	0x02001260	// 02001200, wbregs names: FPGACTL1
-#define	R_CFG_BSPI        	0x0200127c	// 02001200, wbregs names: FPGABSPI
+#define	R_CFG_CRC         	0x02001300	// 02001300, wbregs names: FPGACRC
+#define	R_CFG_FAR         	0x02001304	// 02001300, wbregs names: FPGAFAR
+#define	R_CFG_FDRI        	0x02001308	// 02001300, wbregs names: FPGAFDRI
+#define	R_CFG_FDRO        	0x0200130c	// 02001300, wbregs names: FPGAFDRO
+#define	R_CFG_CMD         	0x02001310	// 02001300, wbregs names: FPGACMD
+#define	R_CFG_CTL0        	0x02001314	// 02001300, wbregs names: FPGACTL0
+#define	R_CFG_MASK        	0x02001318	// 02001300, wbregs names: FPGAMASK
+#define	R_CFG_STAT        	0x0200131c	// 02001300, wbregs names: FPGASTAT
+#define	R_CFG_LOUT        	0x02001320	// 02001300, wbregs names: FPGALOUT
+#define	R_CFG_COR0        	0x02001324	// 02001300, wbregs names: FPGACOR0
+#define	R_CFG_MFWR        	0x02001328	// 02001300, wbregs names: FPGAMFWR
+#define	R_CFG_CBC         	0x0200132c	// 02001300, wbregs names: FPGACBC
+#define	R_CFG_IDCODE      	0x02001330	// 02001300, wbregs names: FPGAIDCODE
+#define	R_CFG_AXSS        	0x02001334	// 02001300, wbregs names: FPGAAXSS
+#define	R_CFG_COR1        	0x02001338	// 02001300, wbregs names: FPGACOR1
+#define	R_CFG_WBSTAR      	0x02001340	// 02001300, wbregs names: WBSTAR
+#define	R_CFG_TIMER       	0x02001344	// 02001300, wbregs names: CFGTIMER
+#define	R_CFG_BOOTSTS     	0x02001358	// 02001300, wbregs names: BOOTSTS
+#define	R_CFG_CTL1        	0x02001360	// 02001300, wbregs names: FPGACTL1
+#define	R_CFG_BSPI        	0x0200137c	// 02001300, wbregs names: FPGABSPI
 // CPU Net Controller registers
-#define	R_CPUNET          	0x02001300	// 02001300, wbregs names: CPUNET
-#define	R_CPUNETMAC1      	0x02001304	// 02001300, wbregs names: CPUMAC1
-#define	R_CPUNETMAC2      	0x02001308	// 02001300, wbregs names: CPUMAC2
-#define	R_CPUNETIPV4      	0x0200130c	// 02001300, wbregs names: CPUIPV4
-#define	R_CPUNETIPV6P1    	0x02001310	// 02001300, wbregs names: CPUIP6P1
-#define	R_CPUNETIPV6P2    	0x02001314	// 02001300, wbregs names: CPUIP6P2
-#define	R_CPUNETIPV6P3    	0x02001318	// 02001300, wbregs names: CPUIP6P3
-#define	R_CPUNETIPV6P4    	0x0200131c	// 02001300, wbregs names: CPUIP6P4
-#define	R_CPUNETRXDROPS   	0x02001320	// 02001300, wbregs names: RXDROPS
-#define	R_CPUNETRXPKTS    	0x02001324	// 02001300, wbregs names: RXPKTS
-#define	R_CPUNETTXPKTS    	0x02001328	// 02001300, wbregs names: TXPKTS
-#define	R_CPUNETTX_BASE   	0x02001340	// 02001300, wbregs names: CNTXBASE, CPUNETTXBASE
-#define	R_CPUNETTX_LEN    	0x02001344	// 02001300, wbregs names: CNTXLEN, CPUNETTXLEN
-#define	R_CPUNETTX_RPTR   	0x02001348	// 02001300, wbregs names: CNTXRPTR, CPUNETTXRPTR
-#define	R_CPUNETTX_WPTR   	0x0200134c	// 02001300, wbregs names: CNTXWPTR, CPUNETTXWPTR
-#define	R_CPUNETRX_BASE   	0x02001350	// 02001300, wbregs names: CNRXBASE, CPUNETRXBASE
-#define	R_CPUNETRX_LEN    	0x02001354	// 02001300, wbregs names: CNRXLEN, CPUNETRXLEN
-#define	R_CPUNETRX_RPTR   	0x02001358	// 02001300, wbregs names: CNRXRPTR, CPUNETRXRPTR
-#define	R_CPUNETRX_WPTR   	0x0200135c	// 02001300, wbregs names: CNRXWPTR, CPUNETRXWPTR
-#define	R_CPUNETRX_DBG    	0x02001360	// 02001300, wbregs names: CNRXDBG, CPUNETRXDBG
-#define	R_CPUNETTX_DBG    	0x02001364	// 02001300, wbregs names: CNTXDBG, CPUNETTXDBG
+#define	R_CPUNET          	0x02001400	// 02001400, wbregs names: CPUNET
+#define	R_CPUNETMAC1      	0x02001404	// 02001400, wbregs names: CPUMAC1
+#define	R_CPUNETMAC2      	0x02001408	// 02001400, wbregs names: CPUMAC2
+#define	R_CPUNETIPV4      	0x0200140c	// 02001400, wbregs names: CPUIPV4
+#define	R_CPUNETIPV6P1    	0x02001410	// 02001400, wbregs names: CPUIP6P1
+#define	R_CPUNETIPV6P2    	0x02001414	// 02001400, wbregs names: CPUIP6P2
+#define	R_CPUNETIPV6P3    	0x02001418	// 02001400, wbregs names: CPUIP6P3
+#define	R_CPUNETIPV6P4    	0x0200141c	// 02001400, wbregs names: CPUIP6P4
+#define	R_CPUNETRXDROPS   	0x02001420	// 02001400, wbregs names: RXDROPS
+#define	R_CPUNETRXPKTS    	0x02001424	// 02001400, wbregs names: RXPKTS
+#define	R_CPUNETTXPKTS    	0x02001428	// 02001400, wbregs names: TXPKTS
+#define	R_CPUNETTX_BASE   	0x02001440	// 02001400, wbregs names: CNTXBASE, CPUNETTXBASE
+#define	R_CPUNETTX_LEN    	0x02001444	// 02001400, wbregs names: CNTXLEN, CPUNETTXLEN
+#define	R_CPUNETTX_RPTR   	0x02001448	// 02001400, wbregs names: CNTXRPTR, CPUNETTXRPTR
+#define	R_CPUNETTX_WPTR   	0x0200144c	// 02001400, wbregs names: CNTXWPTR, CPUNETTXWPTR
+#define	R_CPUNETRX_BASE   	0x02001450	// 02001400, wbregs names: CNRXBASE, CPUNETRXBASE
+#define	R_CPUNETRX_LEN    	0x02001454	// 02001400, wbregs names: CNRXLEN, CPUNETRXLEN
+#define	R_CPUNETRX_RPTR   	0x02001458	// 02001400, wbregs names: CNRXRPTR, CPUNETRXRPTR
+#define	R_CPUNETRX_WPTR   	0x0200145c	// 02001400, wbregs names: CNRXWPTR, CPUNETRXWPTR
+#define	R_CPUNETRX_DBG    	0x02001460	// 02001400, wbregs names: CNRXDBG, CPUNETRXDBG
+#define	R_CPUNETTX_DBG    	0x02001464	// 02001400, wbregs names: CNTXDBG, CPUNETTXDBG
 // I2C Controller registers
-#define	R_I2CCPU          	0x02001400	// 02001400, wbregs names: I2CCPU, I2CCPU_CTRL, I2CCPUCTRL
-#define	R_I2CCPU_OVW      	0x02001404	// 02001400, wbregs names: I2CCPU_OVW, I2CCPU_OVERRIDE
-#define	R_I2CCPU_ADDR     	0x02001408	// 02001400, wbregs names: I2CCPU_ADDR, I2CCPU_ADDRESS
-#define	R_I2CCPU_CKCOUNT  	0x0200140c	// 02001400, wbregs names: I2CCPUCLK, I2CCPU_CKCOUNT
-#define	R_I2CDMA          	0x02001410	// 02001410, wbregs names: I2CDMA
-#define	R_I2CDMA_ADDR     	0x02001414	// 02001410, wbregs names: I2CDMAADDR
-#define	R_I2CDMA_BASE     	0x02001418	// 02001410, wbregs names: I2CDMABASE
-#define	R_I2CDMA_LEN      	0x0200141c	// 02001410, wbregs names: I2CDMALEN
-#define	R_RXNETCK0        	0x02001420	// 02001420, wbregs names: RXNETCLK0, RXNETCK0
-#define	R_RXNETCK1        	0x02001424	// 02001420, wbregs names: RXNETCLK1, RXNETCK1
-#define	R_RXNETCK2        	0x02001428	// 02001420, wbregs names: RXNETCLK2, RXNETCK2
-#define	R_RXNETCK3        	0x0200142c	// 02001420, wbregs names: RXNETCLK3, RXNETCK3
-#define	R_TXNETCLK        	0x02001430	// 02001420, wbregs names: TXNETCLK
-#define	R_BUILDTIME       	0x02001440	// 02001440, wbregs names: BLDTIME, BUILDTIME
-#define	R_GPIO            	0x02001444	// 02001444, wbregs names: GPIO, GPI, GPO
-#define	R_NETDBG          	0x02001448	// 02001448, wbregs names: NETDBG
-#define	R_NETLOCK         	0x0200144c	// 0200144c, wbregs names: NETLOCK
-#define	R_NETRESET        	0x02001450	// 02001450, wbregs names: NETRESET
-#define	R_PWRCOUNT        	0x02001454	// 02001454, wbregs names: PWRCOUNT
-#define	R_RTCCOUNT        	0x02001458	// 02001458, wbregs names: RTCCOUNT
-#define	R_SATAREF         	0x0200145c	// 0200145c, wbregs names: SATAREF
-#define	R_SATARX          	0x02001460	// 02001460, wbregs names: SATARX, SATARXCLK, SATARXCK
-#define	R_SATATX          	0x02001464	// 02001464, wbregs names: SATATX, SATATXCLK, SATATXCK
-#define	R_SICLKFREQ       	0x02001468	// 02001468, wbregs names: SICLKFREQ
-#define	R_SIREFCLK        	0x0200146c	// 0200146c, wbregs names: SIREFCLK
-#define	R_SIREFFREQ       	0x02001470	// 02001470, wbregs names: SIREFFREQ
-#define	R_SPIO            	0x02001474	// 02001474, wbregs names: SPIO
-#define	R_VERSION         	0x02001478	// 02001478, wbregs names: VERSION
-#define	R_ROUTER          	0x02001500	// 02001500, wbregs names: ROUTER
-#define	R_ROUTER0         	0x02001500	// 02001500, wbregs names: ROUTER0
-#define	R_ROUTERSZ0       	0x02001504	// 02001500, wbregs names: ROUTERSZ0
-#define	R_ROUTERWR0       	0x02001508	// 02001500, wbregs names: ROUTERWR0
-#define	R_ROUTERRD0       	0x0200150c	// 02001500, wbregs names: ROUTERRD0
-#define	R_ROUTER1         	0x02001510	// 02001500, wbregs names: ROUTER1
-#define	R_ROUTERSZ1       	0x02001514	// 02001500, wbregs names: ROUTERSZ1
-#define	R_ROUTERWR1       	0x02001518	// 02001500, wbregs names: ROUTERWR1
-#define	R_ROUTERRD1       	0x0200151c	// 02001500, wbregs names: ROUTERRD1
-#define	R_ROUTER2         	0x02001520	// 02001500, wbregs names: ROUTER2
-#define	R_ROUTERSZ2       	0x02001524	// 02001500, wbregs names: ROUTERSZ2
-#define	R_ROUTERWR2       	0x02001528	// 02001500, wbregs names: ROUTERWR2
-#define	R_ROUTERRD2       	0x0200152c	// 02001500, wbregs names: ROUTERRD2
-#define	R_ROUTER3         	0x02001530	// 02001500, wbregs names: ROUTER3
-#define	R_ROUTERSZ3       	0x02001534	// 02001500, wbregs names: ROUTERSZ3
-#define	R_ROUTERWR3       	0x02001538	// 02001500, wbregs names: ROUTERWR3
-#define	R_ROUTERRD3       	0x0200153c	// 02001500, wbregs names: ROUTERRD3
-#define	R_ROUTERPK0       	0x02001540	// 02001500, wbregs names: ROUTERPK0
-#define	R_ROUTERBY0       	0x02001544	// 02001500, wbregs names: ROUTERBY0
-#define	R_ROUTERFP0       	0x02001548	// 02001500, wbregs names: ROUTERFP0
-#define	R_ROUTERFB0       	0x0200154c	// 02001500, wbregs names: ROUTERFB0
-#define	R_ROUTERPK1       	0x02001550	// 02001500, wbregs names: ROUTERPK1
-#define	R_ROUTERBY1       	0x02001554	// 02001500, wbregs names: ROUTERBY1
-#define	R_ROUTERFP1       	0x02001558	// 02001500, wbregs names: ROUTERFP1
-#define	R_ROUTERFB1       	0x0200155c	// 02001500, wbregs names: ROUTERFB1
-#define	R_ROUTERPK2       	0x02001560	// 02001500, wbregs names: ROUTERPK2
-#define	R_ROUTERBY2       	0x02001564	// 02001500, wbregs names: ROUTERBY2
-#define	R_ROUTERFP2       	0x02001568	// 02001500, wbregs names: ROUTERFP2
-#define	R_ROUTERFB2       	0x0200156c	// 02001500, wbregs names: ROUTERFB2
-#define	R_ROUTERPK3       	0x02001570	// 02001500, wbregs names: ROUTERPK3
-#define	R_ROUTERBY3       	0x02001574	// 02001500, wbregs names: ROUTERBY3
-#define	R_ROUTERFP3       	0x02001578	// 02001500, wbregs names: ROUTERFP3
-#define	R_ROUTERFB3       	0x0200157c	// 02001500, wbregs names: ROUTERFB3
-#define	R_ROUTERNWH0      	0x02001580	// 02001500, wbregs names: ROUTERNWH0
-#define	R_ROUTERNWL0      	0x02001584	// 02001500, wbregs names: ROUTERNWL0
-#define	R_ROUTERLKH0      	0x02001588	// 02001500, wbregs names: ROUTERLKH0
-#define	R_ROUTERLKL0      	0x0200158c	// 02001500, wbregs names: ROUTERLKL0
-#define	R_ROUTERNWH1      	0x02001590	// 02001500, wbregs names: ROUTERNWH1
-#define	R_ROUTERNWL1      	0x02001594	// 02001500, wbregs names: ROUTERNWL1
-#define	R_ROUTERLKH1      	0x02001598	// 02001500, wbregs names: ROUTERLKH1
-#define	R_ROUTERLKL1      	0x0200159c	// 02001500, wbregs names: ROUTERLKL1
-#define	R_ROUTERNWH2      	0x020015a0	// 02001500, wbregs names: ROUTERNWH2
-#define	R_ROUTERNWL2      	0x020015a4	// 02001500, wbregs names: ROUTERNWL2
-#define	R_ROUTERLKH2      	0x020015a8	// 02001500, wbregs names: ROUTERLKH2
-#define	R_ROUTERLKL2      	0x020015ac	// 02001500, wbregs names: ROUTERLKL2
-#define	R_ROUTERNWH3      	0x020015b0	// 02001500, wbregs names: ROUTERNWH3
-#define	R_ROUTERNWL3      	0x020015b4	// 02001500, wbregs names: ROUTERNWL3
-#define	R_ROUTERLKH3      	0x020015b8	// 02001500, wbregs names: ROUTERLKH3
-#define	R_ROUTERLKL3      	0x020015bc	// 02001500, wbregs names: ROUTERLKL3
-#define	R_ROUTERNWH4      	0x020015c0	// 02001500, wbregs names: ROUTERNWH4
-#define	R_ROUTERNWL4      	0x020015c4	// 02001500, wbregs names: ROUTERNWL4
-#define	R_ROUTERLKH4      	0x020015c8	// 02001500, wbregs names: ROUTERLKH4
-#define	R_ROUTERLKL4      	0x020015cc	// 02001500, wbregs names: ROUTERLKL4
-#define	R_ROUTERDBG0      	0x020015d0	// 02001500, wbregs names: ROUTERDBG0
-#define	R_ROUTERDBG1      	0x020015d4	// 02001500, wbregs names: ROUTERDBG1
-#define	R_ROUTERDBG2      	0x020015d8	// 02001500, wbregs names: ROUTERDBG2
-#define	R_ROUTERDBG3      	0x020015dc	// 02001500, wbregs names: ROUTERDBG3
-#define	R_ROUTERDBG4      	0x020015e0	// 02001500, wbregs names: ROUTERDBG4
-#define	R_ROUTERNEVER     	0x020015e8	// 02001500, wbregs names: ROUTERNV, RTNEVER
-#define	R_ROUTERALWAYS    	0x020015ec	// 02001500, wbregs names: ROUTERAL, RTALWAYS
-#define	R_ROUTERDBGS      	0x020015fc	// 02001500, wbregs names: ROUTERDBGS
-#define	R_DDR3_PHY        	0x02001600	// 02001600, wbregs names: DDR3_PHY, DPHYSTAT0
-#define	R_DDR3_PHYSTAT1   	0x02001604	// 02001600, wbregs names: DDR3_PHYSTAT1, DPHYSTAT1
-#define	R_DDR3_PHYSTAT2   	0x02001608	// 02001600, wbregs names: DDR3_PHYSTAT2, DPHYSTAT2
-#define	R_DDR3_PHYSTAT3   	0x0200160c	// 02001600, wbregs names: DDR3_PHYSTAT3, DPHYSTAT3
-#define	R_DDR3_PHYCTRLSTAT	0x02001610	// 02001600, wbregs names: DDR3_PHYCTRLSTAT, DCTRLSTAT
-#define	R_DDR3_PHYRESET   	0x02001644	// 02001600, wbregs names: DDR3_PHYRESET, DCTRLRESET
-#define	R_DDR3_PHYDBGSEL  	0x0200164c	// 02001600, wbregs names: DDR3_PHYDBGSEL, DCTRLDBG
-#define	R_NETSTAT         	0x02001800	// 02001800, wbregs names: NETSTAT
+#define	R_I2CCPU          	0x02001500	// 02001500, wbregs names: I2CCPU, I2CCPU_CTRL, I2CCPUCTRL
+#define	R_I2CCPU_OVW      	0x02001504	// 02001500, wbregs names: I2CCPU_OVW, I2CCPU_OVERRIDE
+#define	R_I2CCPU_ADDR     	0x02001508	// 02001500, wbregs names: I2CCPU_ADDR, I2CCPU_ADDRESS
+#define	R_I2CCPU_CKCOUNT  	0x0200150c	// 02001500, wbregs names: I2CCPUCLK, I2CCPU_CKCOUNT
+#define	R_I2CDMA          	0x02001510	// 02001510, wbregs names: I2CDMA
+#define	R_I2CDMA_ADDR     	0x02001514	// 02001510, wbregs names: I2CDMAADDR
+#define	R_I2CDMA_BASE     	0x02001518	// 02001510, wbregs names: I2CDMABASE
+#define	R_I2CDMA_LEN      	0x0200151c	// 02001510, wbregs names: I2CDMALEN
+#define	R_RXNETCK0        	0x02001520	// 02001520, wbregs names: RXNETCLK0, RXNETCK0
+#define	R_RXNETCK1        	0x02001524	// 02001520, wbregs names: RXNETCLK1, RXNETCK1
+#define	R_RXNETCK2        	0x02001528	// 02001520, wbregs names: RXNETCLK2, RXNETCK2
+#define	R_RXNETCK3        	0x0200152c	// 02001520, wbregs names: RXNETCLK3, RXNETCK3
+#define	R_TXNETCLK        	0x02001530	// 02001520, wbregs names: TXNETCLK
+#define	R_BUILDTIME       	0x02001540	// 02001540, wbregs names: BLDTIME, BUILDTIME
+#define	R_GPIO            	0x02001544	// 02001544, wbregs names: GPIO, GPI, GPO
+#define	R_NETDBG          	0x02001548	// 02001548, wbregs names: NETDBG
+#define	R_NETLOCK         	0x0200154c	// 0200154c, wbregs names: NETLOCK
+#define	R_NETRESET        	0x02001550	// 02001550, wbregs names: NETRESET
+#define	R_PWRCOUNT        	0x02001554	// 02001554, wbregs names: PWRCOUNT
+#define	R_RTCCOUNT        	0x02001558	// 02001558, wbregs names: RTCCOUNT
+#define	R_SATAREF         	0x0200155c	// 0200155c, wbregs names: SATAREF
+#define	R_SATARX          	0x02001560	// 02001560, wbregs names: SATARX, SATARXCLK, SATARXCK
+#define	R_SATATX          	0x02001564	// 02001564, wbregs names: SATATX, SATATXCLK, SATATXCK
+#define	R_SICLKFREQ       	0x02001568	// 02001568, wbregs names: SICLKFREQ
+#define	R_SIREFCLK        	0x0200156c	// 0200156c, wbregs names: SIREFCLK
+#define	R_SIREFFREQ       	0x02001570	// 02001570, wbregs names: SIREFFREQ
+#define	R_SPIO            	0x02001574	// 02001574, wbregs names: SPIO
+#define	R_VERSION         	0x02001578	// 02001578, wbregs names: VERSION
+#define	R_ROUTER          	0x02001600	// 02001600, wbregs names: ROUTER
+#define	R_ROUTER0         	0x02001600	// 02001600, wbregs names: ROUTER0
+#define	R_ROUTERSZ0       	0x02001604	// 02001600, wbregs names: ROUTERSZ0
+#define	R_ROUTERWR0       	0x02001608	// 02001600, wbregs names: ROUTERWR0
+#define	R_ROUTERRD0       	0x0200160c	// 02001600, wbregs names: ROUTERRD0
+#define	R_ROUTER1         	0x02001610	// 02001600, wbregs names: ROUTER1
+#define	R_ROUTERSZ1       	0x02001614	// 02001600, wbregs names: ROUTERSZ1
+#define	R_ROUTERWR1       	0x02001618	// 02001600, wbregs names: ROUTERWR1
+#define	R_ROUTERRD1       	0x0200161c	// 02001600, wbregs names: ROUTERRD1
+#define	R_ROUTER2         	0x02001620	// 02001600, wbregs names: ROUTER2
+#define	R_ROUTERSZ2       	0x02001624	// 02001600, wbregs names: ROUTERSZ2
+#define	R_ROUTERWR2       	0x02001628	// 02001600, wbregs names: ROUTERWR2
+#define	R_ROUTERRD2       	0x0200162c	// 02001600, wbregs names: ROUTERRD2
+#define	R_ROUTER3         	0x02001630	// 02001600, wbregs names: ROUTER3
+#define	R_ROUTERSZ3       	0x02001634	// 02001600, wbregs names: ROUTERSZ3
+#define	R_ROUTERWR3       	0x02001638	// 02001600, wbregs names: ROUTERWR3
+#define	R_ROUTERRD3       	0x0200163c	// 02001600, wbregs names: ROUTERRD3
+#define	R_ROUTERPK0       	0x02001640	// 02001600, wbregs names: ROUTERPK0
+#define	R_ROUTERBY0       	0x02001644	// 02001600, wbregs names: ROUTERBY0
+#define	R_ROUTERFP0       	0x02001648	// 02001600, wbregs names: ROUTERFP0
+#define	R_ROUTERFB0       	0x0200164c	// 02001600, wbregs names: ROUTERFB0
+#define	R_ROUTERPK1       	0x02001650	// 02001600, wbregs names: ROUTERPK1
+#define	R_ROUTERBY1       	0x02001654	// 02001600, wbregs names: ROUTERBY1
+#define	R_ROUTERFP1       	0x02001658	// 02001600, wbregs names: ROUTERFP1
+#define	R_ROUTERFB1       	0x0200165c	// 02001600, wbregs names: ROUTERFB1
+#define	R_ROUTERPK2       	0x02001660	// 02001600, wbregs names: ROUTERPK2
+#define	R_ROUTERBY2       	0x02001664	// 02001600, wbregs names: ROUTERBY2
+#define	R_ROUTERFP2       	0x02001668	// 02001600, wbregs names: ROUTERFP2
+#define	R_ROUTERFB2       	0x0200166c	// 02001600, wbregs names: ROUTERFB2
+#define	R_ROUTERPK3       	0x02001670	// 02001600, wbregs names: ROUTERPK3
+#define	R_ROUTERBY3       	0x02001674	// 02001600, wbregs names: ROUTERBY3
+#define	R_ROUTERFP3       	0x02001678	// 02001600, wbregs names: ROUTERFP3
+#define	R_ROUTERFB3       	0x0200167c	// 02001600, wbregs names: ROUTERFB3
+#define	R_ROUTERNWH0      	0x02001680	// 02001600, wbregs names: ROUTERNWH0
+#define	R_ROUTERNWL0      	0x02001684	// 02001600, wbregs names: ROUTERNWL0
+#define	R_ROUTERLKH0      	0x02001688	// 02001600, wbregs names: ROUTERLKH0
+#define	R_ROUTERLKL0      	0x0200168c	// 02001600, wbregs names: ROUTERLKL0
+#define	R_ROUTERNWH1      	0x02001690	// 02001600, wbregs names: ROUTERNWH1
+#define	R_ROUTERNWL1      	0x02001694	// 02001600, wbregs names: ROUTERNWL1
+#define	R_ROUTERLKH1      	0x02001698	// 02001600, wbregs names: ROUTERLKH1
+#define	R_ROUTERLKL1      	0x0200169c	// 02001600, wbregs names: ROUTERLKL1
+#define	R_ROUTERNWH2      	0x020016a0	// 02001600, wbregs names: ROUTERNWH2
+#define	R_ROUTERNWL2      	0x020016a4	// 02001600, wbregs names: ROUTERNWL2
+#define	R_ROUTERLKH2      	0x020016a8	// 02001600, wbregs names: ROUTERLKH2
+#define	R_ROUTERLKL2      	0x020016ac	// 02001600, wbregs names: ROUTERLKL2
+#define	R_ROUTERNWH3      	0x020016b0	// 02001600, wbregs names: ROUTERNWH3
+#define	R_ROUTERNWL3      	0x020016b4	// 02001600, wbregs names: ROUTERNWL3
+#define	R_ROUTERLKH3      	0x020016b8	// 02001600, wbregs names: ROUTERLKH3
+#define	R_ROUTERLKL3      	0x020016bc	// 02001600, wbregs names: ROUTERLKL3
+#define	R_ROUTERNWH4      	0x020016c0	// 02001600, wbregs names: ROUTERNWH4
+#define	R_ROUTERNWL4      	0x020016c4	// 02001600, wbregs names: ROUTERNWL4
+#define	R_ROUTERLKH4      	0x020016c8	// 02001600, wbregs names: ROUTERLKH4
+#define	R_ROUTERLKL4      	0x020016cc	// 02001600, wbregs names: ROUTERLKL4
+#define	R_ROUTERDBG0      	0x020016d0	// 02001600, wbregs names: ROUTERDBG0
+#define	R_ROUTERDBG1      	0x020016d4	// 02001600, wbregs names: ROUTERDBG1
+#define	R_ROUTERDBG2      	0x020016d8	// 02001600, wbregs names: ROUTERDBG2
+#define	R_ROUTERDBG3      	0x020016dc	// 02001600, wbregs names: ROUTERDBG3
+#define	R_ROUTERDBG4      	0x020016e0	// 02001600, wbregs names: ROUTERDBG4
+#define	R_ROUTERNEVER     	0x020016e8	// 02001600, wbregs names: ROUTERNV, RTNEVER
+#define	R_ROUTERALWAYS    	0x020016ec	// 02001600, wbregs names: ROUTERAL, RTALWAYS
+#define	R_ROUTERDBGS      	0x020016fc	// 02001600, wbregs names: ROUTERDBGS
+#define	R_DDR3_PHY        	0x02001800	// 02001800, wbregs names: DDR3_PHY, DPHYSTAT0
+#define	R_DDR3_PHYSTAT1   	0x02001804	// 02001800, wbregs names: DDR3_PHYSTAT1, DPHYSTAT1
+#define	R_DDR3_PHYSTAT2   	0x02001808	// 02001800, wbregs names: DDR3_PHYSTAT2, DPHYSTAT2
+#define	R_DDR3_PHYSTAT3   	0x0200180c	// 02001800, wbregs names: DDR3_PHYSTAT3, DPHYSTAT3
+#define	R_DDR3_PHYCTRLSTAT	0x02001810	// 02001800, wbregs names: DDR3_PHYCTRLSTAT, DCTRLSTAT
+#define	R_DDR3_PHYRESET   	0x02001844	// 02001800, wbregs names: DDR3_PHYRESET, DCTRLRESET
+#define	R_DDR3_PHYDBGSEL  	0x0200184c	// 02001800, wbregs names: DDR3_PHYDBGSEL, DCTRLDBG
+#define	R_NETSTAT         	0x02001a00	// 02001a00, wbregs names: NETSTAT
 // SATA DRP/satadrp control port registers
 #define	R_PLLDRP          	0x02002000	// 02002000, wbregs names: PLLDRP
 #define	R_GTXDRP          	0x02002800	// 02002000, wbregs names: GTXDRP

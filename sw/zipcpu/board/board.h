@@ -314,6 +314,23 @@ typedef	struct	WBSCOPE_S {
 #endif
 
 
+#ifndef	WBSCOPE_H
+#define	WBSCOPE_H
+
+#define	WBSCOPE_NO_RESET	0x80000000u
+#define	WBSCOPE_STOPPED		0x40000000u
+#define	WBSCOPE_TRIGGERED	0x20000000u
+#define	WBSCOPE_PRIMED		0x10000000u
+#define	WBSCOPE_TRIGGER		(WBSCOPE_NO_RESET|0x08000000u)
+#define	WBSCOPE_MANUAL		(WBSCOPE_TRIGGER)
+#define	WBSCOPE_DISABLE		0x04000000u
+
+typedef	struct	WBSCOPE_S {
+	volatile unsigned s_ctrl, s_data;
+} WBSCOPE;
+#endif
+
+
 
 typedef	struct	PKTVFIFO_S {
 	char		*v_base;
@@ -614,43 +631,47 @@ typedef	struct	SATA_S {
 
 #ifdef	NETCLK_ACCESS
 #define	_BOARD_HAS_NETCLK
-static volatile unsigned *const _netclk = ((unsigned *)0x02001420);
+static volatile unsigned *const _netclk = ((unsigned *)0x02001520);
 #endif	// NETCLK_ACCESS
 #ifdef	REFCLKCOUNTER_ACCESS
 #define	_BOARD_HAS_REFCLKCOUNTER
-static volatile unsigned *const _sirefclkcounter = ((unsigned *)0x02001470);
+static volatile unsigned *const _sirefclkcounter = ((unsigned *)0x02001570);
 #endif	// REFCLKCOUNTER_ACCESS
 #ifdef	FAN_ACCESS
 #define	_BOARD_HAS_FAN
-static volatile FAN *const _fan=((FAN *)0x02000f00);
+static volatile FAN *const _fan=((FAN *)0x02001000);
 #endif	// FAN_ACCESS
 #ifdef	I2CCPU_ACCESS
 #define	_BOARD_HAS_I2CCPU
-static volatile I2CCPU *const _i2c=((I2CCPU *)0x02001400);
+static volatile I2CCPU *const _i2c=((I2CCPU *)0x02001500);
 #endif	// I2CCPU_ACCESS
 #ifdef	I2CDMA_ACCESS
 #define	_BOARD_HAS_I2CDMA
-static volatile I2CDMA *const _i2cdma=((I2CDMA *)0x02001410);
+static volatile I2CDMA *const _i2cdma=((I2CDMA *)0x02001510);
 #endif	// I2CDMA_ACCESS
 #ifdef	SATAPSCOPE_SCOPC
 #define	_BOARD_HAS_SATAPSCOPE
-static volatile WBSCOPE *const _satapscope = ((WBSCOPE *)0x02000900);
+static volatile WBSCOPE *const _satapscope = ((WBSCOPE *)0x02000a00);
 #endif	// SATAPSCOPE_SCOPC
+#ifdef	SATADRPSCOPE_SCOPC
+#define	_BOARD_HAS_SATADRPSCOPE
+static volatile WBSCOPE *const _satadrpscope = ((WBSCOPE *)0x02000800);
+#endif	// SATADRPSCOPE_SCOPC
 #ifdef	SATALSCOPE_SCOPC
 #define	_BOARD_HAS_SATALSCOPE
-static volatile WBSCOPE *const _satalscope = ((WBSCOPE *)0x02000800);
+static volatile WBSCOPE *const _satalscope = ((WBSCOPE *)0x02000900);
 #endif	// SATALSCOPE_SCOPC
 #ifdef	SATARSCOPE_SCOPC
 #define	_BOARD_HAS_SATARSCOPE
-static volatile WBSCOPE *const _satarscope = ((WBSCOPE *)0x02000a00);
+static volatile WBSCOPE *const _satarscope = ((WBSCOPE *)0x02000b00);
 #endif	// SATARSCOPE_SCOPC
 #ifdef	SATAREFCOUNTER_ACCESS
 #define	_BOARD_HAS_SATAREFCOUNTER
-static volatile unsigned *const _satarefcounter = ((unsigned *)0x0200145c);
+static volatile unsigned *const _satarefcounter = ((unsigned *)0x0200155c);
 #endif	// SATAREFCOUNTER_ACCESS
 #ifdef	SATARXCOUNTER_ACCESS
 #define	_BOARD_HAS_SATARXCOUNTER
-static volatile unsigned *const _satarxck = ((unsigned *)0x02001460);
+static volatile unsigned *const _satarxck = ((unsigned *)0x02001560);
 #endif	// SATARXCOUNTER_ACCESS
 #ifdef	EMMCSCOPE_SCOPC
 #define	_BOARD_HAS_EMMCSCOPE
@@ -658,13 +679,13 @@ static volatile WBSCOPE *const _emmcscope = ((WBSCOPE *)0x02000200);
 #endif	// EMMCSCOPE_SCOPC
 #ifdef	SDIOSCOPE_SCOPC
 #define	_BOARD_HAS_SDIOSCOPE
-static volatile WBSCOPE *const _sdioscope = ((WBSCOPE *)0x02000c00);
+static volatile WBSCOPE *const _sdioscope = ((WBSCOPE *)0x02000d00);
 #endif	// SDIOSCOPE_SCOPC
 #define	_BOARD_HAS_NETLOCK
-static volatile unsigned *const _netlock = ((unsigned *)0x0200144c);
+static volatile unsigned *const _netlock = ((unsigned *)0x0200154c);
 #ifdef	SATATSCOPE_SCOPC
 #define	_BOARD_HAS_SATATSCOPE
-static volatile WBSCOPE *const _satatscope = ((WBSCOPE *)0x02000b00);
+static volatile WBSCOPE *const _satatscope = ((WBSCOPE *)0x02000c00);
 #endif	// SATATSCOPE_SCOPC
 #ifdef	GATESCOPE_SCOPC
 #define	_BOARD_HAS_GATESCOPE
@@ -683,11 +704,11 @@ static volatile WBSCOPE *const _routescope = ((WBSCOPE *)0x02000700);
 static volatile WBSCOPE *const _busscope = ((WBSCOPE *)0x02000100);
 #endif	// BUSSCOPE_SCOPC
 #ifdef	ETH_ROUTER
-static struct ROUTER_S *const _gnet = ((struct ROUTER_S *)0x02001500);
+static struct ROUTER_S *const _gnet = ((struct ROUTER_S *)0x02001600);
 #endif	// ETH_ROUTER
 #ifdef	SPIO_ACCESS
 #define	_BOARD_HAS_SPIO
-static volatile unsigned *const _spio = ((unsigned *)0x02001474);
+static volatile unsigned *const _spio = ((unsigned *)0x02001574);
 #endif	// SPIO_ACCESS
 #ifdef	NETSCOPE_SCOPC
 #define	_BOARD_HAS_NETSCOPE
@@ -698,50 +719,50 @@ static volatile WBSCOPE *const _netscope = ((WBSCOPE *)0x02000600);
 static volatile unsigned * const _flashcfg = ((unsigned *)(0x02000000));
 #endif	// FLASHCFG_ACCESS
 #define	_BOARD_HAS_RTCCOUNT
-static volatile unsigned *const _rtccount = ((unsigned *)0x02001458);
+static volatile unsigned *const _rtccount = ((unsigned *)0x02001558);
 #ifdef	PWRCOUNT_ACCESS
-static volatile unsigned *const _pwrcount = ((unsigned *)0x02001454);
+static volatile unsigned *const _pwrcount = ((unsigned *)0x02001554);
 #endif	// PWRCOUNT_ACCESS
 #ifdef	SIREFCLK_ACCESS
 #define	_BOARD_HAS_SIREFCLK
-static volatile unsigned *const _sirefclk = ((unsigned *)0x0200146c);
+static volatile unsigned *const _sirefclk = ((unsigned *)0x0200156c);
 #endif	// SIREFCLK_ACCESS
 #ifdef	NETRESET_ACCESS
-static volatile unsigned *const _netreset = ((unsigned *)0x02001450);
+static volatile unsigned *const _netreset = ((unsigned *)0x02001550);
 #endif	// NETRESET_ACCESS
 #ifdef	DDR3_PHY_ACCESS
 #define	_BOARD_HAS_DDR3_PHY
-static volatile DDR3_PHY *const _ddr3_phy = ((DDR3_PHY *)0x02001600);
+static volatile DDR3_PHY *const _ddr3_phy = ((DDR3_PHY *)0x02001800);
 #endif	// DDR3_PHY_ACCESS
 #ifdef	CFG_ACCESS
 #define	_BOARD_HAS_ICAPTETWO
-static volatile unsigned *const _icape = ((unsigned *)0x00001200);
+static volatile unsigned *const _icape = ((unsigned *)0x00001300);
 #endif	// CFG_ACCESS
 #ifdef	VERSION_ACCESS
 #define	_BOARD_HAS_VERSION
-static volatile unsigned *const _version = ((unsigned *)0x02001478);
+static volatile unsigned *const _version = ((unsigned *)0x02001578);
 #endif	// VERSION_ACCESS
 #ifdef	CPUNET_ACCESS
 #define	_BOARD_HAS_CPUNET
-static volatile CPUNET *const _cpunet=((CPUNET *)0x02001300);
+static volatile CPUNET *const _cpunet=((CPUNET *)0x02001400);
 #endif	// CPUNET_ACCESS
 #ifdef	SICLK
 #define	_BOARD_HAS_SICLKCOUNTER
-static volatile unsigned *const _siclk = ((unsigned *)0x02001468);
+static volatile unsigned *const _siclk = ((unsigned *)0x02001568);
 #endif	// SICLK
 #ifdef	SATATXCOUNTER_ACCESS
 #define	_BOARD_HAS_SATATXCOUNTER
-static volatile unsigned *const _satatxck = ((unsigned *)0x02001464);
+static volatile unsigned *const _satatxck = ((unsigned *)0x02001564);
 #endif	// SATATXCOUNTER_ACCESS
 #define	_BOARD_HAS_BUILDTIME
-static volatile unsigned *const _buildtime = ((unsigned *)0x02001440);
+static volatile unsigned *const _buildtime = ((unsigned *)0x02001540);
 #ifdef	FLASHSCOPE_SCOPC
 #define	_BOARD_HAS_FLASHSCOPE
 static volatile WBSCOPE *const _flashdbg = ((WBSCOPE *)0x02000300);
 #endif	// FLASHSCOPE_SCOPC
 #ifdef	BUSCONSOLE_ACCESS
 #define	_BOARD_HAS_BUSCONSOLE
-static volatile CONSOLE *const _uart = ((CONSOLE *)0x02000d00);
+static volatile CONSOLE *const _uart = ((CONSOLE *)0x02000e00);
 #endif	// BUSCONSOLE_ACCESS
 #ifdef	FLASH_ACCESS
 #define	_BOARD_HAS_FLASH
@@ -749,20 +770,20 @@ extern int _flash[1];
 #endif	// FLASH_ACCESS
 #ifdef	GPIO_ACCESS
 #define	_BOARD_HAS_GPIO
-static volatile unsigned *const _gpio = ((unsigned *)0x02001444);
+static volatile unsigned *const _gpio = ((unsigned *)0x02001544);
 #endif	// GPIO_ACCESS
 #ifdef	SDIO_ACCESS
 #define	_BOARD_HAS_SDIO
-static volatile struct SDIO_S *const _sdio = ((struct SDIO_S *)0x02001100);
+static volatile struct SDIO_S *const _sdio = ((struct SDIO_S *)0x02001200);
 #endif	// SDIO_ACCESS
 #define	_BOARD_HAS_SATADRP
 static volatile SATADRP *const _satadrp=((SATADRP *)0x02002000);
 #ifdef	EMMC_ACCESS
 #define	_BOARD_HAS_EMMC
-static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x02000e00);
+static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x02000f00);
 #endif	// EMMC_ACCESS
 #ifdef	NETSTAT_ACCESS
-static NETSTAT *const _netstats = ((NETSTAT *)0x02001800);
+static NETSTAT *const _netstats = ((NETSTAT *)0x02001a00);
 #endif	// NETSTAT_ACCESS
 #ifdef	BKRAM_ACCESS
 #define	_BOARD_HAS_BKRAM
@@ -774,7 +795,7 @@ extern char	_ddr3_controller[0x40000000];
 #endif	// DDR3_CONTROLLER_ACCESS
 #ifdef	SATA_ACCESS
 #define	_BOARD_HAS_SATA
-static volatile SATA *const _sata=((SATA *)0x02001000);
+static volatile SATA *const _sata=((SATA *)0x02001100);
 #endif	// SATA_ACCESS
 //
 // Interrupt assignments (2 PICs)
@@ -789,12 +810,12 @@ static volatile SATA *const _sata=((SATA *)0x02001000);
 #define	ALTPIC_MPC	ALTPIC(6)
 #define	ALTPIC_MTC	ALTPIC(7)
 #define	ALTPIC_I2C	ALTPIC(8)
-#define	ALTPIC_EMMCSCOPE	ALTPIC(9)
-#define	ALTPIC_SDIOSCOPE	ALTPIC(10)
-#define	ALTPIC_NETGATE	ALTPIC(11)
-#define	ALTPIC_I2CSCOPE	ALTPIC(12)
-#define	ALTPIC_ROUTESCOPE	ALTPIC(13)
-#define	ALTPIC_BUSSCOPE	ALTPIC(14)
+#define	ALTPIC_SATATSCOPE	ALTPIC(9)
+#define	ALTPIC_EMMCSCOPE	ALTPIC(10)
+#define	ALTPIC_SDIOSCOPE	ALTPIC(11)
+#define	ALTPIC_NETGATE	ALTPIC(12)
+#define	ALTPIC_I2CSCOPE	ALTPIC(13)
+#define	ALTPIC_ROUTESCOPE	ALTPIC(14)
 // PIC: syspic
 #define	SYSPIC_DMAC	SYSPIC(0)
 #define	SYSPIC_JIFFIES	SYSPIC(1)

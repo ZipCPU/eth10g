@@ -300,6 +300,7 @@ void oled_char(const char ch) {
 
 		fb->y += lines;
 		fb->x = 0;
+		oled_clear_eol();
 	} else if ('\r' == ch) {
 		fb->x = 0;
 	} if (!g)
