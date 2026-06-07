@@ -124,7 +124,7 @@
 			.i_wb_data(sata_drp_data), .i_wb_sel(sata_drp_sel),
 		.o_wb_stall(sata_drp_stall),
 			.o_wb_ack(sata_drp_ack), .o_wb_data(sata_drp_idata),
-			.o_wb_ack(sata_drp_err),
+			.o_wb_err(sata_drp_err),
 		// }}}
 		// Transmitter control
 		// {{{
