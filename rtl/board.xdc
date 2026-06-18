@@ -12,8 +12,6 @@ set_property -dict { PACKAGE_PIN F5 } [get_ports i_clk_150mhz_n];	## 150MHz_REFC
 
 set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p];	## 156.25MHz_REFCLK_P
 set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n];	## 156.25MHz_REFCLK_N
-create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
-# create_clock -period 3.2 -name NETREF -waveform { 0.0 1.6 } -add [get_ports i_clk_156mhz_p]
 
 set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p];		## SI5324_REFCLK_P
 set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n];		## SI5324_REFCLK_P
@@ -634,8 +632,8 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## Adding in any XDC_INSERT tags
 
 ## From netclk
-set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/avgs_reg*}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/q_v*}]
-set_false_path -from [get_pins {thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pins thedesign/u_txnetclk/q_v_reg/D]
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/avgs_reg[3]*/C}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/q_v_reg/D}];
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_txnetclk/q_v_reg/D}];
 ## From sirefclkcounter
 ## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in i2c
@@ -674,9 +672,9 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_s
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 ## From satarefcounter
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v_reg/D}] 8.0
 ## From satarxck
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/q_v*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in emmcscope
 ## No XDC.INSERT tag in sdioscope
 ## From netlock
@@ -746,9 +744,9 @@ create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_cl
 ## No XDC.INSERT tag in wbdown
 ## No XDC.INSERT tag in wb32
 ## From siclk
-set_false_path -from [get_pins {thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins {thedesign/u_siclk/q_v_reg/D}]
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_siclk/q_v_reg/D}];
 ## From satatxck
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in buildtime
 ## No XDC.INSERT tag in REGDEFS
 ## No XDC.INSERT tag in zip_alt_mtc
@@ -827,6 +825,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_afifo/rgray*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_link/rx_afifo/rgray_cross*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/phy_reset_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/rx_linkup*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_fsm/o_phy_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/rx_linkup*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/*reset*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/rgray_cross*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/wgray_cross*}] 10

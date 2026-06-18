@@ -377,7 +377,7 @@ i_sdcard_cd_n,
 	// {{{
 	wire		sata_drp_cyc, sata_drp_stb, sata_drp_we,
 			sata_drp_stall, sata_drp_ack, sata_drp_err;
-	wire	[10:0]	sata_drp_addr;
+	wire	[9:0]	sata_drp_addr;
 	wire	[31:0]	sata_drp_data, sata_drp_idata;
 	wire	[3:0]	sata_drp_sel;
 	// }}}
@@ -1344,7 +1344,7 @@ i_sdcard_cd_n,
 			.i_wb_data(sata_drp_data), .i_wb_sel(sata_drp_sel),
 		.o_wb_stall(sata_drp_stall),
 			.o_wb_ack(sata_drp_ack), .o_wb_data(sata_drp_idata),
-			.o_wb_ack(sata_drp_err),
+			.o_wb_err(sata_drp_err),
 		// }}}
 		// Transmitter control
 		// {{{

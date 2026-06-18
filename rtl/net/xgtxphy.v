@@ -90,6 +90,8 @@ module	xgtxphy #(
 		.O(gtx_refck)
 	);
 
+	assign	o_refck = gtx_refck;
+
 	// fPllClkIn = 156.25
 	// fPLLClkOut = fPllClkIn * (N / 2 / M)
 	//		N == 66

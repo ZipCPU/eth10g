@@ -72,9 +72,9 @@ _rom   = ORIGIN(flash);
 _top_of_stack = ORIGIN(sdram) + LENGTH(sdram);
 
 
-_rtccount = 0x02001558;
-_pwrcount = 0x02001554;
-_uart = 0x02000e00;
+_rtccount = 0x02000ad8;
+_pwrcount = 0x02000ad4;
+_uart = 0x02000700;
 /* LD.SCRIPT from mem_full */
 SECTIONS
 {

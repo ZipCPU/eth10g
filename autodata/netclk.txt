@@ -120,5 +120,5 @@
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
-set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/avgs_reg*}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/q_v*}]
-set_false_path -from [get_pins {thedesign/u_tx@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins thedesign/u_tx@$(PREFIX)/q_v_reg/D]
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/avgs_reg[3]*/C}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/q_v_reg/D}];
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_tx@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_tx@$(PREFIX)/q_v_reg/D}];

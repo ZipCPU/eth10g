@@ -152,7 +152,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v_reg/D}] 8.0
 ##
 ##
 @PREFIX=satatxck
@@ -175,7 +175,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v_reg/D}] 8.0
 ##
 ##
 @PREFIX=satarxck
@@ -198,4 +198,4 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile unsigned *const _@$(PREFIX) = ((unsigned *)@$[0x%08x](REGBASE));
 @XDC.INSERT=
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/q_v_reg/D}] 8.0

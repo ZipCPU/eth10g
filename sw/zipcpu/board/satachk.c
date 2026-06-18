@@ -109,7 +109,7 @@ void	wait_int(unsigned int_mask) {
 }
 
 void	dump_drp(void) {
-	for(int k=0; k<0x48; k+=8) {
+	for(int k=0x30; k<0x48; k+=8) {
 		printf("DLL %04x: ", k);
 		for(int s=0; s<8; s++) {
 			printf(" 0x%04x", _satadrp->d_pll[k+s] & 0x0ffff);

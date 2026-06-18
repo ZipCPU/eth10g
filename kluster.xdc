@@ -12,8 +12,6 @@ create_clock -period 5.0 -name SYSCLK -waveform { 0.0 2.50 } -add [get_ports i_c
 
 #set_property -dict { PACKAGE_PIN H6 } [get_ports i_clk_156mhz_p];	## 156.25MHz_REFCLK_P
 #set_property -dict { PACKAGE_PIN H5 } [get_ports i_clk_156mhz_n];	## 156.25MHz_REFCLK_N
-create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_clk_156mhz_p]
-# create_clock -period 3.2 -name NETREF -waveform { 0.0 1.6 } -add [get_ports i_clk_156mhz_p]
 
 #set_property -dict { PACKAGE_PIN K6 } [get_ports i_clk_si_p];		## SI5324_REFCLK_P
 #set_property -dict { PACKAGE_PIN K5 } [get_ports i_clk_si_n];		## SI5324_REFCLK_P

@@ -342,6 +342,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/phy_reset_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/rx_linkup*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_transport/u_fsm/o_phy_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/rx_linkup*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/*reset*}] 10
 ##
@@ -372,7 +373,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 ##
 @PREFIX=satadrp
 @DEVID=SATADRP
-@$NADDR=2048
+@$NADDR=1024
 @SLAVE.BUS=wb32
 @SLAVE.TYPE=OTHER
 @TOP.PORTLIST=
@@ -386,7 +387,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 	// {{{
 	wire		sata_drp_cyc, sata_drp_stb, sata_drp_we,
 			sata_drp_stall, sata_drp_ack, sata_drp_err;
-	wire	[10:0]	sata_drp_addr;
+	wire	[9:0]	sata_drp_addr;
 	wire	[31:0]	sata_drp_data, sata_drp_idata;
 	wire	[3:0]	sata_drp_sel;
 	// }}}
@@ -399,7 +400,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 		i_sata_drp_err
 @MAIN.IODECL=
 	output	wire		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we;
-	output	wire	[10:0]	o_sata_drp_addr;
+	output	wire	[9:0]	o_sata_drp_addr;
 	output	wire	[31:0]	o_sata_drp_data;
 	output	wire	[3:0]	o_sata_drp_sel;
 	input	wire		i_sata_drp_stall, i_sata_drp_ack;
@@ -409,7 +410,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)
 	assign	o_sata_drp_cyc  = @$(SLAVE.PREFIX)_cyc;
 	assign	o_sata_drp_stb  = @$(SLAVE.PREFIX)_stb;
 	assign	o_sata_drp_we   = @$(SLAVE.PREFIX)_we;
-	assign	o_sata_drp_addr = @$(SLAVE.PREFIX)_addr[10:0];
+	assign	o_sata_drp_addr = @$(SLAVE.PREFIX)_addr[9:0];
 	assign	o_sata_drp_data = @$(SLAVE.PREFIX)_data;
 	assign	o_sata_drp_sel  = @$(SLAVE.PREFIX)_sel;
 	//

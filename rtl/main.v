@@ -535,7 +535,7 @@ module	main(i_clk, i_reset,
 	// Verilator lint_on  UNUSED
 	// }}}
 	output	wire		o_sata_drp_cyc, o_sata_drp_stb, o_sata_drp_we;
-	output	wire	[10:0]	o_sata_drp_addr;
+	output	wire	[9:0]	o_sata_drp_addr;
 	output	wire	[31:0]	o_sata_drp_data;
 	output	wire	[3:0]	o_sata_drp_sel;
 	input	wire		i_sata_drp_stall, i_sata_drp_ack;
@@ -1036,7 +1036,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component wbdown
 	// Verilator lint_off UNUSED
 	wire		wb32_wbdown_cyc, wb32_wbdown_stb, wb32_wbdown_we;
-	wire	[11:0]	wb32_wbdown_addr;
+	wire	[10:0]	wb32_wbdown_addr;
 	wire	[31:0]	wb32_wbdown_data;
 	wire	[3:0]	wb32_wbdown_sel;
 	wire		wb32_wbdown_stall, wb32_wbdown_ack, wb32_wbdown_err;
@@ -1045,7 +1045,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component buildtime
 	// Verilator lint_off UNUSED
 	wire		wb32_buildtime_cyc, wb32_buildtime_stb, wb32_buildtime_we;
-	wire	[11:0]	wb32_buildtime_addr;
+	wire	[10:0]	wb32_buildtime_addr;
 	wire	[31:0]	wb32_buildtime_data;
 	wire	[3:0]	wb32_buildtime_sel;
 	wire		wb32_buildtime_stall, wb32_buildtime_ack, wb32_buildtime_err;
@@ -1054,7 +1054,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component gpio
 	// Verilator lint_off UNUSED
 	wire		wb32_gpio_cyc, wb32_gpio_stb, wb32_gpio_we;
-	wire	[11:0]	wb32_gpio_addr;
+	wire	[10:0]	wb32_gpio_addr;
 	wire	[31:0]	wb32_gpio_data;
 	wire	[3:0]	wb32_gpio_sel;
 	wire		wb32_gpio_stall, wb32_gpio_ack, wb32_gpio_err;
@@ -1063,7 +1063,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component netdbg
 	// Verilator lint_off UNUSED
 	wire		wb32_netdbg_cyc, wb32_netdbg_stb, wb32_netdbg_we;
-	wire	[11:0]	wb32_netdbg_addr;
+	wire	[10:0]	wb32_netdbg_addr;
 	wire	[31:0]	wb32_netdbg_data;
 	wire	[3:0]	wb32_netdbg_sel;
 	wire		wb32_netdbg_stall, wb32_netdbg_ack, wb32_netdbg_err;
@@ -1072,7 +1072,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component netlock
 	// Verilator lint_off UNUSED
 	wire		wb32_netlock_cyc, wb32_netlock_stb, wb32_netlock_we;
-	wire	[11:0]	wb32_netlock_addr;
+	wire	[10:0]	wb32_netlock_addr;
 	wire	[31:0]	wb32_netlock_data;
 	wire	[3:0]	wb32_netlock_sel;
 	wire		wb32_netlock_stall, wb32_netlock_ack, wb32_netlock_err;
@@ -1081,7 +1081,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component netreset
 	// Verilator lint_off UNUSED
 	wire		wb32_netreset_cyc, wb32_netreset_stb, wb32_netreset_we;
-	wire	[11:0]	wb32_netreset_addr;
+	wire	[10:0]	wb32_netreset_addr;
 	wire	[31:0]	wb32_netreset_data;
 	wire	[3:0]	wb32_netreset_sel;
 	wire		wb32_netreset_stall, wb32_netreset_ack, wb32_netreset_err;
@@ -1090,7 +1090,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component pwrcount
 	// Verilator lint_off UNUSED
 	wire		wb32_pwrcount_cyc, wb32_pwrcount_stb, wb32_pwrcount_we;
-	wire	[11:0]	wb32_pwrcount_addr;
+	wire	[10:0]	wb32_pwrcount_addr;
 	wire	[31:0]	wb32_pwrcount_data;
 	wire	[3:0]	wb32_pwrcount_sel;
 	wire		wb32_pwrcount_stall, wb32_pwrcount_ack, wb32_pwrcount_err;
@@ -1099,7 +1099,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component rtccount
 	// Verilator lint_off UNUSED
 	wire		wb32_rtccount_cyc, wb32_rtccount_stb, wb32_rtccount_we;
-	wire	[11:0]	wb32_rtccount_addr;
+	wire	[10:0]	wb32_rtccount_addr;
 	wire	[31:0]	wb32_rtccount_data;
 	wire	[3:0]	wb32_rtccount_sel;
 	wire		wb32_rtccount_stall, wb32_rtccount_ack, wb32_rtccount_err;
@@ -1108,7 +1108,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component satarefcounter
 	// Verilator lint_off UNUSED
 	wire		wb32_satarefcounter_cyc, wb32_satarefcounter_stb, wb32_satarefcounter_we;
-	wire	[11:0]	wb32_satarefcounter_addr;
+	wire	[10:0]	wb32_satarefcounter_addr;
 	wire	[31:0]	wb32_satarefcounter_data;
 	wire	[3:0]	wb32_satarefcounter_sel;
 	wire		wb32_satarefcounter_stall, wb32_satarefcounter_ack, wb32_satarefcounter_err;
@@ -1117,7 +1117,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component satarxck
 	// Verilator lint_off UNUSED
 	wire		wb32_satarxck_cyc, wb32_satarxck_stb, wb32_satarxck_we;
-	wire	[11:0]	wb32_satarxck_addr;
+	wire	[10:0]	wb32_satarxck_addr;
 	wire	[31:0]	wb32_satarxck_data;
 	wire	[3:0]	wb32_satarxck_sel;
 	wire		wb32_satarxck_stall, wb32_satarxck_ack, wb32_satarxck_err;
@@ -1126,7 +1126,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component satatxck
 	// Verilator lint_off UNUSED
 	wire		wb32_satatxck_cyc, wb32_satatxck_stb, wb32_satatxck_we;
-	wire	[11:0]	wb32_satatxck_addr;
+	wire	[10:0]	wb32_satatxck_addr;
 	wire	[31:0]	wb32_satatxck_data;
 	wire	[3:0]	wb32_satatxck_sel;
 	wire		wb32_satatxck_stall, wb32_satatxck_ack, wb32_satatxck_err;
@@ -1135,7 +1135,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component siclk
 	// Verilator lint_off UNUSED
 	wire		wb32_siclk_cyc, wb32_siclk_stb, wb32_siclk_we;
-	wire	[11:0]	wb32_siclk_addr;
+	wire	[10:0]	wb32_siclk_addr;
 	wire	[31:0]	wb32_siclk_data;
 	wire	[3:0]	wb32_siclk_sel;
 	wire		wb32_siclk_stall, wb32_siclk_ack, wb32_siclk_err;
@@ -1144,7 +1144,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component sirefclk
 	// Verilator lint_off UNUSED
 	wire		wb32_sirefclk_cyc, wb32_sirefclk_stb, wb32_sirefclk_we;
-	wire	[11:0]	wb32_sirefclk_addr;
+	wire	[10:0]	wb32_sirefclk_addr;
 	wire	[31:0]	wb32_sirefclk_data;
 	wire	[3:0]	wb32_sirefclk_sel;
 	wire		wb32_sirefclk_stall, wb32_sirefclk_ack, wb32_sirefclk_err;
@@ -1153,7 +1153,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component sirefclkcounter
 	// Verilator lint_off UNUSED
 	wire		wb32_sirefclkcounter_cyc, wb32_sirefclkcounter_stb, wb32_sirefclkcounter_we;
-	wire	[11:0]	wb32_sirefclkcounter_addr;
+	wire	[10:0]	wb32_sirefclkcounter_addr;
 	wire	[31:0]	wb32_sirefclkcounter_data;
 	wire	[3:0]	wb32_sirefclkcounter_sel;
 	wire		wb32_sirefclkcounter_stall, wb32_sirefclkcounter_ack, wb32_sirefclkcounter_err;
@@ -1162,7 +1162,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component spio
 	// Verilator lint_off UNUSED
 	wire		wb32_spio_cyc, wb32_spio_stb, wb32_spio_we;
-	wire	[11:0]	wb32_spio_addr;
+	wire	[10:0]	wb32_spio_addr;
 	wire	[31:0]	wb32_spio_data;
 	wire	[3:0]	wb32_spio_sel;
 	wire		wb32_spio_stall, wb32_spio_ack, wb32_spio_err;
@@ -1171,7 +1171,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(SIO), component version
 	// Verilator lint_off UNUSED
 	wire		wb32_version_cyc, wb32_version_stb, wb32_version_we;
-	wire	[11:0]	wb32_version_addr;
+	wire	[10:0]	wb32_version_addr;
 	wire	[31:0]	wb32_version_data;
 	wire	[3:0]	wb32_version_sel;
 	wire		wb32_version_stall, wb32_version_ack, wb32_version_err;
@@ -1180,7 +1180,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component i2c
 	// Verilator lint_off UNUSED
 	wire		wb32_i2cs_cyc, wb32_i2cs_stb, wb32_i2cs_we;
-	wire	[11:0]	wb32_i2cs_addr;
+	wire	[10:0]	wb32_i2cs_addr;
 	wire	[31:0]	wb32_i2cs_data;
 	wire	[3:0]	wb32_i2cs_sel;
 	wire		wb32_i2cs_stall, wb32_i2cs_ack, wb32_i2cs_err;
@@ -1189,7 +1189,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component i2cdma
 	// Verilator lint_off UNUSED
 	wire		wb32_i2cdma_cyc, wb32_i2cdma_stb, wb32_i2cdma_we;
-	wire	[11:0]	wb32_i2cdma_addr;
+	wire	[10:0]	wb32_i2cdma_addr;
 	wire	[31:0]	wb32_i2cdma_data;
 	wire	[3:0]	wb32_i2cdma_sel;
 	wire		wb32_i2cdma_stall, wb32_i2cdma_ack, wb32_i2cdma_err;
@@ -1198,7 +1198,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component netclk
 	// Verilator lint_off UNUSED
 	wire		wb32_netclk_cyc, wb32_netclk_stb, wb32_netclk_we;
-	wire	[11:0]	wb32_netclk_addr;
+	wire	[10:0]	wb32_netclk_addr;
 	wire	[31:0]	wb32_netclk_data;
 	wire	[3:0]	wb32_netclk_sel;
 	wire		wb32_netclk_stall, wb32_netclk_ack, wb32_netclk_err;
@@ -1207,7 +1207,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32(DIO), component wb32_sio
 	// Verilator lint_off UNUSED
 	wire		wb32_sio_cyc, wb32_sio_stb, wb32_sio_we;
-	wire	[11:0]	wb32_sio_addr;
+	wire	[10:0]	wb32_sio_addr;
 	wire	[31:0]	wb32_sio_data;
 	wire	[3:0]	wb32_sio_sel;
 	wire		wb32_sio_stall, wb32_sio_ack, wb32_sio_err;
@@ -1216,7 +1216,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component flashcfg
 	// Verilator lint_off UNUSED
 	wire		wb32_flashcfg_cyc, wb32_flashcfg_stb, wb32_flashcfg_we;
-	wire	[11:0]	wb32_flashcfg_addr;
+	wire	[10:0]	wb32_flashcfg_addr;
 	wire	[31:0]	wb32_flashcfg_data;
 	wire	[3:0]	wb32_flashcfg_sel;
 	wire		wb32_flashcfg_stall, wb32_flashcfg_ack, wb32_flashcfg_err;
@@ -1225,7 +1225,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component busscope
 	// Verilator lint_off UNUSED
 	wire		wb32_busscope_cyc, wb32_busscope_stb, wb32_busscope_we;
-	wire	[11:0]	wb32_busscope_addr;
+	wire	[10:0]	wb32_busscope_addr;
 	wire	[31:0]	wb32_busscope_data;
 	wire	[3:0]	wb32_busscope_sel;
 	wire		wb32_busscope_stall, wb32_busscope_ack, wb32_busscope_err;
@@ -1234,7 +1234,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component emmcscope
 	// Verilator lint_off UNUSED
 	wire		wb32_emmcscope_cyc, wb32_emmcscope_stb, wb32_emmcscope_we;
-	wire	[11:0]	wb32_emmcscope_addr;
+	wire	[10:0]	wb32_emmcscope_addr;
 	wire	[31:0]	wb32_emmcscope_data;
 	wire	[3:0]	wb32_emmcscope_sel;
 	wire		wb32_emmcscope_stall, wb32_emmcscope_ack, wb32_emmcscope_err;
@@ -1243,7 +1243,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component flashdbg
 	// Verilator lint_off UNUSED
 	wire		wb32_flashdbg_cyc, wb32_flashdbg_stb, wb32_flashdbg_we;
-	wire	[11:0]	wb32_flashdbg_addr;
+	wire	[10:0]	wb32_flashdbg_addr;
 	wire	[31:0]	wb32_flashdbg_data;
 	wire	[3:0]	wb32_flashdbg_sel;
 	wire		wb32_flashdbg_stall, wb32_flashdbg_ack, wb32_flashdbg_err;
@@ -1252,7 +1252,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component gatescope
 	// Verilator lint_off UNUSED
 	wire		wb32_gatescope_cyc, wb32_gatescope_stb, wb32_gatescope_we;
-	wire	[11:0]	wb32_gatescope_addr;
+	wire	[10:0]	wb32_gatescope_addr;
 	wire	[31:0]	wb32_gatescope_data;
 	wire	[3:0]	wb32_gatescope_sel;
 	wire		wb32_gatescope_stall, wb32_gatescope_ack, wb32_gatescope_err;
@@ -1261,7 +1261,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component i2cscope
 	// Verilator lint_off UNUSED
 	wire		wb32_i2cscope_cyc, wb32_i2cscope_stb, wb32_i2cscope_we;
-	wire	[11:0]	wb32_i2cscope_addr;
+	wire	[10:0]	wb32_i2cscope_addr;
 	wire	[31:0]	wb32_i2cscope_data;
 	wire	[3:0]	wb32_i2cscope_sel;
 	wire		wb32_i2cscope_stall, wb32_i2cscope_ack, wb32_i2cscope_err;
@@ -1270,7 +1270,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component netscope
 	// Verilator lint_off UNUSED
 	wire		wb32_netscope_cyc, wb32_netscope_stb, wb32_netscope_we;
-	wire	[11:0]	wb32_netscope_addr;
+	wire	[10:0]	wb32_netscope_addr;
 	wire	[31:0]	wb32_netscope_data;
 	wire	[3:0]	wb32_netscope_sel;
 	wire		wb32_netscope_stall, wb32_netscope_ack, wb32_netscope_err;
@@ -1279,7 +1279,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component routescope
 	// Verilator lint_off UNUSED
 	wire		wb32_routescope_cyc, wb32_routescope_stb, wb32_routescope_we;
-	wire	[11:0]	wb32_routescope_addr;
+	wire	[10:0]	wb32_routescope_addr;
 	wire	[31:0]	wb32_routescope_data;
 	wire	[3:0]	wb32_routescope_sel;
 	wire		wb32_routescope_stall, wb32_routescope_ack, wb32_routescope_err;
@@ -1288,7 +1288,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satadrpscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satadrpscope_cyc, wb32_satadrpscope_stb, wb32_satadrpscope_we;
-	wire	[11:0]	wb32_satadrpscope_addr;
+	wire	[10:0]	wb32_satadrpscope_addr;
 	wire	[31:0]	wb32_satadrpscope_data;
 	wire	[3:0]	wb32_satadrpscope_sel;
 	wire		wb32_satadrpscope_stall, wb32_satadrpscope_ack, wb32_satadrpscope_err;
@@ -1297,7 +1297,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satalscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satalscope_cyc, wb32_satalscope_stb, wb32_satalscope_we;
-	wire	[11:0]	wb32_satalscope_addr;
+	wire	[10:0]	wb32_satalscope_addr;
 	wire	[31:0]	wb32_satalscope_data;
 	wire	[3:0]	wb32_satalscope_sel;
 	wire		wb32_satalscope_stall, wb32_satalscope_ack, wb32_satalscope_err;
@@ -1306,7 +1306,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satapscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satapscope_cyc, wb32_satapscope_stb, wb32_satapscope_we;
-	wire	[11:0]	wb32_satapscope_addr;
+	wire	[10:0]	wb32_satapscope_addr;
 	wire	[31:0]	wb32_satapscope_data;
 	wire	[3:0]	wb32_satapscope_sel;
 	wire		wb32_satapscope_stall, wb32_satapscope_ack, wb32_satapscope_err;
@@ -1315,7 +1315,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satarscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satarscope_cyc, wb32_satarscope_stb, wb32_satarscope_we;
-	wire	[11:0]	wb32_satarscope_addr;
+	wire	[10:0]	wb32_satarscope_addr;
 	wire	[31:0]	wb32_satarscope_data;
 	wire	[3:0]	wb32_satarscope_sel;
 	wire		wb32_satarscope_stall, wb32_satarscope_ack, wb32_satarscope_err;
@@ -1324,7 +1324,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satatscope
 	// Verilator lint_off UNUSED
 	wire		wb32_satatscope_cyc, wb32_satatscope_stb, wb32_satatscope_we;
-	wire	[11:0]	wb32_satatscope_addr;
+	wire	[10:0]	wb32_satatscope_addr;
 	wire	[31:0]	wb32_satatscope_data;
 	wire	[3:0]	wb32_satatscope_sel;
 	wire		wb32_satatscope_stall, wb32_satatscope_ack, wb32_satatscope_err;
@@ -1333,7 +1333,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component sdioscope
 	// Verilator lint_off UNUSED
 	wire		wb32_sdioscope_cyc, wb32_sdioscope_stb, wb32_sdioscope_we;
-	wire	[11:0]	wb32_sdioscope_addr;
+	wire	[10:0]	wb32_sdioscope_addr;
 	wire	[31:0]	wb32_sdioscope_data;
 	wire	[3:0]	wb32_sdioscope_sel;
 	wire		wb32_sdioscope_stall, wb32_sdioscope_ack, wb32_sdioscope_err;
@@ -1342,7 +1342,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component uart
 	// Verilator lint_off UNUSED
 	wire		wb32_uart_cyc, wb32_uart_stb, wb32_uart_we;
-	wire	[11:0]	wb32_uart_addr;
+	wire	[10:0]	wb32_uart_addr;
 	wire	[31:0]	wb32_uart_data;
 	wire	[3:0]	wb32_uart_sel;
 	wire		wb32_uart_stall, wb32_uart_ack, wb32_uart_err;
@@ -1351,7 +1351,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component emmc
 	// Verilator lint_off UNUSED
 	wire		wb32_emmc_cyc, wb32_emmc_stb, wb32_emmc_we;
-	wire	[11:0]	wb32_emmc_addr;
+	wire	[10:0]	wb32_emmc_addr;
 	wire	[31:0]	wb32_emmc_data;
 	wire	[3:0]	wb32_emmc_sel;
 	wire		wb32_emmc_stall, wb32_emmc_ack, wb32_emmc_err;
@@ -1360,7 +1360,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component fan
 	// Verilator lint_off UNUSED
 	wire		wb32_fan_cyc, wb32_fan_stb, wb32_fan_we;
-	wire	[11:0]	wb32_fan_addr;
+	wire	[10:0]	wb32_fan_addr;
 	wire	[31:0]	wb32_fan_data;
 	wire	[3:0]	wb32_fan_sel;
 	wire		wb32_fan_stall, wb32_fan_ack, wb32_fan_err;
@@ -1369,7 +1369,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component sata
 	// Verilator lint_off UNUSED
 	wire		wb32_sata_cyc, wb32_sata_stb, wb32_sata_we;
-	wire	[11:0]	wb32_sata_addr;
+	wire	[10:0]	wb32_sata_addr;
 	wire	[31:0]	wb32_sata_data;
 	wire	[3:0]	wb32_sata_sel;
 	wire		wb32_sata_stall, wb32_sata_ack, wb32_sata_err;
@@ -1378,7 +1378,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component sdio
 	// Verilator lint_off UNUSED
 	wire		wb32_sdio_cyc, wb32_sdio_stb, wb32_sdio_we;
-	wire	[11:0]	wb32_sdio_addr;
+	wire	[10:0]	wb32_sdio_addr;
 	wire	[31:0]	wb32_sdio_data;
 	wire	[3:0]	wb32_sdio_sel;
 	wire		wb32_sdio_stall, wb32_sdio_ack, wb32_sdio_err;
@@ -1387,7 +1387,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component cfg
 	// Verilator lint_off UNUSED
 	wire		wb32_cfg_cyc, wb32_cfg_stb, wb32_cfg_we;
-	wire	[11:0]	wb32_cfg_addr;
+	wire	[10:0]	wb32_cfg_addr;
 	wire	[31:0]	wb32_cfg_data;
 	wire	[3:0]	wb32_cfg_sel;
 	wire		wb32_cfg_stall, wb32_cfg_ack, wb32_cfg_err;
@@ -1396,7 +1396,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component cpunet
 	// Verilator lint_off UNUSED
 	wire		wb32_cpunets_cyc, wb32_cpunets_stb, wb32_cpunets_we;
-	wire	[11:0]	wb32_cpunets_addr;
+	wire	[10:0]	wb32_cpunets_addr;
 	wire	[31:0]	wb32_cpunets_data;
 	wire	[3:0]	wb32_cpunets_sel;
 	wire		wb32_cpunets_stall, wb32_cpunets_ack, wb32_cpunets_err;
@@ -1405,7 +1405,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component wb32_dio
 	// Verilator lint_off UNUSED
 	wire		wb32_dio_cyc, wb32_dio_stb, wb32_dio_we;
-	wire	[11:0]	wb32_dio_addr;
+	wire	[10:0]	wb32_dio_addr;
 	wire	[31:0]	wb32_dio_data;
 	wire	[3:0]	wb32_dio_sel;
 	wire		wb32_dio_stall, wb32_dio_ack, wb32_dio_err;
@@ -1414,7 +1414,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component gnet
 	// Verilator lint_off UNUSED
 	wire		wb32_gnet_cyc, wb32_gnet_stb, wb32_gnet_we;
-	wire	[11:0]	wb32_gnet_addr;
+	wire	[10:0]	wb32_gnet_addr;
 	wire	[31:0]	wb32_gnet_data;
 	wire	[3:0]	wb32_gnet_sel;
 	wire		wb32_gnet_stall, wb32_gnet_ack, wb32_gnet_err;
@@ -1423,7 +1423,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component ddr3_phy
 	// Verilator lint_off UNUSED
 	wire		wb32_ddr3_phy_cyc, wb32_ddr3_phy_stb, wb32_ddr3_phy_we;
-	wire	[11:0]	wb32_ddr3_phy_addr;
+	wire	[10:0]	wb32_ddr3_phy_addr;
 	wire	[31:0]	wb32_ddr3_phy_data;
 	wire	[3:0]	wb32_ddr3_phy_sel;
 	wire		wb32_ddr3_phy_stall, wb32_ddr3_phy_ack, wb32_ddr3_phy_err;
@@ -1432,7 +1432,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component netstats
 	// Verilator lint_off UNUSED
 	wire		wb32_netstats_cyc, wb32_netstats_stb, wb32_netstats_we;
-	wire	[11:0]	wb32_netstats_addr;
+	wire	[10:0]	wb32_netstats_addr;
 	wire	[31:0]	wb32_netstats_data;
 	wire	[3:0]	wb32_netstats_sel;
 	wire		wb32_netstats_stall, wb32_netstats_ack, wb32_netstats_err;
@@ -1441,7 +1441,7 @@ module	main(i_clk, i_reset,
 	// Wishbone definitions for bus wb32, component satadrp
 	// Verilator lint_off UNUSED
 	wire		wb32_satadrp_cyc, wb32_satadrp_stb, wb32_satadrp_we;
-	wire	[11:0]	wb32_satadrp_addr;
+	wire	[10:0]	wb32_satadrp_addr;
 	wire	[31:0]	wb32_satadrp_data;
 	wire	[3:0]	wb32_satadrp_sel;
 	wire		wb32_satadrp_stall, wb32_satadrp_ack, wb32_satadrp_err;
@@ -2005,66 +2005,66 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(1), .NS(26), .AW(12), .DW(32),
+		.NM(1), .NS(26), .AW(11), .DW(32),
 		.SLAVE_ADDR({
-			// Address width    = 12
+			// Address width    = 11
 			// Address LSBs     = 2
-			{ 12'h800 }, //      satadrp: 0x2000
-			{ 12'h680 }, //     netstats: 0x1a00
-			{ 12'h600 }, //     ddr3_phy: 0x1800
-			{ 12'h580 }, //         gnet: 0x1600
-			{ 12'h540 }, //     wb32_dio: 0x1500
-			{ 12'h500 }, //       cpunet: 0x1400
-			{ 12'h4c0 }, //          cfg: 0x1300
-			{ 12'h480 }, //         sdio: 0x1200
-			{ 12'h440 }, //         sata: 0x1100
-			{ 12'h400 }, //          fan: 0x1000
-			{ 12'h3c0 }, //         emmc: 0x0f00
-			{ 12'h380 }, //         uart: 0x0e00
-			{ 12'h340 }, //    sdioscope: 0x0d00
-			{ 12'h300 }, //   satatscope: 0x0c00
-			{ 12'h2c0 }, //   satarscope: 0x0b00
-			{ 12'h280 }, //   satapscope: 0x0a00
-			{ 12'h240 }, //   satalscope: 0x0900
-			{ 12'h200 }, // satadrpscope: 0x0800
-			{ 12'h1c0 }, //   routescope: 0x0700
-			{ 12'h180 }, //     netscope: 0x0600
-			{ 12'h140 }, //     i2cscope: 0x0500
-			{ 12'h100 }, //    gatescope: 0x0400
-			{ 12'h0c0 }, //     flashdbg: 0x0300
-			{ 12'h080 }, //    emmcscope: 0x0200
-			{ 12'h040 }, //     busscope: 0x0100
-			{ 12'h000 }  //     flashcfg: 0x0000
+			{ 11'h400 }, //      satadrp: 0x1000
+			{ 11'h380 }, //     netstats: 0x0e00
+			{ 11'h300 }, //     ddr3_phy: 0x0c00
+			{ 11'h2c0 }, //         gnet: 0x0b00
+			{ 11'h2a0 }, //     wb32_dio: 0x0a80
+			{ 11'h280 }, //       cpunet: 0x0a00
+			{ 11'h260 }, //          cfg: 0x0980
+			{ 11'h240 }, //         sdio: 0x0900
+			{ 11'h220 }, //         sata: 0x0880
+			{ 11'h200 }, //          fan: 0x0800
+			{ 11'h1e0 }, //         emmc: 0x0780
+			{ 11'h1c0 }, //         uart: 0x0700
+			{ 11'h1a0 }, //    sdioscope: 0x0680
+			{ 11'h180 }, //   satatscope: 0x0600
+			{ 11'h160 }, //   satarscope: 0x0580
+			{ 11'h140 }, //   satapscope: 0x0500
+			{ 11'h120 }, //   satalscope: 0x0480
+			{ 11'h100 }, // satadrpscope: 0x0400
+			{ 11'h0e0 }, //   routescope: 0x0380
+			{ 11'h0c0 }, //     netscope: 0x0300
+			{ 11'h0a0 }, //     i2cscope: 0x0280
+			{ 11'h080 }, //    gatescope: 0x0200
+			{ 11'h060 }, //     flashdbg: 0x0180
+			{ 11'h040 }, //    emmcscope: 0x0100
+			{ 11'h020 }, //     busscope: 0x0080
+			{ 11'h000 }  //     flashcfg: 0x0000
 		}),
 		.SLAVE_MASK({
-			// Address width    = 12
+			// Address width    = 11
 			// Address LSBs     = 2
-			{ 12'h800 }, //      satadrp
-			{ 12'hf80 }, //     netstats
-			{ 12'hf80 }, //     ddr3_phy
-			{ 12'hfc0 }, //         gnet
-			{ 12'hfc0 }, //     wb32_dio
-			{ 12'hfc0 }, //       cpunet
-			{ 12'hfc0 }, //          cfg
-			{ 12'hfc0 }, //         sdio
-			{ 12'hfc0 }, //         sata
-			{ 12'hfc0 }, //          fan
-			{ 12'hfc0 }, //         emmc
-			{ 12'hfc0 }, //         uart
-			{ 12'hfc0 }, //    sdioscope
-			{ 12'hfc0 }, //   satatscope
-			{ 12'hfc0 }, //   satarscope
-			{ 12'hfc0 }, //   satapscope
-			{ 12'hfc0 }, //   satalscope
-			{ 12'hfc0 }, // satadrpscope
-			{ 12'hfc0 }, //   routescope
-			{ 12'hfc0 }, //     netscope
-			{ 12'hfc0 }, //     i2cscope
-			{ 12'hfc0 }, //    gatescope
-			{ 12'hfc0 }, //     flashdbg
-			{ 12'hfc0 }, //    emmcscope
-			{ 12'hfc0 }, //     busscope
-			{ 12'hfc0 }  //     flashcfg
+			{ 11'h400 }, //      satadrp
+			{ 11'h780 }, //     netstats
+			{ 11'h780 }, //     ddr3_phy
+			{ 11'h7c0 }, //         gnet
+			{ 11'h7e0 }, //     wb32_dio
+			{ 11'h7e0 }, //       cpunet
+			{ 11'h7e0 }, //          cfg
+			{ 11'h7e0 }, //         sdio
+			{ 11'h7e0 }, //         sata
+			{ 11'h7e0 }, //          fan
+			{ 11'h7e0 }, //         emmc
+			{ 11'h7e0 }, //         uart
+			{ 11'h7e0 }, //    sdioscope
+			{ 11'h7e0 }, //   satatscope
+			{ 11'h7e0 }, //   satarscope
+			{ 11'h7e0 }, //   satapscope
+			{ 11'h7e0 }, //   satalscope
+			{ 11'h7e0 }, // satadrpscope
+			{ 11'h7e0 }, //   routescope
+			{ 11'h7e0 }, //     netscope
+			{ 11'h7e0 }, //     i2cscope
+			{ 11'h7e0 }, //    gatescope
+			{ 11'h7e0 }, //     flashdbg
+			{ 11'h7e0 }, //    emmcscope
+			{ 11'h7e0 }, //     busscope
+			{ 11'h7e0 }  //     flashcfg
 		}),
 		.OPT_DBLBUFFER(1'b1)
 	) wb32_xbar(
@@ -4034,7 +4034,7 @@ module	main(i_clk, i_reset,
 
 	wbdown #(
 		// {{{
-		.ADDRESS_WIDTH(12+$clog2(32/8)),
+		.ADDRESS_WIDTH(11+$clog2(32/8)),
 		.WIDE_DW(512),
 		.SMALL_DW(32),
 		.OPT_LITTLE_ENDIAN(1'b0),
@@ -4049,7 +4049,7 @@ module	main(i_clk, i_reset,
 		.i_wcyc(  wbwide_wbdown_cyc),
 		.i_wstb(  wbwide_wbdown_stb),
 		.i_wwe(   wbwide_wbdown_we),
-		.i_waddr( wbwide_wbdown_addr[8-1:0]),
+		.i_waddr( wbwide_wbdown_addr[7-1:0]),
 		.i_wdata( wbwide_wbdown_data),
 		.i_wsel(  wbwide_wbdown_sel),
 		.o_wstall(wbwide_wbdown_stall),
@@ -4062,7 +4062,7 @@ module	main(i_clk, i_reset,
 		.o_scyc(  wb32_wbdown_cyc),
 		.o_sstb(  wb32_wbdown_stb),
 		.o_swe(   wb32_wbdown_we),
-		.o_saddr( wb32_wbdown_addr[12-1:0]),
+		.o_saddr( wb32_wbdown_addr[11-1:0]),
 		.o_sdata( wb32_wbdown_data),
 		.o_ssel(  wb32_wbdown_sel),
 		.i_sstall(wb32_wbdown_stall),
@@ -4544,7 +4544,7 @@ module	main(i_clk, i_reset,
 	assign	o_sata_drp_cyc  = wb32_satadrp_cyc;
 	assign	o_sata_drp_stb  = wb32_satadrp_stb;
 	assign	o_sata_drp_we   = wb32_satadrp_we;
-	assign	o_sata_drp_addr = wb32_satadrp_addr[10:0];
+	assign	o_sata_drp_addr = wb32_satadrp_addr[9:0];
 	assign	o_sata_drp_data = wb32_satadrp_data;
 	assign	o_sata_drp_sel  = wb32_satadrp_sel;
 	//
