@@ -48,7 +48,7 @@
 #define	I2CB_SEND	3
 #define	I2CB_READ	4
 #define	I2CB_RNAK	5
-	// RLSTNAK	6
+	// RLSTACK	6
 #define	I2CB_RLAST	7
 #define	I2CB_WAIT	8
 #define	I2CB_HALT	9
@@ -59,7 +59,21 @@
 
 /*
 typedef	struct	I2CBUF_S {
-	int	i_ln, i_bufsz, i_half, i_stopped;
+		// i_ln: The (current) number of bytes in use in our buffer.
+		//  As such, the next byte will (always) go into i_b[i_ln++].
+		//  If i_half is true, the next nibble will go into the least
+		//  significant nibble of i_b[i_ln-1].
+	int	i_ln,
+		// i_bufsz: The number of bytes in our buffer.
+		i_bufsz,
+		// i_half: true if only the first nibble has been used, and
+		//  so the second half-nibble is still available.  If i_half
+		//  is true, then i_b[i_ln] points to a word that is half
+		//  filled.  This must be so, otherwise any data copies
+		//  would fail.
+		i_half,
+		// i_b: a pointer to the buffer we are using to keep track
+		// of everything.
 	char	i_b[1];
 } I2CBUF;
 */
@@ -89,11 +103,12 @@ void i2cb_clear(I2CBUF *sb) {
 void i2cb_append(I2CBUF *ib, char c) {
 	// {{{
 	assert(ib->i_ln + 1 < ib->i_bufsz);
+
 	if (ib->i_half) {
-		ib->i_b[ib->i_ln++] = c & 0x0f;
+		ib->i_b[ib->i_ln-1] |= c & 0x0f;
 		ib->i_half = 0;
 	} else {
-		ib->i_b[ib->i_ln] = (c & 0x0f) << 4;
+		ib->i_b[ib->i_ln++] = (c & 0x0f) << 4;
 		ib->i_half = 1;
 	}
 }
@@ -129,9 +144,33 @@ void i2cb_read(I2CBUF *ib, int ln) {
 	if (ln == 0)
 		return;
 
-	for(int k=0; k<ln-1; k++)
-		i2cb_append(ib, I2CB_READ);
-	i2cb_append(ib, I2CB_RNAK);
+	assert(ib->i_ln + 2*((ln+255)/256) < ib->i_bufsz);
+
+	while(ln > 256) {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln-1] |= I2CB_READ;
+		else
+			ib->i_b[ib->i_ln++]  = I2CB_READ;
+		ib->i_half = 0;
+		ib->i_b[ib->i_ln++]  = 0xff;
+		ln -= 256;
+	} if (ln <= 16) {
+		if (ib->i_half) {
+			ib->i_b[ib->i_ln-1] |= I2CB_RNAK;
+			ib->i_b[ib->i_ln++]  = ln-1;
+		} else
+			ib->i_b[ib->i_ln++]  = (I2CB_RNAK << 4) | (ln-1);
+		ib->i_half = 0;
+		ln = 0;
+	} else if (ln > 0) {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln-1] |= I2CB_RNAK;
+		else
+			ib->i_b[ib->i_ln++]  = I2CB_RNAK;
+		ib->i_half = 0;
+		ib->i_b[ib->i_ln++]  = (ln-1);
+		ln -= 256;
+	}
 }
 // }}}
 
@@ -140,26 +179,86 @@ void i2cb_rdlast(I2CBUF *ib, int ln) {
 	if (ln == 0)
 		return;
 
-	for(int k=0; k<ln-1; k++)
-		i2cb_append(ib, I2CB_READ);
-	i2cb_append(ib, I2CB_RLAST);
+	assert(ib->i_ln + 2*((ln+255)/256) < ib->i_bufsz);
+
+	while(ln > 256) {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln-1] |= I2CB_READ;
+		else
+			ib->i_b[ib->i_ln++]  = I2CB_READ;
+		ib->i_half = 0;
+		ib->i_b[ib->i_ln++]  = 0xff;
+		ln -= 256;
+	} if (ln <= 16) {
+		if (ib->i_half) {
+			ib->i_b[ib->i_ln-1] |= I2CB_RLAST;
+			ib->i_b[ib->i_ln++]  = ln-1;
+		} else
+			ib->i_b[ib->i_ln++]  = (I2CB_RLAST << 4) | (ln-1);
+		ib->i_half = 0;
+		ln = 0;
+	} else if (ln > 0) {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln-1] |= I2CB_RLAST;
+		else
+			ib->i_b[ib->i_ln++]  = I2CB_RLAST;
+		ib->i_half = 0;
+		ib->i_b[ib->i_ln++]  = (ln-1);
+		ln -= 256;
+	}
 }
 // }}}
 
 void i2cb_send(I2CBUF *ib, int ln, char *b) {
 	// {{{
-	for(int k=0; k<ln; k++)
-		i2cb_sendc(ib, b[k]);
+	// for(int k=0; k<ln; k++)
+	//	i2cb_sendc(ib, b[k]);
+	if (ln == 0)
+		return;
+
+	assert(ib->i_ln + 2*((ln+255)/256) + ln < ib->i_bufsz);
+
+	while(ln > 256) {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln-1] |= I2CB_SEND;
+		else
+			ib->i_b[ib->i_ln++]  = I2CB_SEND;
+		ib->i_half = 0;
+		ib->i_b[ib->i_ln++]  = 0xff;
+		ln -= 256;
+
+		for(int k=0; k<256; k++)
+			ib->i_b[ib->i_ln++] = b[k];
+	} if (ln <= 16) {
+		if (ib->i_half) {
+			ib->i_b[ib->i_ln-1] |= I2CB_SEND;
+			ib->i_b[ib->i_ln++]  = ln-1;
+		} else
+			ib->i_b[ib->i_ln++]  = (I2CB_SEND << 4) | (ln-1);
+
+		for(int k=0; k<ln; k++)
+			ib->i_b[ib->i_ln++] = b[k];
+		ib->i_half = 0;
+		ln = 0;
+	} else if (ln > 0) {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln-1] |= I2CB_SEND;
+		else
+			ib->i_b[ib->i_ln++]  = I2CB_SEND;
+		ib->i_half = 0;
+		ib->i_b[ib->i_ln++]  = (ln-1);
+		ln = 0;
+
+		for(int k=0; k<ln; k++)
+			ib->i_b[ib->i_ln++] = b[k];
+	}
 }
 // }}}
 
 void i2cb_sendc(I2CBUF *ib, char ch) {
 	// {{{
 	assert(ib->i_ln + 2 < ib->i_bufsz);
-	i2cb_append(ib, I2CB_SEND);
-	ib->i_half = 0;
-
-	ib->i_b[ib->i_ln++] = ch;
+	i2cb_send(ib, 1, &ch);
 }
 // }}}
 
@@ -189,8 +288,15 @@ void i2cb_jump(I2CBUF *ib) {
 
 void	i2cb_channel(I2CBUF *ib, int ch) {
 	// {{{
-	i2cb_append(ib, I2CB_CHANNEL);
-	ib->i_half = 0;
-	ib->i_b[ib->i_ln++] = ch;
+	if (ch < 16 && !ib->i_half) {
+		ib->i_b[ib->i_ln++] = (I2CB_CHANNEL << 4) | ch;
+	} else {
+		if (ib->i_half)
+			ib->i_b[ib->i_ln++] = I2CB_CHANNEL;
+		else {
+			ib->i_b[ib->i_ln-1] &= 0x0f0;
+			ib->i_b[ib->i_ln-1] |= I2CB_CHANNEL;
+		} ib->i_b[ib->i_ln++] = ch;
+	} ib->i_half = 0;
 }
 // }}}
