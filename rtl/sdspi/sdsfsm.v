@@ -1492,7 +1492,7 @@ cover($past(r_state) == ST_PRG);
 			assert(!s2mm_busy);
 			assert(bufcount <= 1);
 		end
-		assert(bufcount <= 2);
+		assert(bufcount + (o_rx_en ? 1:0) <= 2);
 		if (bufcount == 2)
 		begin
 			if (o_dma_dir == D_HOST2DEV)
