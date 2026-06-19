@@ -154,14 +154,13 @@ void i2cb_read(I2CBUF *ib, int ln) {
 		ib->i_half = 0;
 		ib->i_b[ib->i_ln++]  = 0xff;
 		ln -= 256;
-	} if (ln <= 16) {
+	} if (ln <= 16) {	// LN will *NOT* be zero here
 		if (ib->i_half) {
 			ib->i_b[ib->i_ln-1] |= I2CB_RNAK;
 			ib->i_b[ib->i_ln++]  = ln-1;
 		} else
 			ib->i_b[ib->i_ln++]  = (I2CB_RNAK << 4) | (ln-1);
 		ib->i_half = 0;
-		ln = 0;
 	} else if (ln > 0) {
 		if (ib->i_half)
 			ib->i_b[ib->i_ln-1] |= I2CB_RNAK;
@@ -169,7 +168,6 @@ void i2cb_read(I2CBUF *ib, int ln) {
 			ib->i_b[ib->i_ln++]  = I2CB_RNAK;
 		ib->i_half = 0;
 		ib->i_b[ib->i_ln++]  = (ln-1);
-		ln -= 256;
 	}
 }
 // }}}
@@ -189,7 +187,7 @@ void i2cb_rdlast(I2CBUF *ib, int ln) {
 		ib->i_half = 0;
 		ib->i_b[ib->i_ln++]  = 0xff;
 		ln -= 256;
-	} if (ln <= 16) {
+	} if (ln <= 16) {	// LN will *NOT* be zero here
 		if (ib->i_half) {
 			ib->i_b[ib->i_ln-1] |= I2CB_RLAST;
 			ib->i_b[ib->i_ln++]  = ln-1;
@@ -229,7 +227,7 @@ void i2cb_send(I2CBUF *ib, int ln, char *b) {
 
 		for(int k=0; k<256; k++)
 			ib->i_b[ib->i_ln++] = b[k];
-	} if (ln <= 16) {
+	} if (ln <= 16) {	// LN will *NOT* be zero here
 		if (ib->i_half) {
 			ib->i_b[ib->i_ln-1] |= I2CB_SEND;
 			ib->i_b[ib->i_ln++]  = ln-1;
@@ -247,10 +245,9 @@ void i2cb_send(I2CBUF *ib, int ln, char *b) {
 			ib->i_b[ib->i_ln++]  = I2CB_SEND;
 		ib->i_half = 0;
 		ib->i_b[ib->i_ln++]  = (ln-1);
-		ln = 0;
-
 		for(int k=0; k<ln; k++)
 			ib->i_b[ib->i_ln++] = b[k];
+		ln = 0;
 	}
 }
 // }}}
@@ -291,11 +288,11 @@ void	i2cb_channel(I2CBUF *ib, int ch) {
 	if (ch < 16 && !ib->i_half) {
 		ib->i_b[ib->i_ln++] = (I2CB_CHANNEL << 4) | ch;
 	} else {
-		if (ib->i_half)
-			ib->i_b[ib->i_ln++] = I2CB_CHANNEL;
-		else {
+		if (ib->i_half) {
 			ib->i_b[ib->i_ln-1] &= 0x0f0;
 			ib->i_b[ib->i_ln-1] |= I2CB_CHANNEL;
+		} else {
+			ib->i_b[ib->i_ln++] = I2CB_CHANNEL;
 		} ib->i_b[ib->i_ln++] = ch;
 	} ib->i_half = 0;
 }
