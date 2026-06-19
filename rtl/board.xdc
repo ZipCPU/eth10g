@@ -672,9 +672,9 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_s
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarscope/o_bus_data*}] 8
 ## From satarefcounter
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v_reg/D}] 8.0
+set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satarefcounter/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satarefcounter/q_v_reg/D}] 8.0
 ## From satarxck
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satarxck/q_v_reg/D}] 8.0
+set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satarxck/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satarxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in emmcscope
 ## No XDC.INSERT tag in sdioscope
 ## From netlock
@@ -746,7 +746,7 @@ create_clock -period 6.4 -name NETREF -waveform { 0.0 3.2 } -add [get_ports i_cl
 ## From siclk
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_siclk/q_v_reg/D}];
 ## From satatxck
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/avgs_reg[3]/C}] -to [get_cells -hier -filter {NAME=~ thedesign/u_satatxck/q_v_reg/D}] 8.0
+set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satatxck/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satatxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in buildtime
 ## No XDC.INSERT tag in REGDEFS
 ## No XDC.INSERT tag in zip_alt_mtc
