@@ -87,9 +87,11 @@ $(ZIPSW)/si.c: $(ZIPSW)/siclk.c $(ZIPSW)/sird.c
 
 .PHONY: temp
 ## {{{
-temp: $(ZIPSW)/temp.c
+temp: $(ZIPSW)/temp.c temp.bin
 $(ZIPSW)/temp.c: $(I2CASM) temp.txt
 	$(I2CASM) -c temp.txt -o $@
+temp.bin: $(I2CASM) temp.txt
+	$(I2CASM) -b temp.txt -o $@
 ## }}}
 
 .PHONY: clean

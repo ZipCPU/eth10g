@@ -6,19 +6,17 @@
 	WAIT
 	START			// @ 4.1
 	SEND	0x48,WR	
-	SEND	0x00		// Temperature address
+		0x00		// Temperature address
 	START
 	SEND	0x48,RD
-	RXK			// Read two bytes of temperature
-	RXN
+	RXN	2		// Read two bytes of temperature
 	STOP			// @B.1
 	START			// @C.0
 	SEND	0x49,WR
-	SEND	0x00		// Temperature address
+		0x00		// Temperature address
 	START
 	SEND	0x49,RD
-	RXK			// Read two bytes of temperature
-	RXLN
+	RXLN	2		// Read two bytes of temperature
 	STOP
 	JUMP
 	TARGET
@@ -26,10 +24,9 @@
 	WAIT
 	START			// @C.0
 	SEND	0x49,WR
-	SEND	0x00		// Temperature address
+		0x00		// Temperature address
 	START
 	SEND	0x49,RD
-	RXK			// Read two bytes of temperature
-	RXLN
+	RXLN	2		// Read two bytes of temperature
 	STOP
 	JUMP

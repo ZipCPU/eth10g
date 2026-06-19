@@ -312,39 +312,39 @@ module	wbfan (
 	always @(posedge i_clk)
 	if (mem_stb)
 	case(mem_addr)
-	5'h00:	mem_data <= 8'hb0;	// TARGET
-	5'h01:	mem_data <= 8'hd0;	// CHANNEL
-	5'h02:	mem_data <= 8'h00;	//	#0
-	5'h03:	mem_data <= 8'ha0;	// ABORT
-	5'h04:	mem_data <= 8'h81;	// WAIT | START
-	5'h05:	mem_data <= 8'h30;	// SEND
-	5'h06:	mem_data <= 8'h90;	//	#90
-	5'h07:	mem_data <= 8'h30;	// SEND
-	5'd08:	mem_data <= 8'h00;	//	#00
-	5'h09:	mem_data <= 8'h13;	// START | SEND
-	5'h0a:	mem_data <= 8'h91;	//	#91
-	5'h0b:	mem_data <= 8'h45;	// RXK | RXN
-	5'h0c:	mem_data <= 8'h21;	// STOP | START
-	5'h0d:	mem_data <= 8'h30;	// SEND
-	5'h0e:	mem_data <= 8'h92;	//	#92
-	5'h0f:	mem_data <= 8'h30;	// SEND
-	5'h10:	mem_data <= 8'h00;	//	#00
-	5'h11:	mem_data <= 8'h13;	// START | SEND
-	5'h12:	mem_data <= 8'h93;	//	#93
-	5'h13:	mem_data <= 8'h47;	// RXK  | RXLN
-	5'h14:	mem_data <= 8'h2c;	// STOP | JUMP
+	5'h00:	mem_data <= 8'hbd;	// TARGET | CHANNEL
+	5'h01:	mem_data <= 8'h00;	// : #0
+	5'h02:	mem_data <= 8'ha8;	// ABORT | WAIT
+	5'h03:	mem_data <= 8'h13;	// START | SEND
+	5'h04:	mem_data <= 8'h01;	// : (2 bytes)
+	5'h05:	mem_data <= 8'h90;	// : 0x90
+	5'h06:	mem_data <= 8'h00;	// : 0x00
+	5'h07:	mem_data <= 8'h13;	// START | SEND
+	5'd08:	mem_data <= 8'h00;	// : (1 byte)
+	5'h09:	mem_data <= 8'h91;	// : 0x91
+	5'h0a:	mem_data <= 8'h51;	// RXN (2 bytes)
+	5'h0b:	mem_data <= 8'h21;	// STOP | START
+	5'h0c:	mem_data <= 8'h31;	// SEND (2 bytes)
+	5'h0d:	mem_data <= 8'h92;	// : 0x92
+	5'h0e:	mem_data <= 8'h00;	// : 0x00
+	5'h0f:	mem_data <= 8'h13;	// STOP | START
+	5'h10:	mem_data <= 8'h00;	// : (1 byte)
+	5'h11:	mem_data <= 8'h93;	// : 0x93
+	5'h12:	mem_data <= 8'h71;	// RXLN (2 bytes)
+	5'h13:	mem_data <= 8'h2c;	// STOP | JUMP
 	// Sensor #1 only (skip sensor #0)
-	5'h15:	mem_data <= 8'hb0;	// TARGET
-	5'h16:	mem_data <= 8'ha0;	// ABORT
-	5'h17:	mem_data <= 8'h81;	// WAIT | START
-	5'h18:	mem_data <= 8'h30;	// SEND 0x49,WR
-	5'h19:	mem_data <= 8'h92;	//	#92
-	5'h1a:	mem_data <= 8'h30;	// SEND 0x00
-	5'h1b:	mem_data <= 8'h00;	//
-	5'h1c:	mem_data <= 8'h13;	// START | SEND 0x49,RD
-	5'h1d:	mem_data <= 8'h93;	//	#93
-	5'h1e:	mem_data <= 8'h47;	// RXK  | RXLN
-	5'h1f:	mem_data <= 8'h2c;	// STOP | JUMP
+	5'h14:	mem_data <= 8'hba;	// TARGET | ABORT
+	5'h15:	mem_data <= 8'h81;	// WAIT | START
+	5'h16:	mem_data <= 8'h31;	// SEND (2 bytes)
+	5'h17:	mem_data <= 8'h92;	// : 0x92
+	5'h18:	mem_data <= 8'h00;	// : 0x00
+	5'h19:	mem_data <= 8'h13;	// STOP | SEND
+	5'h1a:	mem_data <= 8'h00;	// : (1 byte)
+	5'h1b:	mem_data <= 8'h93;	// : 0x93
+	5'h1c:	mem_data <= 8'h71;	// RXLN (two bytes)
+	5'h1d:	mem_data <= 8'h2c;	// STOP | JUMP
+	5'h1e:	mem_data <= 8'h99;	// HALT | HALT
+	5'h1f:	mem_data <= 8'h99;	// HALT | HALT
 	// default: mem_data <= 8'h99;
 	endcase
 	// }}}
