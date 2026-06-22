@@ -641,6 +641,7 @@ set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_txnetclk/avgs_re
 ## No XDC.INSERT tag in mem_bootrom_bkram
 ## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in mem_bkram_only
+## No XDC.INSERT tag in zipscope
 ## From satapscope
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satapscope/new_data*}] 8
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satapscope/qd_data*}] 8

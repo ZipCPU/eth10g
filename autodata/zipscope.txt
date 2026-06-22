@@ -1,0 +1,57 @@
+################################################################################
+##
+## Filename:	autodata/zipscope.txt
+## {{{
+## Project:	10Gb Ethernet switch
+##
+## Purpose:	Describes how to integrate a wishbone scope, focused on the
+##		ZipCPU, into our platform.  This is good for debugging things
+##	if the CPU itself isn't working.
+##
+##	If you include this within your design, you should also find an
+##	associated piece of software to decode the signals produced by this
+##	scope within the repository (check in the sw/host directory).
+##
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+## }}}
+## Copyright (C) 2015-2026, Gisselquist Technology, LLC
+## {{{
+## This file is part of the ETH10G project.
+##
+## The ETH10G project contains free software and gateware, licensed under the
+## terms of the 3rd version of the GNU General Public License as published by
+## the Free Software Foundation.
+##
+## This project is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+## }}}
+## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
+##		http://www.gnu.org/licenses/gpl.html
+##
+################################################################################
+##
+## }}}
+@PREFIX=zipscope
+@NADDR=2
+@DEVID=ZIPSCOPE
+@DEPENDS=INCLUDE_ZIPCPU
+@TARGET=zip
+@TRIGGER=zip_trigger
+@$LOG_CAPTURE_SIZE=12
+@INCLUDEFILE=wbscope.txt
+##
+@INT.CPUSCOPE.PIC=altpic
+@INT.CPUSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
