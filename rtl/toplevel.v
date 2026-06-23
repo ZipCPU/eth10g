@@ -470,6 +470,7 @@ i_sdcard_cd_n,
 	wire	s_clk_150mhz;
 	wire	sata_phy_ready, sata_phy_init_err,
 		sata_phy_reset;
+	wire	[3:0]	sata_phy_status;
 	//
 	wire		sata_txphy_clk, sata_txphy_ready,
 			sata_txphy_elecidle, sata_txphy_cominit,
@@ -637,6 +638,7 @@ i_sdcard_cd_n,
 	ddr3_controller_reset,
 		sata_phy_ready, sata_phy_init_err,
 		sata_phy_reset,
+		sata_phy_status,
 		//
 		sata_txphy_clk, sata_txphy_ready,
 			sata_txphy_elecidle, sata_txphy_cominit,
@@ -1375,6 +1377,7 @@ i_sdcard_cd_n,
 		.o_tx_p(o_sata_p), .o_tx_n(o_sata_n),
 		.i_rx_p(i_sata_p), .i_rx_n(i_sata_n),
 		// }}}
+		.o_phy_status(sata_phy_phy_status),
 		.o_refclk(sata_phy_refclk),
 		.o_drpdebug(sata_drp_debug),
 		.o_debug(sata_phy_debug)

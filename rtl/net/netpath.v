@@ -175,9 +175,11 @@ module	netpath #(
 	localparam	ACTMSB = 24;
 	localparam	LGPKTLN = 16;
 	// Verilator lint_off SYNCASYNCNET
+	(* ASYNC_REG="TRUE" *)
 	reg		rx_reset_n, tx_reset_n, fast_reset_n;
-	// Verilator lint_on  SYNCASYNCNET
+	(* ASYNC_REG="TRUE" *)
 	reg	[1:0]	rx_reset_pipe, tx_reset_pipe, fast_reset_pipe;
+	// Verilator lint_on  SYNCASYNCNET
 
 	wire		rx66b_valid;
 	wire	[65:0]	rx66b_data;

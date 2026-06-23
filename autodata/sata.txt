@@ -62,6 +62,7 @@
 	wire	s_@$(REFCK);
 	wire	@$(PREFIX)_phy_ready, @$(PREFIX)_phy_init_err,
 		@$(PREFIX)_phy_reset;
+	wire	[3:0]	@$(PREFIX)_phy_status;
 	//
 	wire		@$(PREFIX)_txphy_clk, @$(PREFIX)_txphy_ready,
 			@$(PREFIX)_txphy_elecidle, @$(PREFIX)_txphy_cominit,
@@ -84,6 +85,7 @@
 @TOP.MAIN=
 		@$(PREFIX)_phy_ready, @$(PREFIX)_phy_init_err,
 		@$(PREFIX)_phy_reset,
+		@$(PREFIX)_phy_status,
 		//
 		@$(PREFIX)_txphy_clk, @$(PREFIX)_txphy_ready,
 			@$(PREFIX)_txphy_elecidle, @$(PREFIX)_txphy_cominit,
@@ -155,6 +157,7 @@
 		.o_tx_p(o_@$(PREFIX)_p), .o_tx_n(o_@$(PREFIX)_n),
 		.i_rx_p(i_@$(PREFIX)_p), .i_rx_n(i_@$(PREFIX)_n),
 		// }}}
+		.o_phy_status(@$(PREFIX)_phy_phy_status),
 		.o_refclk(@$(PREFIX)_phy_refclk),
 		.o_drpdebug(@$(PREFIX)_drp_debug),
 		.o_debug(@$(PREFIX)_phy_debug)
@@ -163,6 +166,7 @@
 @MAIN.PORTLIST=
 		i_@$(PREFIX)_phy_ready, i_@$(PREFIX)_phy_init_err,
 		o_@$(PREFIX)_phy_reset,
+		i_@$(PREFIX)_phy_status,
 		//
 		i_@$(PREFIX)_txphy_clk, i_@$(PREFIX)_txphy_ready,
 			o_@$(PREFIX)_txphy_elecidle, o_@$(PREFIX)_txphy_cominit,
@@ -186,6 +190,7 @@
 				// Verilator lint_off UNUSED
 	input	wire		i_@$(PREFIX)_phy_ready,
 				i_@$(PREFIX)_phy_init_err;
+	input	wire	[3:0]	i_@$(PREFIX)_phy_status;
 				// Verilator lint_on  UNUSED
 		//
 	output	wire		o_@$(PREFIX)_phy_reset;
@@ -237,6 +242,8 @@
 		@$(MASTER.ANSIPORTLIST),
 		// SATA PHY interface
 		// {{{
+		.i_phy_status(i_@$(PREFIX)_phy_status),
+		//
 		.i_rxphy_clk(	i_@$(PREFIX)_rxphy_clk),
 		.i_rxphy_valid(	i_@$(PREFIX)_rxphy_syncd),
 		.i_rxphy_data({ i_@$(PREFIX)_rxphy_primitive, i_@$(PREFIX)_rxphy_data }),

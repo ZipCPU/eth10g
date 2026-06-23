@@ -138,6 +138,7 @@ module	sdslave #(
 				S_STATUS = 2'b10,
 				S_TUNING = 2'b11;
 
+	(* ASYNC_REG="TRUE" *)
 	reg		sd_reset, sd_reset_pipe;
 
 	wire		cfg_ds, cfg_ddr, cfg_cmd_pp, cfg_dat_pp;

@@ -328,6 +328,7 @@ module	main(i_clk, i_reset,
 		o_ddr3_controller_reset,
 		i_sata_phy_ready, i_sata_phy_init_err,
 		o_sata_phy_reset,
+		i_sata_phy_status,
 		//
 		i_sata_txphy_clk, i_sata_txphy_ready,
 			o_sata_txphy_elecidle, o_sata_txphy_cominit,
@@ -623,6 +624,7 @@ module	main(i_clk, i_reset,
 				// Verilator lint_off UNUSED
 	input	wire		i_sata_phy_ready,
 				i_sata_phy_init_err;
+	input	wire	[3:0]	i_sata_phy_status;
 				// Verilator lint_on  UNUSED
 		//
 	output	wire		o_sata_phy_reset;
@@ -5043,6 +5045,8 @@ module	main(i_clk, i_reset,
 		.i_dma_stall(wbwide_sata_stall), .i_dma_ack(wbwide_sata_ack), .i_dma_data(wbwide_sata_idata), .i_dma_err(wbwide_sata_err),
 		// SATA PHY interface
 		// {{{
+		.i_phy_status(i_sata_phy_status),
+		//
 		.i_rxphy_clk(	i_sata_rxphy_clk),
 		.i_rxphy_valid(	i_sata_rxphy_syncd),
 		.i_rxphy_data({ i_sata_rxphy_primitive, i_sata_rxphy_data }),
