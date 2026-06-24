@@ -4697,8 +4697,8 @@ module	main(i_clk, i_reset,
 		.OPT_CARD_DETECT(1'b0),
 		.OPT_CRCTOKEN(1),
 		.OPT_1P8V(1'b0),
-		.BOOT_MODE(4'h0010),	// No DS, SDR, 8b
-		.BOOT_ADDR(32'h40000000),
+		.BOOT_MODE(4'b0010),	// No DS, SDR, 8b
+		.BOOT_ADDR(31'h40000000),
 		.BOOT_BLOCKS(32'd8),	// 4kB in 8x 512Byte blocks
 		.BOOT_SPEED(8'd4),	// 12MHz
 		.BOOT_TOKEN(1'b1),	// Expect a boot token

@@ -50,8 +50,8 @@
 @OPT_1P8V=1'b0
 @HW1P8V=1'b1
 @USERPARAMS=
-		.BOOT_MODE(4'h0010),	// No DS, SDR, 8b
-		.BOOT_ADDR(32'h@$[%08x](ddr3_controller.REGBASE)),
+		.BOOT_MODE(4'b0010),	// No DS, SDR, 8b
+		.BOOT_ADDR(31'h@$[%08x](ddr3_controller.REGBASE)),
 		.BOOT_BLOCKS(32'd8),	// 4kB in 8x 512Byte blocks
 		.BOOT_SPEED(8'd4),	// 12MHz
 		.BOOT_TOKEN(1'b1),	// Expect a boot token
