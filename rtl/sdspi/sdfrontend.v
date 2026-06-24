@@ -161,7 +161,7 @@ module	sdfrontend #(
 		pending_ack <= 1'b0;
 	else if (i_expect_token)
 		pending_ack <= 1'b1;
-	else if (o_crcack || o_crcnak)
+	else if (i_data_en || i_rx_en || o_crcack || o_crcnak)
 		pending_ack <= 1'b0;
 
 	assign	next_pedge = ~{ last_ck, i_sdclk[7:1] } &  i_sdclk[7:0];
@@ -840,7 +840,8 @@ module	sdfrontend #(
 		reg	[HWBIAS+24:0]	pck_sreg;
 		reg	[7:0]	cmd_sample_ck;
 		wire		busy_pin;
-		reg	[1:0]	busy_delay, itok;
+		reg	[1:0]	busy_delay;
+		reg	[1:0]	itok;
 		wire	[HWBIAS+31:0]	wide_pedge, wide_dedge, wide_cmdedge;
 		// Verilator lint_off UNUSED
 		wire	[7:0]	my_cmd_data;
@@ -1296,6 +1297,10 @@ module	sdfrontend #(
 		always @(posedge i_clk)
 		begin
 			r_debug <= 32'h0;
+
+			r_debug[30] <= busy_pin;
+			r_debug[29] <= wait_for_busy;
+			r_debug[28] <= dat0_busy;
 
 			r_debug[27:25] <= { i_cmd_en, i_cmd_tristate,
 						i_cmd_data[0] };

@@ -59,6 +59,7 @@
 @OPT_EMMC=1'b0
 @OPT_DMA=1'b1
 @OPT_1P8V=1'b1
+@USERPARAMS=
 @HW1P8V=w_@$(PREFIX)_1p8v
 @TOP.IOPREFIX=sdcard
 @OPT_HWRESET=1'b1
@@ -371,6 +372,7 @@
 		.OPT_CARD_DETECT(@$(CARD_DETECT)),
 		.OPT_CRCTOKEN(@$(CRCTOKEN)),
 		.OPT_1P8V(@$(OPT_1P8V)),
+@$(USERPARAMS)
 `ifdef	VERILATOR
 		.LGTIMEOUT(18),
 `else
@@ -437,13 +439,16 @@
 
 	// }}}
 @MAIN.ALT=
-@REGS.N=5
+@REGS.N=7
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	SDCARD
 @REGS.1= 1 R_@$(DEVID)_DATA 	SDDATA
 @REGS.2= 2 R_@$(DEVID)_FIFOA	SDFIFOA, SDFIF0, SDFIFA
 @REGS.3= 3 R_@$(DEVID)_FIFOB	SDFIFOB, SDFIF1, SDFIFB
 @REGS.4= 4 R_@$(DEVID)_PHY	SDPHY
+## Unused register in BIG-ENDIAN mode
+@REGS.5= 6 R_@$(DEVID)_DMAA	SDDMAA SDDMA
+@REGS.6= 7 R_@$(DEVID)_DMALN	SDDMALN
 @BDEF.DEFN=
 ////////////////////////////////////////////////////////////////////////////////
 //

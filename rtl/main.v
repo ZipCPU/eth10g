@@ -410,13 +410,13 @@ module	main(i_clk, i_reset,
 				? DBGBUSWATCHDOG_RAW : 19;
 	// }}}
 	localparam DDR3_CONTROLLERCONTROLLER_CLK_PERIOD = 10_000,  //ps, clock period of the controller interface
-		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD) 
+		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD)
 	localparam DDR3_CONTROLLERROW_BITS = 14,  // width of row address
 		DDR3_CONTROLLERCOL_BITS = 10,  // width of column address
 		DDR3_CONTROLLERBA_BITS  =  3,  // width of bank address
 		DDR3_CONTROLLERDQ_BITS  =  8,  // Size of one octet
 		DDR3_CONTROLLERBYTE_LANES = 8, //8 lanes of DQ
-		DDR3_CONTROLLERAUX_WIDTH = 16, //width of aux line (must be >= 4) 
+		DDR3_CONTROLLERAUX_WIDTH = 16, //width of aux line (must be >= 4)
 		DDR3_CONTROLLERSERDES_RATIO = $rtoi(DDR3_CONTROLLERCONTROLLER_CLK_PERIOD/DDR3_CLK_PERIOD),
 		//4 is the width of a single ddr3 command {cs_n, ras_n, cas_n, we_n} plus 3 (ck_en, odt, reset_n) plus bank bits plus row bits
 		DDR3_CONTROLLERCMD_LEN = 4 + 3 + DDR3_CONTROLLERBA_BITS + DDR3_CONTROLLERROW_BITS;
@@ -4517,6 +4517,7 @@ module	main(i_clk, i_reset,
 		.OPT_CARD_DETECT(1'b1),
 		.OPT_CRCTOKEN(1),
 		.OPT_1P8V(1'b1),
+
 `ifdef	VERILATOR
 		.LGTIMEOUT(18),
 `else
@@ -4690,12 +4691,18 @@ module	main(i_clk, i_reset,
 		.DMA_DW(512),
 		.OPT_SERDES(1'b1),
 		.OPT_EMMC(1'b1),
-		.OPT_DMA(1'b0),
+		.OPT_DMA(1'b1),
 		.OPT_DDR(1'b0),
 		.OPT_HWRESET(1'b1),
 		.OPT_CARD_DETECT(1'b0),
 		.OPT_CRCTOKEN(1),
 		.OPT_1P8V(1'b0),
+		.BOOT_MODE(4'h0010),	// No DS, SDR, 8b
+		.BOOT_ADDR(32'h40000000),
+		.BOOT_BLOCKS(32'd8),	// 4kB in 8x 512Byte blocks
+		.BOOT_SPEED(8'd4),	// 12MHz
+		.BOOT_TOKEN(1'b1),	// Expect a boot token
+
 `ifdef	VERILATOR
 		.LGTIMEOUT(18),
 `else
@@ -4937,23 +4944,23 @@ module	main(i_clk, i_reset,
 	//
 	// DDR3 Controller instantiation
 	// {{{
-           
+
 	ddr3_controller #(
 		// {{{
 		.CONTROLLER_CLK_PERIOD(DDR3_CONTROLLERCONTROLLER_CLK_PERIOD), //ps, clock period of the controller interface
-		.DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD) 
+		.DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD)
 		.ROW_BITS(DDR3_CONTROLLERROW_BITS),	//width of row address
 		.COL_BITS(DDR3_CONTROLLERCOL_BITS),	//width of column address
 		.BA_BITS(DDR3_CONTROLLERBA_BITS),	//width of bank address
 		.DQ_BITS(DDR3_CONTROLLERDQ_BITS),	//width of DQ
 		.LANES(DDR3_CONTROLLERBYTE_LANES),		// byte lanes
 		// .tRFC(260_000),
-		.AUX_WIDTH(DDR3_CONTROLLERAUX_WIDTH),	//width of aux line (must be >= 4) 
-		.WB2_ADDR_BITS(7), 		//width of 2nd wishbone address bus 
+		.AUX_WIDTH(DDR3_CONTROLLERAUX_WIDTH),	//width of aux line (must be >= 4)
+		.WB2_ADDR_BITS(7), 		//width of 2nd wishbone address bus
             	.WB2_DATA_BITS(32),  		//width of 2nd wishbone data bus
 		.MICRON_SIM(0),		//simulation for micron ddr3 model (shorten POWER_ON_RESET_HIGH and INITIAL_CKE_LOW)
 		.ODELAY_SUPPORTED(1),		//set to 1 when ODELAYE2 is supported
-		.SECOND_WISHBONE(1) 		//set to 1 if 2nd wishbone is needed 
+		.SECOND_WISHBONE(1) 		//set to 1 if 2nd wishbone is needed
 		// }}}
 	) u_ddr3_controller (
 		// {{{

@@ -47,6 +47,7 @@
 
 extern	void	txchr(char ch);
 extern	void	txstr(const char *str);
+extern	void	tx8h(unsigned val);
 extern	void	txhex(unsigned val);
 extern	void	txdecimal(int val);
 

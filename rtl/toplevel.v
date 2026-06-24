@@ -171,13 +171,13 @@ i_sdcard_cd_n,
 				? DBGBUSWATCHDOG_RAW : 19;
 	// }}}
 	localparam DDR3_CONTROLLERCONTROLLER_CLK_PERIOD = 10_000,  //ps, clock period of the controller interface
-		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD) 
+		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD)
 	localparam DDR3_CONTROLLERROW_BITS = 14,  // width of row address
 		DDR3_CONTROLLERCOL_BITS = 10,  // width of column address
 		DDR3_CONTROLLERBA_BITS  =  3,  // width of bank address
 		DDR3_CONTROLLERDQ_BITS  =  8,  // Size of one octet
 		DDR3_CONTROLLERBYTE_LANES = 8, //8 lanes of DQ
-		DDR3_CONTROLLERAUX_WIDTH = 16, //width of aux line (must be >= 4) 
+		DDR3_CONTROLLERAUX_WIDTH = 16, //width of aux line (must be >= 4)
 		DDR3_CONTROLLERSERDES_RATIO = $rtoi(DDR3_CONTROLLERCONTROLLER_CLK_PERIOD/DDR3_CLK_PERIOD),
 		//4 is the width of a single ddr3 command {cs_n, ras_n, cas_n, we_n} plus 3 (ck_en, odt, reset_n) plus bank bits plus row bits
 		DDR3_CONTROLLERCMD_LEN = 4 + 3 + DDR3_CONTROLLERBA_BITS + DDR3_CONTROLLERROW_BITS;
@@ -1377,7 +1377,7 @@ i_sdcard_cd_n,
 		.o_tx_p(o_sata_p), .o_tx_n(o_sata_n),
 		.i_rx_p(i_sata_p), .i_rx_n(i_sata_n),
 		// }}}
-		.o_phy_status(sata_phy_phy_status),
+		.o_phy_status(sata_phy_status),
 		.o_refclk(sata_phy_refclk),
 		.o_drpdebug(sata_drp_debug),
 		.o_debug(sata_phy_debug)

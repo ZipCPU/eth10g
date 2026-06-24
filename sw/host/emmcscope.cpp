@@ -82,12 +82,13 @@ public:
 	virtual	void	define_traces(void) {
 		// OPT_IO=0 => neither SERDES or DDR
 		//	= 1	=> DDR, but not SERDES
-		//	= 2	=> SERDES (not yet defined)
+		//	= 2	=> SERDES
 		//	= 3	=> Controller internals
-		const unsigned	OPT_IO=0;
+		const unsigned	OPT_IO=2;
 
 		switch(OPT_IO) {
-		case 0:
+		case 0:	// Neither SERDES nor DDR
+			// {{{
 			register_trace("trigger",   1,31);
 			register_trace("i_sdclk",   1,25);
 			register_trace("i_cmd_en",  1,23);
@@ -101,7 +102,9 @@ public:
 			register_trace("rx_data",   8, 8);
 			register_trace("io_dat",    8, 0);
 			break;
-		case 1:
+			// }}}
+		case 1:	// DDR, but not SERDES
+			// {{{
 			register_trace("trigger",   1,31);
 			register_trace("i_rx_en",   1,28);
 			register_trace("sample_ck", 2,26);
@@ -116,8 +119,35 @@ public:
 			register_trace("rx_data",   8, 8);
 			register_trace("io_dat",    8, 0);
 			break;
-		case 3:
-			//
+			// }}}
+		case 2:	// SERDES
+			// {{{
+			register_trace("trigger",   1,31);
+
+			register_trace("wait_for_busy",  1,29);
+			register_trace("dat0_busy",      1,28);
+
+			register_trace("i_cmd_en",       1,27);
+			register_trace("i_cmd_tristate", 1,26);
+			register_trace("cmd_data",       1,25);
+
+			register_trace("data_tristate", 1,24);
+			register_trace("tx_data",       4,20);
+
+			register_trace("cmd_strb",      2,18);
+
+			register_trace("i_rx_en",      1,15);
+			register_trace("i_data_en",    1,14);
+			register_trace("sync_ack",     1,13);
+			register_trace("sync_nak",     1,12);
+
+			register_trace("itok",      2, 10);
+			register_trace("rx_strb",   2, 8);
+			register_trace("rx_data",   8, 0);
+			break;
+			// }}}
+		case 3:	// Controller (not PHY) internals
+			// {{{
 			register_trace("w_card_busy",    1, 30);
 			//
 			register_trace("o_cmd_request",  1, 29);
@@ -155,6 +185,7 @@ public:
 			register_trace("rx_request",   1, 1);
 			register_trace("o_rx_en",      1, 0);
 			break;
+			// }}}
 		default:
 			break;
 		}

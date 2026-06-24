@@ -186,9 +186,39 @@ void	identify_device(void) {
 }
 
 int	main(int argc, char **argv) {
+	// Announce our presence
+	// {{{
+	printf("\n\n"
+		"+-----------------------------------------+\n"
+		"|        SATA (Gen 1) Test Program        |\n"
+		"+-----------------------------------------+\n");
+	// }}}
 
-	printf("On startup:\n");
+	// Clear any SATASCOPEs before doing anything
+	// {{{
+#ifdef	_BOARD_HAS_SATAPSCOPE
+	_satapscope->s_ctrl = 0;	// WBSCOPE_DISABLE
+#endif
+#ifdef	_BOARD_HAS_SATARSCOPE
+	_satarscope->s_ctrl = 0;	// WBSCOPE_DISABLE
+#endif
+#ifdef	_BOARD_HAS_SATALSCOPE
+	_satalscope->s_ctrl = 0;	// WBSCOPE_DISABLE
+#endif
+#ifdef	_BOARD_HAS_SATATSCOPE
+	_satatscope->s_ctrl = 0;	// WBSCOPE_DISABLE
+#endif
+	// }}}
+
+	// Check if the link is up
+	//	If not, reset, wait 1ms, clear reset, wait 1s
+	// If not, generate and produce debug data
+	// {{{
 	dump_drp();
 
 	dump_regs();
+	// }}}
+
+	// Get the device's status
+	// Read out the device's size
 }

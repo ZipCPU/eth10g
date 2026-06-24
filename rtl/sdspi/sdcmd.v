@@ -1199,7 +1199,7 @@ module	sdcmd #(
 		cover(i_cmd_type == R_R1 && o_err && o_ercode == ECODE_BADCRC);
 		cover(i_cmd_type == R_R1 && o_err && o_ercode== ECODE_FRAMEERR);
 
-		// Caution!  These will take at least 136+49+2 clocks!
+		// Caution!  These will take at least 136+49+2=187 clocks!
 		cover(i_cmd_type == R_R2 && !o_err);
 		cover(i_cmd_type == R_R2 && o_err && o_ercode == ECODE_BADCRC);
 		cover(i_cmd_type == R_R2 && o_err && o_ercode== ECODE_FRAMEERR);

@@ -109,6 +109,8 @@
 #define	R_EMMC_FIFOA      	0x02000808	// 02000800, wbregs names: EMMCFIFOA, EMMCFIF0, EMMCFIFA
 #define	R_EMMC_FIFOB      	0x0200080c	// 02000800, wbregs names: EMMCFIFOB, EMMCFIF1, EMMCFIFB
 #define	R_EMMC_PHY        	0x02000810	// 02000800, wbregs names: EMMCPHY
+#define	R_EMMC_DMAA       	0x02000818	// 02000800, wbregs names: EMMCDMAA, EMMCDMA
+#define	R_EMMC_DMALN      	0x0200081c	// 02000800, wbregs names: EMMCDMALN
 // Fan registers
 #define	R_FAN_FPGAPWM     	0x02000880	// 02000880, wbregs names: FAN_FPGAPWM
 #define	R_FAN_SYSPWM      	0x02000884	// 02000880, wbregs names: FAN_SYSPWM
@@ -131,6 +133,8 @@
 #define	R_SDIO_FIFOA      	0x02000988	// 02000980, wbregs names: SDFIFOA, SDFIF0, SDFIFA
 #define	R_SDIO_FIFOB      	0x0200098c	// 02000980, wbregs names: SDFIFOB, SDFIF1, SDFIFB
 #define	R_SDIO_PHY        	0x02000990	// 02000980, wbregs names: SDPHY
+#define	R_SDIO_DMAA       	0x02000998	// 02000980, wbregs names: SDDMAA, SDDMA
+#define	R_SDIO_DMALN      	0x0200099c	// 02000980, wbregs names: SDDMALN
 // FPGA CONFIG REGISTERS: 0x4e0-0x4ff
 #define	R_CFG_CRC         	0x02000a00	// 02000a00, wbregs names: FPGACRC
 #define	R_CFG_FAR         	0x02000a04	// 02000a00, wbregs names: FPGAFAR

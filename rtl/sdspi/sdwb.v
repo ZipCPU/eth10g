@@ -782,7 +782,7 @@ module	sdwb #(
 		// too long, but it's just a timeout.  If the device actually
 		// indicates a busy (like it's supposed to), then we'll be
 		// busy until the device releases.
-		reg	[LGCARDBUSY-1:0]	r_busy_counter;
+		reg	[LGCARDBUSY-1:0]	r_busy_timeout;
 		reg		r_expect_busy, r_card_busy;
 
 		initial	r_expect_busy = 1'b0;
@@ -793,7 +793,7 @@ module	sdwb #(
 			r_expect_busy <= 1'b1;
 		else if (new_cmd_request)
 			r_expect_busy <= (bus_wdata[9:8] == R1B_REPLY);
-		else if (!cmd_busy && (i_card_busy || r_busy_counter == 0))
+		else if (!cmd_busy && (i_card_busy || r_busy_timeout == 0))
 			r_expect_busy <= 1'b0;
 
 		initial	r_card_busy = 1'b0;
@@ -807,34 +807,39 @@ module	sdwb #(
 		else if (!i_card_busy && !r_expect_busy && !cmd_busy)
 			r_card_busy <= 1'b0;
 
-		initial	r_busy_counter = 0;
+		initial	r_busy_timeout = 0;
 		always @(posedge i_clk)
 		if (i_reset || o_soft_reset || o_boot_cmden)
-			r_busy_counter <= 0;
+			r_busy_timeout <= 0;
 		else if (o_rx_en || i_card_busy
 				|| (cmd_busy && !r_expect_busy && !o_tx_en))
-			r_busy_counter <= 0;
+			// Busy is either here, or irrelevant, zero the timeout
+			r_busy_timeout <= 0;
 		else if ((cmd_busy && r_expect_busy) || o_tx_en)
 		begin
-			r_busy_counter <= -1;
+			// Expect a busy from the device.  Set an appropriate
+			// timeout to wait until we get one.
+			r_busy_timeout <= -1;
 
 			if (r_ckspeed < 4)
 				// Max clock rate is 25/3 => 12.5MHz, or 8 cycls
-				r_busy_counter <= 16;	// 2 clock periods
+				r_busy_timeout <= 16;	// 2 clock periods
 			else if (r_ckspeed < 8)
 				// Max clock rate is 25/5 => 5MHz or 20cycles
-				r_busy_counter <= 72;	// 3.5 clock periods
+				r_busy_timeout <= 72;	// 3.5 clock periods
 			else if (r_ckspeed < 16)
 				// Max clock rate is 25/13 => 52 cycles
-				r_busy_counter <= 192;	// 3.6 clock periods
+				r_busy_timeout <= 192;	// 3.6 clock periods
 			else if (r_ckspeed < 32)
 				// Max clock rate is 25/29 => 116 cycles
-				r_busy_counter <= 3*128;	// 3.3 clks
-		end else if (r_busy_counter != 0)
-			r_busy_counter <= r_busy_counter - 1;
+				r_busy_timeout <= 3*128;	// 3.3 clks
+		end else if (r_busy_timeout != 0)
+			// If no busy shows before timeout==0, there wont be any
+			r_busy_timeout <= r_busy_timeout - 1;
 
 		assign	w_card_busy = r_card_busy;
 `ifdef	FORMAL
+		// {{{
 		// We need to stay officially busy as long as we are waiting
 		// for a response from the card
 		always @(*)
@@ -845,7 +850,7 @@ module	sdwb #(
 		// before it takes place
 		always @(*)
 		if (!i_reset && !r_expect_busy && !cmd_busy)
-			assert(r_busy_counter == 0);
+			assert(r_busy_timeout == 0);
 
 		always @(*)
 		if (!i_reset && w_boot_active && !o_boot_cmden)
@@ -858,9 +863,10 @@ module	sdwb #(
 		if (!i_reset && !o_soft_reset && !o_hwreset_n)
 		begin
 			assert(r_expect_busy == 1'b0);
-			assert(r_busy_counter == 0);
+			assert(r_busy_timeout == 0);
 			assert(r_card_busy == 1'b0);
 		end
+		// }}}
 `endif
 	end else begin : DIRECT_CARD_BUSY
 		assign	w_card_busy = i_card_busy;
@@ -3985,10 +3991,6 @@ module	sdwb #(
 	if (f_past_valid && $past(i_reset || (i_cmd_done && !w_selfreply_request)))
 		assert(!cmd_busy);
 
-	// always @(posedge i_clk)
-	// if (f_past_valid && cmd_busy && !o_cmd_request)
-	//	assume(i_cmd_busy);		// ???
-
 	always @(posedge i_clk)
 	if (!f_past_valid || $past(i_reset) || $past(o_soft_reset))
 	begin end
@@ -4488,6 +4490,10 @@ module	sdwb #(
 	always @(*)
 	if (o_rx_en || o_tx_en)
 		assume(lgblk < 15);	// Assume no overflow ... for now
+
+	always @(*)
+	if (w_alt_boot)
+		assume(!o_cmd_request);
 
 	// Assume the user won't do something dumb, like write to the same FIFO
 	// we're reading from, or either read or write from the same FIFO we

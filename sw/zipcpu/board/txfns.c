@@ -45,6 +45,7 @@
 #include "txfns.h"
 
 void	txchr(char ch);
+void	tx8h(unsigned val);
 void	txhex(unsigned val);
 void	txstr(const char *str);
 
@@ -142,6 +143,26 @@ void    txstr(const char *str) {
 		txchr(*ptr++);
 }
 #endif
+
+/*
+ * tx8h
+ *
+ * Send an 8b hexadecimal value to the output port.  Unlike the similar txhex(),
+ * this only dumps the bottom two nibbles or eight bits.
+ */
+void	tx8h(unsigned val) {
+	int ch;
+
+	ch = ((val>>4)&0x0f)+'0';
+	if (ch > '9')
+		ch = ch - '0'+'A'-10;
+	txchr(ch);
+
+	ch = (val&0x0f)+'0';
+	if (ch > '9')
+		ch = ch - '0'+'A'-10;
+	txchr(ch);
+}
 
 /*
  * txhex()

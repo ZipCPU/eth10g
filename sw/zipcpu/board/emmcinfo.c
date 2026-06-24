@@ -59,9 +59,6 @@ int main(int argc, char **argv) {
 #ifdef	GPIO_TRACE_SET
 	*_gpio = GPIO_TRACE_SET;
 #endif
-#ifdef	GPIO_SD_RESET_CLR
-	*_gpio = GPIO_SD_RESET_CLR;
-#endif
 	r = f_mount(&vol, "2:/", 1);
 	if (r != FR_OK)
 		printf("Could not mount eMMC: err %d\n", r);

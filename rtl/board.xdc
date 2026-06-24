@@ -801,6 +801,7 @@ create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_por
 create_clock -name SATARX -period 26.6664 [get_pins u_sata/u_gtx_channel/RXOUTCLK]
 create_clock -name SATATX -period 26.6664 [get_pins u_sata/u_gtx_channel/TXOUTCLK]
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
+set_max_delay -from [get_cells -hier -filter {NAME=~u_sata/qpll_reset*}] -to [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/TXELECIDLE*}] 6
 set_max_delay -from [get_cells -hier -filter {NAME=~ u_sata/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/gtx_reset_pipe*}] 4
 set_max_delay -from [get_cells -hier -filter {NAME=~ u_sata/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/gtx_reset_pipe*}] 4
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_pll_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
@@ -827,6 +828,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/phy_reset_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/rx_linkup*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_fsm/o_phy_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/rx_linkup*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/FSM_sequential_fsm_state*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_fsm/o_wb_data_reg*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/*reset*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/rgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/rgray_cross*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/wgray_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_transport/u_txarb/u_reg_afifo/wgray_cross*}] 10

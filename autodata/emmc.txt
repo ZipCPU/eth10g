@@ -45,10 +45,16 @@
 @CARD_DETECT=1'b0
 @OPT_SERDES=1'b1
 @OPT_DDR=1'b0
-@OPT_DMA=1'b0
+@OPT_DMA=1'b1
 @OPT_EMMC=1'b1
 @OPT_1P8V=1'b0
 @HW1P8V=1'b1
+@USERPARAMS=
+		.BOOT_MODE(4'h0010),	// No DS, SDR, 8b
+		.BOOT_ADDR(32'h@$[%08x](ddr3_controller.REGBASE)),
+		.BOOT_BLOCKS(32'd8),	// 4kB in 8x 512Byte blocks
+		.BOOT_SPEED(8'd4),	// 12MHz
+		.BOOT_TOKEN(1'b1),	// Expect a boot token
 @TOP.IOPREFIX=emmc
 @ACCESS=EMMC_ACCESS
 @INT.SDCARD.WIRE=
@@ -85,13 +91,15 @@
 	assign	o_@$(TOP.IOPREFIX)_reset_n = w_@$(PREFIX)_hwreset_n;
 @SDIO.CLKASSIGN=
 	assign	o_@$(TOP.IOPREFIX)_clk = w_@$(PREFIX)_ck;
-@REGS.N=5
+@REGS.N=7
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	EMMCCARD
 @REGS.1= 1 R_@$(DEVID)_DATA 	EMMCDATA
 @REGS.2= 2 R_@$(DEVID)_FIFOA	EMMCFIFOA, EMMCFIF0, EMMCFIFA
 @REGS.3= 3 R_@$(DEVID)_FIFOB	EMMCFIFOB, EMMCFIF1, EMMCFIFB
 @REGS.4= 4 R_@$(DEVID)_PHY	EMMCPHY
+@REGS.5= 6 R_@$(DEVID)_DMAA	EMMCDMAA EMMCDMA
+@REGS.6= 7 R_@$(DEVID)_DMALN	EMMCDMALN
 @BDEF.DEFN=
 ////////////////////////////////////////////////////////////////////////////////
 //

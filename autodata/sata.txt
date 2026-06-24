@@ -157,7 +157,7 @@
 		.o_tx_p(o_@$(PREFIX)_p), .o_tx_n(o_@$(PREFIX)_n),
 		.i_rx_p(i_@$(PREFIX)_p), .i_rx_n(i_@$(PREFIX)_n),
 		// }}}
-		.o_phy_status(@$(PREFIX)_phy_phy_status),
+		.o_phy_status(@$(PREFIX)_phy_status),
 		.o_refclk(@$(PREFIX)_phy_refclk),
 		.o_drpdebug(@$(PREFIX)_drp_debug),
 		.o_debug(@$(PREFIX)_phy_debug)
@@ -317,6 +317,7 @@ create_clock -name SATATX -period 26.6664 [get_pins u_@$(PREFIX)/u_gtx_channel/T
 ##
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
 ##
+set_max_delay -from [get_cells -hier -filter {NAME=~u_@$(PREFIX)/qpll_reset*}] -to [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/TXELECIDLE*}] 6
 set_max_delay -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/rx_init/gtx_reset_pipe*}] 4
 set_max_delay -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/gtx_reset_pipe*}] 4
 ##
@@ -350,6 +351,8 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ @$(LINKP)/rx
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ @$(TPATH)/phy_reset_xpipe*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ pipe_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/rx_linkup*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_transport/u_fsm/o_phy_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/rx_linkup*}] 10
+#
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_reset/FSM_sequential_fsm_state*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/u_transport/u_fsm/o_wb_data_reg*}] 10
 ##
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_@$(PREFIX)/tx_init/r_complete*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/*reset*}] 10
 ##

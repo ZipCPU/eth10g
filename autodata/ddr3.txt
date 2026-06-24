@@ -75,13 +75,13 @@
 
 @TOP.PARAM=
 	localparam @$(DEVID)CONTROLLER_CLK_PERIOD = 10_000,  //ps, clock period of the controller interface
-		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD) 
+		DDR3_CLK_PERIOD = 2_500; //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD)
 	localparam @$(DEVID)ROW_BITS = 14,  // width of row address
 		@$(DEVID)COL_BITS = 10,  // width of column address
 		@$(DEVID)BA_BITS  =  3,  // width of bank address
 		@$(DEVID)DQ_BITS  =  8,  // Size of one octet
 		@$(DEVID)BYTE_LANES = @$(NLANES), //8 lanes of DQ
-		@$(DEVID)AUX_WIDTH = 16, //width of aux line (must be >= 4) 
+		@$(DEVID)AUX_WIDTH = 16, //width of aux line (must be >= 4)
 		@$(DEVID)SERDES_RATIO = $rtoi(@$(DEVID)CONTROLLER_CLK_PERIOD/DDR3_CLK_PERIOD),
 		//4 is the width of a single ddr3 command {cs_n, ras_n, cas_n, we_n} plus 3 (ck_en, odt, reset_n) plus bank bits plus row bits
 		@$(DEVID)CMD_LEN = 4 + 3 + @$(DEVID)BA_BITS + @$(DEVID)ROW_BITS;
@@ -276,23 +276,23 @@
 	//
 	// DDR3 Controller instantiation
 	// {{{
-           
+
 	ddr3_controller #(
 		// {{{
 		.CONTROLLER_CLK_PERIOD(@$(DEVID)CONTROLLER_CLK_PERIOD), //ps, clock period of the controller interface
-		.DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD) 
+		.DDR3_CLK_PERIOD(DDR3_CLK_PERIOD), //ps, clock period of the DDR3 RAM device (must be 1/4 of the CONTROLLER_CLK_PERIOD)
 		.ROW_BITS(@$(DEVID)ROW_BITS),	//width of row address
 		.COL_BITS(@$(DEVID)COL_BITS),	//width of column address
 		.BA_BITS(@$(DEVID)BA_BITS),	//width of bank address
 		.DQ_BITS(@$(DEVID)DQ_BITS),	//width of DQ
 		.LANES(@$(DEVID)BYTE_LANES),		// byte lanes
 		// .tRFC(260_000),
-		.AUX_WIDTH(@$(DEVID)AUX_WIDTH),	//width of aux line (must be >= 4) 
-		.WB2_ADDR_BITS(7), 		//width of 2nd wishbone address bus 
+		.AUX_WIDTH(@$(DEVID)AUX_WIDTH),	//width of aux line (must be >= 4)
+		.WB2_ADDR_BITS(7), 		//width of 2nd wishbone address bus
             	.WB2_DATA_BITS(32),  		//width of 2nd wishbone data bus
 		.MICRON_SIM(0),		//simulation for micron ddr3 model (shorten POWER_ON_RESET_HIGH and INITIAL_CKE_LOW)
 		.ODELAY_SUPPORTED(1),		//set to 1 when ODELAYE2 is supported
-		.SECOND_WISHBONE(1) 		//set to 1 if 2nd wishbone is needed 
+		.SECOND_WISHBONE(1) 		//set to 1 if 2nd wishbone is needed
 		// }}}
 	) u_@$(PREFIX) (
 		// {{{

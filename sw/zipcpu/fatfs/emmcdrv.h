@@ -72,6 +72,6 @@ extern	struct	EMMCDRV_S *emmc_init(EMMC *dev);
 extern	int	emmc_write(struct EMMCDRV_S *dev, const unsigned sector, const unsigned count, const char *buf);
 extern	int	emmc_read(struct EMMCDRV_S *dev, const unsigned sector, const unsigned count, char *buf);
 extern	int	emmc_ioctl(struct EMMCDRV_S *dev, char cmd, char *buf);
-extern	int	emmc_boot(struct EMMC *dev, const unsigned count, char *buf);
-extern	int	emmc_altboot(struct EMMC *dev, const unsigned count, char *buf);
+extern	int	emmc_boot(EMMC *dev, const unsigned count, char *buf);
+extern	int	emmc_altboot(EMMC *dev, const unsigned count, char *buf);
 #endif
