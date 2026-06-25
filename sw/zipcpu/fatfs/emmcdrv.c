@@ -1758,8 +1758,8 @@ void	emmc_hs(EMMCDRV *dev) {
 			txhex(dev->d_dev->sd_data); txstr(")\n");
 			PANIC;
 		} if ((0 == (c & SDIO_ERR)) && (0 == (d & SDIO_R1ERR))) {
-			dev->d_EXCSD[HS_TIMING_INDEX] =
-				(dev->d_EXCSD[HS_TIMING_INDEX] & 0x73);
+			dev->d_EXCSD[BUS_WIDTH_INDEX] =
+				(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x73);
 		}
 		// }}}
 
@@ -1806,10 +1806,10 @@ void	emmc_hsddr(EMMCDRV *dev) {
 		return;
 	if (SDPHY_W4 == (phy & SDPHY_WBEST)) {
 		dev->d_dev->sd_data = SWITCH_WRITE(BUS_WIDTH_INDEX,
-			(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x0f0) | 0x05);
+			(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x070) | 0x05);
 	} else if (SDPHY_W8 == (phy & SDPHY_WBEST)) {
 		dev->d_dev->sd_data = SWITCH_WRITE(BUS_WIDTH_INDEX,
-			(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x0f0) | 0x06);
+			(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x070) | 0x06);
 	} else {
 		// 1b DDR is *not* supported
 		return;
@@ -1831,6 +1831,14 @@ void	emmc_hsddr(EMMCDRV *dev) {
 		txstr("EMMC PANIC!  R1 ERR response to SWITCH -> DDR (");
 		txhex(dev->d_dev->sd_data); txstr(")\n");
 		PANIC;
+	} if ((0 == (c & SDIO_ERR)) && (0 == (d & SDIO_R1ERR))) {
+		unsigned	exval = dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x070;
+
+		if (SDPHY_W4 == (phy & SDPHY_WBEST))
+			dev->d_EXCSD[BUS_WIDTH_INDEX] = exval | 0x05;
+		} else if (SDPHY_W8 == (phy & SDPHY_WBEST)) {
+			dev->d_EXCSD[BUS_WIDTH_INDEX] = exval | 0x06;
+		}
 	}
 	// }}}
 
@@ -2078,6 +2086,58 @@ void	emmc_hs400(EMMCDRV *dev) {
 		phy &= (~SDIOCK_MASK);
 		phy |=   SDIOCK_200MHZ | SDPHY_DS | SDPHY_PUSHPULL;
 		// phy |=   SDIOCK_100MHZ | SDPHY_DS | SDPHY_PUSHPULL;
+
+		dev->d_dev->sd_phy = phy;
+	}
+	// }}}
+}
+// }}}
+
+void	emmc_hs400en(EMMCDRV *dev) {
+	// {{{
+	unsigned	const	BUS_WIDTH_INDEX = 183;
+	unsigned	c, d;
+
+	// Turn on DDR, HS400, whatever, but come up to HS
+	emmc_hs400(dev);
+
+	if (EMMCDEBUG) txstr("EMMC: Switch to HS-400, Enhanced Strobe\n");
+	SET_SCOPE;
+
+	// Request the HS timing
+	// {{{
+	dev->d_dev->sd_data = SWITCH_WRITE(BUS_WIDTH_INDEX,
+			(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x70) | 0x86);
+	dev->d_dev->sd_cmd  = (SDIO_CMD | SDIO_R1b | SDIO_ERR) + 6;
+	emmc_wait_while_busy(dev);
+	// }}}
+
+	// Check for any errors
+	// {{{
+	c = dev->d_dev->sd_cmd;
+	d = dev->d_dev->sd_data;
+
+	if (c & SDIO_ERR) {
+		txstr("EMMC PANIC!  Err response to switch-cmd -> HS\n");
+		PANIC;
+	} if (d & SDIO_R1ERR) {
+		txstr("EMMC PANIC!  R1 ERR response to SWITCH -> HS (");
+		txhex(dev->d_dev->sd_data); txstr(")\n");
+		PANIC;
+	} if ((0 == (c & SDIO_ERR)) && (0 == (d & SDIO_R1ERR))) {
+		dev->d_EXCSD[BUS_WIDTH_INDEX] =
+			(dev->d_EXCSD[BUS_WIDTH_INDEX] & 0x70) | 0x86;
+	}
+	// }}}
+
+	// Command the PHY to switch to using the enhanced DS
+	// {{{
+	if ((0 == (c & SDIO_ERR)) && (0 == (d & SDIO_R1ERR))) {
+		unsigned phy = dev->d_dev->sd_phy;
+
+		// Enable the enhanced DS sampling
+		phy &= (~SDIOCK_MASK);
+		phy |=   SDIOCK_200MHZ | SDPHY_ENHDS | SDPHY_PUSHPULL;
 
 		dev->d_dev->sd_phy = phy;
 	}

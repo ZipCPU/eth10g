@@ -803,8 +803,6 @@ create_clock -name SATARX -period 26.6664 [get_pins u_sata/u_gtx_channel/RXOUTCL
 create_clock -name SATATX -period 26.6664 [get_pins u_sata/u_gtx_channel/TXOUTCLK]
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
 set_max_delay -from [get_cells -hier -filter {NAME=~u_sata/qpll_reset*}] -to [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/TXELECIDLE*}] 6
-set_max_delay -from [get_cells -hier -filter {NAME=~ u_sata/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/gtx_reset_pipe*}] 4
-set_max_delay -from [get_cells -hier -filter {NAME=~ u_sata/u_gtx_channel*}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/gtx_reset_pipe*}] 4
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_pll_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_gtx_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_user_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
