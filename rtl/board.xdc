@@ -780,6 +780,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_front
 ## No XDC.INSERT tag in zip_dmac
 ## No XDC.INSERT tag in wbflashdn
 ## From emmc
+create_clock -period 5.0 -name EMMCDS -waveform { 0.0 2.5 } -add [get_ports i_emmc_ds]
 set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0

@@ -63,7 +63,7 @@ module	sdio #(
 		//  from a 100MHz clock.
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b0,
-		parameter [0:0]	OPT_DS  = OPT_SERDES,
+		parameter [0:0]	OPT_DS  = OPT_SERDES && OPT_EMMC,
 		parameter [0:0]	OPT_EMMC = 1'b1,
 		parameter [0:0]	OPT_HWRESET = OPT_EMMC,
 		parameter [0:0]	OPT_1P8V= 1'b0,
@@ -227,7 +227,7 @@ module	sdio #(
 		.LGFIFO(LGFIFO), .NUMIO(NUMIO),
 		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN),
 		.OPT_SERDES(OPT_SERDES),
-		.OPT_DS(OPT_DS),
+		.OPT_DS(OPT_DS && OPT_EMMC),
 		.OPT_DDR(OPT_DDR),
 		.OPT_CARD_DETECT(OPT_CARD_DETECT),
 		.OPT_DMA(OPT_DMA),
@@ -375,7 +375,7 @@ module	sdio #(
 
 	sdcmd #(
 		// {{{
-		.OPT_DS(OPT_DS),
+		.OPT_DS(OPT_DS && OPT_EMMC),
 		.OPT_EMMC(OPT_EMMC),
 		.OPT_SERDES(OPT_SERDES),
 		.MW(MW),
@@ -453,7 +453,7 @@ module	sdio #(
 
 	sdrxframe #(
 		// {{{
-		.OPT_DS(OPT_SERDES), .NUMIO(NUMIO),
+		.OPT_DS(OPT_SERDES && OPT_EMMC), .NUMIO(NUMIO),
 		.OPT_LITTLE_ENDIAN(OPT_LITTLE_ENDIAN),
 		.LGLEN(LGFIFO),
 		.MW(MW),

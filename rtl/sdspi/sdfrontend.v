@@ -1312,12 +1312,23 @@ module	sdfrontend #(
 
 			r_debug[24:20] <= { i_data_tristate, i_tx_data[3:0] };
 
-			if (!r_dbg_cmd_counter[7])
-				r_debug[19:18] <= o_cmd_strb;
-			if (o_cmd_strb == 0)
-				r_debug[17:16] <= r_debug[17:16];
-			else
-				r_debug[17:16] <= o_cmd_data;
+			if (i_cfg_dscmd)
+			begin
+				r_debug[19] <= { MAC_VALID, |o_cmd_strb };
+				r_debug[18] <= !r_dbg_cmd_counter[7]
+						&& (|o_cmd_strb);
+
+				if (MAC_VALID)
+					r_debug[17:16] <= MAC_DATA[1:0];
+			end else begin
+				if (!r_dbg_cmd_counter[7])
+					r_debug[19:18] <= o_cmd_strb;
+
+				if (o_cmd_strb == 0)
+					r_debug[17:16] <= r_debug[17:16];
+				else
+					r_debug[17:16] <= o_cmd_data;
+			end
 
 			r_debug[15:14] <= { i_rx_en, i_data_en };
 			r_debug[13:12] <= { sync_ack, sync_nak };
@@ -1334,8 +1345,17 @@ module	sdfrontend #(
 
 			r_debug[ 7: 0] <= r_debug;
 			if (i_rx_en)
-				r_debug[ 9: 8] <= o_rx_strb;
-			if (o_rx_strb != 0 || o_cmd_strb != 0)
+			begin
+				r_debug[ 9: 8] <= i_cfg_ds
+						? {MAD_VALID, (|o_rx_strb)}
+						: o_rx_strb;
+			end
+
+			if (i_cfg_ds)
+			begin
+				if (MAD_VALID)
+					r_debug[ 7: 0] <= MAD_DATA[7:0];
+			end else if (o_rx_strb != 0 || o_cmd_strb != 0)
 				r_debug[ 7: 0] <= { o_rx_data[11:8], o_rx_data[3:0] };
 
 			if (0 && r_dbg_timeout == 0)
