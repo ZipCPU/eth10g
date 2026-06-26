@@ -47,7 +47,12 @@
 #include <zipcpu.h>
 #include "ffconf.h"
 #include "ff.h"
+#include "diskiodrvr.h"
 
+extern	int	emmc_boot(void *, unsigned, char *);
+extern	int	emmc_write_boot(void *, unsigned, char *);
+
+#ifdef	NEED_MKFS
 int	emmc_mkfs(void) {
 	// {{{
 	FRESULT	r;
@@ -73,6 +78,7 @@ int	emmc_mkfs(void) {
 	return	r;
 }
 // }}}
+#endif
 
 int main(int argc, char **argv) {
 	FATFS	vol;
@@ -85,7 +91,12 @@ int main(int argc, char **argv) {
 #ifdef	GPIO_TRACE_SET
 	*_gpio = GPIO_TRACE_SET;
 #endif
+
+	// Mount our eMMC (disk) device
+	// {{{
 	r = f_mount(&vol, "2:/", 1);
+
+#ifdef	NEED_MKFS
 	if (0 && FR_NO_FILESYSTEM == r) {
 		// {{{
 		// Create a file system, if none exists.
@@ -102,11 +113,16 @@ int main(int argc, char **argv) {
 		} else
 			fprintf(stderr, "F-MOUNT Success\n");
 		// }}}
-	} else if (r != FR_OK) {
+	} else
+#endif
+	if (r != FR_OK) {
 		fprintf(stderr, "ERR: Could not mount eMMC: %d\n", r);
 		goto failed;
 	}
+	// }}}
 
+	// Read the directory
+	// {{{
 	r = f_opendir(&ds, "2:/");
 	if (r != FR_OK) {
 		fprintf(stderr, "F_OPENDIR failed: %d\n", r);
@@ -120,7 +136,69 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "F_READDIR failed: %d\n");
 		goto failed;
 	}
+	// }}}
 
+	// Write some boot data
+	// {{{
+	const	unsigned TSTLN = 8*512;
+	char	*boot_data = malloc(TSTLN);
+	void	*emmc_dev = NULL;
+
+	// Find our "drive" device
+	for(unsigned k=0; k < MAX_DRIVES; k++) {
+		if (DRIVES[k].fd_addr == (void *)_emmc) {
+			emmc_dev = DRIVES[k].fd_data;
+		}
+	}
+
+	// Generate some pseudorandom data to test with
+	for(unsigned k=0; k < TSTLN; k++)
+		boot_data[k] = (k ^ (k >> 16)) & 0x0ff;
+
+	{
+		unsigned	*sp = (unsigned *)boot_data;
+		for(int k=0; k<8*512/4; k++) {
+			printf("0x%08x ", *sp++);
+			if (3 == (k&3))
+				printf("\n");
+			if (15 == (k & 15))
+				printf("\n");
+			if (127 == (k & 127))
+				printf("\n");
+		}
+	}
+
+	if (emmc_dev && boot_data) {
+		emmc_write_boot(emmc_dev, TSTLN/512, boot_data);
+	}
+	// }}}
+
+	// Test the boot data
+	// {{{
+	char	*test_buffer = malloc(TSTLN);
+
+	emmc_boot(emmc_dev, TSTLN/512, test_buffer);
+
+	if (0 == memcmp(boot_data, test_buffer, TSTLN)) {
+		printf("BOOT DATA TEST: Data matches\n");
+	} else {
+		unsigned	*up = (unsigned *)test_buffer;
+		for(int k=0; k<8*512/4; k++) {
+			printf("0x%08x ", *up++);
+			if (3 == (k&3))
+				printf("\n");
+			if (15 == (k & 15))
+				printf("\n");
+			if (127 == (k & 127))
+				printf("\n");
+		}
+
+		printf("BOOT DATA TEST: Data mismatch\n");
+		goto failed;
+	}
+
+	// }}}
+	// 
 	printf("Success\n");
 	return 0;
 

@@ -1,13 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	sw/zipcpu/fatfs/diskiodrvr.h
+// Filename:	sw/zipcpu/fatfs/diskiodrvr.c
 // {{{
 // Project:	10Gb Ethernet switch
 //
-// Purpose:	Defines a structure which can be used to identify both the
-//		1) number of drives (devices) in a system, and 2) what type
-//	of drives and thus which software device driver, needs to be applied
-//	to each device.
+// Purpose:	Generates a drives structure indicating the device address
+//		and driver used for each mass storage device in the system.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -38,34 +36,58 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-#ifndef	DISKIODRVR_H
-#define	DISKIODRVR_H
 // }}}
 
 #include <stddef.h>
+#include <board.h>
+#include <diskiodrvr.h>
 
-typedef	struct DISKIODRVR_S *(*DIO_INIT_FN)(void *io_addr);
-typedef	int (*DIO_WRITE_FN)(void *, const unsigned, const unsigned, const char *);
-typedef	int (*DIO_READ_FN)(void *, const unsigned, const unsigned, char *);
-typedef	int (*DIO_IOCTL_FN)(void *, const char, char *);
-typedef	struct	DISKIODRVR_S {
-	// struct DISKIODRVR_S * (*dio_init)(void *io_addr);
-	DIO_INIT_FN	dio_init;
+DISKIODRVR	SDIODRVR  = {
+	(DIO_INIT_FN)&sdio_init,
+	(DIO_WRITE_FN)&sdio_write,
+	(DIO_READ_FN)&sdio_read,
+	(DIO_IOCTL_FN)&sdio_ioctl
+};
 
-	DIO_WRITE_FN	dio_write;
-	DIO_READ_FN	dio_read;
-	DIO_IOCTL_FN	dio_ioctl;
-} DISKIODRVR;
+DISKIODRVR	SDSPIDRVR = {
+	(DIO_INIT_FN)&sdspi_init,
+	(DIO_WRITE_FN)&sdspi_write,
+	(DIO_READ_FN)&sdspi_read,
+	(DIO_IOCTL_FN)&sdspi_ioctl
+};
 
-extern	DISKIODRVR	SDIODRVR, SDSPIDRVR, EMMCDRVR;
+DISKIODRVR	EMMCDRVR  = {
+	(DIO_INIT_FN)&emmc_init,
+	(DIO_WRITE_FN)&emmc_write,
+	(DIO_READ_FN)&emmc_read,
+	(DIO_IOCTL_FN)&emmc_ioctl
+};
 
-typedef	struct	FATDRIVE_S {
-	void		*fd_addr;
-	DISKIODRVR	*fd_driver;
-	void		*fd_data;
-} FATDRIVE;
-
-#define	MAX_DRIVES	5
-extern	FATDRIVE	DRIVES[MAX_DRIVES];
-
+// UPDATE ME!
+// The following lines need to be updated from one board to the next, so that
+// there's one FATDRIVE triplet per drive on the board, and so that MAX_DRIVES
+// contains the number of items in the table.
+//
+FATDRIVE	DRIVES[MAX_DRIVES] = {
+#ifdef	_BOARD_HAS_SDIO
+		{ (void *)_sdio, &SDIODRVR, NULL },
+#else
+		{ NULL, NULL, NULL },
 #endif
+#ifdef	_BOARD_HAS_SDSPI
+		{ (void *)_sdspi, &SDSPIDRVR, NULL },
+#else
+		{ NULL, NULL, NULL },
+#endif
+#ifdef	_BOARD_HAS_EMMC
+		{ (void *)_emmc, &EMMCDRVR, NULL },
+#else
+		{ NULL, NULL, NULL },
+#endif
+#ifdef	_BOARD_HAS_CRUVMMC
+		{ (void *)_cruvmmc, &EMMCDRVR, NULL },
+#else
+		{ NULL, NULL, NULL },
+#endif
+		{NULL, NULL, NULL }
+	};

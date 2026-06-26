@@ -46,6 +46,7 @@
 #include "sdiodrv.h"
 #include "emmcdrv.h"
 #include "diskiodrvr.h"
+#include "diskiodrvr.c"	// Include the drive definitions
 
 #define	STDIO_DEBUG
 #include "zipcpu.h"
