@@ -48,7 +48,7 @@
 @TRIGGER=@$(TARGET)_debug[31]
 @$LOG_CAPTURE_SIZE=12
 @INCLUDEFILE=wbscopc.txt
-@INT.BUSSCOPE.PIC=altpic
+@INT.BUSSCOPE.PIC=scopepic
 @INT.BUSSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 	reg	[31:0]	@$(PREFIX)_debug;

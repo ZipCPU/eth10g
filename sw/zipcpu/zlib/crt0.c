@@ -157,10 +157,10 @@
 //
 // If you read through this short assembly routine below, you'll find that it
 // does only a small number of tasks.  It sets the stack pointer to point to
-// the top of the stack (a symbol defined in the linker file), calls the 
+// the top of the stack (a symbol defined in the linker file), calls the
 // bootloader, resets the stack pointer, clears any data cache, and then calls
 // the kernel entry function.  It also sets up a return address for the kernel
-// entry function so that, should the kernel ever exit, it wouldn't exit on 
+// entry function so that, should the kernel ever exit, it wouldn't exit on
 // any error but rather it would exit by halting the CPU.
 // }}}
 asm("\t.section\t.start,\"ax\",@progbits\n"
@@ -414,7 +414,7 @@ void	_bootloader(void) {
 	// memory up to the end of the SDRAM image, _sdram_image_end.
 	// As with the last pointer, this one is also created for us by the
 	// linker.
-	// 
+	//
 	// while(wrp < sdend)	// Could also be done this way ...
 	// NSTR("RAM");
 	for(int i=0; i< ramend - _ram; i++)

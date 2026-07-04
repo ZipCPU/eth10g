@@ -962,6 +962,8 @@ module	sdwb #(
 			assert(!o_cfg_expect_ack);
 		end else
 			assert(!$past(w_boot_active)||$stable(o_cfg_expect_ack));
+
+		assert(w_pending_boot_tok == w_boot_active);
 	end else if (!w_boot_active && !dma_busy && (o_rx_en || r_rx_request))
 	begin
 		assert(!o_cfg_expect_ack);
@@ -1184,7 +1186,8 @@ module	sdwb #(
 		w_cmd_word[28] = w_boot_err;
 		w_cmd_word[27] = w_boot_active;
 		//
-		w_cmd_word[26] = o_cfg_expect_ack;
+		w_cmd_word[26] = w_boot_active ? w_pending_boot_tok
+					: o_cfg_expect_ack;
 		w_cmd_word[25] = !o_hwreset_n;
 		w_cmd_word[24] = dma_error;
 		w_cmd_word[23] = r_ecode;
@@ -1680,6 +1683,8 @@ module	sdwb #(
 		w_phy_ctrl[13]    = o_pp_cmd;	// Push-pull CMD line
 		w_phy_ctrl[12]    = o_pp_data;	// Push-pull DAT line(s)
 		w_phy_ctrl[11:10] = r_width;
+		if (r_width[1])
+			w_phy_ctrl[10] = o_cfg_shutdown;
 		w_phy_ctrl[9:8]   = { o_cfg_ds, o_cfg_ddr };
 		w_phy_ctrl[7:0]   = i_ckspd; // r_ckspeed;
 	end

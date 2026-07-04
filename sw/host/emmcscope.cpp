@@ -124,26 +124,28 @@ public:
 			// {{{
 			register_trace("trigger",   1,31);
 
+			register_trace("busy_pin",       1,30);
 			register_trace("wait_for_busy",  1,29);
 			register_trace("dat0_busy",      1,28);
 
 			register_trace("i_cmd_en",       1,27);
-			register_trace("i_cmd_tristate", 1,26);
-			register_trace("cmd_data",       1,25);
+			register_trace("cmd_strb",       1,26);
+			register_trace("cmd_data",       2,24);
+			register_trace("sample_pck",     1,23);
+			register_trace("sample_ck",      1,22);
+			register_trace("i_rx_en",        1,21);
+			register_trace("i_data_en",      1,20);
 
-			register_trace("data_tristate", 1,24);
-			register_trace("tx_data",       4,20);
-
-			register_trace("cmd_strb",      2,18);
-
-			register_trace("i_rx_en",      1,15);
-			register_trace("i_data_en",    1,14);
-			register_trace("sync_ack",     1,13);
-			register_trace("sync_nak",     1,12);
-
-			register_trace("itok",      2, 10);
-			register_trace("rx_strb",   2, 8);
-			register_trace("rx_data",   8, 0);
+			register_trace("pending_ack",    1,19);
+			register_trace("sync_ack",       1,18);
+			register_trace("sync_nak",       1,17);
+			register_trace("itok",           2,15);
+			// 14:12
+			register_trace("cmd_tristate",   1,12);
+			register_trace("data_tristate",  1,11);
+			register_trace("io_started",     1,10);
+			register_trace("rx_strb",        2, 8);
+			register_trace("rxtx_data",      8, 0);
 			break;
 			// }}}
 		case 3:	// Controller (not PHY) internals

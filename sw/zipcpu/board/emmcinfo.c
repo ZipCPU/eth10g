@@ -50,6 +50,7 @@
 #include "diskiodrvr.h"
 
 extern	int	emmc_boot(void *, unsigned, char *);
+extern	int	emmc_altboot(void *, unsigned, char *);
 extern	int	emmc_write_boot(void *, unsigned, char *);
 
 #ifdef	NEED_MKFS
@@ -152,9 +153,16 @@ int main(int argc, char **argv) {
 	}
 
 	// Generate some pseudorandom data to test with
-	for(unsigned k=0; k < TSTLN; k++)
-		boot_data[k] = (k ^ (k >> 16)) & 0x0ff;
+	for(unsigned k=0; k < TSTLN; k++) {
+		unsigned	v = k >> 2;
 
+		boot_data[k++] = (v >> 24) & 0x0ff;
+		boot_data[k++] = (v >> 16) & 0x0ff;
+		boot_data[k++] = (v >>  8) & 0x0ff;
+		boot_data[k  ] =  v        & 0x0ff;
+	}
+
+	txstr("BOOT TEST DATA:\n");
 	{
 		unsigned	*sp = (unsigned *)boot_data;
 		for(int k=0; k<8*512/4; k++) {
@@ -177,7 +185,15 @@ int main(int argc, char **argv) {
 	// {{{
 	char	*test_buffer = malloc(TSTLN);
 
-	emmc_boot(emmc_dev, TSTLN/512, test_buffer);
+	{
+		unsigned	*up = (unsigned *)test_buffer;
+		for(int k=0; k<8*512/4; k++)
+			*up++ = 0;
+	}
+
+	// emmc_boot(emmc_dev, TSTLN/512, test_buffer);
+	emmc_altboot(emmc_dev, TSTLN/512, test_buffer);
+	CLEAR_DCACHE;
 
 	if (0 == memcmp(boot_data, test_buffer, TSTLN)) {
 		printf("BOOT DATA TEST: Data matches\n");

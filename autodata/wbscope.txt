@@ -103,3 +103,17 @@ typedef	struct	WBSCOPE_S {
 @BDEF.IOTYPE=WBSCOPE
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$(BDEF.IOTYPE) *)@$[0x%08x](REGBASE));
+@CELLS=get_cells -hier -filter
+@WHENCE=thedesign/u_@$(PREFIX)
+@TIMX=set_max_delay -datapath_only
+@XDC.MXDELAY=
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/br_holdoff_r*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/dr_stopped*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/waddr*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/this_addr*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/br_confi*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/GEN_ASYNC_FLAGS.q_iflags*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/dr_triggered*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/ASYNC_STATUS.q_oflags*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/dr_primed*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/ASYNC_STATUS.q_oflags*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/dr_stopped*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/ASYNC_STATUS.q_oflags*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/dr_stop_pipe*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/ASYNC_STATUS.q_oflags*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+@$(TIMX) -from [@$(CELLS) {NAME=~@$(WHENCE)/qd_data*}] -to [@$(CELLS) {NAME=~@$(WHENCE)/o_bus_data*}] 8
+

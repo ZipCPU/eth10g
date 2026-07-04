@@ -677,17 +677,15 @@ set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_s
 ## From satarxck
 set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satarxck/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satarxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in emmcscope
-## No XDC.INSERT tag in sdioscope
 ## From netlock
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
 ## No XDC.INSERT tag in satatscope
 ## From netdbg
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
-## No XDC.INSERT tag in gatescope
 ## No XDC.INSERT tag in i2cscope
 ## No XDC.INSERT tag in routescope
-## No XDC.INSERT tag in busscope
+## No XDC.INSERT tag in scopepic
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]
 create_clock -period 3.2 -name RXNETCK0 -waveform { 0 1.6 } -add [get_nets gnet_rx_clk[0]]
@@ -756,7 +754,6 @@ set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_s
 ## No XDC.INSERT tag in prebus
 ## No XDC.INSERT tag in wbu
 ## No XDC.INSERT tag in SIM
-## No XDC.INSERT tag in flashdbg
 ## No XDC.INSERT tag in uart
 ## No XDC.INSERT tag in altpic
 ## No XDC.INSERT tag in DEFAULT
@@ -766,8 +763,7 @@ set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_s
 ## From sdio
 set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_sdio_frontend/GEN_WIDE_IO.io_serdes/u_oserdes*}] 4.0
 
 ## No XDC.INSERT tag in satadrp
 ## No XDC.INSERT tag in zip_alt_moc
@@ -781,10 +777,21 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sdio_front
 ## No XDC.INSERT tag in wbflashdn
 ## From emmc
 create_clock -period 5.0 -name EMMCDS -waveform { 0.0 2.5 } -add [get_ports i_emmc_ds]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {w_emmc_ds_delayed}]
 set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.GEN_WIDE_DATIO*.io_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_cmd_tristate*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.cmd_serdes/u_oserdes*}] 4.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.r_debug*}] -to [get_cells -hier -filter {NAME=~ u_emmc_frontend/GEN_WIDE_IO.io_serdes/u_oserdes*}] 4.0
+
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/mem_reg*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/GEN_REGISTERED_READ.o_rd_data*}] 9
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/mem_reg*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/GEN_REGISTERED_READ.o_rd_data*}] 9
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/wgray_r*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/wgray_r*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/rgray*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/rgray*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/rgray*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc/u_control/BOOT_LOGIC.r_boot_active}*] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pcmd_fifo_?/wgray*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc/u_control/BOOT_LOGIC.r_boot_active}*] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pcmd_fifo_?/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc/u_control/BOOT_LOGIC.r_boot_active}*] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pcmd_fifo_?/wr_rgray*}] 10
 
 ## No XDC.INSERT tag in zip_jiffies
 ## From sdslav
@@ -802,7 +809,11 @@ create_clock -period 6.6666 -name SATAREF -waveform { 0.0 3.3333 } -add [get_por
 create_clock -name SATARX -period 26.6664 [get_pins u_sata/u_gtx_channel/RXOUTCLK]
 create_clock -name SATATX -period 26.6664 [get_pins u_sata/u_gtx_channel/TXOUTCLK]
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
-set_max_delay -from [get_cells -hier -filter {NAME=~u_sata/qpll_reset*}] -to [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/TXELECIDLE*}] 6
+set_max_delay -from [get_cells -hier -filter {NAME=~u_sata/qpll_reset*}] -to [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/TXELECIDLE*}] 7
+set_false_path -from [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/RXRESETDONE}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/gtx_reset_pipe*}]
+set_false_path -from [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/RXUSRCLK2}] -to [get_cells -hier -filter {NAME=~ u_sata/rx_init/gtx_reset_pipe*}]
+set_false_path -from [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/TXRESETDONE}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/gtx_reset_pipe*}]
+set_false_path -from [get_pins -hier -filter {NAME=~ u_sata/u_gtx_channel/TXUSRCLK2}] -to [get_cells -hier -filter {NAME=~ u_sata/tx_init/gtx_reset_pipe*}]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_pll_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_gtx_reset*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/rx_init/r_user_ready*}] -to [get_cells -hier -filter {NAME=~ thedesign/u_sata/u_reset/u_extend*/*}] 10

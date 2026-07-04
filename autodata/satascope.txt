@@ -45,7 +45,7 @@
 @DEBUG=@$(TARGET)[30:0]
 @$LOG_CAPTURE_SIZE=12
 @INCLUDEFILE=wbscopc.txt
-@INT.SATATSCOPE.PIC=syspic
+@INT.SATATSCOPE.PIC=scopepic
 @INT.SATATSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 ##
@@ -57,7 +57,7 @@
 @DEBUG=@$(TARGET)[30:0]
 @$LOG_CAPTURE_SIZE=10
 @INCLUDEFILE=wbscopc.txt
-@INT.SATATSCOPE.PIC=altpic
+@INT.SATATSCOPE.PIC=scopepic
 @INT.SATATSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 ##
@@ -68,7 +68,7 @@
 @$LOG_CAPTURE_SIZE=12
 @INCLUDEFILE=wbscopc.txt
 @$DEFHOLDOFF=0x1ffff
-@INT.SATAPSCOPE.PIC=syspic
+@INT.SATAPSCOPE.PIC=scopepic
 @INT.SATAPSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=
@@ -85,7 +85,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_s
 @DATA_CLOCK=i_sata_txphy_clk
 @$LOG_CAPTURE_SIZE=12
 @INCLUDEFILE=wbscopc.txt
-@INT.SATALSCOPE.PIC=syspic
+@INT.SATALSCOPE.PIC=scopepic
 @INT.SATALSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=
@@ -114,7 +114,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 @DATA_CLOCK=i_sata_txphy_clk
 @$LOG_CAPTURE_SIZE=12
 @INCLUDEFILE=wbscopc.txt
-@INT.SATARSCOPE.PIC=syspic
+@INT.SATARSCOPE.PIC=scopepic
 @INT.SATARSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=

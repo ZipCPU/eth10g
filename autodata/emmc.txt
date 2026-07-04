@@ -55,12 +55,12 @@
 		.BOOT_BLOCKS(32'd8),	// 4kB in 8x 512Byte blocks
 		.BOOT_SPEED(8'd4),	// 12MHz
 		.BOOT_TOKEN(1'b1),	// Expect a boot token
-@TOP.IOPREFIX=emmc
+@TOP.IOPREFIX=@$(PREFIX)
 @ACCESS=EMMC_ACCESS
 @INT.SDCARD.WIRE=
 @INT.SDCARD.PIC=
 @INT.EMMC.WIRE= @$(PREFIX)_int
-@INT.EMMC.PIC= altpic
+@INT.EMMC.PIC=syspic
 @SDIO.CLKDECL=
 		o_@$(PREFIX)_clk,
 @SDIO.RSTDECL=
@@ -74,8 +74,41 @@
 @SDIO.DSDECL=
 		i_@$(PREFIX)_ds,
 @SDIO.DSASSIGN=
+	(* IODELAY_GROUP="DDR3-GROUP" *)
+	IDELAYE2 #(
+		// {{{
+		.REFCLK_FREQUENCY(200.0),
+		.DELAY_SRC("IDATAIN"),
+		.HIGH_PERFORMANCE_MODE("TRUE"),
+		.IDELAY_TYPE("FIXED"),
+		.SIGNAL_PATTERN("CLOCK"),
+		// delay is 5ns/64 * IDELAY_VALUE below, and should be set to
+		//	a 90 degree offset, so 1/4 of 5ns, or 16
+		.IDELAY_VALUE(16),
+		.PIPE_SEL("FALSE")
+		// }}}
+	) u_delay_@$(PREFIX) (
+		// {{{
+		.IDATAIN(i_@$(TOP.IOPREFIX)_ds),
+		.DATAOUT(w_@$(PREFIX)_ds_delayed),
+		// Irrelevant / unused
+		// {{{
+		.CNTVALUEOUT(),
+		.C(1'b0),
+		.CE(1'b0),
+		.CINVCTRL(1'b0),
+		.CNTVALUEIN(5'b0),
+		.DATAIN(),
+		.INC(1'b0),
+		.LD(1'b0),
+		.LDPIPEEN(1'b0),
+		.REGRST(1'b0)
+		// }}}
+		// }}}
+	);
+
 	BUFG u_@$(PREFIX)_ds (
-		.I(i_@$(PREFIX)_ds),
+		.I(w_@$(PREFIX)_ds_delayed),
 		.O(w_@$(PREFIX)_ds)
 	);
 
@@ -84,8 +117,8 @@
 	input	wire		i_@$(PREFIX)_ds;
 @TOP.DEFNS=
 @$(SDIO.TOP.DEFNS)
-	wire	[3:0]	su_@$(PREFIX)_nc;	// Unused / noconnect wires
 	wire	i_@$(TOP.IOPREFIX)_cd_n;
+	wire	w_@$(PREFIX)_ds_delayed;
 
 	assign	i_@$(TOP.IOPREFIX)_cd_n = 1'b0;
 	assign	o_@$(TOP.IOPREFIX)_reset_n = w_@$(PREFIX)_hwreset_n;
@@ -117,7 +150,32 @@ struct @$(DEVID)_S;
 @RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
 @SIM.CLOCK=clk
 @SIM.FILE="emmc.img"
+#
+#
+#
+## XDC.DS are a set of timing exceptions that are necessary/required *only*
+## if the eMMC DS pin is implemented, but not otherwise.  They are based upon
+## a nominal system clock rate with a period of 10ns
+@STRB=u_@$(PREFIX)_frontend/GEN_DATASTROBE
+@BOOTACT=u_@$(PREFIX)/u_control/BOOT_LOGIC.r_boot_active
+@XDC.DS=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_nedge_fifo*/mem_reg*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_nedge_fifo*/GEN_REGISTERED_READ.o_rd_data*}] 9
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/mem_reg*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/GEN_REGISTERED_READ.o_rd_data*}] 9
+#
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_nedge_fifo*/wgray_r*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_nedge_fifo*/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/wgray_r*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_nedge_fifo*/rgray*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_nedge_fifo*/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/rgray*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/rgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/rgray*}] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pedge_fifo*/rgray_cross*}] 10
+##
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(BOOTACT)}*] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pcmd_fifo_?/wgray*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(BOOTACT)}*] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pcmd_fifo_?/wgray_cross*}] 10
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(BOOTACT)}*] -to [get_cells -hier -filter {NAME=~@$(STRB).u_pcmd_fifo_?/wr_rgray*}] 10
+##
+##
 @XDC.INSERT=
 create_clock -period 5.0 -name EMMCDS -waveform { 0.0 2.5 } -add [get_ports i_@$(TOP.IOPREFIX)_ds]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {w_@$(PREFIX)_ds_delayed}]
 set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
 @$(XDC.SERDES)
+@$(XDC.DS)

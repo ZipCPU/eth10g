@@ -50,7 +50,17 @@ module	sdcmd #(
 		// OPT_SERDES=1 delays the engagement of any tristate control
 		// by a clock period
 		parameter [0:0]	OPT_SERDES = 1'b0,
-		parameter	STARTUP_CLOCKS = 74,
+		// The spec says we need a minimum of 74 startup clocks.  We'll
+		// add just a couple more as a buffer.  (Note: This must be
+		// overridden for any cover proofs to pass.)
+		parameter	STARTUP_CLOCKS = 80,
+		// The spec also provides an alternative startup time of 1ms.
+		// The correct answer is the maximum of the STARTUP_CLOCKS or
+		// this 1ms power up count.  (Note: This must be overridden
+		// for any cover proofs to pass.)
+		parameter	POWERUP_COUNT = 100_000,	// 1ms
+		// How long should we wait for the device to respond?  This
+		// is the log (based two) of the number of clock cycles.
 		parameter	LGTIMEOUT = 26,	// 500ms expected
 		parameter	LGLEN = 9,
 		parameter	MW = 32
@@ -111,7 +121,7 @@ module	sdcmd #(
 
 	// Local declarations
 	// {{{
-	localparam		MAXDELAY= STARTUP_CLOCKS > 8 ? STARTUP_CLOCKS:8;
+	localparam		MAXDELAY= (STARTUP_CLOCKS>8) ? STARTUP_CLOCKS:8;
 	localparam		LGDLY = $clog2(MAXDELAY + 1);
 	localparam [1:0]	R_NONE = 2'b00,
 				R_R1   = 2'b01,
@@ -297,7 +307,7 @@ module	sdcmd #(
 	// resp_count
 	// {{{
 	always @(posedge i_clk)
-	if (i_reset || !waiting_on_response || active || lcl_accept)
+	if (i_reset || !waiting_on_response || active || lcl_accept || o_done)
 		resp_count <= 0;
 	else if (resp_count < 192)
 	begin
@@ -325,7 +335,7 @@ module	sdcmd #(
 	end
 
 	always @(posedge i_clk)
-	if (i_reset || !waiting_on_response || active || lcl_accept)
+	if (i_reset || !waiting_on_response || active || lcl_accept || o_done)
 		response_active <= 0;
 	else if (OPT_DS && cfg_ds)
 	begin
@@ -535,9 +545,9 @@ module	sdcmd #(
 		always @(posedge i_clk)
 		if (i_reset || i_boot_cmd)
 			r_self_request <= 0;
-		else if (!o_busy || active)
+		else if (!o_busy || active || !i_cmd_request || response_active)
 			r_self_request <= 0;
-		else if (i_cmd_selfreply)
+		else if (i_cmd_selfreply && r_no_timeout)
 			r_self_request <= 1;
 		// }}}
 
@@ -548,23 +558,34 @@ module	sdcmd #(
 			r_no_timeout <= 0;
 		else if (lcl_accept)
 			// No timeouts for GO_IRQ_STATE commands in eMMC mode
-			r_no_timeout <= (i_cmd == 7'h68);
+			r_no_timeout <= (i_cmd == 7'h68)
+						&& (i_cmd_type != R_NONE);
 		else if (response_active)
 			// Once a response starts, we need the timeout--lest
 			// DS only show up for some bits and not others.
 			r_no_timeout <= 1'b0;
 		// }}}
 
-		assign	lcl_accept = i_cmd_request
-			// && !o_busy
-			&& (i_ckstb && ((!r_busy && !r_delay) || self_request))
-			&& (o_done || !r_busy || (self_request
-					&& (!response_active || rx_timeout)));
+		assign	lcl_accept = i_cmd_request && !o_busy
+					&& (!self_request || !response_active);
 		assign	self_request = r_self_request;
 		assign	no_timeout = r_no_timeout;
 `ifdef	FORMAL
 		always @(posedge i_clk)
-		if (!i_reset && !i_cmd_selfreply)
+		if (!i_reset && (!i_cmd_request || !i_cmd_selfreply
+							|| !r_no_timeout))
+			assert(!r_self_request || !waiting_on_response);
+
+		always @(posedge i_clk)
+		if (!i_reset && lcl_accept)
+			assert(!o_busy);
+
+		always @(posedge i_clk)
+		if (!i_reset && self_request)
+			assert(i_cmd_selfreply && waiting_on_response);
+
+		always @(posedge i_clk)
+		if (!i_reset && !i_cmd_request)
 			assert(!r_self_request);
 `endif
 	end else begin : NO_IRQ_SUPPORT
@@ -710,6 +731,20 @@ module	sdcmd #(
 
 	// r_delay, r_dly_count
 	// {{{
+	reg	[$clog2(POWERUP_COUNT+1)-1:0]	r_powerup_count;
+	reg					r_powerup_stall;
+
+	always @(posedge i_clk)
+	if (i_reset)
+	begin
+		r_powerup_count <= POWERUP_COUNT;
+		r_powerup_stall <= 1;
+	end else if (r_powerup_stall)
+	begin
+		r_powerup_count <= r_powerup_count - 1;
+		r_powerup_stall <= (r_powerup_count > 1);
+	end
+
 	initial	{ r_delay, r_dly_count } = 0;
 	always @(posedge i_clk)
 	if (i_reset || i_boot_cmd)
@@ -717,9 +752,12 @@ module	sdcmd #(
 		{ r_delay, r_dly_count } <= -STARTUP_CLOCKS;
 	end else if (r_busy)
 		{ r_delay, r_dly_count } <= -8;
-	else if (r_delay && i_ckstb)
+	else if (r_delay && i_ckstb && (!r_powerup_stall || !(&r_dly_count)))
 		{ r_delay, r_dly_count } <= { r_delay, r_dly_count } + 1;
 `ifdef	FORMAL
+	always @(posedge i_clk)
+	if (!i_reset && !r_delay)
+		assert(r_dly_count == 0);
 	always @(posedge i_clk)
 	if (!i_reset && r_busy && !$past(lcl_accept) && !$past(i_boot_cmd))
 	begin
@@ -728,12 +766,41 @@ module	sdcmd #(
 	end
 
 	always @(*)
-	if (r_delay)
-		assert(o_busy || self_request);
+	if (!i_reset && r_busy)
+		assert(active || waiting_on_response || response_active || o_done);
+
+	always @(posedge i_clk)
+	if (!i_reset && (no_timeout || response_active) && !$past(i_boot_cmd))
+		assert(waiting_on_response);
+
+	always @(*)
+	if (!i_reset && r_delay && !o_busy)
+		assert(!active && waiting_on_response && self_request);
+
+	always @(*)
+	if (!i_reset && r_powerup_stall)
+	begin
+		assert(r_delay);
+		assert(!r_busy);
+		assert(!no_timeout);
+		assert(!active);
+		assert(!waiting_on_response);
+		assert(!self_request);
+	end
 
 	always @(*)
 	if (!r_delay)
 		assert(r_dly_count == 0);
+
+	always @(*)
+	if (!i_reset)
+		assert(r_powerup_stall == (r_powerup_count != 0));
+
+	always @(posedge i_clk)
+		cover(!r_delay && !i_reset && !r_powerup_stall);
+
+	always @(posedge i_clk)
+		cover(!r_delay && !i_reset);
 `endif
 	// }}}
 
@@ -980,12 +1047,19 @@ module	sdcmd #(
 		f_last_resp_count <= resp_count;
 
 	always @(*)
+	if (!i_reset && r_busy)
+		assert(!r_powerup_stall);
+
+	always @(*)
 	if (!i_reset && (cfg_ds && OPT_DS))
 		assert(!resp_count[0]);
 
 	always @(*)
 	if (!i_reset && (!cfg_dbl || resp_count[0]))
 		assume(i_cmd_strb != 2'b11);
+
+	always @(posedge i_clk)
+		past_done <= o_done;
 
 	always @(posedge i_clk)
 		past_boot <= i_boot_cmd;
@@ -1009,7 +1083,7 @@ module	sdcmd #(
 
 		if (resp_count < 8+32 || cmd_type != R_R2 || active)
 		begin
-			assert(mem_addr == 0 || past_boot);
+			assert(mem_addr == 0 || past_boot || past_done);
 		end else if (r_done && !rx_timeout)
 		begin
 			assert(mem_addr == 4);
@@ -1210,6 +1284,16 @@ module	sdcmd #(
 		always @(posedge i_clk)
 		if (!i_reset && r_busy && i_cmd_selfreply)
 			cover(!o_busy);
+		always @(posedge i_clk)
+		if (!i_reset && r_busy && i_cmd_selfreply)
+			cover(self_request);
+		always @(posedge i_clk)
+		if (!i_reset)
+		begin
+			cover(r_busy && self_request);
+			cover((r_busy && self_request) && !r_delay); // !!!
+			cover((r_busy && self_request) && !r_delay && !i_ckstb);
+		end
 	end endgenerate
 
 	// }}}

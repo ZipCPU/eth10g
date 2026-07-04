@@ -147,7 +147,7 @@ module	sdfrontend #(
 	wire		async_ack, async_nak;
 	reg	[4:0]	acknak_sreg;
 
-	reg	ackd, ck_ack, ck_nak, pipe_ack, pipe_nak;
+	reg	ck_ack, ck_nak, pipe_ack, pipe_nak;
 	// }}}
 
 	// Common setup
@@ -1302,69 +1302,65 @@ module	sdfrontend #(
 			r_debug[29] <= wait_for_busy;
 			r_debug[28] <= dat0_busy;
 
-			r_debug[27:25] <= { i_cmd_en, i_cmd_tristate,
-						i_cmd_data[0] };
-			if (!i_cmd_en)
+			r_debug[27] <= i_cmd_en;
+			r_debug[26] <= i_cfg_dscmd ? MAC_VALID
+					: (|o_cmd_strb && o_cmd_data != 2'b00);
+			if (i_cmd_en)
 			begin
-				r_debug[26] <= r_wide_cmd_data[7];
-				r_debug[25] <= r_wide_cmd_data[0];
-			end
+				// TRISTATE will never be high when i_cmd_en
+				r_debug[25:24] = i_cmd_data[1:0];
+			end else if (i_cfg_dscmd)
+				r_debug[25:24] <= (MAC_VALID) ? MAC_DATA
+							: 2'b11;
+			else
+				r_debug[25:24] <= o_cmd_data;
 
-			r_debug[24:20] <= { i_data_tristate, i_tx_data[3:0] };
+			// r_debug[23] <= |sample_pck;
+			// r_debug[22] <= |sample_ck;
+			r_debug[22] <= io_started[1];
 
-			if (i_cfg_dscmd)
+			r_debug[21:20] <= { i_rx_en, i_data_en };
+			r_debug[19] <= pending_ack;
+			r_debug[18] <= i_cfg_ds ? ck_ack : sync_ack;
+			r_debug[17] <= i_cfg_ds ? ck_nak : sync_nak;
+
+			if (pending_ack)
 			begin
-				r_debug[19] <= { MAC_VALID, |o_cmd_strb };
-				r_debug[18] <= !r_dbg_cmd_counter[7]
-						&& (|o_cmd_strb);
+				r_debug[16:15] <= r_debug[16:15];
 
-				if (MAC_VALID)
-					r_debug[17:16] <= MAC_DATA[1:0];
-			end else begin
-				if (!r_dbg_cmd_counter[7])
-					r_debug[19:18] <= o_cmd_strb;
+				if (|sample_pck[7:4])
+					r_debug[16] <= itok[1];
+				if (|sample_pck[3:0])
+					r_debug[15] <= itok[0];
+			end else
+				r_debug[16:15] <= 2'b00;
 
-				if (o_cmd_strb == 0)
-					r_debug[17:16] <= r_debug[17:16];
-				else
-					r_debug[17:16] <= o_cmd_data;
-			end
+			// 14:13
+			r_debug[12] <= i_cmd_tristate;
+			r_debug[11] <= i_data_tristate;
+			r_debug[10] <= |io_started && i_rx_en && !i_data_en;
 
-			r_debug[15:14] <= { i_rx_en, i_data_en };
-			r_debug[13:12] <= { sync_ack, sync_nak };
-			if (i_rx_en && i_cfg_ddr)
-				r_debug[13:12] <= { |sample_pck, |sample_ck };
-			if (i_rx_en && i_cfg_ddr && !i_data_en)
-				r_debug[14] <= ^io_started;
-
-			r_debug[11:10] <= r_debug[11:10];
-			if (|sample_pck[7:4])
-				r_debug[11] <= itok[1];
-			if (|sample_pck[3:0])
-				r_debug[10] <= itok[0];
-
-			r_debug[ 7: 0] <= r_debug;
-			if (i_rx_en)
-			begin
-				r_debug[ 9: 8] <= i_cfg_ds
-						? {MAD_VALID, (|o_rx_strb)}
-						: o_rx_strb;
-			end
-
-			if (i_cfg_ds)
+			if (i_data_en)
+				r_debug[9:0] <= { 2'b00, i_tx_data[7:0] };
+			else if (i_cfg_ds)
 			begin
 				if (MAD_VALID)
-					r_debug[ 7: 0] <= MAD_DATA[7:0];
-			end else if (o_rx_strb != 0 || o_cmd_strb != 0)
-				r_debug[ 7: 0] <= { o_rx_data[11:8], o_rx_data[3:0] };
-
-			if (0 && r_dbg_timeout == 0)
+					r_debug[9:0] <= { 2'b11, MAD_DATA[7:0] };
+				else
+					r_debug[9:0] <= r_debug[9:0];
+			end else // if (!i_cfg_ds)
 			begin
-				r_debug[9:8] <= 2'b00;
-				r_debug[19:16] <= 4'hf;
-				r_debug[7:0] <= 8'hff;
+				r_debug[9:0] <= r_debug[9:0];
 
-				r_debug[4:0] <= acknak_sreg;
+				r_debug[9:8] <= o_rx_strb; // (o_rx_strb != 0);
+				if (o_rx_strb == 2'b11)
+					r_debug[7:0] <= { o_rx_data[11:8], o_rx_data[3:0] };
+				else if (o_rx_strb[1])
+					r_debug[7:0] <= o_rx_data[15:8];
+				else if (o_rx_strb[0])
+					r_debug[7:0] <= o_rx_data[7:0];
+				else
+					r_debug[7:0] <= w_rx_data[7:0];
 			end
 		end
 
@@ -1395,16 +1391,8 @@ module	sdfrontend #(
 		{ ck_nak, pipe_nak } <= { pipe_nak, async_nak };
 	end
 
-	initial	ackd = 0;
-	always @(posedge i_clk)
-	if (i_reset || i_expect_token || !OPT_CRCTOKEN)
-	begin
-		ackd <= 0;
-	end else if (sync_ack || sync_nak || ck_ack || ck_nak)
-		ackd <= 1'b1;
-
-	assign	o_crcack = OPT_CRCTOKEN && (sync_ack || ck_ack) && !ackd;
-	assign	o_crcnak = OPT_CRCTOKEN && (sync_nak || ck_nak) && !ackd;
+	assign	o_crcack = OPT_CRCTOKEN && (sync_ack || ck_ack) && pending_ack;
+	assign	o_crcnak = OPT_CRCTOKEN && (sync_nak || ck_nak) && pending_ack;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

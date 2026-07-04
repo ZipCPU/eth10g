@@ -61,6 +61,10 @@ $(OBJDIR)/crt0.o: crt0.c
 	$(mk-objdir)
 	$(CC) $(CFLAGS) -ffreestanding -c $< -o $@
 
+$(OBJDIR)/%.txt: %.o
+	$(mk-objdir)
+	@bash -c "$(RDELF) -a $^ ; $(OBJDUMP) -S -D $^ " | tee $@
+
 $(ZIPLIB): $(LIBOBJS)
 	$(AR) -cru $@ $(LIBOBJS)
 
