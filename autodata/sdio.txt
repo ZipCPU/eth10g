@@ -259,7 +259,7 @@
 		w_@$(PREFIX)_ad_valid,
 		w_@$(PREFIX)_ad_data,
 		w_@$(PREFIX)_hwreset_n, w_@$(PREFIX)_1p8v, @$(HW1P8V),
-		w_@$(PREFIX)_debug
+		w_@$(PREFIX)_debug | (w_@$(PREFIX)_hwreset_n ? 32'h0 : 32'h020000)
 @TOP.INSERT=
 	assign	i_@$(PREFIX)_ds = 1'b0;
 @MAIN.PORTLIST=
