@@ -125,6 +125,7 @@
 		//
 	wire		w_@$(PREFIX)_ac_valid;
 	wire	[1:0]	w_@$(PREFIX)_ac_data;
+	wire		w_@$(PREFIX)_ad_reset_n;
 	wire		w_@$(PREFIX)_ad_valid;
 	wire	[31:0]	w_@$(PREFIX)_ad_data;
 
@@ -180,6 +181,7 @@
 		//
 		.MAC_VALID(w_@$(PREFIX)_ac_valid),
 		.MAC_DATA( w_@$(PREFIX)_ac_data),
+		.i_ad_reset_n(w_@$(PREFIX)_ad_reset_n),
 		.MAD_VALID(w_@$(PREFIX)_ad_valid),
 		.MAD_DATA( w_@$(PREFIX)_ad_data),
 		// IO ports
@@ -253,6 +255,7 @@
 		//
 		w_@$(PREFIX)_ac_valid,
 		w_@$(PREFIX)_ac_data,
+		w_@$(PREFIX)_ad_reset_n,
 		w_@$(PREFIX)_ad_valid,
 		w_@$(PREFIX)_ad_data,
 		w_@$(PREFIX)_hwreset_n, w_@$(PREFIX)_1p8v, @$(HW1P8V),
@@ -289,6 +292,7 @@
 		//
 		i_@$(PREFIX)_ac_valid,
 		i_@$(PREFIX)_ac_data,
+		o_@$(PREFIX)_ad_reset_n,
 		i_@$(PREFIX)_ad_valid,
 		i_@$(PREFIX)_ad_data,
 		o_@$(PREFIX)_hwreset_n, o_@$(PREFIX)_1p8v, i_@$(PREFIX)_1p8v,
@@ -324,6 +328,7 @@
 		//
 	input	wire		i_@$(PREFIX)_ac_valid;
 	input	wire	[1:0]	i_@$(PREFIX)_ac_data;
+	output	wire		o_@$(PREFIX)_ad_reset_n;
 	input	wire		i_@$(PREFIX)_ad_valid;
 	input	wire	[31:0]	i_@$(PREFIX)_ad_data;
 	output	wire		o_@$(PREFIX)_hwreset_n,
@@ -430,6 +435,7 @@
 		//
 		.S_AC_VALID(i_@$(PREFIX)_ac_valid),
 		.S_AC_DATA( i_@$(PREFIX)_ac_data),
+		.o_ad_reset_n(o_@$(PREFIX)_ad_reset_n),
 		.S_AD_VALID(i_@$(PREFIX)_ad_valid),
 		.S_AD_DATA( i_@$(PREFIX)_ad_data),
 		//
@@ -506,7 +512,7 @@ struct @$(DEVID)_S;
 		if (!m_core->o_@$(PREFIX)_cfg_dscmd) {
 			m_core->i_@$(PREFIX)_ac_valid = 0;
 			m_core->i_@$(PREFIX)_ac_data = 0;
-		} if (!m_core->o_@$(PREFIX)_cfg_ds) {
+		} if (!m_core->o_@$(PREFIX)_ad_reset_n) {
 			m_core->i_@$(PREFIX)_ad_valid = 0;
 			m_core->i_@$(PREFIX)_ad_data = 0;
 		} }
@@ -518,8 +524,8 @@ struct @$(DEVID)_S;
 @WIDE=u_@$(PREFIX)_frontend/GEN_WIDE_IO
 @CELLS=get_cells -hier -filter
 @XDC.SERDES=
-set_max_delay -datapath_only -from [@$(CELLS) {NAME=~ @$(WIDE).r_debug*}] -to [@$(CELLS) {NAME=~ @$(WIDE).cmd_serdes/u_oserdes*}] 4.0
-set_max_delay -datapath_only -from [@$(CELLS) {NAME=~ @$(WIDE).r_debug*}] -to [@$(CELLS) {NAME=~ @$(WIDE).io_serdes/u_oserdes*}] 4.0
+## set_max_delay -datapath_only -from [@$(CELLS) {NAME=~ @$(WIDE).r_debug*}] -to [@$(CELLS) {NAME=~ @$(WIDE).cmd_serdes/u_oserdes*}] 4.0
+## set_max_delay -datapath_only -from [@$(CELLS) {NAME=~ @$(WIDE).r_debug*}] -to [@$(CELLS) {NAME=~ @$(WIDE).io_serdes/u_oserdes*}] 4.0
 ## set_max_delay -datapath_only -from [@$(CELLS) {NAME=~ @$(WIDE).r_cmd_tristate*}] -to [@$(CELLS) {NAME=~ @$(WIDE).cmd_serdes/u_oserdes*}] 4.0
 @XDC.INSERT=
 set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]

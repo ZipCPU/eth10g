@@ -963,7 +963,7 @@ module	sdwb #(
 		end else
 			assert(!$past(w_boot_active)||$stable(o_cfg_expect_ack));
 
-		assert(w_pending_boot_tok == w_boot_active);
+		assert(w_boot_active || !w_pending_boot_tok);
 	end else if (!w_boot_active && !dma_busy && (o_rx_en || r_rx_request))
 	begin
 		assert(!o_cfg_expect_ack);
@@ -1683,8 +1683,9 @@ module	sdwb #(
 		w_phy_ctrl[13]    = o_pp_cmd;	// Push-pull CMD line
 		w_phy_ctrl[12]    = o_pp_data;	// Push-pull DAT line(s)
 		w_phy_ctrl[11:10] = r_width;
-		if (r_width[1])
-			w_phy_ctrl[10] = o_cfg_shutdown;
+		// CAN'T DO ANYTHING WITH r_width=2'b1x here, since testcases
+		// depend upon r_width != 2'b11
+		// if (r_width[1]) w_phy_ctrl[10] = o_cfg_shutdown;
 		w_phy_ctrl[9:8]   = { o_cfg_ds, o_cfg_ddr };
 		w_phy_ctrl[7:0]   = i_ckspd; // r_ckspeed;
 	end

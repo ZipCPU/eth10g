@@ -250,6 +250,7 @@ module	main(i_clk, i_reset,
 		//
 		i_sdio_ac_valid,
 		i_sdio_ac_data,
+		o_sdio_ad_reset_n,
 		i_sdio_ad_valid,
 		i_sdio_ad_data,
 		o_sdio_hwreset_n, o_sdio_1p8v, i_sdio_1p8v,
@@ -288,6 +289,7 @@ module	main(i_clk, i_reset,
 		//
 		i_emmc_ac_valid,
 		i_emmc_ac_data,
+		o_emmc_ad_reset_n,
 		i_emmc_ad_valid,
 		i_emmc_ad_data,
 		o_emmc_hwreset_n, o_emmc_1p8v, i_emmc_1p8v,
@@ -518,6 +520,7 @@ module	main(i_clk, i_reset,
 		//
 	input	wire		i_sdio_ac_valid;
 	input	wire	[1:0]	i_sdio_ac_data;
+	output	wire		o_sdio_ad_reset_n;
 	input	wire		i_sdio_ad_valid;
 	input	wire	[31:0]	i_sdio_ad_data;
 	output	wire		o_sdio_hwreset_n,
@@ -564,6 +567,7 @@ module	main(i_clk, i_reset,
 		//
 	input	wire		i_emmc_ac_valid;
 	input	wire	[1:0]	i_emmc_ac_data;
+	output	wire		o_emmc_ad_reset_n;
 	input	wire		i_emmc_ad_valid;
 	input	wire	[31:0]	i_emmc_ad_data;
 	output	wire		o_emmc_hwreset_n,
@@ -660,7 +664,7 @@ module	main(i_clk, i_reset,
 	wire	i2c_interrupt;	// i2c.INT.I2C.WIRE
 	wire	zipscope_int;	// zipscope.INT.CPUSCOPE.WIRE
 	wire	satapscope_int;	// satapscope.INT.SATAPSCOPE.WIRE
-	wire	satadrpscope_int;	// satadrpscope.INT.SATATSCOPE.WIRE
+	wire	satadrpscope_int;	// satadrpscope.INT.SATADSCOPE.WIRE
 	wire	satalscope_int;	// satalscope.INT.SATALSCOPE.WIRE
 	wire	satarscope_int;	// satarscope.INT.SATARSCOPE.WIRE
 	wire	emmcscope_int;	// emmcscope.INT.EMMCSCOPE.WIRE
@@ -2888,7 +2892,7 @@ module	main(i_clk, i_reset,
 	// }}}
 	// Null interrupt definitions
 	// {{{
-	assign	satadrpscope_int = 1'b0;	// satadrpscope.INT.SATATSCOPE.WIRE
+	assign	satadrpscope_int = 1'b0;	// satadrpscope.INT.SATADSCOPE.WIRE
 	// }}}
 	// }}}
 `endif	// SATADRPSCOPE_SCOPC
@@ -4317,6 +4321,7 @@ module	main(i_clk, i_reset,
 		//
 		.S_AC_VALID(i_sdio_ac_valid),
 		.S_AC_DATA( i_sdio_ac_data),
+		.o_ad_reset_n(o_sdio_ad_reset_n),
 		.S_AD_VALID(i_sdio_ad_valid),
 		.S_AD_DATA( i_sdio_ad_data),
 		//
@@ -4502,6 +4507,7 @@ module	main(i_clk, i_reset,
 		//
 		.S_AC_VALID(i_emmc_ac_valid),
 		.S_AC_DATA( i_emmc_ac_data),
+		.o_ad_reset_n(o_emmc_ad_reset_n),
 		.S_AD_VALID(i_emmc_ad_valid),
 		.S_AD_DATA( i_emmc_ad_data),
 		//

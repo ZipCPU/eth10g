@@ -191,8 +191,8 @@ int main(int argc, char **argv) {
 			*up++ = 0;
 	}
 
-	// emmc_boot(emmc_dev, TSTLN/512, test_buffer);
-	emmc_altboot(emmc_dev, TSTLN/512, test_buffer);
+	emmc_boot(emmc_dev, TSTLN/512, test_buffer);
+	// emmc_altboot(emmc_dev, TSTLN/512, test_buffer);
 	CLEAR_DCACHE;
 
 	if (0 == memcmp(boot_data, test_buffer, TSTLN)) {

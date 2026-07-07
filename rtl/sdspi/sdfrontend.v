@@ -103,6 +103,7 @@ module	sdfrontend #(
 		// {{{
 		output	wire		MAC_VALID,
 		output	wire	[1:0]	MAC_DATA,
+		input	wire		i_ad_reset_n,
 		output	wire		MAD_VALID,
 		output	wire	[31:0]	MAD_DATA,
 		// output	wire		MAD_LAST,
@@ -821,14 +822,14 @@ module	sdfrontend #(
 
 		// Local declarations
 		// {{{
-		reg		r_last_cmd_enabled;
+		// reg		r_last_cmd_enabled;
 		reg	[1:0]	w_cmd_data;
 		reg	[15:0]	r_rx_data;
 		wire	[15:0]	w_rx_data;
 		// wire	[7:0]	next_ck_sreg, next_ck_psreg;
 		reg	[HWBIAS+24:0]	ck_sreg, ck_psreg;
 		wire	[7:0]	wide_cmd_data;
-		reg	[7:0]	r_wide_cmd_data;
+		reg	[7:0]	r_wide_cmd_data, r_raw;
 		reg	[7:0]	sample_ck, sample_pck;
 		reg	[1:0]	r_cmd_data;
 		reg		busy_strb;
@@ -1150,8 +1151,8 @@ module	sdfrontend #(
 		// {{{
 		always @(posedge i_clk)
 			r_cmd_tristate <= i_cmd_tristate;
-		always @(posedge i_clk)
-			r_last_cmd_enabled <= i_cmd_en;
+		// always @(posedge i_clk)
+		//	r_last_cmd_enabled <= i_cmd_en;
 
 		assign	wide_cmdedge = { pck_sreg[HWBIAS+23:0], next_pedge };
 
@@ -1273,26 +1274,26 @@ module	sdfrontend #(
 		// }}}
 
 		reg	[31:0]	r_debug;
-		reg	[11:0]	r_dbg_timeout;
-		reg	[7:0]	r_dbg_cmd_counter;
+		// reg	[11:0]	r_dbg_timeout;
+		// reg	[7:0]	r_dbg_cmd_counter;
 
-		always @(posedge i_clk)
-		if (i_reset)
-			r_dbg_timeout <= 0;
-		else if (i_cmd_en != r_debug[27])
-			r_dbg_timeout <= 120;
-		else if ({ i_rx_en, i_data_en } != r_debug[15:14])
-			r_dbg_timeout <= -1;	// 512B * (8b/4IO) * (2clk/IO)
-		else if (r_dbg_timeout > 0)
-			r_dbg_timeout <= r_dbg_timeout - 1;
+		// always @(posedge i_clk)
+		// if (i_reset)
+			// r_dbg_timeout <= 0;
+		// else if (i_cmd_en != r_debug[27])
+			// r_dbg_timeout <= 120;
+		// else if ({ i_rx_en, i_data_en } != r_debug[15:14])
+			// r_dbg_timeout <= -1;	// 512B * (8b/4IO) * (2clk/IO)
+		// else if (r_dbg_timeout > 0)
+			// r_dbg_timeout <= r_dbg_timeout - 1;
 
-		always @(posedge i_clk)
-		if (i_reset)
-			r_dbg_cmd_counter <= 0;
-		else if (i_cmd_en || |(o_cmd_strb & ~o_cmd_data))
-			r_dbg_cmd_counter <= 0;
-		else if (!r_dbg_cmd_counter[7] && |o_cmd_strb)
-			r_dbg_cmd_counter <= r_dbg_cmd_counter + 1;
+		// always @(posedge i_clk)
+		// if (i_reset)
+			// r_dbg_cmd_counter <= 0;
+		// else if (i_cmd_en || |(o_cmd_strb & ~o_cmd_data))
+			// r_dbg_cmd_counter <= 0;
+		// else if (!r_dbg_cmd_counter[7] && |o_cmd_strb)
+			// r_dbg_cmd_counter <= r_dbg_cmd_counter + 1;
 
 		always @(posedge i_clk)
 		begin
@@ -1304,16 +1305,18 @@ module	sdfrontend #(
 
 			r_debug[27] <= i_cmd_en;
 			r_debug[26] <= i_cfg_dscmd ? MAC_VALID
-					: (|o_cmd_strb && o_cmd_data != 2'b00);
+					: (|o_cmd_strb && o_cmd_data != 2'b11);
 			if (i_cmd_en)
 			begin
 				// TRISTATE will never be high when i_cmd_en
-				r_debug[25:24] = i_cmd_data[1:0];
+				r_debug[25:24] <= i_cmd_data[1:0];
 			end else if (i_cfg_dscmd)
 				r_debug[25:24] <= (MAC_VALID) ? MAC_DATA
 							: 2'b11;
-			else
+			else if (|o_cmd_strb)
 				r_debug[25:24] <= o_cmd_data;
+			else
+				r_debug[25:24] <= r_debug[25:24];
 
 			// r_debug[23] <= |sample_pck;
 			// r_debug[22] <= |sample_ck;
@@ -1360,7 +1363,7 @@ module	sdfrontend #(
 				else if (o_rx_strb[0])
 					r_debug[7:0] <= o_rx_data[7:0];
 				else
-					r_debug[7:0] <= w_rx_data[7:0];
+					r_debug[7:0] <= raw_iodat;
 			end
 		end
 
@@ -1426,6 +1429,7 @@ module	sdfrontend #(
 		// Local declarations
 		// {{{
 		wire		afifo_reset_n, cmd_ds_en;
+		(* ASYNC_REG="TRUE" *)
 		reg		af_started_p, af_started_n, acmd_started;
 		reg		af_count_p, af_count_n, acmd_count,
 				af_waiting;
@@ -1438,7 +1442,8 @@ module	sdfrontend #(
 		// Need to keep this from triggering on CRC tokens, which
 		//   might also toggle the DS.  Either that, or ... we need
 		//   to clear after the CRC tokens.
-		assign	afifo_reset_n = i_cfg_ds && !i_data_en && i_rx_en;
+		// assign afifo_reset_n = i_cfg_ds && !i_data_en && i_rx_en;
+		assign	afifo_reset_n = i_ad_reset_n;
 		assign	cmd_ds_en = i_cfg_dscmd && !i_cmd_en;
 
 		// Async command port

@@ -247,44 +247,12 @@ public:
 		if (!m_core->o_sdio_cfg_dscmd) {
 			m_core->i_sdio_ac_valid = 0;
 			m_core->i_sdio_ac_data = 0;
-		} if (!m_core->o_sdio_cfg_ds) {
+		} if (!m_core->o_sdio_ad_reset_n) {
 			m_core->i_sdio_ad_valid = 0;
 			m_core->i_sdio_ad_data = 0;
 		} }
 #endif
 		// SIM.TICK from emmc
-#ifdef	EMMC_ACCESS
-		{ unsigned	tmp, tmp_async;
-		m_emmc->apply(
-			(unsigned)m_core->o_emmc_sdclk,
-			(unsigned)m_core->o_emmc_cfg_ddr,
-			(unsigned)m_core->o_emmc_cmd_en,
-			(unsigned)m_core->o_emmc_cmd_data,
-			(unsigned)m_core->o_emmc_data_en,
-			(unsigned)m_core->o_emmc_rx_en,
-			(unsigned)m_core->o_emmc_tx_data,
-			tmp, tmp_async,
-			m_core->i_emmc_ad_data);
-		m_core->i_emmc_cmd_strb = (tmp >> 30) & 3;
-		m_core->i_emmc_cmd_data = (tmp >> 28) & 3;
-		m_core->i_emmc_rx_strb  = (tmp >> 24) & 3;
-		m_core->i_emmc_rx_data  =  tmp & 0x0ffff;
-		m_core->i_emmc_ac_valid = (tmp_async & 2) ? 1:0;
-		m_core->i_emmc_ad_valid =  tmp_async & 1;
-		m_core->i_emmc_detect = 1;
-		m_core->i_emmc_card_busy = m_emmc->card_busy() ? 1:0;
-		m_core->i_emmc_crcack = m_emmc->crctoken();
-		m_core->i_emmc_crcnak = (m_core->i_emmc_crcack & 2)?1:0;
-		m_core->i_emmc_crcack &= 1;
-
-		if (!m_core->o_emmc_cfg_dscmd) {
-			m_core->i_emmc_ac_valid = 0;
-			m_core->i_emmc_ac_data = 0;
-		} if (!m_core->o_emmc_cfg_ds) {
-			m_core->i_emmc_ad_valid = 0;
-			m_core->i_emmc_ad_data = 0;
-		} }
-#endif
 	}
 
 	// Evaluating clock siclk

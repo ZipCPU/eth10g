@@ -437,8 +437,8 @@ module	wbxbar #(
 
 		// Register declarations
 		// {{{
-		wire	[NS:0]		regrant;
-		wire	[LGNS-1:0]	reindex;
+		// wire	[NS:0]		regrant;
+		// wire	[LGNS-1:0]	reindex;
 
 		// This is done using a couple of variables.
 		//
@@ -538,8 +538,8 @@ module	wbxbar #(
 		begin : MINDEX_ONE_SLAVE
 			// {{{
 			assign	mindex[N] = 0;
-			assign	regrant = 0;
-			assign	reindex = 0;
+			// assign	regrant = 0;
+			// assign	reindex = 0;
 			// }}}
 		end else begin : MINDEX_MULTIPLE_SLAVES
 			// {{{
@@ -550,27 +550,34 @@ module	wbxbar #(
 			// {{{
 			reg	[NS:0]		r_regrant;
 			reg	[LGNS-1:0]	r_reindex;
+			integer			rM, lM;
+			wire	[NS-1:0]	s_requested;
+			wire	[NS:0]		s_request, s_grant;
 
 			// r_regrant
 			// {{{
+			assign	s_grant     = grant[N];
+			assign	s_requested = requested[N];
+			assign	s_request   = request[N];
+
 			always @(*)
 			begin
 				r_regrant = 0;
-				for(iM=0; iM<NS; iM=iM+1)
+				for(lM=0; lM<NS; lM=lM+1)
 				begin
-					if (grant[N][iM])
+					if (s_grant[lM])
 						// Maintain any open channels
-						r_regrant[iM] = 1'b1;
-					else if (!sgrant[iM]&&!requested[N][iM])
-						r_regrant[iM] = 1'b1;
+						r_regrant[lM] = 1'b1;
+					else if (!sgrant[lM]&& !s_requested[lM])
+						r_regrant[lM] = 1'b1;
 
-					if (!request[N][iM])
-						r_regrant[iM] = 1'b0;
+					if (!s_request[lM])
+						r_regrant[lM] = 1'b0;
 				end
 
-				if (grant[N][NS])
+				if (s_grant[NS])
 					r_regrant[NS] = 1;
-				if (!request[N][NS])
+				if (!s_request[NS])
 					r_regrant[NS] = 0;
 
 				if (mgrant[N] && !mempty[N])
@@ -581,23 +588,22 @@ module	wbxbar #(
 			// r_reindex
 			// {{{
 			// Verilator lint_off BLKSEQ
-			always @(r_regrant or regrant or r_mindex)
+			always @(r_regrant)
 			begin
 				r_reindex = 0;
-				for(iM=0; iM<=NS; iM=iM+1)
-				if (r_regrant[iM])
-					r_reindex = r_reindex | iM[LGNS-1:0];
-				if (regrant == 0)
-					r_reindex = r_mindex;
+				for(rM=0; rM<=NS; rM=rM+1)
+				if (r_regrant[rM])
+					r_reindex = r_reindex | rM[LGNS-1:0];
 			end
 			// Verilator lint_on  BLKSEQ
 			// }}}
 
 			always @(posedge i_clk)
-				r_mindex <= reindex;
+			if (r_regrant != 0)
+				r_mindex <= r_reindex;
 
-			assign	reindex = r_reindex;
-			assign	regrant = r_regrant;
+			// assign	reindex = r_reindex;
+			// assign	regrant = r_regrant;
 			// }}}
 `else
 			// {{{

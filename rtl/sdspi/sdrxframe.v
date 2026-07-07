@@ -66,6 +66,7 @@ module	sdrxframe #(
 		input	wire	[1:0]		i_rx_strb,
 		input	wire	[15:0]		i_rx_data,
 
+		output	reg			o_ad_reset_n,
 		input	wire			S_ASYNC_VALID,
 		input	wire	[31:0]		S_ASYNC_DATA,
 
@@ -556,6 +557,21 @@ module	sdrxframe #(
 		o_active <= (rail_count > (i_rx_strb[0] ? 1:0) + (i_rx_strb[1] ? 1:0));
 	else
 		o_active <= (rail_count > (S_ASYNC_VALID ? 4:0));
+
+	always @(posedge i_clk)
+	if (i_reset || !i_cfg_ds || !OPT_DS)
+		o_ad_reset_n <= 1'b0;
+	else if (!busy)
+		o_ad_reset_n <= i_rx_en && i_length > 0 && !o_done;
+	else
+		o_ad_reset_n <= (rail_count > (S_ASYNC_VALID ? 4:0));
+`ifdef	FORMAL
+	always @(*)
+	if (!i_reset)
+	begin
+		assert(o_ad_reset_n == (o_active && i_cfg_ds && OPT_DS));
+	end
+`endif
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//

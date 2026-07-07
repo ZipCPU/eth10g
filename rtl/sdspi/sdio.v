@@ -63,8 +63,8 @@ module	sdio #(
 		//  from a 100MHz clock.
 		parameter [0:0]	OPT_SERDES = 1'b0,
 		parameter [0:0]	OPT_DDR = 1'b0,
-		parameter [0:0]	OPT_DS  = OPT_SERDES && OPT_EMMC,
 		parameter [0:0]	OPT_EMMC = 1'b1,
+		parameter [0:0]	OPT_DS  = OPT_SERDES && OPT_EMMC,
 		parameter [0:0]	OPT_HWRESET = OPT_EMMC,
 		parameter [0:0]	OPT_1P8V= 1'b0,
 		parameter [0:0]	OPT_CARD_DETECT = !OPT_EMMC,
@@ -75,13 +75,13 @@ module	sdio #(
 		// Boot parameters
 		parameter	SWIDE_AW = ADDRESS_WIDTH
 					+ ((OPT_ISTREAM||OPT_OSTREAM)? 1:0),
-		parameter [0:0]		OPT_BOOTEN   = 1'b1,
-		parameter [0:0]		OPT_AUTOBOOT = 1'b1,
-		parameter [0:0]		BOOT_TOKEN   = 1'b1,
-		parameter [3:0]	BOOT_MODE = 4'b0010,	// No DS, SDR, 8b
+		parameter [0:0]		OPT_BOOTEN   = OPT_EMMC,
+		parameter [0:0]		OPT_AUTOBOOT = OPT_BOOTEN,
+		parameter [0:0]		BOOT_TOKEN   = OPT_BOOTEN,
+		parameter [3:0]	BOOT_MODE = OPT_BOOTEN ? 4'b0010 : 4'h0,	// No DS, SDR, 8b
 		parameter [SWIDE_AW-1:0] BOOT_ADDR=0,
-		parameter [31:0]	BOOT_BLOCKS=32'd256,
-		parameter [7:0]		BOOT_SPEED=8'd4,
+		parameter [31:0]	BOOT_BLOCKS= OPT_AUTOBOOT ? 32'd256 : 32'h0,
+		parameter [7:0]		BOOT_SPEED=OPT_EMMC ? 8'd4 : 8'hff,
 		//
 		parameter	SW = 32
 		// }}}
@@ -153,6 +153,7 @@ module	sdio #(
 		//
 		input	wire		S_AC_VALID,
 		input	wire	[1:0]	S_AC_DATA,
+		output	wire		o_ad_reset_n,
 		input	wire		S_AD_VALID,
 		input	wire	[31:0]	S_AD_DATA,
 		// }}}
@@ -468,6 +469,7 @@ module	sdio #(
 		.i_rx_en(rx_en), .i_crc_en(crc_en), .i_length(rx_length),
 		//
 		.i_rx_strb(i_rx_strb), .i_rx_data(i_rx_data),
+		.o_ad_reset_n(o_ad_reset_n),
 		.S_ASYNC_VALID(S_AD_VALID), .S_ASYNC_DATA(S_AD_DATA),
 		//
 		.o_mem_valid(rx_mem_valid), .o_mem_strb(rx_mem_strb),

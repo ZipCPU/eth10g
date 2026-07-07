@@ -319,9 +319,9 @@ create_clock -name SATATX -period 26.6664 [get_pins u_@$(PREFIX)/u_gtx_channel/T
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets u_sata/raw_tx_clk]
 ##
 set_max_delay -from [@$(CELLS) {NAME=~u_@$(PREFIX)/qpll_reset*}] -to [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/TXELECIDLE*}] 7
-set_false_path -from [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/RXRESETDONE}] -to [@$(CELLS) {NAME=~ u_@$(PREFIX)/rx_init/gtx_reset_pipe*}]
+## set_false_path -from [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/RXRESETDONE}] -to [@$(CELLS) {NAME=~ u_@$(PREFIX)/rx_init/gtx_reset_pipe*}]
 set_false_path -from [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/RXUSRCLK2}] -to [@$(CELLS) {NAME=~ u_@$(PREFIX)/rx_init/gtx_reset_pipe*}]
-set_false_path -from [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/TXRESETDONE}] -to [@$(CELLS) {NAME=~ u_@$(PREFIX)/tx_init/gtx_reset_pipe*}]
+## set_false_path -from [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/TXRESETDONE}] -to [@$(CELLS) {NAME=~ u_@$(PREFIX)/tx_init/gtx_reset_pipe*}]
 set_false_path -from [get_pins -hier -filter {NAME=~ u_@$(PREFIX)/u_gtx_channel/TXUSRCLK2}] -to [@$(CELLS) {NAME=~ u_@$(PREFIX)/tx_init/gtx_reset_pipe*}]
 ##
 ##
