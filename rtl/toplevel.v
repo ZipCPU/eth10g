@@ -363,6 +363,7 @@ i_sdcard_cd_n,
 	wire	[1:0]	w_sdio_rx_strb;
 	wire	[15:0]	w_sdio_rx_data;
 		//
+	wire		w_sdio_ac_reset_n;
 	wire		w_sdio_ac_valid;
 	wire	[1:0]	w_sdio_ac_data;
 	wire		w_sdio_ad_reset_n;
@@ -408,6 +409,7 @@ i_sdcard_cd_n,
 	wire	[1:0]	w_emmc_rx_strb;
 	wire	[15:0]	w_emmc_rx_data;
 		//
+	wire		w_emmc_ac_reset_n;
 	wire		w_emmc_ac_valid;
 	wire	[1:0]	w_emmc_ac_data;
 	wire		w_emmc_ad_reset_n;
@@ -571,6 +573,7 @@ i_sdcard_cd_n,
 		w_sdio_rx_strb,
 		w_sdio_rx_data,
 		//
+		w_sdio_ac_reset_n,
 		w_sdio_ac_valid,
 		w_sdio_ac_data,
 		w_sdio_ad_reset_n,
@@ -608,6 +611,7 @@ i_sdcard_cd_n,
 		w_emmc_rx_strb,
 		w_emmc_rx_data,
 		//
+		w_emmc_ac_reset_n,
 		w_emmc_ac_valid,
 		w_emmc_ac_data,
 		w_emmc_ad_reset_n,
@@ -1069,6 +1073,7 @@ i_sdcard_cd_n,
 		.o_rx_strb( w_sdio_rx_strb),
 		.o_rx_data( w_sdio_rx_data),
 		//
+		.i_ac_reset_n(w_sdio_ac_reset_n),
 		.MAC_VALID(w_sdio_ac_valid),
 		.MAC_DATA( w_sdio_ac_data),
 		.i_ad_reset_n(w_sdio_ad_reset_n),
@@ -1160,6 +1165,7 @@ i_sdcard_cd_n,
 		.o_rx_strb( w_emmc_rx_strb),
 		.o_rx_data( w_emmc_rx_data),
 		//
+		.i_ac_reset_n(w_emmc_ac_reset_n),
 		.MAC_VALID(w_emmc_ac_valid),
 		.MAC_DATA( w_emmc_ac_data),
 		.i_ad_reset_n(w_emmc_ad_reset_n),

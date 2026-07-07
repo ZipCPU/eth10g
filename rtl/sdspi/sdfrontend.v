@@ -101,6 +101,7 @@ module	sdfrontend #(
 		// }}}
 		// Async Rx path
 		// {{{
+		input	wire		i_ac_reset_n,
 		output	wire		MAC_VALID,
 		output	wire	[1:0]	MAC_DATA,
 		input	wire		i_ad_reset_n,
@@ -1444,7 +1445,7 @@ module	sdfrontend #(
 		//   to clear after the CRC tokens.
 		// assign afifo_reset_n = i_cfg_ds && !i_data_en && i_rx_en;
 		assign	afifo_reset_n = i_ad_reset_n;
-		assign	cmd_ds_en = i_cfg_dscmd && !i_cmd_en;
+		assign	cmd_ds_en = i_ac_reset_n;
 
 		// Async command port
 		// {{{
@@ -1651,7 +1652,8 @@ module	sdfrontend #(
 		// Verilator lint_off UNUSED
 		wire	unused_ds;
 		assign	unused_ds = &{ 1'b0, raw_cmd, raw_iodat, i_ds,
-				i_cfg_ds, i_cfg_dscmd
+				i_cfg_ds, i_cfg_dscmd,
+				i_ac_reset_n, i_ad_reset_n
 				};
 		// Verilator lint_on  UNUSED
 		// }}}

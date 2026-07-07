@@ -244,7 +244,7 @@ public:
 		m_core->i_sdio_crcnak = (m_core->i_sdio_crcack & 2)?1:0;
 		m_core->i_sdio_crcack &= 1;
 
-		if (!m_core->o_sdio_cfg_dscmd) {
+		if (!m_core->o_sdio_ac_reset_n) {
 			m_core->i_sdio_ac_valid = 0;
 			m_core->i_sdio_ac_data = 0;
 		} if (!m_core->o_sdio_ad_reset_n) {

@@ -123,6 +123,7 @@
 	wire	[1:0]	w_@$(PREFIX)_rx_strb;
 	wire	[15:0]	w_@$(PREFIX)_rx_data;
 		//
+	wire		w_@$(PREFIX)_ac_reset_n;
 	wire		w_@$(PREFIX)_ac_valid;
 	wire	[1:0]	w_@$(PREFIX)_ac_data;
 	wire		w_@$(PREFIX)_ad_reset_n;
@@ -179,6 +180,7 @@
 		.o_rx_strb( w_@$(PREFIX)_rx_strb),
 		.o_rx_data( w_@$(PREFIX)_rx_data),
 		//
+		.i_ac_reset_n(w_@$(PREFIX)_ac_reset_n),
 		.MAC_VALID(w_@$(PREFIX)_ac_valid),
 		.MAC_DATA( w_@$(PREFIX)_ac_data),
 		.i_ad_reset_n(w_@$(PREFIX)_ad_reset_n),
@@ -253,6 +255,7 @@
 		w_@$(PREFIX)_rx_strb,
 		w_@$(PREFIX)_rx_data,
 		//
+		w_@$(PREFIX)_ac_reset_n,
 		w_@$(PREFIX)_ac_valid,
 		w_@$(PREFIX)_ac_data,
 		w_@$(PREFIX)_ad_reset_n,
@@ -290,6 +293,7 @@
 		i_@$(PREFIX)_rx_strb,
 		i_@$(PREFIX)_rx_data,
 		//
+		o_@$(PREFIX)_ac_reset_n,
 		i_@$(PREFIX)_ac_valid,
 		i_@$(PREFIX)_ac_data,
 		o_@$(PREFIX)_ad_reset_n,
@@ -326,6 +330,7 @@
 	input	wire	[1:0]	i_@$(PREFIX)_rx_strb;
 	input	wire	[15:0]	i_@$(PREFIX)_rx_data;
 		//
+	output	wire		o_@$(PREFIX)_ac_reset_n;
 	input	wire		i_@$(PREFIX)_ac_valid;
 	input	wire	[1:0]	i_@$(PREFIX)_ac_data;
 	output	wire		o_@$(PREFIX)_ad_reset_n;
@@ -433,6 +438,7 @@
 		.i_rx_strb(  i_@$(PREFIX)_rx_strb),
 		.i_rx_data(  i_@$(PREFIX)_rx_data),
 		//
+		.o_ac_reset_n(o_@$(PREFIX)_ac_reset_n),
 		.S_AC_VALID(i_@$(PREFIX)_ac_valid),
 		.S_AC_DATA( i_@$(PREFIX)_ac_data),
 		.o_ad_reset_n(o_@$(PREFIX)_ad_reset_n),
@@ -509,7 +515,7 @@ struct @$(DEVID)_S;
 		m_core->i_@$(PREFIX)_crcnak = (m_core->i_@$(PREFIX)_crcack & 2)?1:0;
 		m_core->i_@$(PREFIX)_crcack &= 1;
 
-		if (!m_core->o_@$(PREFIX)_cfg_dscmd) {
+		if (!m_core->o_@$(PREFIX)_ac_reset_n) {
 			m_core->i_@$(PREFIX)_ac_valid = 0;
 			m_core->i_@$(PREFIX)_ac_data = 0;
 		} if (!m_core->o_@$(PREFIX)_ad_reset_n) {

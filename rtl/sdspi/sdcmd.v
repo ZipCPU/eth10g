@@ -102,6 +102,7 @@ module	sdcmd #(
 		input	wire			i_cmd_collision,
 		// input	wire		i_dat_busy,
 
+		output	reg			o_ac_reset_n,
 		input	wire			S_ASYNC_VALID,
 		input	wire	[1:0]		S_ASYNC_DATA,
 		// }}}
@@ -348,6 +349,22 @@ module	sdcmd #(
 	if (!i_reset)
 		assert(response_active == (resp_count != 0));
 `endif
+	// }}}
+
+	// Register the reset for the asynchronous (i.e. DS) command FIFO
+	// {{{
+	always @(posedge i_clk)
+	if (i_reset || !OPT_DS || !cfg_ds || !waiting_on_response || lcl_accept
+							|| o_done || !r_busy)
+	begin
+		o_ac_reset_n <= 1'b0;
+	end else if (i_ckstb)
+	begin
+		if (cfg_dbl)
+			o_ac_reset_n <= (srcount <= 2);
+		else
+			o_ac_reset_n <= (srcount <= 1);
+	end
 	// }}}
 
 	// rx_sreg

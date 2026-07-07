@@ -248,6 +248,7 @@ module	main(i_clk, i_reset,
 		i_sdio_rx_strb,
 		i_sdio_rx_data,
 		//
+		o_sdio_ac_reset_n,
 		i_sdio_ac_valid,
 		i_sdio_ac_data,
 		o_sdio_ad_reset_n,
@@ -287,6 +288,7 @@ module	main(i_clk, i_reset,
 		i_emmc_rx_strb,
 		i_emmc_rx_data,
 		//
+		o_emmc_ac_reset_n,
 		i_emmc_ac_valid,
 		i_emmc_ac_data,
 		o_emmc_ad_reset_n,
@@ -518,6 +520,7 @@ module	main(i_clk, i_reset,
 	input	wire	[1:0]	i_sdio_rx_strb;
 	input	wire	[15:0]	i_sdio_rx_data;
 		//
+	output	wire		o_sdio_ac_reset_n;
 	input	wire		i_sdio_ac_valid;
 	input	wire	[1:0]	i_sdio_ac_data;
 	output	wire		o_sdio_ad_reset_n;
@@ -565,6 +568,7 @@ module	main(i_clk, i_reset,
 	input	wire	[1:0]	i_emmc_rx_strb;
 	input	wire	[15:0]	i_emmc_rx_data;
 		//
+	output	wire		o_emmc_ac_reset_n;
 	input	wire		i_emmc_ac_valid;
 	input	wire	[1:0]	i_emmc_ac_data;
 	output	wire		o_emmc_ad_reset_n;
@@ -4319,6 +4323,7 @@ module	main(i_clk, i_reset,
 		.i_rx_strb(  i_sdio_rx_strb),
 		.i_rx_data(  i_sdio_rx_data),
 		//
+		.o_ac_reset_n(o_sdio_ac_reset_n),
 		.S_AC_VALID(i_sdio_ac_valid),
 		.S_AC_DATA( i_sdio_ac_data),
 		.o_ad_reset_n(o_sdio_ad_reset_n),
@@ -4505,6 +4510,7 @@ module	main(i_clk, i_reset,
 		.i_rx_strb(  i_emmc_rx_strb),
 		.i_rx_data(  i_emmc_rx_data),
 		//
+		.o_ac_reset_n(o_emmc_ac_reset_n),
 		.S_AC_VALID(i_emmc_ac_valid),
 		.S_AC_DATA( i_emmc_ac_data),
 		.o_ad_reset_n(o_emmc_ad_reset_n),

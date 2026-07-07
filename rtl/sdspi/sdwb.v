@@ -3613,9 +3613,13 @@ module	sdwb #(
 				&& bus_wraddr == ADDR_CMD
 				&& bus_wstrb[EXPECT_ACK_BIT/8])
 			r_boot_tok <= bus_wdata[EXPECT_ACK_BIT];
-		else if (bus_reset || o_hwreset_n)
+		else if (o_hwreset_n)
+			// The SDFRONTEND expects r_boot_tok to be a pulse,
+			// and not held.
 			r_boot_tok <= 1'b0;
 
+		// Since we can't hold r_boot_tok, we need r_pending_boot_tok
+		// to know if we should be expecting a boot token.
 		always @(posedge i_clk)
 		if (!OPT_CRCTOKEN)
 			r_pending_boot_tok <= 1'b0;

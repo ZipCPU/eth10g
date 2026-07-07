@@ -151,6 +151,7 @@ module	sdio #(
 		input	wire	[15:0]	i_rx_data,
 		input	wire		i_crcack, i_crcnak,
 		//
+		output	wire		o_ac_reset_n,
 		input	wire		S_AC_VALID,
 		input	wire	[1:0]	S_AC_DATA,
 		output	wire		o_ad_reset_n,
@@ -355,7 +356,7 @@ module	sdio #(
 		//	o_debug[19:15] <= { 1'b1, i_rx_data[11:8] };
 	end
 
-	assign	o_rx_en = rx_en && rx_active;
+	assign	o_rx_en = rx_active;
 	assign	o_expect_token = w_boot_tok || o_data_en;
 
 
@@ -404,6 +405,7 @@ module	sdio #(
 		.i_cmd_strb(i_cmd_strb), .i_cmd_data(i_cmd_data
 				| {(2){w_boot_cmd && OPT_BOOTEN}}),
 			.i_cmd_collision(i_cmd_collision),
+		.o_ac_reset_n(o_ac_reset_n),
 		.S_ASYNC_VALID(S_AC_VALID), .S_ASYNC_DATA(S_AC_DATA),
 		//
 		.o_cmd_response(rsp_stb), .o_resp(rsp_id),
