@@ -149,15 +149,6 @@ typedef	struct	EMMCDRV_S {
 			d_DMA;
 } EMMCDRV;
 
-#ifdef	_BOARD_HAS_EMMCSCOPE
-#define	SETSCOPE	_emmcscope->s_ctrl = 0x04000000
-#define	TRIGGER		_emmcscope->s_ctrl = 0xff000000
-#else
-// #error "No scope"
-#define	SETSCOPE
-#define	TRIGGER
-#endif
-
 static	const	uint32_t
 		// Command bit enumerations
 		SDIO_RNONE    = 0x00000000,
@@ -1283,9 +1274,9 @@ int	emmc_write_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 24
 	// }}}
 
 	if (err) {
+		TRIGGER_SCOPE;
 		if (EMMCDEBUG)
 			txstr("EMMC-READ -> ERR\n");
-		TRIGGER_SCOPE;
 		return RES_ERROR;
 	} return RES_OK;
 }
@@ -2129,7 +2120,7 @@ void	emmc_setup(EMMCDRV *dev) {
 		if (0 && (0x40 & cap)&& (dev->d_EXCSD[184])) {	// HS400+
 			// Switch to HS400, enhanced STB
 			emmc_hs400en(dev);
-		} else if (0 && (0x40 & cap)) {		// Switch to HS400
+		} else if (0x40 & cap) {		// Switch to HS400
 			emmc_hs400(dev);
 		} else if (0 && (0x10 & cap)) {		// Switch to HS200
 			SET_SCOPE;
@@ -2651,6 +2642,8 @@ int	emmc_boot(EMMCDRV *dev, const unsigned count, char *buf) {
 	if (0 == count)
 		return 0;
 
+	SET_SCOPE;
+
 	if (EMMCDEBUG) {
 		// {{{
 		txstr("EMMC-BOOT: ");
@@ -2663,7 +2656,6 @@ int	emmc_boot(EMMCDRV *dev, const unsigned count, char *buf) {
 	}
 	// }}}
 
-	SET_SCOPE;
 	// Force the device into reset while we configure the hard boot
 	dev->d_dev->sd_cmd = SDIO_HWRESET;	// | SDIO_ERR | SDIO_FIFO | SDIO_ACK | SDIO_BOOTEN
 	dev->d_dev->sd_cmd = 0;	// Release from reset (will be delayed)

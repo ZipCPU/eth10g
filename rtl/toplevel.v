@@ -343,6 +343,7 @@ i_sdcard_cd_n,
 	wire		w_sdio_cfg_ddr;
 	wire		w_sdio_cfg_ds, w_sdio_cfg_dscmd;
 	wire	[4:0]	w_sdio_cfg_sample_shift;
+	wire	[39:0]	w_sdio_cfg_trim;
 	wire		w_sdio_expect_token;
 	wire		w_sdio_cmd_tristate;
 	wire		w_sdio_data_tristate;
@@ -389,6 +390,7 @@ i_sdcard_cd_n,
 	wire		w_emmc_cfg_ddr;
 	wire		w_emmc_cfg_ds, w_emmc_cfg_dscmd;
 	wire	[4:0]	w_emmc_cfg_sample_shift;
+	wire	[39:0]	w_emmc_cfg_trim;
 	wire		w_emmc_expect_token;
 	wire		w_emmc_cmd_tristate;
 	wire		w_emmc_data_tristate;
@@ -422,7 +424,6 @@ i_sdcard_cd_n,
 	// }}}
 
 	wire	i_emmc_cd_n;
-	wire	w_emmc_ds_delayed;
 
 	assign	i_emmc_cd_n = 1'b0;
 	assign	o_emmc_reset_n = w_emmc_hwreset_n;
@@ -553,6 +554,7 @@ i_sdcard_cd_n,
 		w_sdio_cfg_ds,
 		w_sdio_cfg_dscmd,
 		w_sdio_cfg_sample_shift,
+		w_sdio_cfg_trim,
 		w_sdio_expect_token,
 		w_sdio_cmd_tristate,
 		w_sdio_data_tristate,
@@ -591,6 +593,7 @@ i_sdcard_cd_n,
 		w_emmc_cfg_ds,
 		w_emmc_cfg_dscmd,
 		w_emmc_cfg_sample_shift,
+		w_emmc_cfg_trim,
 		w_emmc_expect_token,
 		w_emmc_cmd_tristate,
 		w_emmc_data_tristate,
@@ -1053,6 +1056,7 @@ i_sdcard_cd_n,
 		.i_cfg_ds(w_sdio_cfg_ds),
 		.i_cfg_dscmd(w_sdio_cfg_dscmd),
 		.i_sample_shift(w_sdio_cfg_sample_shift),
+		.i_phy_trim(w_sdio_cfg_trim),
 		.i_expect_token(w_sdio_expect_token),
 		.i_cmd_tristate(w_sdio_cmd_tristate),
 		.i_data_tristate(w_sdio_data_tristate),
@@ -1145,6 +1149,7 @@ i_sdcard_cd_n,
 		.i_cfg_ds(w_emmc_cfg_ds),
 		.i_cfg_dscmd(w_emmc_cfg_dscmd),
 		.i_sample_shift(w_emmc_cfg_sample_shift),
+		.i_phy_trim(w_emmc_cfg_trim),
 		.i_expect_token(w_emmc_expect_token),
 		.i_cmd_tristate(w_emmc_cmd_tristate),
 		.i_data_tristate(w_emmc_data_tristate),
@@ -1211,45 +1216,7 @@ i_sdcard_cd_n,
 
 	assign	o_emmc_clk = w_emmc_ck;
 
-	(* IODELAY_GROUP="DDR3-GROUP" *)
-	IDELAYE2 #(
-		// {{{
-		.REFCLK_FREQUENCY(200.0),
-		.DELAY_SRC("IDATAIN"),
-		.HIGH_PERFORMANCE_MODE("TRUE"),
-		.IDELAY_TYPE("FIXED"),
-		.SIGNAL_PATTERN("CLOCK"),
-		// delay is 5ns/64 * IDELAY_VALUE below, and should be set to
-		//	a 90 degree offset, so 1/4 of 5ns, or 16
-		.IDELAY_VALUE(16),
-		.PIPE_SEL("FALSE")
-		// }}}
-	) u_delay_emmc (
-		// {{{
-		.IDATAIN(i_emmc_ds),
-		.DATAOUT(w_emmc_ds_delayed),
-		// Irrelevant / unused
-		// {{{
-		.CNTVALUEOUT(),
-		.C(1'b0),
-		.CE(1'b0),
-		.CINVCTRL(1'b0),
-		.CNTVALUEIN(5'b0),
-		.DATAIN(),
-		.INC(1'b0),
-		.LD(1'b0),
-		.LDPIPEEN(1'b0),
-		.REGRST(1'b0)
-		// }}}
-		// }}}
-	);
-
-	BUFG u_emmc_ds (
-		.I(w_emmc_ds_delayed),
-		.O(w_emmc_ds)
-	);
-
-	// assign	w_emmc_ds = i_emmc_ds;
+	assign	w_emmc_ds = i_emmc_ds;
 
 
 	////////////////////////////////////////////////////////////////////////

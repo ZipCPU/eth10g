@@ -91,30 +91,30 @@
 #define	R_CONSOLE_FIFO    	0x02000584	// 02000580, wbregs names: UFIFO
 #define	R_CONSOLE_UARTRX  	0x02000588	// 02000580, wbregs names: RX
 #define	R_CONSOLE_UARTTX  	0x0200058c	// 02000580, wbregs names: TX
-// eMMC Card addresses
-#define	R_EMMC_CTRL       	0x02000600	// 02000600, wbregs names: EMMCCARD
-#define	R_EMMC_DATA       	0x02000604	// 02000600, wbregs names: EMMCDATA
-#define	R_EMMC_FIFOA      	0x02000608	// 02000600, wbregs names: EMMCFIFOA, EMMCFIF0, EMMCFIFA
-#define	R_EMMC_FIFOB      	0x0200060c	// 02000600, wbregs names: EMMCFIFOB, EMMCFIF1, EMMCFIFB
-#define	R_EMMC_PHY        	0x02000610	// 02000600, wbregs names: EMMCPHY
-#define	R_EMMC_DMAA       	0x02000618	// 02000600, wbregs names: EMMCDMAA, EMMCDMA
-#define	R_EMMC_DMALN      	0x0200061c	// 02000600, wbregs names: EMMCDMALN
 // Fan registers
-#define	R_FAN_FPGAPWM     	0x02000680	// 02000680, wbregs names: FAN_FPGAPWM
-#define	R_FAN_SYSPWM      	0x02000684	// 02000680, wbregs names: FAN_SYSPWM
-#define	R_FAN_TACH        	0x02000688	// 02000680, wbregs names: FAN_TACH
-#define	R_FAN_TEMP        	0x0200068c	// 02000680, wbregs names: FAN_TEMP
-#define	R_FAN             	0x02000690	// 02000680, wbregs names: FAN_CTRL
-#define	R_FAN_OVW         	0x02000694	// 02000680, wbregs names: FAN_OVW, FAN_OVERRIDE
-#define	R_FAN_ADDR        	0x02000698	// 02000680, wbregs names: FAN_ADDR, FAN_ADDRESS
-#define	R_FAN_CKCOUNT     	0x0200069c	// 02000680, wbregs names: FANCLK, FAN_CKCOUNT
+#define	R_FAN_FPGAPWM     	0x02000600	// 02000600, wbregs names: FAN_FPGAPWM
+#define	R_FAN_SYSPWM      	0x02000604	// 02000600, wbregs names: FAN_SYSPWM
+#define	R_FAN_TACH        	0x02000608	// 02000600, wbregs names: FAN_TACH
+#define	R_FAN_TEMP        	0x0200060c	// 02000600, wbregs names: FAN_TEMP
+#define	R_FAN             	0x02000610	// 02000600, wbregs names: FAN_CTRL
+#define	R_FAN_OVW         	0x02000614	// 02000600, wbregs names: FAN_OVW, FAN_OVERRIDE
+#define	R_FAN_ADDR        	0x02000618	// 02000600, wbregs names: FAN_ADDR, FAN_ADDRESS
+#define	R_FAN_CKCOUNT     	0x0200061c	// 02000600, wbregs names: FANCLK, FAN_CKCOUNT
 // SATA/sata control port registers
-#define	R_SATA            	0x02000700	// 02000700, wbregs names: SATA
-#define	R_LBALO           	0x02000704	// 02000700, wbregs names: LBALO
-#define	R_LBAHI           	0x02000708	// 02000700, wbregs names: LBAHI
-#define	R_SATACOUNT       	0x0200070c	// 02000700, wbregs names: SATACOUNT
-#define	R_SATAPHY         	0x02000714	// 02000700, wbregs names: SATAPHY
-#define	R_SATAADDR        	0x02000718	// 02000700, wbregs names: SATAADDR, SATADMA
+#define	R_SATA            	0x02000680	// 02000680, wbregs names: SATA
+#define	R_LBALO           	0x02000684	// 02000680, wbregs names: LBALO
+#define	R_LBAHI           	0x02000688	// 02000680, wbregs names: LBAHI
+#define	R_SATACOUNT       	0x0200068c	// 02000680, wbregs names: SATACOUNT
+#define	R_SATAPHY         	0x02000694	// 02000680, wbregs names: SATAPHY
+#define	R_SATAADDR        	0x02000698	// 02000680, wbregs names: SATAADDR, SATADMA
+// eMMC Card addresses
+#define	R_EMMC_CTRL       	0x02000700	// 02000700, wbregs names: EMMCCARD
+#define	R_EMMC_DATA       	0x02000704	// 02000700, wbregs names: EMMCDATA
+#define	R_EMMC_FIFOA      	0x02000708	// 02000700, wbregs names: EMMCFIFOA, EMMCFIF0, EMMCFIFA
+#define	R_EMMC_FIFOB      	0x0200070c	// 02000700, wbregs names: EMMCFIFOB, EMMCFIF1, EMMCFIFB
+#define	R_EMMC_PHY        	0x02000710	// 02000700, wbregs names: EMMCPHY
+#define	R_EMMC_DMAA       	0x02000718	// 02000700, wbregs names: EMMCDMAA, EMMCDMA
+#define	R_EMMC_DMALN      	0x0200071c	// 02000700, wbregs names: EMMCDMALN
 // SDIO SD Card addresses
 #define	R_SDIO_CTRL       	0x02000780	// 02000780, wbregs names: SDCARD
 #define	R_SDIO_DATA       	0x02000784	// 02000780, wbregs names: SDDATA
@@ -123,6 +123,8 @@
 #define	R_SDIO_PHY        	0x02000790	// 02000780, wbregs names: SDPHY
 #define	R_SDIO_DMAA       	0x02000798	// 02000780, wbregs names: SDDMAA, SDDMA
 #define	R_SDIO_DMALN      	0x0200079c	// 02000780, wbregs names: SDDMALN
+#define	R_SDIO_TRIM       	0x020007a0	// 02000780, wbregs names: SDTRIM
+#define	R_SDIO_RXTRIM     	0x020007a4	// 02000780, wbregs names: SDRXTRIM
 // FPGA CONFIG REGISTERS: 0x4e0-0x4ff
 #define	R_CFG_CRC         	0x02000800	// 02000800, wbregs names: FPGACRC
 #define	R_CFG_FAR         	0x02000804	// 02000800, wbregs names: FPGAFAR

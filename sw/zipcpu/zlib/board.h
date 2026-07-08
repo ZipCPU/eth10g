@@ -591,7 +591,7 @@ static volatile unsigned *const _sirefclkcounter = ((unsigned *)0x02000974);
 #endif	// REFCLKCOUNTER_ACCESS
 #ifdef	FAN_ACCESS
 #define	_BOARD_HAS_FAN
-static volatile FAN *const _fan=((FAN *)0x02000680);
+static volatile FAN *const _fan=((FAN *)0x02000600);
 #endif	// FAN_ACCESS
 #ifdef	I2CCPU_ACCESS
 #define	_BOARD_HAS_I2CCPU
@@ -724,7 +724,7 @@ static volatile struct SDIO_S *const _sdio = ((struct SDIO_S *)0x02000780);
 static volatile SATADRP *const _satadrp=((SATADRP *)0x02001000);
 #ifdef	EMMC_ACCESS
 #define	_BOARD_HAS_EMMC
-static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x02000600);
+static volatile struct EMMC_S *const _emmc = ((struct EMMC_S *)0x02000700);
 #endif	// EMMC_ACCESS
 #ifdef	NETSTAT_ACCESS
 static NETSTAT *const _netstats = ((NETSTAT *)0x02000e00);
@@ -739,7 +739,7 @@ extern char	_ddr3_controller[0x40000000];
 #endif	// DDR3_CONTROLLER_ACCESS
 #ifdef	SATA_ACCESS
 #define	_BOARD_HAS_SATA
-static volatile SATA *const _sata=((SATA *)0x02000700);
+static volatile SATA *const _sata=((SATA *)0x02000680);
 #endif	// SATA_ACCESS
 //
 // Interrupt assignments (3 PICs)

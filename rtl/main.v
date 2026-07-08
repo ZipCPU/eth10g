@@ -228,6 +228,7 @@ module	main(i_clk, i_reset,
 		o_sdio_cfg_ds,
 		o_sdio_cfg_dscmd,
 		o_sdio_cfg_sample_shift,
+		o_sdio_cfg_phy_trim,
 		o_sdio_expect_token,
 		o_sdio_cmd_tristate,
 		o_sdio_data_tristate,
@@ -268,6 +269,7 @@ module	main(i_clk, i_reset,
 		o_emmc_cfg_ds,
 		o_emmc_cfg_dscmd,
 		o_emmc_cfg_sample_shift,
+		o_emmc_cfg_phy_trim,
 		o_emmc_expect_token,
 		o_emmc_cmd_tristate,
 		o_emmc_data_tristate,
@@ -500,6 +502,7 @@ module	main(i_clk, i_reset,
 	output	wire		o_sdio_cfg_ds;
 	output	wire		o_sdio_cfg_dscmd;
 	output	wire	[4:0]	o_sdio_cfg_sample_shift;
+	output	wire	[39:0]	o_sdio_cfg_phy_trim;
 	output	wire		o_sdio_expect_token;
 	output	wire		o_sdio_cmd_tristate;
 	output	wire		o_sdio_data_tristate;
@@ -548,6 +551,7 @@ module	main(i_clk, i_reset,
 	output	wire		o_emmc_cfg_ds;
 	output	wire		o_emmc_cfg_dscmd;
 	output	wire	[4:0]	o_emmc_cfg_sample_shift;
+	output	wire	[39:0]	o_emmc_cfg_phy_trim;
 	output	wire		o_emmc_expect_token;
 	output	wire		o_emmc_cmd_tristate;
 	output	wire		o_emmc_data_tristate;
@@ -1330,15 +1334,6 @@ module	main(i_clk, i_reset,
 	wire		wb32_uart_stall, wb32_uart_ack, wb32_uart_err;
 	wire	[31:0]	wb32_uart_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus wb32, component emmc
-	// Verilator lint_off UNUSED
-	wire		wb32_emmc_cyc, wb32_emmc_stb, wb32_emmc_we;
-	wire	[10:0]	wb32_emmc_addr;
-	wire	[31:0]	wb32_emmc_data;
-	wire	[3:0]	wb32_emmc_sel;
-	wire		wb32_emmc_stall, wb32_emmc_ack, wb32_emmc_err;
-	wire	[31:0]	wb32_emmc_idata;
-	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component fan
 	// Verilator lint_off UNUSED
 	wire		wb32_fan_cyc, wb32_fan_stb, wb32_fan_we;
@@ -1356,6 +1351,15 @@ module	main(i_clk, i_reset,
 	wire	[3:0]	wb32_sata_sel;
 	wire		wb32_sata_stall, wb32_sata_ack, wb32_sata_err;
 	wire	[31:0]	wb32_sata_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32, component emmc
+	// Verilator lint_off UNUSED
+	wire		wb32_emmc_cyc, wb32_emmc_stb, wb32_emmc_we;
+	wire	[10:0]	wb32_emmc_addr;
+	wire	[31:0]	wb32_emmc_data;
+	wire	[3:0]	wb32_emmc_sel;
+	wire		wb32_emmc_stall, wb32_emmc_ack, wb32_emmc_err;
+	wire	[31:0]	wb32_emmc_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component sdio
 	// Verilator lint_off UNUSED
@@ -1950,15 +1954,15 @@ module	main(i_clk, i_reset,
 `ifdef	BUSCONSOLE_ACCESS
 	assign	wb32_uart_err= 1'b0;
 `endif	// BUSCONSOLE_ACCESS
-`ifdef	EMMC_ACCESS
-	assign	wb32_emmc_err= 1'b0;
-`endif	// EMMC_ACCESS
 `ifdef	FAN_ACCESS
 	assign	wb32_fan_err= 1'b0;
 `endif	// FAN_ACCESS
 `ifdef	SATA_ACCESS
 	assign	wb32_sata_err= 1'b0;
 `endif	// SATA_ACCESS
+`ifdef	EMMC_ACCESS
+	assign	wb32_emmc_err= 1'b0;
+`endif	// EMMC_ACCESS
 `ifdef	SDIO_ACCESS
 	assign	wb32_sdio_err= 1'b0;
 `endif	// SDIO_ACCESS
@@ -1996,9 +2000,9 @@ module	main(i_clk, i_reset,
 			{ 11'h220 }, //       cpunet: 0x0880
 			{ 11'h200 }, //          cfg: 0x0800
 			{ 11'h1e0 }, //         sdio: 0x0780
-			{ 11'h1c0 }, //         sata: 0x0700
-			{ 11'h1a0 }, //          fan: 0x0680
-			{ 11'h180 }, //         emmc: 0x0600
+			{ 11'h1c0 }, //         emmc: 0x0700
+			{ 11'h1a0 }, //         sata: 0x0680
+			{ 11'h180 }, //          fan: 0x0600
 			{ 11'h160 }, //         uart: 0x0580
 			{ 11'h140 }, //     zipscope: 0x0500
 			{ 11'h120 }, //   satatscope: 0x0480
@@ -2023,9 +2027,9 @@ module	main(i_clk, i_reset,
 			{ 11'h7e0 }, //       cpunet
 			{ 11'h7e0 }, //          cfg
 			{ 11'h7e0 }, //         sdio
+			{ 11'h7e0 }, //         emmc
 			{ 11'h7e0 }, //         sata
 			{ 11'h7e0 }, //          fan
-			{ 11'h7e0 }, //         emmc
 			{ 11'h7e0 }, //         uart
 			{ 11'h7e0 }, //     zipscope
 			{ 11'h7e0 }, //   satatscope
@@ -2082,9 +2086,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_cyc,
 			wb32_cfg_cyc,
 			wb32_sdio_cyc,
+			wb32_emmc_cyc,
 			wb32_sata_cyc,
 			wb32_fan_cyc,
-			wb32_emmc_cyc,
 			wb32_uart_cyc,
 			wb32_zipscope_cyc,
 			wb32_satatscope_cyc,
@@ -2107,9 +2111,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_stb,
 			wb32_cfg_stb,
 			wb32_sdio_stb,
+			wb32_emmc_stb,
 			wb32_sata_stb,
 			wb32_fan_stb,
-			wb32_emmc_stb,
 			wb32_uart_stb,
 			wb32_zipscope_stb,
 			wb32_satatscope_stb,
@@ -2132,9 +2136,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_we,
 			wb32_cfg_we,
 			wb32_sdio_we,
+			wb32_emmc_we,
 			wb32_sata_we,
 			wb32_fan_we,
-			wb32_emmc_we,
 			wb32_uart_we,
 			wb32_zipscope_we,
 			wb32_satatscope_we,
@@ -2157,9 +2161,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_addr,
 			wb32_cfg_addr,
 			wb32_sdio_addr,
+			wb32_emmc_addr,
 			wb32_sata_addr,
 			wb32_fan_addr,
-			wb32_emmc_addr,
 			wb32_uart_addr,
 			wb32_zipscope_addr,
 			wb32_satatscope_addr,
@@ -2182,9 +2186,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_data,
 			wb32_cfg_data,
 			wb32_sdio_data,
+			wb32_emmc_data,
 			wb32_sata_data,
 			wb32_fan_data,
-			wb32_emmc_data,
 			wb32_uart_data,
 			wb32_zipscope_data,
 			wb32_satatscope_data,
@@ -2207,9 +2211,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_sel,
 			wb32_cfg_sel,
 			wb32_sdio_sel,
+			wb32_emmc_sel,
 			wb32_sata_sel,
 			wb32_fan_sel,
-			wb32_emmc_sel,
 			wb32_uart_sel,
 			wb32_zipscope_sel,
 			wb32_satatscope_sel,
@@ -2232,9 +2236,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_stall,
 			wb32_cfg_stall,
 			wb32_sdio_stall,
+			wb32_emmc_stall,
 			wb32_sata_stall,
 			wb32_fan_stall,
-			wb32_emmc_stall,
 			wb32_uart_stall,
 			wb32_zipscope_stall,
 			wb32_satatscope_stall,
@@ -2257,9 +2261,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_ack,
 			wb32_cfg_ack,
 			wb32_sdio_ack,
+			wb32_emmc_ack,
 			wb32_sata_ack,
 			wb32_fan_ack,
-			wb32_emmc_ack,
 			wb32_uart_ack,
 			wb32_zipscope_ack,
 			wb32_satatscope_ack,
@@ -2282,9 +2286,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_idata,
 			wb32_cfg_idata,
 			wb32_sdio_idata,
+			wb32_emmc_idata,
 			wb32_sata_idata,
 			wb32_fan_idata,
-			wb32_emmc_idata,
 			wb32_uart_idata,
 			wb32_zipscope_idata,
 			wb32_satatscope_idata,
@@ -2307,9 +2311,9 @@ module	main(i_clk, i_reset,
 			wb32_cpunets_err,
 			wb32_cfg_err,
 			wb32_sdio_err,
+			wb32_emmc_err,
 			wb32_sata_err,
 			wb32_fan_err,
-			wb32_emmc_err,
 			wb32_uart_err,
 			wb32_zipscope_err,
 			wb32_satatscope_err,
@@ -4273,7 +4277,7 @@ module	main(i_clk, i_reset,
 		.i_clk(i_clk),
 		.i_reset(i_reset),
 		.i_wb_cyc(wb32_sdio_cyc), .i_wb_stb(wb32_sdio_stb), .i_wb_we(wb32_sdio_we),
-			.i_wb_addr(wb32_sdio_addr[3-1:0]),
+			.i_wb_addr(wb32_sdio_addr[4-1:0]),
 			.i_wb_data(wb32_sdio_data), // 32 bits wide
 			.i_wb_sel(wb32_sdio_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_sdio_stall),.o_wb_ack(wb32_sdio_ack), .o_wb_data(wb32_sdio_idata),
@@ -4303,6 +4307,7 @@ module	main(i_clk, i_reset,
 		.o_cfg_ds(o_sdio_cfg_ds),
 		.o_cfg_dscmd(o_sdio_cfg_dscmd),
 		.o_cfg_sample_shift(o_sdio_cfg_sample_shift),
+		.o_cfg_phy_trim(o_sdio_cfg_phy_trim),
 		.o_expect_token(o_sdio_expect_token),
 		.o_cmd_tristate(o_sdio_cmd_tristate),
 		.o_data_tristate(o_sdio_data_tristate),
@@ -4460,7 +4465,7 @@ module	main(i_clk, i_reset,
 		.i_clk(i_clk),
 		.i_reset(i_reset),
 		.i_wb_cyc(wb32_emmc_cyc), .i_wb_stb(wb32_emmc_stb), .i_wb_we(wb32_emmc_we),
-			.i_wb_addr(wb32_emmc_addr[3-1:0]),
+			.i_wb_addr(wb32_emmc_addr[4-1:0]),
 			.i_wb_data(wb32_emmc_data), // 32 bits wide
 			.i_wb_sel(wb32_emmc_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_emmc_stall),.o_wb_ack(wb32_emmc_ack), .o_wb_data(wb32_emmc_idata),
@@ -4490,6 +4495,7 @@ module	main(i_clk, i_reset,
 		.o_cfg_ds(o_emmc_cfg_ds),
 		.o_cfg_dscmd(o_emmc_cfg_dscmd),
 		.o_cfg_sample_shift(o_emmc_cfg_sample_shift),
+		.o_cfg_phy_trim(o_emmc_cfg_phy_trim),
 		.o_expect_token(o_emmc_expect_token),
 		.o_cmd_tristate(o_emmc_cmd_tristate),
 		.o_data_tristate(o_emmc_data_tristate),

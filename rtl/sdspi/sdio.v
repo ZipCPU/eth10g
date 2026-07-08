@@ -72,6 +72,7 @@ module	sdio #(
 		parameter	LGTIMEOUT = 23,
 		parameter [0:0]	OPT_ISTREAM = 0, OPT_OSTREAM = 0,
 		parameter [4:0]	DEF_SAMPLE_SHIFT = 5'h18,
+		parameter [39:0] DEF_TRIM = 40'h40_0000_0000,
 		// Boot parameters
 		parameter	SWIDE_AW = ADDRESS_WIDTH
 					+ ((OPT_ISTREAM||OPT_OSTREAM)? 1:0),
@@ -91,7 +92,7 @@ module	sdio #(
 		// Control (Wishbone) interface
 		// {{{
 		input	wire		i_wb_cyc, i_wb_stb, i_wb_we,
-		input	wire	[2:0]	i_wb_addr,
+		input	wire	[3:0]	i_wb_addr,
 		input	wire [MW-1:0]	i_wb_data,
 		input	wire [MW/8-1:0]	i_wb_sel,
 		//
@@ -135,6 +136,7 @@ module	sdio #(
 		// But these ones ...
 		output	wire		o_cfg_ddr, o_cfg_ds, o_cfg_dscmd,
 		output	wire	[4:0]	o_cfg_sample_shift,
+		output	wire	[39:0]	o_cfg_phy_trim,
 		output	wire		o_expect_token,
 		output	reg	[7:0]	o_sdclk,
 		//
@@ -175,6 +177,7 @@ module	sdio #(
 
 	wire			cfg_clk90, cfg_clk_shutdown, cfg_expect_ack,
 				cfg_cmd_pp, cfg_data_pp;
+	wire	[3:0]		cfg_rxck_trim;
 	wire	[7:0]		cfg_ckspeed;
 	wire	[1:0]		cfg_width;
 	wire			w_cmd_en, w_cmd_tristate, w_boot_cmd,
@@ -205,7 +208,8 @@ module	sdio #(
 	wire	[LGFIFO-$clog2(MW/8)-1:0]	rx_mem_addr;
 	wire	[MW/8-1:0]	rx_mem_strb;
 	wire	[MW-1:0]	rx_mem_data;
-	wire			rx_done, rx_err, rx_ercode, rx_active, rx_en;
+	wire			rx_done, rx_err, rx_ercode, rx_ckactive,
+				rx_active, rx_en;
 	wire			tx_done, tx_err, tx_ercode;
 
 	wire	[31:0]		w_debug;
@@ -239,6 +243,7 @@ module	sdio #(
 		.OPT_STREAM(OPT_ISTREAM || OPT_OSTREAM),
 		.OPT_CRCTOKEN(OPT_CRCTOKEN),
 		.DEF_SAMPLE_SHIFT(L_SAMPLE_SHIFT),
+		.DEF_TRIM(DEF_TRIM),
 		// Boot parameters
 		.OPT_BOOTEN(OPT_BOOTEN && OPT_EMMC),
 		.OPT_AUTOBOOT(OPT_AUTOBOOT),
@@ -264,6 +269,8 @@ module	sdio #(
 		// {{{
 		.o_cfg_clk90(cfg_clk90), .o_cfg_ckspeed(cfg_ckspeed),
 		.o_cfg_shutdown(cfg_clk_shutdown),
+		.o_cfg_phy_trim(o_cfg_phy_trim),
+		.o_cfg_rxck_trim(cfg_rxck_trim),
 		.o_cfg_width(cfg_width), .o_cfg_ds(o_cfg_ds),
 			.o_cfg_dscmd(o_cfg_dscmd), .o_cfg_ddr(o_cfg_ddr),
 		.o_pp_cmd(cfg_cmd_pp), .o_pp_data(cfg_data_pp), // Push-pull
@@ -368,7 +375,7 @@ module	sdio #(
 		.i_clk(i_clk), .i_reset(i_reset),
 		//
 		.i_cfg_clk90(cfg_clk90), .i_cfg_ckspd(cfg_ckspeed),
-		.i_cfg_shutdown(cfg_clk_shutdown && !rx_active),
+		.i_cfg_shutdown(cfg_clk_shutdown && !rx_ckactive),
 
 		.o_ckstb(clk_stb), .o_hlfck(clk_half), .o_ckwide(clk_wide),
 		.o_clk90(clk_clk90), .o_ckspd(clk_ckspd)
@@ -468,6 +475,7 @@ module	sdio #(
 		//
 		.i_cfg_ddr(o_cfg_ddr),
 		.i_cfg_ds(o_cfg_ds), .i_cfg_width(cfg_width),
+		.i_cfg_trim(cfg_rxck_trim),
 		.i_rx_en(rx_en), .i_crc_en(crc_en), .i_length(rx_length),
 		//
 		.i_rx_strb(i_rx_strb), .i_rx_data(i_rx_data),
@@ -478,7 +486,7 @@ module	sdio #(
 			.o_mem_addr(rx_mem_addr), .o_mem_data(rx_mem_data),
 		//
 		.o_done(rx_done), .o_err(rx_err), .o_ercode(rx_ercode),
-		.o_active(rx_active)
+		.o_active(rx_active), .o_ckactive(rx_ckactive)
 		// }}}
 	);
 

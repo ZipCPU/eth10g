@@ -355,7 +355,7 @@ module	sdcmd #(
 	// {{{
 	always @(posedge i_clk)
 	if (i_reset || !OPT_DS || !cfg_ds || !waiting_on_response || lcl_accept
-							|| o_done || !r_busy)
+					|| i_boot_cmd || o_done || !r_busy)
 	begin
 		o_ac_reset_n <= 1'b0;
 	end else if (i_ckstb)
@@ -365,6 +365,18 @@ module	sdcmd #(
 		else
 			o_ac_reset_n <= (srcount <= 1);
 	end
+
+`ifdef	FORMAL
+	always @(*)
+	if (!i_reset)
+	begin
+		if (!cfg_ds || !OPT_DS || !waiting_on_response)
+		begin
+			assert(!o_ac_reset_n);
+		end else
+			assert(o_ac_reset_n != active);
+	end
+`endif
 	// }}}
 
 	// rx_sreg
@@ -880,7 +892,7 @@ module	sdcmd #(
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	(* anyconst *) reg f_nvr_request, f_nvr_collision;
-	reg		f_past_valid, f_busy, f_cfg_pp, past_boot;
+	reg		f_past_valid, f_busy, f_cfg_pp, past_boot, past_done;
 	reg	[7:0]	f_last_resp_count;
 	reg	[47:0]	f_tx_reg, f_tx_now;
 	wire	[5:0]	f_txshift;

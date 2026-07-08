@@ -64,6 +64,7 @@ typedef	struct EMMC_S {
   #endif
 #endif
 	volatile uint32_t	sd_dma_length;
+	volatile uint32_t	sd_trim, sd_rxtrim;
 } EMMC;
 
 struct	EMMCDRV_S;
