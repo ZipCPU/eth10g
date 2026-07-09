@@ -115,6 +115,8 @@
 #define	R_EMMC_PHY        	0x02000710	// 02000700, wbregs names: EMMCPHY
 #define	R_EMMC_DMAA       	0x02000718	// 02000700, wbregs names: EMMCDMAA, EMMCDMA
 #define	R_EMMC_DMALN      	0x0200071c	// 02000700, wbregs names: EMMCDMALN
+#define	R_EMMC_TRIM       	0x02000720	// 02000700, wbregs names: EMMCTRIM
+#define	R_EMMC_RXTRIM     	0x02000724	// 02000700, wbregs names: EMMCRXTRIM
 // SDIO SD Card addresses
 #define	R_SDIO_CTRL       	0x02000780	// 02000780, wbregs names: SDCARD
 #define	R_SDIO_DATA       	0x02000784	// 02000780, wbregs names: SDDATA

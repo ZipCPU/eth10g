@@ -101,6 +101,8 @@ const	REGNAME	raw_bregs[] = {
 	{ R_EMMC_DMAA       ,	"EMMCDMAA"        	},
 	{ R_EMMC_DMAA       ,	"EMMCDMA"         	},
 	{ R_EMMC_DMALN      ,	"EMMCDMALN"       	},
+	{ R_EMMC_TRIM       ,	"EMMCTRIM"        	},
+	{ R_EMMC_RXTRIM     ,	"EMMCRXTRIM"      	},
 	{ R_SDIO_CTRL       ,	"SDCARD"          	},
 	{ R_SDIO_DATA       ,	"SDDATA"          	},
 	{ R_SDIO_FIFOA      ,	"SDFIFOA"         	},
