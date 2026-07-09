@@ -51,6 +51,12 @@
 //
 `timescale		1ns / 1ps
 `default_nettype	none
+`ifdef	VERILATOR
+`define	OPENSIM
+`endif
+`ifdef	IVERILOG
+`define	OPENSIM
+`endif
 // }}}
 module	sdfrontend #(
 		// {{{
@@ -927,8 +933,9 @@ module	sdfrontend #(
 		wire	[7:0]	ign_clk_mine, ign_clk_wide;
 		// Verilator lint_on  UNUSED
 
-		xsdserdes8x #(.OPT_BIDIR(1'b0))
-		u_clk_oserdes(
+		xsdserdes8x #(
+			.OPT_BIDIR(1'b0)
+		) u_clk_oserdes(
 			.i_clk(i_clk),
 			.i_hsclk(i_hsclk),
 			.i_reset(i_reset),
@@ -1006,7 +1013,8 @@ module	sdfrontend #(
 				out_wide[ik*2 +: 2] = {(2){i_tx_data[ik*8+gk]}};
 
 			xsdserdes8x #(
-				.OPT_BIDIR(1'b1)
+				.OPT_BIDIR(1'b1),
+				.OPT_TRIM(OPT_TRIM)
 			) io_serdes(
 				.i_clk(i_clk),
 				.i_hsclk(i_hsclk),
@@ -1244,7 +1252,8 @@ module	sdfrontend #(
 			// Verilator lint_on  WIDTH
 
 		xsdserdes8x #(
-			.OPT_BIDIR(1'b1)
+			.OPT_BIDIR(1'b1),
+			.OPT_TRIM(OPT_TRIM)
 		) cmd_serdes(
 			.i_clk(i_clk),
 			.i_hsclk(i_hsclk),
@@ -1511,7 +1520,7 @@ module	sdfrontend #(
 		wire		ck_ds;
 		// }}}
 
-`ifdef	VERILATOR
+`ifdef	OPENSIM
 		assign	ck_ds = dly_ds;
 `else
 		BUFG

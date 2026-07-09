@@ -53,8 +53,8 @@
 `endif
 // }}}
 module xsddelay #(
-		parameter	[0:0]	OPT_CLK = 0
-		// parameter	[4:0]	DEF_DELAY = 0
+		parameter	[0:0]	OPT_CLK = 0,
+		parameter	[4:0]	DEF_DELAY = 0
 	) (
 		// {{{
 		input	wire		i_clk,		// 100MHz, system clk
@@ -87,7 +87,7 @@ module xsddelay #(
 		.DELAY_SRC("IDATAIN"),
 		.HIGH_PERFORMANCE_MODE("TRUE"),
 		.IDELAY_TYPE("VAR_LOAD"),
-		.SIGNAL_PATTERN(OPT_CLOCK ? "CLOCK" : "DATA"),
+		.SIGNAL_PATTERN(OPT_CLK ? "CLOCK" : "DATA"),
 		.IDELAY_VALUE(DEF_DELAY),
 		.PIPE_SEL("FALSE")
 		// }}}

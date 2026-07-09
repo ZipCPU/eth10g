@@ -40,7 +40,7 @@
 @PREFIX=sdio
 @DEVID=SDIO
 @NAME=SDIO SD Card
-@NADDR=8
+@NADDR=16
 @CRCTOKEN=1
 @$NUMIO=4
 @ACCESS=SDIO_ACCESS
@@ -103,6 +103,7 @@
 	wire		w_@$(PREFIX)_cfg_ddr;
 	wire		w_@$(PREFIX)_cfg_ds, w_@$(PREFIX)_cfg_dscmd;
 	wire	[4:0]	w_@$(PREFIX)_cfg_sample_shift;
+	wire	[39:0]	w_@$(PREFIX)_cfg_trim;
 	wire		w_@$(PREFIX)_expect_token;
 	wire		w_@$(PREFIX)_cmd_tristate;
 	wire		w_@$(PREFIX)_data_tristate;
@@ -160,6 +161,7 @@
 		.i_cfg_ds(w_@$(PREFIX)_cfg_ds),
 		.i_cfg_dscmd(w_@$(PREFIX)_cfg_dscmd),
 		.i_sample_shift(w_@$(PREFIX)_cfg_sample_shift),
+		.i_phy_trim(w_@$(PREFIX)_cfg_trim),
 		.i_expect_token(w_@$(PREFIX)_expect_token),
 		.i_cmd_tristate(w_@$(PREFIX)_cmd_tristate),
 		.i_data_tristate(w_@$(PREFIX)_data_tristate),
@@ -235,6 +237,7 @@
 		w_@$(PREFIX)_cfg_ds,
 		w_@$(PREFIX)_cfg_dscmd,
 		w_@$(PREFIX)_cfg_sample_shift,
+		w_@$(PREFIX)_cfg_trim,
 		w_@$(PREFIX)_expect_token,
 		w_@$(PREFIX)_cmd_tristate,
 		w_@$(PREFIX)_data_tristate,
@@ -273,6 +276,7 @@
 		o_@$(PREFIX)_cfg_ds,
 		o_@$(PREFIX)_cfg_dscmd,
 		o_@$(PREFIX)_cfg_sample_shift,
+		o_@$(PREFIX)_cfg_phy_trim,
 		o_@$(PREFIX)_expect_token,
 		o_@$(PREFIX)_cmd_tristate,
 		o_@$(PREFIX)_data_tristate,
@@ -310,6 +314,7 @@
 	output	wire		o_@$(PREFIX)_cfg_ds;
 	output	wire		o_@$(PREFIX)_cfg_dscmd;
 	output	wire	[4:0]	o_@$(PREFIX)_cfg_sample_shift;
+	output	wire	[39:0]	o_@$(PREFIX)_cfg_phy_trim;
 	output	wire		o_@$(PREFIX)_expect_token;
 	output	wire		o_@$(PREFIX)_cmd_tristate;
 	output	wire		o_@$(PREFIX)_data_tristate;
@@ -418,6 +423,7 @@
 		.o_cfg_ds(o_@$(PREFIX)_cfg_ds),
 		.o_cfg_dscmd(o_@$(PREFIX)_cfg_dscmd),
 		.o_cfg_sample_shift(o_@$(PREFIX)_cfg_sample_shift),
+		.o_cfg_phy_trim(o_@$(PREFIX)_cfg_phy_trim),
 		.o_expect_token(o_@$(PREFIX)_expect_token),
 		.o_cmd_tristate(o_@$(PREFIX)_cmd_tristate),
 		.o_data_tristate(o_@$(PREFIX)_data_tristate),
@@ -451,7 +457,7 @@
 
 	// }}}
 @MAIN.ALT=
-@REGS.N=7
+@REGS.N=9
 @REGS.NOTE= // @$(NAME) addresses
 @REGS.0= 0 R_@$(DEVID)_CTRL  	SDCARD
 @REGS.1= 1 R_@$(DEVID)_DATA 	SDDATA
@@ -461,6 +467,8 @@
 ## Unused register in BIG-ENDIAN mode
 @REGS.5= 6 R_@$(DEVID)_DMAA	SDDMAA SDDMA
 @REGS.6= 7 R_@$(DEVID)_DMALN	SDDMALN
+@REGS.7= 8 R_@$(DEVID)_TRIM	SDTRIM
+@REGS.8= 9 R_@$(DEVID)_RXTRIM	SDRXTRIM
 @BDEF.DEFN=
 ////////////////////////////////////////////////////////////////////////////////
 //

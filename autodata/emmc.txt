@@ -74,51 +74,12 @@
 @SDIO.DSDECL=
 		i_@$(PREFIX)_ds,
 @SDIO.DSASSIGN=
-	(* IODELAY_GROUP="DDR3-GROUP" *)
-	IDELAYE2 #(
-		// {{{
-		.REFCLK_FREQUENCY(200.0),
-		.DELAY_SRC("IDATAIN"),
-		.HIGH_PERFORMANCE_MODE("TRUE"),
-		.IDELAY_TYPE("FIXED"),
-		.SIGNAL_PATTERN("CLOCK"),
-		// delay is 5ns/64 * IDELAY_VALUE below, and should be set to
-		//	a 90 degree offset, so 1/4 of 5ns, or 16
-		.IDELAY_VALUE(16),
-		.PIPE_SEL("FALSE")
-		// }}}
-	) u_delay_@$(PREFIX) (
-		// {{{
-		.IDATAIN(i_@$(TOP.IOPREFIX)_ds),
-		.DATAOUT(w_@$(PREFIX)_ds_delayed),
-		// Irrelevant / unused
-		// {{{
-		.CNTVALUEOUT(),
-		.C(1'b0),
-		.CE(1'b0),
-		.CINVCTRL(1'b0),
-		.CNTVALUEIN(5'b0),
-		.DATAIN(),
-		.INC(1'b0),
-		.LD(1'b0),
-		.LDPIPEEN(1'b0),
-		.REGRST(1'b0)
-		// }}}
-		// }}}
-	);
-
-	BUFG u_@$(PREFIX)_ds (
-		.I(w_@$(PREFIX)_ds_delayed),
-		.O(w_@$(PREFIX)_ds)
-	);
-
-	// assign	w_@$(PREFIX)_ds = i_@$(PREFIX)_ds;
+	assign	w_@$(PREFIX)_ds = i_@$(TOP.IOPREFIX)_ds;
 @SDIO.IODS=
-	input	wire		i_@$(PREFIX)_ds;
+	input	wire		i_@$(TOP.IOPREFIX)_ds;
 @TOP.DEFNS=
 @$(SDIO.TOP.DEFNS)
 	wire	i_@$(TOP.IOPREFIX)_cd_n;
-	wire	w_@$(PREFIX)_ds_delayed;
 
 	assign	i_@$(TOP.IOPREFIX)_cd_n = 1'b0;
 	assign	o_@$(TOP.IOPREFIX)_reset_n = w_@$(PREFIX)_hwreset_n;
@@ -147,7 +108,7 @@ struct @$(DEVID)_S;
 @BDEF.IONAME=_@$(PREFIX)
 @RTL.MAKE.GROUP= EMMC
 @RTL.MAKE.SUBD=sdspi
-@RTL.MAKE.FILES= sdio_top.v sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
+@RTL.MAKE.FILES= sdio.v sdfrontend.v sdckgen.v sdwb.v sdtxframe.v sdrxframe.v
 @SIM.CLOCK=clk
 @SIM.TICK=
 @SIM.FILE="emmc.img"
@@ -176,7 +137,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_pe
 ##
 @XDC.INSERT=
 create_clock -period 5.0 -name EMMCDS -waveform { 0.0 2.5 } -add [get_ports i_@$(TOP.IOPREFIX)_ds]
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {w_@$(PREFIX)_ds_delayed}]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {u_@$(PREFIX)_frontend/GEN_TRIM_DELAYS.DELAY_DS.u_ds_delay/dly_ds}]
 set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
 ## @$(XDC.SERDES)
 @$(XDC.DS)
