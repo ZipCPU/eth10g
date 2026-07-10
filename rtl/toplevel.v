@@ -1043,11 +1043,14 @@ i_sdcard_cd_n,
 `endif
 
 	sdfrontend #(
+		// {{{
 		.OPT_SERDES(1'b1),
 		.OPT_DDR(1'b1),
+		.OPT_DS(1'b0),
 		.NUMIO(4),
 		.BUSY_CLOCKS(16),
 		.OPT_CRCTOKEN(1)
+		// }}}
 	) u_sdio_frontend (
 		// {{{
 		.i_clk(s_clk), .i_hsclk(s_clk4x), .i_reset(s_reset),
@@ -1136,11 +1139,14 @@ i_sdcard_cd_n,
 `endif
 
 	sdfrontend #(
+		// {{{
 		.OPT_SERDES(1'b1),
 		.OPT_DDR(1'b0),
+		.OPT_DS(1'b1),
 		.NUMIO(8),
 		.BUSY_CLOCKS(16),
 		.OPT_CRCTOKEN(1)
+		// }}}
 	) u_emmc_frontend (
 		// {{{
 		.i_clk(s_clk), .i_hsclk(s_clk4x), .i_reset(s_reset),

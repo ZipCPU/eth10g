@@ -4243,11 +4243,13 @@ module	main(i_clk, i_reset,
 	//
 	//
 
+	// Provide access to register internals if GPIO[0] is set, front end
+	//   internals otherwise.
 	always @(*)
-	begin
+	if (o_gpio[0])
 		sdio_debug = w_sdio_sdwb_debug;
+	else
 		sdio_debug = i_sdio_debug;
-	end
 
 	sdio #(
 		// {{{
@@ -4259,6 +4261,7 @@ module	main(i_clk, i_reset,
 		.OPT_EMMC(1'b0),
 		.OPT_DMA(1'b1),
 		.OPT_DDR(1'b1),
+		.OPT_DS(1'b0),
 		.OPT_HWRESET(1'b1),
 		.OPT_CARD_DETECT(1'b1),
 		.OPT_CRCTOKEN(1),
@@ -4426,11 +4429,13 @@ module	main(i_clk, i_reset,
 	//
 	//
 
+	// Provide access to register internals if GPIO[0] is set, front end
+	//   internals otherwise.
 	always @(*)
-	begin
+	if (o_gpio[0])
 		emmc_debug = w_emmc_sdwb_debug;
+	else
 		emmc_debug = i_emmc_debug;
-	end
 
 	sdio #(
 		// {{{
@@ -4442,6 +4447,7 @@ module	main(i_clk, i_reset,
 		.OPT_EMMC(1'b1),
 		.OPT_DMA(1'b1),
 		.OPT_DDR(1'b0),
+		.OPT_DS(1'b1),
 		.OPT_HWRESET(1'b1),
 		.OPT_CARD_DETECT(1'b0),
 		.OPT_CRCTOKEN(1),

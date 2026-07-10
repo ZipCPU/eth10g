@@ -56,6 +56,7 @@
 @CARD_DETECT=1'b1
 @OPT_SERDES=1'b1
 @OPT_DDR=1'b1
+@OPT_DS=1'b0
 @OPT_EMMC=1'b0
 @OPT_DMA=1'b1
 @OPT_1P8V=1'b1
@@ -148,11 +149,14 @@
 `endif
 
 	sdfrontend #(
+		// {{{
 		.OPT_SERDES(@$(OPT_SERDES)),
 		.OPT_DDR(@$(OPT_DDR)),
+		.OPT_DS(@$(OPT_DS)),
 		.NUMIO(@$(NUMIO)),
 		.BUSY_CLOCKS(16),
 		.OPT_CRCTOKEN(@$(CRCTOKEN))
+		// }}}
 	) u_@$(PREFIX)_frontend (
 		// {{{
 		.i_clk(s_clk), .i_hsclk(s_clk4x), .i_reset(s_reset),
@@ -367,11 +371,13 @@
 	//
 	//
 
+	// Provide access to register internals if GPIO[0] is set, front end
+	//   internals otherwise.
 	always @(*)
-	begin
+	if (o_gpio[0])
 		@$(PREFIX)_debug = w_@$(PREFIX)_sdwb_debug;
+	else
 		@$(PREFIX)_debug = i_@$(PREFIX)_debug;
-	end
 
 	sdio #(
 		// {{{
@@ -383,6 +389,7 @@
 		.OPT_EMMC(@$(OPT_EMMC)),
 		.OPT_DMA(@$(OPT_DMA)),
 		.OPT_DDR(@$(OPT_DDR)),
+		.OPT_DS(@$(OPT_DS)),
 		.OPT_HWRESET(@$(OPT_HWRESET)),
 		.OPT_CARD_DETECT(@$(CARD_DETECT)),
 		.OPT_CRCTOKEN(@$(CRCTOKEN)),
