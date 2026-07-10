@@ -45,10 +45,12 @@
 #include <string.h>
 #include <locale.h>
 #include <zipcpu.h>
+#include <zipsys.h>
 #include "ffconf.h"
 #include "ff.h"
 #include "diskiodrvr.h"
 
+extern	int	emmc_read(void *, unsigned, unsigned, char *);
 extern	int	emmc_boot(void *, unsigned, char *);
 extern	int	emmc_altboot(void *, unsigned, char *);
 extern	int	emmc_write_boot(void *, unsigned, char *);
@@ -139,10 +141,8 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
-	// Write some boot data
+	// Get access to the raw "drive" device
 	// {{{
-	const	unsigned TSTLN = 8*512;
-	char	*boot_data = malloc(TSTLN);
 	void	*emmc_dev = NULL;
 
 	// Find our "drive" device
@@ -151,9 +151,51 @@ int main(int argc, char **argv) {
 			emmc_dev = DRIVES[k].fd_data;
 		}
 	}
+	// }}}
+
+	// Measure our read speed
+	// {{{
+	if (emmc_dev) {
+		const unsigned	TESTLN = 1024*128;
+		const double	CLK_FREQUENCY = 100e6;
+		const unsigned	TEST_SECTOR = 52;	// Totally arbitrary
+		char	*test_buffer = malloc(TESTLN);
+		unsigned	start, end, r;
+
+printf("TEST-BUFFER: 0x%08x\n", test_buffer);
+if (NULL == test_buffer)
+	zip_halt();
+
+		start = _zip->z_jiffies;
+		r = emmc_read(emmc_dev, TEST_SECTOR, TESTLN/512, test_buffer);
+		end   = _zip->z_jiffies;
+		free(test_buffer);
+
+		printf("%6d bytes read in (0x%08x - 0x%08x) ticks, r=%d\n",
+			TESTLN, end, start, r);
+
+		double	s_tim = end - start, s_rate;
+		// Time = clocks / (clocks / second)
+		s_tim = s_tim / CLK_FREQUENCY;
+		// Rate equals amount divided by time
+		s_rate = TESTLN / s_tim;
+		// Convert to MB/s
+		s_rate = s_rate / 1024.0 / 1024.0;
+
+		printf("Average: %7.3f MB/s\n", s_rate);
+
+		// if (0 != r)
+			zip_halt();
+	}
+	// }}}
+
+	// Write some boot data
+	// {{{
+	const	unsigned BOOTLN = 8*512;
+	char	*boot_data = malloc(BOOTLN);
 
 	// Generate some pseudorandom data to test with
-	for(unsigned k=0; k < TSTLN; k++) {
+	for(unsigned k=0; k < BOOTLN; k++) {
 		unsigned	v = k >> 2;
 
 		boot_data[k++] = (v >> 24) & 0x0ff;
@@ -162,9 +204,10 @@ int main(int argc, char **argv) {
 		boot_data[k  ] =  v        & 0x0ff;
 	}
 
-	txstr("BOOT TEST DATA:\n");
-	{
+	if (0) {
 		unsigned	*sp = (unsigned *)boot_data;
+
+		txstr("BOOT TEST DATA:\n");
 		for(int k=0; k<8*512/4; k++) {
 			printf("0x%08x ", *sp++);
 			if (3 == (k&3))
@@ -177,13 +220,13 @@ int main(int argc, char **argv) {
 	}
 
 	if (emmc_dev && boot_data) {
-		emmc_write_boot(emmc_dev, TSTLN/512, boot_data);
+		emmc_write_boot(emmc_dev, BOOTLN/512, boot_data);
 	}
 	// }}}
 
 	// Test the boot data
 	// {{{
-	char	*test_buffer = malloc(TSTLN);
+	char	*test_buffer = malloc(BOOTLN);
 
 	{
 		unsigned	*up = (unsigned *)test_buffer;
@@ -191,11 +234,11 @@ int main(int argc, char **argv) {
 			*up++ = 0;
 	}
 
-	emmc_boot(emmc_dev, TSTLN/512, test_buffer);
-	// emmc_altboot(emmc_dev, TSTLN/512, test_buffer);
+	emmc_boot(emmc_dev, BOOTLN/512, test_buffer);
+	// emmc_altboot(emmc_dev, BOOTLN/512, test_buffer);
 	CLEAR_DCACHE;
 
-	if (0 == memcmp(boot_data, test_buffer, TSTLN)) {
+	if (0 == memcmp(boot_data, test_buffer, BOOTLN)) {
 		printf("BOOT DATA TEST: Data matches\n");
 	} else {
 		unsigned	*up = (unsigned *)test_buffer;

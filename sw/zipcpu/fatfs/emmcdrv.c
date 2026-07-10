@@ -124,7 +124,7 @@ static	const	int	EXTDMA = 1;
 // commands will be used.  Set to 1 to use these commands, 0 otherwise.
 // EMMCMULTI *must* be set to use the internal DMA, otherwise only block level
 // commands will be issued.
-static	const	int	EMMCMULTI = 0;
+static	const	int	EMMCMULTI = 1;
 // }}}
 // }}}
 
@@ -235,6 +235,7 @@ static	const	uint32_t
 		SECTOR_MASK  = 0x0f000000,
 		//
 		SDIO_CMD     = 0x00000040,
+		SDIO_NULLCMD = 0x00000080,
 		SDIO_READREG  = SDIO_CMD | SDIO_R1 | SDIO_ERR,
 		SDIO_READREGb = SDIO_CMD | SDIO_R1b,
 		SDIO_READR2  = (SDIO_CMD | SDIO_R2),
@@ -261,6 +262,7 @@ static	unsigned	EXCSD_HS_TIMING      = 185,
 
 static	void	emmc_wait_while_busy(EMMCDRV *dev);
 static	void	emmc_go_idle(EMMCDRV *dev);
+static	void	emmc_clear_fifo(EMMCDRV *dev, unsigned fifo);
 static	void	emmc_all_send_cid(EMMCDRV *dev);
 static	uint32_t emmc_send_rca(EMMCDRV *dev);
 static	void	emmc_select_card(EMMCDRV *dev);	// CMD7
@@ -353,6 +355,30 @@ void	emmc_go_idle(EMMCDRV *dev) {			// CMD0
 		txstr("  Cmd:     "); txhex(c); txstr("\n");
 		txstr("  Data:    "); txhex(r); txstr("\n");
 	}
+}
+// }}}
+
+void	emmc_clear_fifo(EMMCDRV *dev, unsigned fifo) {	// No CMD
+	// {{{
+	unsigned	phy, lglen;
+
+	// Get the FIFO length
+	phy = dev->d_dev->sd_phy;
+	lglen = (phy >> 28);
+
+	// Reset the FIFO pointer
+	dev->d_dev->sd_cmd = SDIO_NULLCMD;
+
+	// Now actually clear it
+	if (fifo) {
+		for(int k=0; k< (1<<lglen); k++)
+			dev->d_dev->sd_fifb = 0;
+	} else
+		for(int k=0; k< (1<<lglen); k++)
+			dev->d_dev->sd_fifa = 0;
+
+	// We could reset the FIFO pointer now that we're done, but ... it
+	// should just wrap around the end, so no reset should be necessary.
 }
 // }}}
 
@@ -1276,7 +1302,7 @@ int	emmc_write_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 24
 	if (err) {
 		TRIGGER_SCOPE;
 		if (EMMCDEBUG)
-			txstr("EMMC-READ -> ERR\n");
+			txstr("EMMC-WRITE -> ERR\n");
 		return RES_ERROR;
 	} return RES_OK;
 }
@@ -1349,7 +1375,7 @@ int	emmc_read_block(EMMCDRV *dev, uint32_t sector, uint32_t *buf){// CMD 17
 		TRIGGER_SCOPE;
 		err = 1;
 		if (EMMCDEBUG) {
-			txstr("\tEMMC-READ -> ERR: ");
+			txstr("\tEMMC-READBK -> ERR: ");
 			txhex(dev_stat);
 			txstr(":");
 			txhex(card_stat);
@@ -1844,7 +1870,7 @@ unsigned const	emmc_pattern4b[] = {
 
 void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 	// {{{
-	int	first, lastv, bestph;
+	int	first, lastv, bestph, bestw;
 	unsigned	c, d, phy;
 
 	if (EMMCDEBUG) txstr("EMMC-SEND-TUNING(BLK)\n");
@@ -1861,8 +1887,14 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 
 	// Now loop over blocks ...
 	bestph = (phy >> 16) & 0x01f; first = -2; lastv = 0;
+	bestw  = 0;
 	for(unsigned phase = 0; phase < 24; phase++) {
 		unsigned	match;
+
+		// Clear the FIFO, to make *sure* we get a valid response
+		// {{{
+		emmc_clear_fifo(dev, 0);
+		// }}}
 
 		// Set the test phase
 		// {{{
@@ -1871,10 +1903,13 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 		dev->d_dev->sd_phy = phy;
 		// }}}
 
-		// txstr("Testing phase: 0x"); txhex(phy); txstr("\n");
+		txstr("Testing phase: 0x"); txhex(phy); txstr(" -| 0x");
+			txhex(dev->d_dev->sd_phy); txstr("\n");
 
 		// Send the CMD21 and wait for a response
 		// {{{
+		txstr("   PRE-CMD:    0x"); txhex(dev->d_dev->sd_cmd);
+							txstr("\n");
 		dev->d_dev->sd_data = 0;
 		dev->d_dev->sd_cmd  =(SDIO_CMD | SDIO_R1b | SDIO_MEM | SDIO_ERR)
 				+ 21;
@@ -1885,10 +1920,12 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 		// Check for errors
 		// {{{
 		c = dev->d_dev->sd_cmd;
-		// txstr("   CMD-Return: 0x"); txhex(c); txstr("\n");
-		if (c & SDIO_ERR) {
-			if (lastv)
-				bestph = (phase - first)/2;
+		txstr("   CMD-Return: 0x"); txhex(c); txstr("\n");
+		if ((c & SDIO_ERR) || (21 != (c & 0x0ff))) {
+			if ((lastv)&& (phase - first > bestw)) {
+					bestph = first + ((phase - first)/2);
+					bestw = phase - first;
+			}
 			lastv = 0;
 			continue;
 		}
@@ -1904,11 +1941,11 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 			m = dev->d_dev->sd_fifa;
 
 			// if (EMMCINFO && EMMCDEBUG)
-			// printf("CHK(%2d,%2d): %08x ?= %08x\n",
-			//	phase, k, p, m);
+			//	printf("CHK(%2d,%2d): %08x ?= %08x\n",
+			//		phase, k, p, m);
 			if (p != m) {
-				// if (EMMCINFO && EMMCDEBUG)
-				//	txstr(" -- FAIL\n");
+				if (EMMCINFO && EMMCDEBUG)
+				txstr(" -- FAIL\n");
 				match = 0;
 				break;
 			}
@@ -1916,8 +1953,10 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 
 		if (match && !lastv)
 			first = phase;
-		else if (!match && lastv)
-			bestph = (phase - first)/2;
+		else if ((!match && lastv) && (phase - first > bestw)) {
+			bestph = first + ((phase - first)/2);
+			bestw = phase - first;
+		}
 
 		lastv = match;
 		// }}}
@@ -1937,6 +1976,9 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 		dev->d_dev->sd_phy = phy;
 	}
 	// }}}
+
+	TRIGGER_SCOPE;
+	zip_halt();
 }
 // }}}
 
@@ -2120,16 +2162,18 @@ void	emmc_setup(EMMCDRV *dev) {
 		if (0 && (0x40 & cap)&& (dev->d_EXCSD[184])) {	// HS400+
 			// Switch to HS400, enhanced STB
 			emmc_hs400en(dev);
-		} else if (0x40 & cap) {		// Switch to HS400
+		} else if (0 && (0x40 & cap)) {		// Switch to HS400
 			emmc_hs400(dev);
-		} else if (0 && (0x10 & cap)) {		// Switch to HS200
+		} else if (0x10 & cap) {		// Switch to HS200
 			SET_SCOPE;
 			emmc_hs200(dev);
 			// Run tuning--only works in HS200 mode
 			emmc_tuning(dev);
-		} else if (0 && (0x04 & cap)) {		// Switch to HSDDR
+		} else if (0x04 & cap) {		// Switch to HSDDR
+			// Demonstrated throughput: 44.901 MB/s
 			emmc_hsddr(dev);
 		} else if (0x02 & cap) {		// Switch to HS
+			// Demonstrated throughput: 34.181 MB/s
 			// Here, we can keep the interface slow enough
 			// that the SCOPE is ... relevant
 			emmc_hs(dev);

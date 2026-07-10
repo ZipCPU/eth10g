@@ -775,7 +775,7 @@ set_property -dict { PULLTYPE PULLUP } [get_ports io_sdcard_cmd]
 ## No XDC.INSERT tag in wbflashdn
 ## From emmc
 create_clock -period 5.0 -name EMMCDS -waveform { 0.0 2.5 } -add [get_ports i_emmc_ds]
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets {u_emmc_frontend/GEN_TRIM_DELAYS.DELAY_DS.u_ds_delay/dly_ds}]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets -hier -filter {NAME=~u_emmc_frontend/GEN_TRIM_DELAYS.DELAY_DS.u_ds_delay/dly_ds}]
 set_property -dict { PULLTYPE PULLUP } [get_ports io_emmc_cmd]
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/mem_reg*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_nedge_fifo*/GEN_REGISTERED_READ.o_rd_data*}] 9
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/mem_reg*}] -to [get_cells -hier -filter {NAME=~u_emmc_frontend/GEN_DATASTROBE.u_pedge_fifo*/GEN_REGISTERED_READ.o_rd_data*}] 9
