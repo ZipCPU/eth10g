@@ -60,5 +60,6 @@ extern	void	oled_char(const char ch);
 extern	void	oled_write(const char *str);
 extern	void	oled_flush(void);
 extern	int	oled_busy(void);
+extern	void	oled_dump(void);
 
 #endif

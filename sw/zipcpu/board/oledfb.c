@@ -367,7 +367,7 @@ void oled_flush(void) {
 			txstr("ERROR: I2CBUF Alloc failed!\n");
 			return;
 		}
-	}
+	} // oled_dump();
 
 	if (fb->dev->ic_control && I2CC_STOPPED) {
 		// {{{
@@ -377,8 +377,6 @@ void oled_flush(void) {
 		i2cb_sendc(sb, I2CMUX_OLED);
 		i2cb_start(sb);
 		i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
-		cmdbuf[0] = OLED_CONTROL;
-		cmdbuf[0] = 0x21;
 		// Set memory addressing mode
 		// cmdbuf[0] = 0x20;	// But we're always in ...
 		// cmdbuf[1] = 0x00;	// Horizontal addressing mode
@@ -405,6 +403,7 @@ void oled_flush(void) {
 		i2cb_stop(sb);
 		i2cb_halt(sb);
 
+		// i2cb_dump(sb);
 		fb->dev->ic_address = (unsigned)&sb->i_b;
 
 		fb->dirty = 0;
@@ -421,5 +420,22 @@ int	oled_busy(void) {
 	if (fb->dev->ic_control && I2CC_STOPPED)
 		return 0;
 	return 1;
+}
+// }}}
+
+void	oled_dump(void) {
+	// {{{
+	for(int x=0; x< fb->W; x++) {
+		for(int ln= fb->H-1; ln >= 0; ln--) {
+			char *lp = &fb->b[ln * fb->W];
+			unsigned p = lp[x];
+			for(int b=0; b< 8; b++) {
+				if (p & (1<<(7-b)))
+					putchar('X');
+				else
+					putchar('.');
+			}
+		} putchar('\n');
+	}
 }
 // }}}

@@ -1447,7 +1447,6 @@ int	emmc_switch_write(EMMCDRV *dev, unsigned idx, unsigned val) {
 }
 // }}}
 
-
 void	emmc_best_width(EMMCDRV *dev) {
 	// {{{
 	unsigned	v, c, r;
@@ -1458,7 +1457,7 @@ void	emmc_best_width(EMMCDRV *dev) {
 		// SDPHY_W8	      = 0x00000800,
 		// SDPHY_WBEST    = 0x00000c00,
 	SET_SCOPE;
-	
+
 	if (EMMCDEBUG) txstr("Testing 1b width\n");
 	// {{{
 	dev->d_dev->sd_phy = (dev->d_dev->sd_phy & ~(SECTOR_MASK | SDPHY_WBEST))
@@ -1736,7 +1735,7 @@ void	emmc_hs(EMMCDRV *dev) {
 
 	// CMD6
 	// {{{
-	if (emmc_switch_write(dev, EXCSD_HS_TIMING, 
+	if (emmc_switch_write(dev, EXCSD_HS_TIMING,
 			(dev->d_EXCSD[EXCSD_HS_TIMING] & 0xf0) | 0x01))
 		return;
 	// }}}
@@ -1756,7 +1755,7 @@ void	emmc_hs(EMMCDRV *dev) {
 	// Check if we are in HSDDR and need to switch to SDR
 	if (5 >= (dev->d_EXCSD[EXCSD_BUS_WIDTH] & 0x0f)) {
 		// {{{
-		if (emmc_switch_write(dev, EXCSD_BUS_WIDTH, 
+		if (emmc_switch_write(dev, EXCSD_BUS_WIDTH,
 				dev->d_EXCSD[EXCSD_BUS_WIDTH] & 0x73))
 			return;
 
@@ -1844,6 +1843,17 @@ void	emmc_hsddr(EMMCDRV *dev) {
 // }}}
 
 unsigned const	emmc_pattern8b[] = {
+	// {{{
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+		0xff00ffff, 0x0000ffff, 0xccccffff, 0xcccc33cc,
+		0xcc3333cc, 0xffffcccc, 0xffffeeff, 0xffeeeeff,
+		0xffddffff, 0xddddffff, 0xbbffffff, 0xbbffffff,
+		0xffffffbb, 0xffffff77, 0x77ff7777, 0xffeeddbb,
+		0x00ffffff, 0x00ffffff, 0xccffff00, 0xcc33cccc,
+		0x3333cccc, 0xffcccccc, 0xffeeffff, 0xeeeeffff,
+		0xddffffff, 0xddffffff, 0xffffffdd, 0xffffffbb,
+		0xffffbbbb, 0xffff77ff, 0xff7777ff, 0xeeddbb77
+#else
 		0xffff00ff, 0xffff0000, 0xffffcccc, 0xcc33cccc,
 		0xcc3333cc, 0xccccffff, 0xffeeffff, 0xffeeeeff,
 		0xffffddff, 0xffffdddd, 0xffffffbb, 0xffffffbb,
@@ -1852,20 +1862,28 @@ unsigned const	emmc_pattern8b[] = {
 		0xcccc3333, 0xccccccff, 0xffffeeff, 0xffffeeee,
 		0xffffffdd, 0xffffffdd, 0xddffffff, 0xbbffffff,
 		0xbbbbffff, 0xff77ffff, 0xff7777ff, 0x77bbddee
+#endif
 	};
+// }}}
 
 /*
 unsigned const	emmc_pattern4b[] = {
-		// NOT VERIFIED
-		0xf0ff, 0x00ff, 0xccff, 0xcc3c,
-		0xc33c, 0xffcc, 0xffef, 0xfeef,
-		0xfdff, 0xddff, 0xbfff, 0xbfff,
-		0xfffb, 0xfff7, 0x7f77, 0xfedb,
-		0x0fff, 0x0fff, 0xcff0, 0xc3cc,
-		0x33cc, 0xfccc, 0xfeff, 0xeeff,
-		0xdfff, 0xdfff, 0xfffd, 0xfffb,
-		0xffbb, 0xff7f, 0xf77f, 0xedb7
+	// {{{
+		// This pattern has been neither verified nor tested,
+		// so it may or may not work ...
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+		0x00ff0fff, 0xccc3ccff, 0xffcc3cc3, 0xeffefffe,
+		0xddffdfff, 0xfbfffbff, 0xff7fffbf, 0xefbdf777,
+		0xf0fff0ff, 0x3cccfc0f, 0xcfcc33cc, 0xeeffefff,
+		0xfdfffdff, 0xffbfffdf, 0xfff7ffbb, 0xde7b7ff7
+#else
+		0xff0fff00, 0xffccc3cc, 0xc33cccff, 0xfefffeef,
+		0xffdfffdd, 0xfffbfffb, 0xbfff7fff, 0x77f7bdef,
+		0xfff0fff0, 0x0ffccc3c, 0xcc33cccf, 0xffefffee,
+		0xfffdfffd, 0xdfffbfff, 0xbbfff7ff, 0xf77f7bde
+#endif
 	};
+	// }}}
 */
 
 void	emmc_tuning(EMMCDRV *dev) {	// CMD21
@@ -1903,13 +1921,13 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 		dev->d_dev->sd_phy = phy;
 		// }}}
 
-		txstr("Testing phase: 0x"); txhex(phy); txstr(" -| 0x");
-			txhex(dev->d_dev->sd_phy); txstr("\n");
+		// txstr("Testing phase: 0x"); txhex(phy); txstr(" -| 0x");
+		//	txhex(dev->d_dev->sd_phy); txstr("\n");
 
 		// Send the CMD21 and wait for a response
 		// {{{
-		txstr("   PRE-CMD:    0x"); txhex(dev->d_dev->sd_cmd);
-							txstr("\n");
+		// txstr("   PRE-CMD:    0x"); txhex(dev->d_dev->sd_cmd);
+		//					txstr("\n");
 		dev->d_dev->sd_data = 0;
 		dev->d_dev->sd_cmd  =(SDIO_CMD | SDIO_R1b | SDIO_MEM | SDIO_ERR)
 				+ 21;
@@ -1920,7 +1938,8 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 		// Check for errors
 		// {{{
 		c = dev->d_dev->sd_cmd;
-		txstr("   CMD-Return: 0x"); txhex(c); txstr("\n");
+		txstr("   "); tx8h(phase);
+		txstr(" -- CMD-Return: 0x"); txhex(c); txstr("\n");
 		if ((c & SDIO_ERR) || (21 != (c & 0x0ff))) {
 			if ((lastv)&& (phase - first > bestw)) {
 					bestph = first + ((phase - first)/2);
@@ -1962,23 +1981,29 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 		// }}}
 	}
 
-	// Set for the best phase match
+	// See if we ended on a valid phase we might use
 	// {{{
-	if (0 != (0x1f & (bestph ^ (phy >> 16)))) {
-		if (EMMCDEBUG && EMMCINFO) {
-			txstr("  Chosen tuning: ");
-			txdecimal(bestph);
-			txstr("\n");
-		}
-
-		phy  = (phy & ~SDPHY_PHASEMSK);
-		phy |= (bestph << 16);
-		dev->d_dev->sd_phy = phy;
+	if (lastv && 24-first > bestw) {
+		bestph = first + ((24 - first)/2);
+		// bestw = phase - first;
 	}
 	// }}}
 
-	TRIGGER_SCOPE;
-	zip_halt();
+	// Set for the best phase match
+	// {{{
+	if (EMMCDEBUG && EMMCINFO) {
+		txstr("  Chosen tuning: ");
+		txdecimal(bestph);
+		txstr("\n");
+	}
+
+	phy  = (phy & ~SDPHY_PHASEMSK);
+	phy |= (bestph << 16);
+	dev->d_dev->sd_phy = phy;
+	// }}}
+
+	// TRIGGER_SCOPE;
+	// zip_halt();
 }
 // }}}
 
@@ -2161,12 +2186,20 @@ void	emmc_setup(EMMCDRV *dev) {
 
 		if (0 && (0x40 & cap)&& (dev->d_EXCSD[184])) {	// HS400+
 			// Switch to HS400, enhanced STB
+			// NOTE: HS400 has had issues in testing
 			emmc_hs400en(dev);
 		} else if (0 && (0x40 & cap)) {		// Switch to HS400
+			// NOTE: HS400 has had issues in testing
 			emmc_hs400(dev);
-		} else if (0x10 & cap) {		// Switch to HS200
+		} else if (0 && (0x10 & cap)) {		// Switch to HS200
+			// NOTE: HS200 has had issues in testing
 			SET_SCOPE;
+			// Force a bit of a discontinuity, so we can actually
+			// see if/when an error takes place
+			dev->d_dev->sd_trim = 0x34103410;
+			dev->d_dev->sd_rxtrim = 0x062;
 			emmc_hs200(dev);
+			dev->d_dev->sd_trim = 0x22222222;
 			// Run tuning--only works in HS200 mode
 			emmc_tuning(dev);
 		} else if (0x04 & cap) {		// Switch to HSDDR
@@ -2180,8 +2213,9 @@ void	emmc_setup(EMMCDRV *dev) {
 		} // else
 		//	No timing changes
 	} else if (0x2 & dev->d_EXCSD[196]) {
+		// Switch to HS -- highest speed supported in 3.3V
 		emmc_hs(dev);
-		emmc_tuning(dev);
+		// emmc_tuning(dev);	// Would only work in HS200 mode
 	}
 	// }}}
 }

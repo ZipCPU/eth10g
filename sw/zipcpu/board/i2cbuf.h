@@ -61,6 +61,8 @@ extern	void i2cb_wait(I2CBUF *);
 extern	void i2cb_halt(I2CBUF *);
 extern	void i2cb_target(I2CBUF *);
 extern	void i2cb_jump(I2CBUF *);
-extern	void i2cb_channel(I2CBUF *, int);
+extern	void i2cb_channel(I2CBUF *, unsigned);
+
+extern	void i2cb_dump(I2CBUF *);
 
 #endif

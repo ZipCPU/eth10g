@@ -55,6 +55,8 @@ extern	int	emmc_boot(void *, unsigned, char *);
 extern	int	emmc_altboot(void *, unsigned, char *);
 extern	int	emmc_write_boot(void *, unsigned, char *);
 
+#define	STEP(F,T)	asm volatile("LSR 1,%0\n\tXOR.C %1,%0":"+r"(F):"r"(T))
+
 #ifdef	NEED_MKFS
 int	emmc_mkfs(void) {
 	// {{{
@@ -84,12 +86,22 @@ int	emmc_mkfs(void) {
 #endif
 
 int main(int argc, char **argv) {
+	const	char	FILNAME[] = "2:/testfil.bin";
 	FATFS	vol;
 	FRESULT	r;
 
 	// Read the main directory
 	DIR	ds;
 	FILINFO	fis;
+	unsigned	seed, fill, k, res, nw, nr;
+	FIL	fp;
+	const	unsigned	TESTLN = 1024*128;
+	const	unsigned	INVERSION = 0x2523573,
+				TAPS = 0xd0804001;
+	char		*src_buffer = malloc(TESTLN), *test_buffer;
+	unsigned	write_start, write_over,
+			read_start, read_over, *s, *d;
+
 
 #ifdef	GPIO_TRACE_SET
 	*_gpio = GPIO_TRACE_SET;
@@ -141,6 +153,82 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
+	// Generate a "Seed" for subsequent random number generation
+	// {{{
+	seed = 15;
+#ifdef	PWRCOUNT_ACCESS
+	seed ^= *_pwrcount;
+	if (0 == seed)
+		seed++;
+#endif
+	// }}}
+
+	// Use this seed to generate some random data
+	// {{{
+	{
+		unsigned	*u = (unsigned *)&src_buffer[0];
+		fill = seed;
+		for(k=0; k<TESTLN/4; k++) {
+			STEP(fill, TAPS);
+			u[k] = fill ^ INVERSION;
+		}
+	}
+	// }}}
+
+	printf("Write test\n"
+		"------------------------------\n");
+	// printf("OPEN:\n");
+	// {{{
+	res = f_open(&fp, FILNAME, FA_WRITE | FA_CREATE_ALWAYS);
+	if (FR_OK != res) {
+		if (res == FR_DISK_ERR) {
+			printf("----> ERR!  Underlying DISK ERR\n");
+		} else if (res == FR_NOT_READY) {
+			printf("----> ERR!  Device not ready\n");
+		} else if (res == FR_NO_FILE) {
+			printf("----> ERR!  File not found\n");
+		} else
+			printf("----> ERR!  FOPEN failed, result = %d\n", res);
+		goto failed;
+	}
+	// }}}
+
+	// printf("WRITE:\n");
+	// {{{
+	nw =0;
+	write_start = _zip->z_jiffies;
+	res = f_write(&fp, src_buffer, TESTLN, &nw);
+	write_over = _zip->z_jiffies;
+	if (res != FR_OK) {
+		printf("----> ERR!  Write result = %d\n", res);
+		printf("TEST FAIL!\n");
+	} else if (nw != TESTLN) {
+		printf("----> ERR!  Only %d of %d bytes written\n", nw, TESTLN);
+		printf("TEST FAIL!\n");
+	}
+	// }}}
+
+	// printf("CLOSE:\n");
+	// {{{
+	res = f_close(&fp);
+	if (res != FR_OK) {
+		printf("----> ERR!  Close result = %d\n", res);
+		goto failed;
+	}
+	// }}}
+
+	// Write Time report
+	// {{{
+	{
+		unsigned write_time = write_over - write_start;
+		double	write_sec = write_time * 10e-9;
+		double	write_rate = TESTLN / write_sec / 1e3;
+
+		printf("  Write transfer time: %8.6f s (0x%08x clocks)\n", write_sec, write_time);
+		printf("  Write transfer rate: %7.1f kB/s\n", write_rate);
+	}
+	// }}}
+
 	// Get access to the raw "drive" device
 	// {{{
 	void	*emmc_dev = NULL;
@@ -153,42 +241,108 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
-	// Measure our read speed
+	printf("Read test\n"
+		"------------------------------\n");
+	// Prep memory
 	// {{{
-	if (emmc_dev) {
-		const unsigned	TESTLN = 1024*128;
-		const double	CLK_FREQUENCY = 100e6;
-		const unsigned	TEST_SECTOR = 52;	// Totally arbitrary
-		char	*test_buffer = malloc(TESTLN);
-		unsigned	start, end, r;
+	test_buffer = malloc(TESTLN);
+	d = (unsigned *)test_buffer;
+	if (NULL == test_buffer) {
+		printf("PANIC!\n");
+		printf("test_buffer = %08x\n", (unsigned)d);
+		zip_halt();
+	}
 
-printf("TEST-BUFFER: 0x%08x\n", test_buffer);
-if (NULL == test_buffer)
-	zip_halt();
+	// Pre-clear the memory
+	for(k=0; k<TESTLN/4; k++)
+		d[k] = 0;
+	// }}}
 
-		start = _zip->z_jiffies;
-		r = emmc_read(emmc_dev, TEST_SECTOR, TESTLN/512, test_buffer);
-		end   = _zip->z_jiffies;
-		free(test_buffer);
-
-		printf("%6d bytes read in (0x%08x - 0x%08x) ticks, r=%d\n",
-			TESTLN, end, start, r);
-
-		double	s_tim = end - start, s_rate;
-		// Time = clocks / (clocks / second)
-		s_tim = s_tim / CLK_FREQUENCY;
-		// Rate equals amount divided by time
-		s_rate = TESTLN / s_tim;
-		// Convert to MB/s
-		s_rate = s_rate / 1024.0 / 1024.0;
-
-		printf("Average: %7.3f MB/s\n", s_rate);
-
-		// if (0 != r)
-			zip_halt();
+	// printf("OPEN:\n");
+	// {{{
+	res = f_open(&fp, FILNAME, FA_READ);
+	if (FR_OK != res) {
+		if (res == FR_DISK_ERR) {
+			printf("----> ERR!  Underlying DISK err\n");
+		} else if (res == FR_NOT_READY) {
+			printf("----> ERR!  Device not ready\n");
+		} else if (res == FR_NO_FILE) {
+			printf("----> ERR!  File not found\n");
+		} else
+			printf("----> ERR!  FOPEN failed, result = %d\n", res);
+		printf("TEST FAIL!\n");
+		goto failed;
 	}
 	// }}}
 
+	// printf("READ:\n");
+	// {{{
+	nr = 0;
+	read_start = _zip->z_jiffies;
+	res = f_read(&fp, d, TESTLN, &nr);
+	read_over = _zip->z_jiffies;
+	if (FR_OK != res) {
+		if (res == FR_DISK_ERR) {
+			printf("----> ERR!  Underlying DISK err\n");
+		} else if (res == FR_NOT_READY) {
+			printf("----> ERR!  Device not ready\n");
+		} else if (res == FR_NO_FILE) {
+			printf("----> ERR!  File not found\n");
+		} else
+			printf("----> ERR!  Read result = %d\n", res);
+		printf("TEST FAIL!\n");
+		goto failed;
+	} else if (nr != TESTLN) {
+		printf("----> ERR!  Only %d of %d bytes read\n",
+			nr, TESTLN);
+		printf("TEST FAIL\n");
+		goto failed;
+	}
+	// }}}
+	// printf("CLOSE:\n");
+	// {{{
+	res = f_close(&fp);
+	if (res != FR_OK) {
+		printf("----> ERR!  Close result = %d\n", res);
+		goto failed;
+	}
+	// }}}
+
+	// Read Time report
+	// {{{
+	{
+		unsigned	read_time = read_over - read_start;
+		double	read_sec = (read_time * 10e-9);
+		double	read_rate = TESTLN / read_sec / 1e3;
+		printf("  Read  transfer time: %8.6f s (0x%08x clocks)\n", read_sec, read_time);
+		printf("  Read  transfer rate: %7.1f kB/s\n", read_rate);
+	}
+	// }}}
+
+	printf("Verifying data\n"
+		"------------------------------\n");
+	// {{{
+	{
+		unsigned	*u = (unsigned *)&src_buffer[0];
+		fill = seed;
+
+		int	fail_flag = 0;
+		for(k=0; k<TESTLN/4; k++) {
+			STEP(fill, TAPS);
+			if (d[k] !=  (fill^INVERSION)) {
+				printf("ERR!  PRN[%3d] = %08x doesn\'t match"
+					" SD[%3d] = %08x (s[k] = 0x%08x)\n",
+					k, fill^INVERSION, k, d[k],
+					u[k]);
+				fail_flag = 1;
+			}
+		} if (fail_flag) {
+			goto failed;
+		} printf("  (Passes)\n");
+	}
+	// }}}
+
+#ifdef	BOOT_TEST
 	// Write some boot data
 	// {{{
 	const	unsigned BOOTLN = 8*512;
@@ -226,8 +380,6 @@ if (NULL == test_buffer)
 
 	// Test the boot data
 	// {{{
-	char	*test_buffer = malloc(BOOTLN);
-
 	{
 		unsigned	*up = (unsigned *)test_buffer;
 		for(int k=0; k<8*512/4; k++)
@@ -257,7 +409,8 @@ if (NULL == test_buffer)
 	}
 
 	// }}}
-	// 
+#endif
+
 	printf("Success\n");
 	return 0;
 

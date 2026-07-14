@@ -140,7 +140,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~@$(STRB).u_pe
 ##
 @XDC.INSERT=
 create_clock -period 5.0 -name EMMCDS -waveform { 0.0 2.5 } -add [get_ports i_@$(TOP.IOPREFIX)_ds]
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets -hier -filter {NAME=~u_@$(PREFIX)_frontend/GEN_TRIM_DELAYS.DELAY_DS.u_ds_delay/dly_ds}]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets -hier -filter {NAME=~u_@$(PREFIX)_frontend/GEN_TRIM_DELAYS.DELAY_DS.u_ds_delay/dly_ds*}]
 set_property -dict { PULLTYPE PULLUP } [get_ports io_@$(TOP.IOPREFIX)_cmd]
 ## @$(XDC.SERDES)
 @$(XDC.DS)

@@ -899,7 +899,7 @@ module	sdfrontend #(
 		// Local declarations
 		// {{{
 		// reg		r_last_cmd_enabled;
-		reg	[1:0]	w_cmd_data;
+		reg	[1:0]	pre_cmd_strb, pre_cmd_data, w_cmd_data;
 		reg	[15:0]	r_rx_data;
 		wire	[15:0]	w_rx_data;
 		// wire	[7:0]	next_ck_sreg, next_ck_psreg;
@@ -1202,7 +1202,7 @@ module	sdfrontend #(
 			acknak_sreg <= -1;
 		else if (acknak_sreg[4])
 		begin
-			if ((|sample_pck[7:4] && |sample_pck[3:0])
+			if ((|sample_pck[7:4]) && (|sample_pck[3:0])
 							&& acknak_sreg[3])
 				acknak_sreg <= { acknak_sreg[2:0], itok[1], itok[0] };
 			else if (|sample_pck[7:4])
@@ -1235,7 +1235,7 @@ module	sdfrontend #(
 		assign	wide_cmdedge = { pck_sreg[HWBIAS+23:0], next_pedge };
 
 		always @(posedge i_clk)
-		if (i_reset || i_cfg_dscmd || i_cmd_en || !r_cmd_tristate)
+		if (i_reset || i_cfg_dscmd || i_cmd_en || !i_cmd_tristate)
 			pck_sreg <= 0;
 		else
 			pck_sreg <= wide_cmdedge[HWBIAS+23:0];
@@ -1307,20 +1307,27 @@ module	sdfrontend #(
 
 		// o_cmd_strb
 		// {{{
+		always @(*)
+		begin
+			pre_cmd_strb[1] = (|cmd_sample_ck[7:4]);
+			pre_cmd_strb[0] = (|cmd_sample_ck[3:0]);
+
+			pre_cmd_data[1] = |(cmd_sample_ck[7:4] & r_wide_cmd_data[7:4]);
+			pre_cmd_data[0] = |(cmd_sample_ck[3:0] & r_wide_cmd_data[3:0]);
+		end
+
 		always @(posedge i_clk)
 		if (i_reset || i_cmd_en || i_cfg_dscmd || !r_cmd_tristate)
 			r_cmd_strb <= 2'b00;
 		else if (resp_started)
 		begin
-			r_cmd_strb[1] <= (|cmd_sample_ck);
-			r_cmd_strb[0] <= (|cmd_sample_ck[7:4])
-						&&(|cmd_sample_ck[3:0]);
+			r_cmd_strb[1] <= |pre_cmd_strb;
+			r_cmd_strb[0] <= &pre_cmd_strb;
 		end else begin
-			r_cmd_strb[1] <= (((|cmd_sample_ck[7:4])&&((cmd_sample_ck[7:4] & r_wide_cmd_data[7:4])==0))
-				||((|cmd_sample_ck[3:0])&&((cmd_sample_ck[3:0] & r_wide_cmd_data[3:0])==0)));
-			r_cmd_strb[0] <= (|cmd_sample_ck[7:4])
-				&& ((cmd_sample_ck[7:4] & r_wide_cmd_data[7:4])==0)
-				&& (|cmd_sample_ck[3:0]);
+			r_cmd_strb[1] <= (pre_cmd_strb[1] && !pre_cmd_data[1])
+				|| (pre_cmd_strb[0] && !pre_cmd_data[0]);
+			r_cmd_strb[0] <= pre_cmd_strb[1] && !pre_cmd_data[1]
+					&& pre_cmd_strb[0];
 		end
 
 		assign	o_cmd_strb = r_cmd_strb;
@@ -1332,16 +1339,15 @@ module	sdfrontend #(
 		begin
 			if (resp_started)
 			begin
-				if (|cmd_sample_ck[7:4])
-					w_cmd_data[1] = |(cmd_sample_ck[7:4] & r_wide_cmd_data[7:4]);
+				if (pre_cmd_strb[1])
+					w_cmd_data[1] = pre_cmd_data[1];
 				else
-					w_cmd_data[1] = |(cmd_sample_ck[3:0] & r_wide_cmd_data[3:0]);
+					w_cmd_data[1] = pre_cmd_data[0];
 			end else begin // if (!resp_started)
 				w_cmd_data[1] = 1'b0;
 			end
 
-			w_cmd_data[0] = |(cmd_sample_ck[3:0]
-						& r_wide_cmd_data[3:0]);
+			w_cmd_data[0] = pre_cmd_data[0];
 		end
 
 		always @(posedge i_clk)
@@ -1409,10 +1415,10 @@ module	sdfrontend #(
 
 			if (pending_ack)
 			begin
-				r_debug[16:15] <= r_debug[16:15];
+				r_debug[16:15] <= {(2){r_debug[15]}};
 
 				if (|sample_pck[7:4])
-					r_debug[16] <= itok[1];
+					r_debug[16:15] <= {(2){itok[1]}};
 				if (|sample_pck[3:0])
 					r_debug[15] <= itok[0];
 			end else
