@@ -49,7 +49,7 @@
 const unsigned	I2CMUX_ADDR	= 0xe8,
 		I2CMUX_WR	= 0,
 		// I2CMUX_RD	= 1,
-		I2CMUX_OLED	= 0x86,
+		I2CMUX_OLED	= 0x04, // 0x86 ? 0x07 ?
 		OLED_ADDR	= 0x78,
 		OLED_CONTROL	= 0x80,
 		OLED_DATA	= 0x40;
@@ -57,6 +57,14 @@ const unsigned	I2CMUX_ADDR	= 0xe8,
 OLEDFONT	*fb_font;
 OLED_FB	*fb;
 I2CBUF	*sb = NULL;
+
+#ifdef	_BOARD_HAS_I2CSCOPE
+#define	I2C_SET_SCOPE		_i2cscope->s_ctrl = 0x04000100
+#define	I2C_TRIGGER_SCOPE	_i2cscope->s_ctrl = 0xff000100
+#else
+#define	I2C_SET_SCOPE
+#define	I2C_TRIGGER_SCOPE
+#endif
 
 void oled_init(void) {
 	// {{{
@@ -79,6 +87,7 @@ void oled_hwsetup(void) {
 	// {{{
 	char	cmdbuf[96];
 
+	I2C_SET_SCOPE;
 	oled_init();
 	if (NULL == sb) {
 		unsigned sz = 2*68 + 2 * 33 * ((fb->W * fb->H + 31)/32);
@@ -93,6 +102,7 @@ void oled_hwsetup(void) {
 	i2cb_start(sb);
 	i2cb_addr(sb,  I2CMUX_ADDR|I2CMUX_WR);
 	i2cb_sendc(sb, I2CMUX_OLED);
+	i2cb_stop(sb);
 	i2cb_start(sb);
 	i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
 
@@ -181,8 +191,12 @@ void oled_hwsetup(void) {
 	i2cb_stop(sb);
 	i2cb_halt(sb);
 
+	if (oled_busy)
+		fb->dev->ic_control = I2CC_HALT;
 	while(oled_busy())
 		;	// Shouldn't be busy, but check anyway
+	if (fb->dev->ic_control & I2CC_FAULT)
+		fb->dev->ic_control = I2CC_FAULT;	// Clear any errors
 	fb->dev->ic_address = (unsigned)&sb->i_b;
 }
 // }}}
@@ -369,12 +383,20 @@ void oled_flush(void) {
 		}
 	} // oled_dump();
 
-	if (fb->dev->ic_control && I2CC_STOPPED) {
+	if (fb->dev->ic_control & I2CC_STOPPED) {
 		// {{{
+		if (fb->dev->ic_control & I2CC_FAULT) {
+			I2C_TRIGGER_SCOPE;
+			txstr("ERROR: I2C failed on fault: 0x");
+			txhex(fb->dev->ic_control);
+			txstr("\n");
+			fb->dev->ic_control = I2CC_ABORT | I2CC_ERROR;
+		} // else txstr("Setting I2C\n");
 		i2cb_clear(sb);
 		i2cb_start(sb);
 		i2cb_addr(sb,  I2CMUX_ADDR|I2CMUX_WR);
 		i2cb_sendc(sb, I2CMUX_OLED);
+		i2cb_stop(sb);
 		i2cb_start(sb);
 		i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
 		// Set memory addressing mode
@@ -407,7 +429,7 @@ void oled_flush(void) {
 		fb->dev->ic_address = (unsigned)&sb->i_b;
 
 		fb->dirty = 0;
-	}
+	} // else txstr("I2C Controller still busy ...\n");
 	// }}}
 }
 // }}}
@@ -417,7 +439,7 @@ int	oled_busy(void) {
 	if (NULL == fb || NULL == fb->dev)
 		return 0;
 
-	if (fb->dev->ic_control && I2CC_STOPPED)
+	if (fb->dev->ic_control & I2CC_STOPPED)
 		return 0;
 	return 1;
 }
