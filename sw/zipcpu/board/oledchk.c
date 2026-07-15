@@ -214,6 +214,16 @@ int gen_message(unsigned msgid) {
 
 int main(int argc, char **argv) {
 	unsigned	fsm = 0, step = 0, msg_count = 0;
+
+	// The i2c clock count is naturally 4095 (12'h3ff).  This is ... too
+	// slow, taking 40us per half clock.  We want that to be 5us per half
+	// clock to achieve a rate of 100kHz.  (The OLED can go faster, but the
+	// I2C mux cannot.)  Without any adjustment, a full screen refresh can
+	// take between 0.5-1.0s.  (Not really sure how long truly ...)  With
+	// this adjustment, this time should drop to one eigth of that time,
+	// so somewhere between 0.0625s and 0.125s, allowing at least 8 updates
+	// per second.
+	_i2c->ic_clkcount = 500;
 #ifdef	R_RTCCOUNT
 	unsigned	now, last;
 	now = last = _rtccount;
