@@ -2742,13 +2742,18 @@ int	emmc_boot(EMMCDRV *dev, const unsigned count, char *buf) {
 	}
 	// }}}
 
+	dev->d_dev->sd_phy |= SDIOCK_SHUTDN;
+
 	// Force the device into reset while we configure the hard boot
-	if (1 & dev->d_EXCSD[162]) {
-		dev->d_dev->sd_cmd = SDIO_HWRESET;	// | SDIO_ERR | SDIO_FIFO | SDIO_ACK | SDIO_BOOTEN
+	if (1 == (dev->d_EXCSD[EXCSD_RESET_FUNCTION] & 3)) {
+		dev->d_dev->sd_cmd = SDIO_HWRESET;
 		dev->d_dev->sd_cmd = 0;	// Release from reset (will be delayed)
 	} else {
-		dev->d_dev->sd_data = 0xf0f0f0f0;
-		dev->d_dev->sd_cmd = SDIO_CMD | SDIO_RNONE | SDIO_ERR;
+		dev->d_dev->sd_data= 0xf0f0f0f0;
+		dev->d_dev->sd_cmd = SDIO_CMD | SDIO_ERR | SDIO_RNONE;
+		// dev->d_dev->sd_cmd = SDIO_CMD | SDIO_RNONE | SDIO_ERR;
+		//	| SDIO_FIFO | SDIO_ACK | SDIO_BOOTEN
+		emmc_wait_while_busy(dev);
 	}
 	dev->d_dev->sd_dma_length = count;
 	dev->d_dev->sd_dma_addr   = buf;
@@ -2761,9 +2766,6 @@ int	emmc_boot(EMMCDRV *dev, const unsigned count, char *buf) {
 
 	lastv  = dev->d_dev->sd_cmd;
 	lastln = dev->d_dev->sd_dma_length;
-	st = dev->d_dev->sd_cmd;
-	while(st & (SDIO_BUSY | SDIO_HWRESET))
-		st = dev->d_dev->sd_cmd;
 	dev->d_dev->sd_cmd = SDIO_ACK | SDIO_BOOT | SDIO_DMA;
 
 	do {
