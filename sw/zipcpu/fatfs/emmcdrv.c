@@ -258,7 +258,8 @@ static	const	uint32_t
 static	unsigned	EXCSD_HS_TIMING      = 185,
 			EXCSD_BUS_WIDTH      = 183,
 			EXCSD_BOOT_PARTITION = 179,
-			EXCSD_BOOT_BUSCOND   = 177;
+			EXCSD_BOOT_BUSCOND   = 177,
+			EXCSD_RESET_FUNCTION = 162;
 
 static	void	emmc_wait_while_busy(EMMCDRV *dev);
 static	void	emmc_go_idle(EMMCDRV *dev);
@@ -1100,6 +1101,13 @@ void emmc_send_ext_csd(EMMCDRV *dev) {	  // CMD 8
 
 		txstr("  BOOT_WP_STATUS: 0x"); tx8h(dev->d_EXCSD[174]); txstr("\n");
 		txstr("  BOOT_WP       : 0x"); tx8h(dev->d_EXCSD[173]); txstr("\n");
+		txstr("  RESET_n_FUNCTN: 0x"); tx8h(dev->d_EXCSD[162]);
+			switch(dev->d_EXCSD[162] & 3) {
+			case 0: txstr(" (Reset temp disabled)\n"); break;
+			case 1: txstr(" (Reset enabled)\n"); break;
+			case 2: txstr(" (Reset disabled)\n"); break;
+			case 3: txstr(" (Reserved?)\n"); break;
+			} txstr("\n");
 		txstr("  DATA_SECTOR_SZ: 0x"); tx8h(dev->d_EXCSD[ 61]); txstr("\n");
 		txstr("  CACHE         : 0x"); tx8h(dev->d_EXCSD[ 33]); txstr("\n");
 	}
@@ -2735,8 +2743,13 @@ int	emmc_boot(EMMCDRV *dev, const unsigned count, char *buf) {
 	// }}}
 
 	// Force the device into reset while we configure the hard boot
-	dev->d_dev->sd_cmd = SDIO_HWRESET;	// | SDIO_ERR | SDIO_FIFO | SDIO_ACK | SDIO_BOOTEN
-	dev->d_dev->sd_cmd = 0;	// Release from reset (will be delayed)
+	if (1 & dev->d_EXCSD[162]) {
+		dev->d_dev->sd_cmd = SDIO_HWRESET;	// | SDIO_ERR | SDIO_FIFO | SDIO_ACK | SDIO_BOOTEN
+		dev->d_dev->sd_cmd = 0;	// Release from reset (will be delayed)
+	} else {
+		dev->d_dev->sd_data = 0xf0f0f0f0;
+		dev->d_dev->sd_cmd = SDIO_CMD | SDIO_RNONE | SDIO_ERR;
+	}
 	dev->d_dev->sd_dma_length = count;
 	dev->d_dev->sd_dma_addr   = buf;
 	dev->d_dev->sd_phy = SECTOR_512B | SDPHY_W8 | SDIOCK_25MHZ
@@ -2748,6 +2761,9 @@ int	emmc_boot(EMMCDRV *dev, const unsigned count, char *buf) {
 
 	lastv  = dev->d_dev->sd_cmd;
 	lastln = dev->d_dev->sd_dma_length;
+	st = dev->d_dev->sd_cmd;
+	while(st & (SDIO_BUSY | SDIO_HWRESET))
+		st = dev->d_dev->sd_cmd;
 	dev->d_dev->sd_cmd = SDIO_ACK | SDIO_BOOT | SDIO_DMA;
 
 	do {

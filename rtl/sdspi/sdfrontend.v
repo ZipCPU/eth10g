@@ -1409,9 +1409,15 @@ module	sdfrontend #(
 			r_debug[22] <= io_started[1];
 
 			r_debug[21:20] <= { i_rx_en, i_data_en };
-			r_debug[19] <= pending_ack;
-			r_debug[18] <= i_cfg_ds ? ck_ack : sync_ack;
-			r_debug[17] <= i_cfg_ds ? ck_nak : sync_nak;
+			if (i_expect_token)
+				r_debug[19:17] <= 3'h0;
+			else begin
+				r_debug[19] <= pending_ack;
+				r_debug[18] <= i_cfg_ds ? ck_ack
+						: (sync_ack ^ !acknak_sreg[4]);
+				r_debug[17] <= i_cfg_ds ? ck_nak
+						: (sync_nak ^ !acknak_sreg[4]);
+			end
 
 			if (pending_ack)
 			begin
@@ -1480,8 +1486,8 @@ module	sdfrontend #(
 		{ ck_nak, pipe_nak } <= { pipe_nak, async_nak };
 	end
 
-	assign	o_crcack = OPT_CRCTOKEN && (sync_ack || ck_ack) && pending_ack;
-	assign	o_crcnak = OPT_CRCTOKEN && (sync_nak || ck_nak) && pending_ack;
+	assign	o_crcack = OPT_CRCTOKEN && (sync_ack || ck_ack) && pending_ack && !i_expect_token;
+	assign	o_crcnak = OPT_CRCTOKEN && (sync_nak || ck_nak) && pending_ack && !i_expect_token;
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
