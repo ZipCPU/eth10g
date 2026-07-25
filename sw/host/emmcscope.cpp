@@ -67,9 +67,14 @@ void	closeup(int v) {
 }
 
 class	EMMCSCOPE : public SCOPE {
+	// OPT_IO=0 => neither SERDES or DDR
+	//	= 1	=> DDR, but not SERDES
+	//	= 2	=> SERDES
+	//	= 3	=> Controller internals
+	const unsigned	OPT_IO=2;
 public:
-	EMMCSCOPE(DEVBUS *fpga, unsigned addr, bool vecread = true)
-		: SCOPE(fpga, addr, true, vecread) {};
+	EMMCSCOPE(DEVBUS *fpga, unsigned addr, const int opt,bool vecread = true)
+		: SCOPE(fpga, addr, true, vecread), OPT_IO(opt) {};
 	~EMMCSCOPE(void) {}
 	virtual	void	decode(DEVBUS::BUSW val) const {
 		// int	scl, sda;
@@ -80,12 +85,6 @@ public:
 	}
 
 	virtual	void	define_traces(void) {
-		// OPT_IO=0 => neither SERDES or DDR
-		//	= 1	=> DDR, but not SERDES
-		//	= 2	=> SERDES
-		//	= 3	=> Controller internals
-		const unsigned	OPT_IO=2;
-
 		switch(OPT_IO) {
 		case 0:	// Neither SERDES nor DDR
 			// {{{
@@ -150,7 +149,7 @@ public:
 			// }}}
 		case 3:	// Controller (not PHY) internals
 			// {{{
-			register_trace("w_card_busy",    1, 30);
+			register_trace("w_card_busyBOOT",    1, 30);
 			//
 			register_trace("o_cmd_request",  1, 29);
 			register_trace("cmd_busy",       1, 28);
@@ -178,7 +177,15 @@ public:
 			register_trace("o_tx_en",        1,  9);
 			register_trace("tx_request",     1,  8);
 			register_trace("tx_done",        1,  7);
-			register_trace("tx_err",         1,  6);
+			register_trace("tx_errRESET",         1,  6);
+			//
+			register_trace("w_boot_valid",   1, 12);
+			register_trace("w_pending_boot_tok", 1, 11);
+			register_trace("dma_write",      1, 10);
+			register_trace("dma_loaded",     1,  9);
+			register_trace("dma_zero_len",   1,  8);
+			register_trace("bus_reset",      1,  7);
+			register_trace("hwreset",        1,  6);
 			//
 			register_trace("rx_mem_valid", 1, 5);
 			register_trace("rx_done",      1, 4);
@@ -195,12 +202,20 @@ public:
 };
 
 int main(int argc, char **argv) {
+	int	opt;
+
 	m_fpga = connect_devbus(NULL);
 
 	signal(SIGSTOP, closeup);
 	signal(SIGHUP, closeup);
+#ifdef	R_GPIO
+	opt = m_fpga->readio(R_GPIO) & 1;
+	opt |= 2;
+#else
+	opt = 2;
+#endif
 
-	EMMCSCOPE *scope = new EMMCSCOPE(m_fpga, WBSCOPE);
+	EMMCSCOPE *scope = new EMMCSCOPE(m_fpga, WBSCOPE, opt);
 	scope->set_clkfreq_hz(100000000);
 	if (!scope->ready()) {
 		printf("Scope is not yet ready:\n");

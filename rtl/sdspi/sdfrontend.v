@@ -1211,13 +1211,12 @@ module	sdfrontend #(
 		always @(posedge i_clk)
 		if(i_reset || i_rx_en || i_cfg_ds || !OPT_CRCTOKEN)
 			acknak_sreg <= 0;
-		else if (i_data_en || i_expect_token)
+		else if (i_data_en || i_expect_token || !acknak_primed)
 			acknak_sreg <= -1;
-		else if (acknak_sreg[5:4] != 2'b10 || !acknak_primed)
+		else if (acknak_sreg[5:4] != 2'b10)
 		begin
 			if ((|sample_pck[7:4]) && (|sample_pck[3:0])
-					&& (!acknak_primed
-						|| acknak_sreg[4:3] != 2'b10))
+						&& acknak_sreg[4:3] != 2'b10)
 				acknak_sreg <= { acknak_sreg[3:0], itok[1:0] };
 			else if (|sample_pck[7:4])
 				acknak_sreg <= { acknak_sreg[4:0], itok[1] };
