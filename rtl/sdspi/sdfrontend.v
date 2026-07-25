@@ -1213,7 +1213,7 @@ module	sdfrontend #(
 
 		initial	{ sync_ack, sync_nak } = 2'b00;
 		always @(posedge i_clk)
-		if(i_reset || i_data_en || i_cfg_ds || !OPT_CRCTOKEN)
+		if(i_reset || i_expect_token || i_data_en || i_cfg_ds || !OPT_CRCTOKEN)
 		begin
 			sync_ack <= 1'b0;
 			sync_nak <= 1'b0;
