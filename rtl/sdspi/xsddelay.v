@@ -54,7 +54,9 @@
 // }}}
 module xsddelay #(
 		parameter	[0:0]	OPT_CLK = 0,
+		// Verilator lint_off UNUSED
 		parameter	[4:0]	DEF_DELAY = 0
+		// Verilator lint_on  UNUSED
 	) (
 		// {{{
 		input	wire		i_clk,		// 100MHz, system clk
@@ -67,9 +69,10 @@ module xsddelay #(
 
 `ifdef	OPENSIM
 	// {{{
-	realtime	delay = 0.0;
+	realtime	delay;
 	reg		r_delayed;
 
+	initial	delay = 0.0;
 	always @(posedge i_clk)
 		delay <= i_delay * 5.0 / 32;
 
