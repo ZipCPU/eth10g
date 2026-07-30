@@ -93,9 +93,9 @@ int main(int argc, char **argv) {
 	// Read the main directory
 	DIR	ds;
 	FILINFO	fis;
-	unsigned	seed, fill, k, res, nw, nr;
+	unsigned	seed, k, res, nw, nr;
 	FIL	fp;
-	const	unsigned	TESTLN = 1024*128;
+	const	unsigned	TESTLN = 1024*128 * 16;
 	const	unsigned	INVERSION = 0x2523573,
 				TAPS = 0xd0804001;
 	char		*src_buffer = malloc(TESTLN), *test_buffer;
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 	// Use this seed to generate some random data
 	// {{{
 	{
-		unsigned	*u = (unsigned *)&src_buffer[0];
+		unsigned	*u = (unsigned *)&src_buffer[0], fill;
 		fill = seed;
 		for(k=0; k<TESTLN/4; k++) {
 			STEP(fill, TAPS);
@@ -215,6 +215,28 @@ int main(int argc, char **argv) {
 		printf("----> ERR!  Close result = %d\n", res);
 		goto failed;
 	}
+	// }}}
+
+	// printf("SRC-DUMP:\n");
+	// {{{
+	/*
+	// Dump the first and last sectors
+	for(int k=0; k<512; k++) {
+		printf("%02x ", src_buffer[k]& 0x0ff);
+		if (15 == (k & 0x0f))
+			printf("\n");
+		else if (7 == (k & 0x0f))
+			printf(" ");
+	} printf("\n");
+
+	for(int k=0; k<512; k++) {
+		printf("%02x ", src_buffer[TESTLN-512+k]& 0x0ff);
+		if (15 == (k & 0x0f))
+			printf("\n");
+		else if (7 == (k & 0x0f))
+			printf(" ");
+	}
+	*/
 	// }}}
 
 	// Write Time report
@@ -319,11 +341,33 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
+	// printf("DST-DUMP:\n");
+	// {{{
+	/*
+	// Dump the first and last sectors read
+	for(int k=0; k<512; k++) {
+		printf("%02x ", test_buffer[k]& 0x0ff);
+		if (15 == (k & 0x0f))
+			printf("\n");
+		else if (7 == (k & 0x0f))
+			printf(" ");
+	} printf("\n");
+
+	for(int k=0; k<512; k++) {
+		printf("%02x ", test_buffer[TESTLN-512+k]& 0x0ff);
+		if (15 == (k & 0x0f))
+			printf("\n");
+		else if (7 == (k & 0x0f))
+			printf(" ");
+	}
+	*/
+	// }}}
+
 	printf("Verifying data\n"
 		"------------------------------\n");
 	// {{{
 	{
-		unsigned	*u = (unsigned *)&src_buffer[0];
+		unsigned	*u = (unsigned *)&src_buffer[0], fill;
 		fill = seed;
 
 		int	fail_flag = 0;

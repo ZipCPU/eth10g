@@ -2197,13 +2197,18 @@ void	emmc_setup(EMMCDRV *dev) {
 	if (SDPHY_1P8V & dev->d_dev->sd_phy) {	// Adjust timing for 1.8V
 		unsigned char	cap = dev->d_EXCSD[196];	// DEVICE_TYPE register
 
-		if (0 && (0x40 & cap)&& (dev->d_EXCSD[184])) {	// HS400+
+		if (0 && (0x40 & cap) && (1 & dev->d_EXCSD[184])) { // HS400+
 			// Switch to HS400, enhanced STB
 			// NOTE: HS400 has had issues in testing
 			emmc_hs400en(dev);
-		} else if (0 && (0x40 & cap)) {		// Switch to HS400
+			dev->d_dev->sd_trim = 0x22222222;
+			dev->d_dev->sd_rxtrim = 0x862;
+		} else if (0x40 & cap) {		// Switch to HS400
 			// NOTE: HS400 has had issues in testing
 			emmc_hs400(dev);
+			dev->d_dev->sd_trim = 0x22222222;
+			dev->d_dev->sd_rxtrim = 0x862;
+		} else if (0x04 & cap) {		// Switch to HSDDR
 		} else if (0x10 & cap) {		// Switch to HS200
 			unsigned 	trim;
 
@@ -2510,7 +2515,7 @@ int	emmc_read(EMMCDRV *dev, const unsigned sector,
 
 	if (EMMCDEBUG) {
 		// {{{
-		txstr("EMMC-READ(MNY): ");
+		txstr("EMMC-READ(MNY):  ");
 		txhex(sector);
 		txstr(", ");
 		txhex(count);
@@ -2693,10 +2698,19 @@ int	emmc_ioctl(EMMCDRV *dev, char cmd, char *buf) {
 
 	if (EMMCDEBUG) {
 		// {{{
-		txstr("EMMC-IOCTL(): ");
+		txstr("EMMC-IOCTL():    ");
 		txhex(cmd);
 		txstr(", 0x");
 		txhex(buf);
+
+		switch(cmd) {
+		case CTRL_SYNC: txstr(" [SYNC]"); break;
+		case GET_SECTOR_COUNT:	txstr(" [GET-NSECS]"); break;
+		case GET_SECTOR_SIZE:	txstr(" [GET-SECSZ]"); break;
+		case GET_BLOCK_SIZE:	txstr(" [GET-BLKSZ]"); break;
+		case MMC_GET_SDSTAT:	txstr(" [SDSTAT]"); break;
+		default:		txstr(" [(Unknown)]"); break;
+		}
 		txstr("\n");
 	}
 	// }}}
