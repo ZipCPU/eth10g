@@ -1912,9 +1912,9 @@ void	emmc_tuning(EMMCDRV *dev) {	// CMD21
 	// }}}
 
 	// Now loop over blocks ...
-	bestph = (phy >> 16) & 0x01f; first = -2; lastv = 0;
+	bestph = (phy >> 16) & 0x01f; first = 8; lastv = 0;
 	bestw  = 0;
-	for(unsigned phase = 0; phase < 24; phase++) {
+	for(unsigned phase = 8; phase < 24; phase++) {
 		unsigned	match;
 
 		// Clear the FIFO, to make *sure* we get a valid response
@@ -2043,6 +2043,11 @@ void	emmc_hs200(EMMCDRV *dev) {
 		phy |=   SDIOCK_200MHZ;
 
 		dev->d_dev->sd_phy = phy;
+
+		phy = dev->d_dev->sd_rxtrim;
+		phy &= ~0x0ff00;
+		phy |= 0x0900;
+		dev->d_dev->sd_rxtrim = phy;
 	}
 	// }}}
 }
@@ -2199,17 +2204,23 @@ void	emmc_setup(EMMCDRV *dev) {
 		} else if (0 && (0x40 & cap)) {		// Switch to HS400
 			// NOTE: HS400 has had issues in testing
 			emmc_hs400(dev);
-		} else if (0 && (0x10 & cap)) {		// Switch to HS200
+		} else if (0x10 & cap) {		// Switch to HS200
+			unsigned 	trim;
+
 			// NOTE: HS200 has had issues in testing
 			SET_SCOPE;
-			// Force a bit of a discontinuity, so we can actually
-			// see if/when an error takes place
-			dev->d_dev->sd_trim = 0x34103410;
-			dev->d_dev->sd_rxtrim = 0x062;
 			emmc_hs200(dev);
-			dev->d_dev->sd_trim = 0x22222222;
 			// Run tuning--only works in HS200 mode
+			//   Force a bit of a discontinuity while tuning, in
+			//   order to amplify the HS200 eye, so we can actually
+			//   see if/when an error takes place
+			dev->d_dev->sd_trim = 0x34103410;
+			trim = dev->d_dev->sd_rxtrim;
+			trim &= ~0x0ff;
+			trim |= 0x062;
+			trim = dev->d_dev->sd_rxtrim = trim;
 			emmc_tuning(dev);
+			dev->d_dev->sd_trim = 0x22222222;
 		} else if (0x04 & cap) {		// Switch to HSDDR
 			// Demonstrated throughput: 44.901 MB/s
 			emmc_hsddr(dev);

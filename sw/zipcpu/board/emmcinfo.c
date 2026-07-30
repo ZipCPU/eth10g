@@ -342,7 +342,7 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
-#define	BOOT_TEST
+// #define	BOOT_TEST
 #ifdef	BOOT_TEST
 	// Write some boot data
 	// {{{
