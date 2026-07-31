@@ -123,8 +123,8 @@ As of 30 November, 2023:
 
 The next steps for this project include:
 
-- Measuring the network throughput.  [iperf](https://iperf.fr/) has been
-  recommended for this purpose.
+- Network throughput has been measured, to within about 99.7% of the maximum expected throughput.
+  [iperf](https://iperf.fr/) was used for this purpose.
 
 - Completing the [SATA controller](https://github.com/ZipCPU/wbsata).
 
@@ -142,20 +142,25 @@ The next steps for this project include:
   This task is not currently funded, as all of the funded tasks associated
   with this project have been completed.
 
-To track the project's status at a glance, you can check either the [bus blocks
-testing stoplight chart](doc/eth10g-busblocks.png), or the [10Gb Ethernet
-testing](doc/eth10g-blocks.png) diagram.  Both show the status of the hardware
-testing of various components within the system, although from different
-viewpoints.  The [bus blocks](doc/eth10g-busblocks.png) chart shows the status
-of the various components connected to the backbone Wishbone bus, but doesn't
-really break down the 10Gb ethernet components. The [10Gb Ethernet
-blocks](doc/eth10g-blocks.png) diagram, on the other hand, breaks down the
-status of the 10Gb Ethernet components, but doesn't show the status of the
-rest of the design.  Together, both will provide insight into the current
-state of the design.
+## Rev #2 Status
 
-Ideally, the [dev branch of this
-project](https://github.com/ZipCPU/eth10g/tree/dev) would have the most recent
-status.  In practice, the [master
-branch](https://github.com/ZipCPU/eth10g/tree/master) has tended to have the
-most recent updates.
+As of 31 July, 2026:
+
+- The [UART console via the debugbus](rtl/wbubus/wbuconsole.v) (serial port) "just works."
+- The [QSPI Flash](rtl/qflexpress.v) now "just works", and works reliably.  There's no longer any conflict between flash and eMMC.
+- The SD-Card passes all tests.
+- While the [Special Purpose IO](rtl/spio.v) controller appears to work, one of the LEDs has not been populated on the board.
+- [Fans and temperature measurements](rtl/wbfan.v) all "just work."  Shutting down the fans will results in a temperature rise, as expected.
+- The [I2C controller now has an RLE optimization](rtl/wbi2c/wbi2ccpu.v).
+
+  - The I2C controller now has [online software](sw/zipcpu/board/i2cbuf.c), allowing software to generate I2C sequences on the fly.  (Required for [OLED framebuffer](sw/zipcpu/board/oledfb.c) support)
+- The [OLED now has new software](sw/zipcpu/board/oledfb.c), capable of displaying messages across I2C.  Two versions of the Pixel Army font are supported.
+- The [eMMC controller](https://github.com/ZipCPU/sdspi) has now demonstrated HS400 success.  Instantaneous read rates of 320MB/s have been demonstrated.  The device will throttle this back down to about 61MB/s.  When using the FATFS, sustained reads of 41MB/s and writes of 5.7MB/s have both been demonstrated.
+
+  - eMMC BOOT has also been demonstrated, although nothing (yet) uses it.
+- The open source [DDR3 SDRAM memory controller](https://github.com/AngeloJacobo/DDR3_Controller) "just works."  Since the last version, it has been [measured against the MIG on another project](https://zipcpu.com/zipcpu/2025/05/28/memtest.html).
+- The 10Gb Ethernet is suffering from some hardware trouble.  Specifically, the reference clock isn't (yet) registering.  This is awaiting further diagnoses.  At present, the lack of the reference clock is preventing further 10Gb Ethernet development.
+- The [SATA controller](https://github.com/ZipCPU/wbsata) has been completed and integrated.  The external SATA device is not (yet) responding to the out-of-band startup request.
+- The [HDMI transmitter/receiver](rtl/hdmi/vidpipe.v) has not (yet) been integrated into the design.  It's currently withheld for both space reasons, and because of an unresolved timing error reported by Vivado.  (It's claiming a timing error when crossing two clock domains which will never both exist at the same time ...)
+
+At present, work on the version 2 board is limited to the [v2 branch](https://github.com/ZipCPU/eth10g/tree/v2).
