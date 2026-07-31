@@ -1452,10 +1452,10 @@ module	sdfrontend #(
 				r_debug[9:0] <= { 2'b00, i_tx_data[7:0] };
 			else if (i_cfg_ds)
 			begin
-				if (MAD_VALID)
+				if (MAD_VALID) // && i_ad_reset_n;
 					r_debug[9:0] <= { 2'b11, MAD_DATA[7:0] };
 				else
-					r_debug[9:0] <= r_debug[9:0];
+					r_debug[9:0] <= { 2'b00, r_debug[7:0] };
 			end else // if (!i_cfg_ds)
 			begin
 				r_debug[9:0] <= r_debug[9:0];
