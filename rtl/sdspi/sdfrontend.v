@@ -68,7 +68,7 @@ module	sdfrontend #(
 		parameter [0:0]	OPT_TRIM = OPT_DS && OPT_SERDES,
 		// As per the eMMC spec, BUSY_CLOCKS need be no more than 2
 		// 4 is likely overkill.
-		parameter 	BUSY_CLOCKS = 4,
+		parameter 	BUSY_CLOCKS = 6,
 		parameter	HWBIAS = (OPT_SERDES ? 7 : 0),
 		parameter	NUMIO = 8
 		// }}}

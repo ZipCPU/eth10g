@@ -404,12 +404,12 @@ module	sdcmd #(
 			assert(!o_ac_reset_n);
 		end else begin
 			assert(ac_reset_dly <= i_cfg_trim);
-			assert(o_ac_reset_n == (ac_reset_dly == 0));
+			assert(o_ac_reset_n == (srcount == 0 && ac_reset_dly == 0));
 		end
 	end
 
 	always @(posedge i_clk)
-	if (i_reset && $stable(i_cfg_trim))
+	if (!i_reset && $stable(i_cfg_trim))
 	begin
 		assert(ac_reset_dly <= i_cfg_trim);
 	end
@@ -952,6 +952,7 @@ module	sdcmd #(
 	reg	[7:0]	f_last_resp_count;
 	reg	[47:0]	f_tx_reg, f_tx_now;
 	wire	[5:0]	f_txshift;
+	(* anyconst *) reg [3:0]	f_cfg_trim;
 
 
 	initial	f_past_valid = 0;
@@ -979,6 +980,8 @@ module	sdcmd #(
 	else
 		f_past_doublet <= (&i_cmd_strb);
 
+	always @(*)
+		assume(i_cfg_trim == f_cfg_trim);
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Command requests

@@ -73,12 +73,22 @@ asm("\t.global\ttxchr\n"
 	"\t.type\ttxchr, @function\n"
 "txchr:\n"
 	"\tLDI	_uart,R2\n"
+	"\tCMP	10,R1\n"
+	"\tBZ	.Ltxchr_newline\n"
 ".Ltxchr_loop:\n"
 	"\tLW	4(R2),R3\n"
 	"\tTEST	0x10000,R3\n"
 	"\tBZ	.Ltxchr_loop\n"
 	"\tSB	R1,15(R2)\n"
 	"\tRETN\n"
+".Ltxchr_newline:\n"
+	// Insert a carriage return before a newline
+	"\tLW	4(R2),R3\n"
+	"\tTEST	0x10000,R3\n"
+	"\tBZ	.Ltxchr_newline\n"
+	"\tLDI	13,R3\n"
+	"\tSB	R3,15(R2)\n"
+	"\tBRA	.Ltxchr_loop\n"
 	"\t.size\ttxchr, .-txchr\n");
 #else
 void	txchr(char val) {
