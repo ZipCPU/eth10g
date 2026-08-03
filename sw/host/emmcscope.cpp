@@ -221,8 +221,15 @@ int main(int argc, char **argv) {
 		printf("Scope is not yet ready:\n");
 		scope->decode_control();
 	} else {
+		const	char	*vcd;
 		scope->print();
-		scope->writevcd("emmcscope.vcd");
+		switch(opt) {
+		case 0: vcd = "emmcio.vcd";	break;
+		case 1: vcd = "emmcddr.vcd";	break;
+		case 2: vcd = "emmcserdes.vcd";	break;
+		default: vcd = "emmcwb.vcd";	break;
+		}
+		scope->writevcd(vcd);
 	}
 	delete	m_fpga;
 }
