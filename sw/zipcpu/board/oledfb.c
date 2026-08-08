@@ -115,7 +115,7 @@ void oled_hwsetup(void) {
 	cmdbuf[ 6] = OLED_CONTROL;
 	cmdbuf[ 7] = 0xa8;	// Set multiplex ratio
 	cmdbuf[ 8] = OLED_CONTROL;
-	cmdbuf[ 9] = 31;	//   Height - 1
+	cmdbuf[ 9] = 0x1f;	//	= Height - 1
 	cmdbuf[10] = OLED_CONTROL;
 	cmdbuf[11] = 0xd3;	// Display offset
 	cmdbuf[12] = OLED_CONTROL;
@@ -183,6 +183,8 @@ void oled_hwsetup(void) {
 	i2cb_sendc(sb, OLED_DATA);	// All data, from here on out
 	i2cb_send(sb, fb->H * fb->W, fb->b);
 	i2cb_start(sb);
+	i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
+	i2cb_sendc(sb, OLED_DATA);	// All data, from here on out
 	cmdbuf[0] = OLED_CONTROL;
 	cmdbuf[1] = 0xa6;	// Normal display	[ Inverse in logo ]
 	cmdbuf[2] = OLED_CONTROL;
@@ -197,6 +199,10 @@ void oled_hwsetup(void) {
 		;	// Shouldn't be busy, but check anyway
 	if (fb->dev->ic_control & I2CC_FAULT)
 		fb->dev->ic_control = I2CC_FAULT;	// Clear any errors
+
+	// extern void i2cb_dump(I2CBUF *);
+	// i2cb_dump(sb);
+
 	fb->dev->ic_address = (unsigned)&sb->i_b;
 }
 // }}}
