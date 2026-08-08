@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
 	int	skp=0;
 	const char *host = FPGAHOST;
 	int	port=FPGAPORT;
+	unsigned	net_clk[6], net_reset, net_lock;
 
 	skp=1;
 	for(int argn=0; argn<argc-skp; argn++) {
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
 
 	m_fpga = new FPGA(new NETCOMMS(host, port));
 
-	unsigned	ubuf[64], sbuf[128];
+	unsigned	ubuf[64], sbuf[128], cbuf[32];
 	typedef union	WIDE_U {
 		uint64_t	l;
 		struct	{
@@ -120,10 +121,104 @@ int main(int argc, char **argv) {
 
 	WIDE		tm; //rx, tx;
 
-	m_fpga->readi(R_ROUTER,  sizeof(ubuf)/sizeof(unsigned), ubuf);
-	m_fpga->readi(R_NETSTAT, sizeof(sbuf)/sizeof(unsigned), sbuf);
+	// R_NETRESET
+	// {{{
+	net_reset = m_fpga->readio(R_NETRESET);
+	// }}}
+	// Get the network clock status
+	// {{{
+	// R_RXNETCK[0:3]
+	// R_TXNETCLK
+	// R_REFNETCLK
+	// unsigned	net_clk[6];
+	m_fpga->readi(R_RXNETCK0, sizeof(net_clk)/sizeof(unsigned), net_clk);
+	// }}}
+	// R_NETLOCK
+	// {{{
+	net_lock = m_fpga->readio(R_NETLOCK);
+	// }}}
 
-	for(int n=0; n<4; n++) {
+	m_fpga->readi(R_ROUTER,  sizeof(ubuf)/sizeof(unsigned), ubuf);
+	// R_NETSTAT
+	m_fpga->readi(R_NETSTAT, sizeof(sbuf)/sizeof(unsigned), sbuf);
+	// R_NETDBG
+
+	// R_CPUNET
+	// {{{
+	m_fpga->readi(R_CPUNET, sizeof(cbuf)/sizeof(unsigned), cbuf);
+	// }}}
+
+	// RESET info
+	// {{{
+	if (net_reset == 0)
+		printf("NET-RESET:      All nodes running\n");
+	else {
+		printf("NET-RESET:      ");
+		for(int n=0; n<5; n++) {
+			if (net_reset & (1<<n))
+				printf("Link-%d in reset  ", n);
+		} printf("\n");
+	}
+	// }}}
+
+	// Clock info
+	// {{{
+	m_fpga->readi(R_RXNETCK0, sizeof(net_clk)/sizeof(unsigned), net_clk);
+	if (net_clk[5] == 0)
+		printf("CLK NET.REF  :  ERROR.  No clock present\n");
+	else {
+		printf("CLK NET.REF  :  %10.6f MHz\n", net_clk[5] / 1e6);
+		if (net_clk[4] == 0) {
+			printf("CLK NET.TX   :  ERROR.  No clock present\n");
+		} else {
+			printf("CLK NET.TX   :  %10.6f MHz\n", net_clk[4] / 1e6);
+
+			for(int n=0; n<4; n++) {
+				if (net_clk[n] == 0) {
+					printf("CLK NET.RX[%1d]:  ERROR.  No clock present\n", n);
+				} else {
+					printf("CLK NET.RX[%1d]:  %10.6f MHz\n", n, net_clk[n] / 1e6);
+				}
+			}
+		}
+	}
+	// }}}
+
+	// Lock info
+	// {{{
+	if (0 == (net_lock & 0x010))
+		printf("Net PHY PLL:    No lock\n");
+	else if (0x0f == (net_lock & 0x0f)) {
+		printf("Net PHY PLL:    All four channels locked\n");
+	} else {
+		printf("Net PHY PLL:    ");
+		for(int n=0; n<4; n++) {
+			if (net_lock & (1<<n))
+				printf("#%d Locked ", n);
+			else
+				printf("#%d NO LOCK", n);
+			if (n < 3)
+				printf(",  ");
+		} printf("\n");
+	}
+
+	if (0 == (net_lock & 0x0f00))
+		printf("Net LOS:        All signals present\n");
+	else {
+		printf("Net LOS:        ");
+
+		for(int n=0; n<4; n++) {
+			if (net_lock & (0x100 << n)) {
+				printf("%d NO SIGNAL", n);
+			} else
+				printf("%d Signal Up", n);
+			if (n < 3)
+				printf(", ");
+		} printf("\n");
+	}
+	// }}}
+
+	for(int n=0; n<4; n++) {	// Router stats
 		unsigned	*macp = &ubuf[32 + 4*n], *vpkt = &ubuf[16+ 4*n];
 		printf("Route #%d\n", n);
 		printf("  Last RX MAC:     %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -189,6 +284,26 @@ int main(int argc, char **argv) {
 			(ubuf[58] >> 18) & 0x3f,
 			(ubuf[58] >> 24) & 0x3f,
 			ubuf[58]);
+		for(int n=0; n<5; n++) {
+			// 58 = 0x3a
+			unsigned	unvr = (ubuf[58] >> (n*6)) & 0x03f;
+
+			if (unvr == (1u<<n))
+				continue;
+
+			if (4 == n)
+				printf("\tCPU TX  *NEVER* routes to channels: ");
+			else
+				printf("\tChan #%d *NEVER* routes to channels: ", n);
+			for(int u=0; u<5; u++) {
+				if (unvr & (1 << u)) {
+					if (4 == u)
+						printf("CPU");
+					else
+						printf("%1d ", u);
+				}
+			} printf("\n");
+		}
 	printf("ROUTE-ALWAYS:      %02x,%02x,%02x,%02x|%02x -- 0x%08x\n",
 			(ubuf[59] >>  0) & 0x3f,
 			(ubuf[59] >>  6) & 0x3f,
@@ -196,6 +311,26 @@ int main(int argc, char **argv) {
 			(ubuf[59] >> 18) & 0x3f,
 			(ubuf[59] >> 24) & 0x3f,
 			ubuf[59]);
+		for(int n=0; n<5; n++) {
+			// 59 = 0x3b
+			unsigned	unow = (ubuf[59] >> (n*6)) & 0x03f;
+
+			if (unow == 0)
+				continue;
+
+			if (4 == n)
+				printf("\tCPU TX  *ALWAYS* routes to channels: ");
+			else
+				printf("\tChan #%d *ALWAYS* routes to channels: ", n);
+			for(int u=0; u<5; u++) {
+				if (unow & (1 << u)) {
+					if (4 == u)
+						printf("CPU");
+					else
+						printf("%1d ", u);
+				}
+			} printf("\n");
+		}
 	/*
 	for(int k=0; k<64; k++) {
 		printf("%08x ", ubuf[k]);
@@ -214,6 +349,42 @@ int main(int argc, char **argv) {
 			printf("\n");
 	}
 	*/
+
+	{
+		printf("CPU-Net ---\n");
+		printf("  CPU MAC:                 %02x:%02x:%02x:%02x:%02x:%02x\n",
+			(cbuf[1] >> 8)&0x0ff,  (cbuf[1] & 0x0ff),
+			(cbuf[2] >> 24)&0x0ff, (cbuf[2] >> 16) & 0x0ff,
+			(cbuf[2] >>  8)&0x0ff, (cbuf[2] & 0x0ff));
+
+		printf("  CPU IPv4 Address:        %d.%d.%d.%d\n",
+			(cbuf[3] >> 24)&0x0ff, (cbuf[3] >> 16) & 0x0ff,
+			(cbuf[3] >>  8)&0x0ff, (cbuf[3] & 0x0ff));
+
+		printf("  CPU RX Packets:             %8d\n", cbuf[9]);
+		printf("  CPU RX Pkts dropd:          %8d\n", cbuf[8]);
+		printf("  CPU TX Packets:             %8d\n", cbuf[10]);
+		if (0 == cbuf[16] || 0 == cbuf[17]) {
+			printf("  CPU VFIFO TX:             (Not configured / inactive)\n");
+		} else {
+			printf("  CPU VFIFO TX MEM:         0x%08x\n", cbuf[16]);
+			printf("  CPU VFIFO TX LN:          0x%08x\n", cbuf[17]);
+			printf("  CPU VFIFO TX Active:        %8d bytes\n",
+				(cbuf[19] - cbuf[18]) & (cbuf[17]-1));
+		}
+		if (0 == cbuf[20] || 0 == cbuf[21]) {
+			printf("  CPU VFIFO RX:             (Not configured / inactive)\n");
+		} else {
+			printf("  CPU VFIFO RX MEM:         0x%08x\n", cbuf[20]);
+			printf("  CPU VFIFO RX LN:          0x%08x\n", cbuf[21]);
+			printf("  CPU VFIFO RX Active:        %8d bytes\n",
+				(cbuf[23] - cbuf[22]) & (cbuf[21]-1));
+		}
+
+		printf("  CPU VFIFO RX DBG:         0x%08x\n", cbuf[24]);
+		printf("  CPU VFIFO TX DBG:         0x%08x\n", cbuf[25]);
+	}
+
 
 	delete	m_fpga;
 #endif
