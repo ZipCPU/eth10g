@@ -634,11 +634,11 @@ set_property BITSTREAM.STARTUP.MATCH_CYCLE 6 [current_design]
 ## From netclk
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/avgs_reg[3]*/C}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rxnetclk/q_v_reg/D}];
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_txnetclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_txnetclk/q_v_reg/D}];
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_refnetclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_refnetclk/q_v_reg/D}];
 ## From sirefclkcounter
 ## No XDC.INSERT tag in fan
 ## No XDC.INSERT tag in i2c
 ## No XDC.INSERT tag in i2cdma
-## No XDC.INSERT tag in mem_bootrom_bkram
 ## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in mem_bkram_only
 ## No XDC.INSERT tag in zipscope

@@ -94,12 +94,13 @@
 
 	always @(posedge i_clk)
 	begin
+		r_@$(PREFIX)_data <= 32'h0dead;
 		if (@$(SLAVE.PREFIX)_addr[2:0] < @$(NDEV))
 			r_@$(PREFIX)_data <= w_@$(PREFIX)_rxcounter[
 				@$(SLAVE.PREFIX)_addr[1:0]];
 		else if (@$(SLAVE.PREFIX)_addr[2:0] == 3'h4)
 			r_@$(PREFIX)_data <= w_@$(PREFIX)_txcounter;
-		else if (@$(SLAVE.PREFIX)_addr[2:0] == 3'h4)
+		else if (@$(SLAVE.PREFIX)_addr[2:0] == 3'h5)
 			r_@$(PREFIX)_data <= w_@$(PREFIX)_refcounter;
 
 		if (!@$(SLAVE.PREFIX)_stb)
@@ -110,7 +111,7 @@
 	always @(posedge i_clk)
 		r_@$(PREFIX)_ack <= @$(SLAVE.PREFIX)_stb;
 	assign	@$(SLAVE.PREFIX)_idata = r_@$(PREFIX)_data;
-@REGS.N=5
+@REGS.N=6
 @REGS.0=0 R_RXNETCK0  RXNETCLK0 RXNETCK0
 @REGS.1=1 R_RXNETCK1  RXNETCLK1 RXNETCK1
 @REGS.2=2 R_RXNETCK2  RXNETCLK2 RXNETCK2
@@ -122,3 +123,4 @@
 @XDC.INSERT=
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/avgs_reg[3]*/C}] -to [get_pins -hier -filter {NAME=~thedesign/MEASURE_NETCLK*.u_rx@$(PREFIX)/q_v_reg/D}];
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_tx@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_tx@$(PREFIX)/q_v_reg/D}];
+set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_ref@$(PREFIX)/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_ref@$(PREFIX)/q_v_reg/D}];

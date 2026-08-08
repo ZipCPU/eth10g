@@ -122,7 +122,7 @@ module	xgtxphy #(
 		.QPLL_INIT_CFG(24'h6),		// 23:0
 		.QPLL_LOCK_CFG(16'h21e8),		// 15:0
 		.QPLL_LPF(4'hf),			//  4:0
-		.QPLL_REFCLK_DIV(2)		// integer
+		.QPLL_REFCLK_DIV(1)		// integer
 		// SIM_QPLLREFCLK_SEL(),	//  2:0
 		// SIM_RESET_SPEEDUP = "TRUE";
 		// SIM_VERSION = "4.0";

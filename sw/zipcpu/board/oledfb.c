@@ -191,7 +191,7 @@ void oled_hwsetup(void) {
 	i2cb_stop(sb);
 	i2cb_halt(sb);
 
-	if (oled_busy)
+	if (oled_busy())
 		fb->dev->ic_control = I2CC_HALT;
 	while(oled_busy())
 		;	// Shouldn't be busy, but check anyway
