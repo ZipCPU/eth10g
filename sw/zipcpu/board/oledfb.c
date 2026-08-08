@@ -184,7 +184,6 @@ void oled_hwsetup(void) {
 	i2cb_send(sb, fb->H * fb->W, fb->b);
 	i2cb_start(sb);
 	i2cb_addr(sb,  OLED_ADDR|I2CMUX_WR);
-	i2cb_sendc(sb, OLED_DATA);	// All data, from here on out
 	cmdbuf[0] = OLED_CONTROL;
 	cmdbuf[1] = 0xa6;	// Normal display	[ Inverse in logo ]
 	cmdbuf[2] = OLED_CONTROL;
