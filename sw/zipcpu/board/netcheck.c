@@ -42,6 +42,8 @@
 #include "board.h"
 #include <zipcpu.h>
 #include <zipsys.h>
+#include "oledfont.h"
+#include "oledfb.h"
 
 #ifndef	CPUNET_ACCESS
 int	main(int argc, char **argv) {
@@ -254,6 +256,7 @@ unsigned	read_volatile(unsigned *a) {
 // }}}
 
 const unsigned	VFIFOSZ = (1<<20);
+unsigned	heartbeats = 0;
 int main(int argc, char **argv) {
 	// Reset our virtual packet FIFOs
 	// {{{
@@ -304,6 +307,8 @@ int main(int argc, char **argv) {
 #ifdef	_BOARD_HAS_NETLOCK
 	unsigned	netlock = 0;
 #endif
+
+	heartbeats = 0;
 
 	// Set up the virtual FIFOs
 	// {{{
@@ -477,6 +482,18 @@ int main(int argc, char **argv) {
 	pkt[63] = (crc & 0x0ff) ^ 0x0ff; crc >>= 8;
 	// }}}
 
+	// Fire up the OLED
+	// {{{
+	init_tall_glyfs();
+	init_short_glyfs();
+	oled_hwsetup();
+	fb_font = tallfontp;
+	// set_fixed(tallfontp)
+	oled_clear();
+	oled_write("Net testing");
+	oled_flush();
+	// }}}
+
 	rxpktb = (void *)malloc(MAX_PKTSZ);
 
 	start_jiffies = ONE_SECOND;
@@ -501,9 +518,19 @@ int main(int argc, char **argv) {
 			unsigned	ethtype;
 
 #ifdef	_BOARD_HAS_NETLOCK
-			if (netlock != (*_netlock)) {
+			if (!oled_busy() && netlock != (*_netlock)) {
 				netlock = (*_netlock);
 				printf("NET-LOCK Change: %08x\n", netlock);
+
+				if (0x1f == netlock) {
+					oled_clear();
+					oled_write("Net testing");
+					oled_flush();
+				} else {
+					oled_clear();
+					oled_write("Net failure!");
+					oled_flush();
+				}
 			}
 #endif
 
@@ -587,6 +614,8 @@ int main(int argc, char **argv) {
 			printf("NETCHECK -- Loop\n");
 			loopctr = 0;
 		}
+
+		heartbeats++;
 	}
 }
 #endif	// CPUNET_H

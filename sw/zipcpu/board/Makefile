@@ -186,8 +186,8 @@ rxhdmi: $(OBJDIR)/rxhdmi.o bkram.ld $(LIB)
 memtest: $(OBJDIR)/memtest.o bkram.ld $(OBJDIR)/txfns.o $(LIB)
 	$(CC) $(CFLAGS) $(LBKRAM) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
-netcheck: $(OBJDIR)/netcheck.o $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+netcheck: $(OBJDIR)/netcheck.o $(OLED) $(LIB)
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OLED) $(LIBS) -o $@
 
 $(OBJDIR)/ddr3dbg.o: ddr3dbg.c board.h txfns.h
 ddr3dbg: $(OBJDIR)/ddr3dbg.o $(OBJDIR)/txfns.o board.ld $(LIB)
