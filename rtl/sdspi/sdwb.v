@@ -4557,8 +4557,9 @@ module	sdwb #(
 				.i_wb_sel(i_wb_sel),
 		.i_wb_ack(pre_valid),
 			.i_wb_return(pre_data),
-		.i_register({ 20'h0, o_cfg_rxck_trim[3:0],
-						o_cfg_phy_trim[39:32] })
+		.i_register({ 16'h0,
+				o_cfg_cmd_trim, o_cfg_rxck_trim,
+				o_cfg_phy_trim[39:32] })
 		// }}}
 	);
 	// }}}

@@ -1,7 +1,7 @@
 <HTML><HEAD><TITLE>Formal Verification Report</TITLE></HEAD>
 <BODY>
 <H1 align=center>10Gb Ethernet Board Verification Report</H1>
-<H2 align=center>20260618</H2>
+<H2 align=center>20260810</H2>
 <P align=center><TABLE border>
 <TR><TH>Status</TH><TH>Elapsed</TH><TH>Component</TD><TH>Proof</TH><TH>Component description</TH></TR>
 <TR></TR>
@@ -37,14 +37,14 @@
 <TR><TD bgcolor=#caeec8><A HREF="netfifo_prf_awr/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netfifo</TD><TD>_prf_awr</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="netfifo_prf_aw/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netfifo</TD><TD>_prf_aw</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="netfifo_prf_r/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netfifo</TD><TD>_prf_r</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="netfifo_cvr/logfile.txt">6 Cover points</A></TD><TD>0:00:02</TD><TD>netfifo</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="netfifo_cvr/logfile.txt">6 Cover points</A></TD><TD>0:00:04</TD><TD>netfifo</TD><TD>_cvr</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="netfifo_prf_ar/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netfifo</TD><TD>_prf_ar</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="netfifo_prf_wr/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netfifo</TD><TD>_prf_wr</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="netfifo_prf_w/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netfifo</TD><TD>_prf_w</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="netskid_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>netskid</TD><TD>_prf</TD><TD rowspan=1>AXI Network packet Skid-Buffer</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8><A HREF="p642pkt_prf/logfile.txt">Pass</A></TD><TD>0:00:03</TD><TD>p642pkt</TD><TD>_prf</TD><TD rowspan=1>Convert 66b protocol to AXI Network stream</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="p642pkt_prf/logfile.txt">Pass</A></TD><TD>0:00:05</TD><TD>p642pkt</TD><TD>_prf</TD><TD rowspan=1>Convert 66b protocol to AXI Network stream</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="p66brxgears_cvr/logfile.txt">Pass</A></TD><TD></TD><TD>p66brxgears</TD><TD>_cvr</TD><TD rowspan=2>31/66b Gearbox</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="p66brxgears_prf/logfile.txt">Pass</A></TD><TD>0:01:02</TD><TD>p66brxgears</TD><TD>_prf</TD></TR>
@@ -53,7 +53,7 @@
 <TR><TD bgcolor=#caeec8><A HREF="p66btxgears_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>p66btxgears</TD><TD>_prf</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="pkt2p64b_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>pkt2p64b</TD><TD>_prf</TD><TD rowspan=2>Convert AXI Network stream to p66b protocol</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pkt2p64b_cvr/logfile.txt">12 Cover points</A></TD><TD>0:00:00</TD><TD>pkt2p64b</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pkt2p64b_cvr/logfile.txt">12 Cover points</A></TD><TD>0:00:01</TD><TD>pkt2p64b</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="pktgate_prf_awr/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>pktgate</TD><TD>_prf_awr</TD><TD rowspan=9>Attempts to guarantee complete packets</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="pktgate_prf_aw/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>pktgate</TD><TD>_prf_aw</TD></TR>
@@ -65,57 +65,57 @@
 <TR><TD bgcolor=#caeec8><A HREF="pktgate_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>pktgate</TD><TD>_prf</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="pktgate_cvr/logfile.txt">5 Cover points</A></TD><TD>0:00:01</TD><TD>pktgate</TD><TD>_cvr</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_prf/logfile.txt">Pass</A></TD><TD>1:00:04</TD><TD>pktvfiford</TD><TD>_prf</TD><TD rowspan=4>Virtual Packet FIFO (Read)</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_prf512/logfile.txt">Pass</A></TD><TD>0:30:05</TD><TD>pktvfiford</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_prf32/logfile.txt">Pass</A></TD><TD>0:10:03</TD><TD>pktvfiford</TD><TD>_prf32</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_cvr/logfile.txt">5 Cover points</A></TD><TD>1:20:44</TD><TD>pktvfiford</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_prf/logfile.txt">Pass</A></TD><TD>1:00:07</TD><TD>pktvfiford</TD><TD>_prf</TD><TD rowspan=4>Virtual Packet FIFO (Read)</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_prf512/logfile.txt">Pass</A></TD><TD>0:30:08</TD><TD>pktvfiford</TD><TD>_prf512</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_prf32/logfile.txt">Pass</A></TD><TD>0:15:04</TD><TD>pktvfiford</TD><TD>_prf32</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfiford_cvr/logfile.txt">5 Cover points</A></TD><TD>1:43:06</TD><TD>pktvfiford</TD><TD>_cvr</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_cvr/logfile.txt">7 Cover points</A></TD><TD>0:00:02</TD><TD>pktvfifowr</TD><TD>_cvr</TD><TD rowspan=4>Virtual Packet FIFO (Write)</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_prf512/logfile.txt">Pass</A></TD><TD>74:00:00</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_prf32/logfile.txt">Pass</A></TD><TD>19:00:00</TD><TD>pktvfifowr</TD><TD>_prf32</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_prf/logfile.txt">Pass</A></TD><TD>30:00:00</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_cvr/logfile.txt">7 Cover points</A></TD><TD>0:00:05</TD><TD>pktvfifowr</TD><TD>_cvr</TD><TD rowspan=4>Virtual Packet FIFO (Write)</TD></TR>
+<TR><TD bgcolor=#e5e5e5><A HREF="pktvfifowr_prf512/logfile.txt">Unknown</A></TD><TD>38:00:00</TD><TD>pktvfifowr</TD><TD>_prf512</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_prf32/logfile.txt">Pass</A></TD><TD>22:00:00</TD><TD>pktvfifowr</TD><TD>_prf32</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="pktvfifowr_prf/logfile.txt">Pass</A></TD><TD>32:00:00</TD><TD>pktvfifowr</TD><TD>_prf</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="routetbl_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>routetbl</TD><TD>_prf</TD><TD rowspan=2>Routing table algorithm</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="routetbl_cvr/logfile.txt">7 Cover points</A></TD><TD>0:00:02</TD><TD>routetbl</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="routetbl_cvr/logfile.txt">7 Cover points</A></TD><TD>0:00:03</TD><TD>routetbl</TD><TD>_cvr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="sdckgen_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>sdckgen</TD><TD>_prf</TD><TD rowspan=6>SDIO divided clock generator</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdckgen_cvrd/logfile.txt">12 Cover points</A></TD><TD>0:00:22</TD><TD>sdckgen</TD><TD>_cvrd</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdckgen_cvr/logfile.txt">9 Cover points</A></TD><TD>0:00:18</TD><TD>sdckgen</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdckgen_cvrd/logfile.txt">12 Cover points</A></TD><TD>0:00:23</TD><TD>sdckgen</TD><TD>_cvrd</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdckgen_cvr/logfile.txt">9 Cover points</A></TD><TD>0:00:19</TD><TD>sdckgen</TD><TD>_cvr</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="sdckgen_prf8/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>sdckgen</TD><TD>_prf8</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="sdckgen_prfd/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>sdckgen</TD><TD>_prfd</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdckgen_cvr8/logfile.txt">14 Cover points</A></TD><TD>0:00:20</TD><TD>sdckgen</TD><TD>_cvr8</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdckgen_cvr8/logfile.txt">14 Cover points</A></TD><TD>0:00:19</TD><TD>sdckgen</TD><TD>_cvr8</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdcmd_cvr/logfile.txt">8 Cover points</A></TD><TD>0:12:36</TD><TD>sdcmd</TD><TD>_cvr</TD><TD rowspan=3>SDIO command wire processor</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdcmd_prfds/logfile.txt">Pass</A></TD><TD>0:00:06</TD><TD>sdcmd</TD><TD>_prfds</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdcmd_prf/logfile.txt">Pass</A></TD><TD>0:00:04</TD><TD>sdcmd</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdcmd_cvr/logfile.txt">15 Cover points</A></TD><TD>0:04:31</TD><TD>sdcmd</TD><TD>_cvr</TD><TD rowspan=3>SDIO command wire processor</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdcmd_prfds/logfile.txt">Pass</A></TD><TD>0:00:01</TD><TD>sdcmd</TD><TD>_prfds</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdcmd_prf/logfile.txt">Pass</A></TD><TD>0:00:02</TD><TD>sdcmd</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prf/logfile.txt">Pass</A></TD><TD>0:01:01</TD><TD>sdrxframe</TD><TD>_prf</TD><TD rowspan=5>SDIO data receive processor</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prf/logfile.txt">Pass</A></TD><TD>0:01:02</TD><TD>sdrxframe</TD><TD>_prf</TD><TD rowspan=5>SDIO data receive processor</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prfs4/logfile.txt">Pass</A></TD><TD>0:00:03</TD><TD>sdrxframe</TD><TD>_prfs4</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prfs/logfile.txt">Pass</A></TD><TD>0:01:02</TD><TD>sdrxframe</TD><TD>_prfs</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_cvr/logfile.txt">25 Cover points</A></TD><TD>0:01:36</TD><TD>sdrxframe</TD><TD>_cvr</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prf4/logfile.txt">Pass</A></TD><TD>0:00:03</TD><TD>sdrxframe</TD><TD>_prf4</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prfs/logfile.txt">Pass</A></TD><TD>0:01:00</TD><TD>sdrxframe</TD><TD>_prfs</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_cvr/logfile.txt">25 Cover points</A></TD><TD>0:01:40</TD><TD>sdrxframe</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdrxframe_prf4/logfile.txt">Pass</A></TD><TD>0:00:04</TD><TD>sdrxframe</TD><TD>_prf4</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="sdtxframe_prfs/logfile.txt">Pass</A></TD><TD>0:00:01</TD><TD>sdtxframe</TD><TD>_prfs</TD><TD rowspan=6>SDIO data transmit generator</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_prf4/logfile.txt">Pass</A></TD><TD>0:00:01</TD><TD>sdtxframe</TD><TD>_prf4</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_cvr/logfile.txt">12 Cover points</A></TD><TD>0:01:25</TD><TD>sdtxframe</TD><TD>_cvr</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_prfs4/logfile.txt">Pass</A></TD><TD>0:00:01</TD><TD>sdtxframe</TD><TD>_prfs4</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_cvrs/logfile.txt">43 Cover points</A></TD><TD>0:02:06</TD><TD>sdtxframe</TD><TD>_cvrs</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_prf4/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>sdtxframe</TD><TD>_prf4</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_cvr/logfile.txt">12 Cover points</A></TD><TD>0:01:26</TD><TD>sdtxframe</TD><TD>_cvr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_prfs4/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>sdtxframe</TD><TD>_prfs4</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdtxframe_cvrs/logfile.txt">43 Cover points</A></TD><TD>0:02:33</TD><TD>sdtxframe</TD><TD>_cvrs</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="sdtxframe_prf/logfile.txt">Pass</A></TD><TD>0:00:01</TD><TD>sdtxframe</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#e5e5e5><A HREF="sdwb_cvr/logfile.txt">Unknown</A></TD><TD>0:27:07</TD><TD>sdwb</TD><TD>_cvr</TD><TD rowspan=5>SDIO wishbone command handler</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdwb_prfds/logfile.txt">Pass</A></TD><TD>0:00:12</TD><TD>sdwb</TD><TD>_prfds</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdwb_prf/logfile.txt">Pass</A></TD><TD>0:00:04</TD><TD>sdwb</TD><TD>_prf</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdwb_prfdma/logfile.txt">Pass</A></TD><TD>0:00:12</TD><TD>sdwb</TD><TD>_prfdma</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="sdwb_prfdr/logfile.txt">Pass</A></TD><TD>0:00:16</TD><TD>sdwb</TD><TD>_prfdr</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdwb_cvr/logfile.txt">19 Cover points</A></TD><TD>1:23:36</TD><TD>sdwb</TD><TD>_cvr</TD><TD rowspan=5>SDIO wishbone command handler</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdwb_prfds/logfile.txt">Pass</A></TD><TD>0:00:11</TD><TD>sdwb</TD><TD>_prfds</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdwb_prf/logfile.txt">Pass</A></TD><TD>0:00:05</TD><TD>sdwb</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdwb_prfdma/logfile.txt">Pass</A></TD><TD>0:00:11</TD><TD>sdwb</TD><TD>_prfdma</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="sdwb_prfdr/logfile.txt">Pass</A></TD><TD>0:00:12</TD><TD>sdwb</TD><TD>_prfdr</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="txgetports_prflp/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>txgetports</TD><TD>_prflp</TD><TD rowspan=3>AXI network packet routing table lookup</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="txgetports_cvr/logfile.txt">1 Cover points</A></TD><TD>0:00:00</TD><TD>txgetports</TD><TD>_cvr</TD></TR>
 <TR><TD bgcolor=#caeec8><A HREF="txgetports_prf/logfile.txt">Pass</A></TD><TD>0:00:00</TD><TD>txgetports</TD><TD>_prf</TD></TR>
 <TR></TR>
 <TR><TD bgcolor=#caeec8><A HREF="wbi2cdma_cvr/logfile.txt">1 Cover points</A></TD><TD>0:00:00</TD><TD>wbi2cdma</TD><TD>_cvr</TD><TD rowspan=2>Low throughput I2C DMA</TD></TR>
-<TR><TD bgcolor=#caeec8><A HREF="wbi2cdma_prf/logfile.txt">Pass</A></TD><TD>0:00:02</TD><TD>wbi2cdma</TD><TD>_prf</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="wbi2cdma_prf/logfile.txt">Pass</A></TD><TD>0:00:01</TD><TD>wbi2cdma</TD><TD>_prf</TD></TR>
 <TR></TR>
-<TR><TD bgcolor=#ffffca><A HREF="wbmarbiter_cvr/logfile.txt">Out of date</A></TD><TD>0:00:00</TD><TD>wbmarbiter</TD><TD>_cvr</TD><TD rowspan=2>Wishbone N:1 arbiter</TD></TR>
+<TR><TD bgcolor=#caeec8><A HREF="wbmarbiter_cvr/logfile.txt">1 Cover points</A></TD><TD>0:00:00</TD><TD>wbmarbiter</TD><TD>_cvr</TD><TD rowspan=2>Wishbone N:1 arbiter</TD></TR>
 <TR><TD bgcolor=#ffffca><A HREF="wbmarbiter_prf/logfile.txt">14 steps of BMC</A></TD><TD>0:00:10</TD><TD>wbmarbiter</TD><TD>_prf</TD></TR>
 </TABLE></P>
 </BODY></HTML>
