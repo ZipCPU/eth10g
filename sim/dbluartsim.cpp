@@ -100,10 +100,15 @@ int	DBLUARTSIM::setup_listener(const int port) {
 
 DBLUARTSIM::DBLUARTSIM(const int port, const bool copy_to_stdout)
 		: m_copy(copy_to_stdout) {
+	// {{{
 	m_debug = false;
 	m_con = m_cmd = -1;
-	m_skt = setup_listener(port);
-	m_console = setup_listener(port+1);
+	m_dump = NULL;
+	if (port > 0) {
+		m_skt = setup_listener(port);
+		m_console = setup_listener(port+1);
+	} else
+		m_skt = m_console = -1;
 	m_rxpos = m_cmdpos = m_conpos = m_ilen = 0;
 	m_started_flag = false;
 	setup(25);	// Set us up for (default) 8N1 w/ a baud rate of CLK/25
@@ -113,8 +118,10 @@ DBLUARTSIM::DBLUARTSIM(const int port, const bool copy_to_stdout)
 	m_tx_state = TXIDLE;
 	m_cllen = 0;
 }
+// }}}
 
 void	DBLUARTSIM::kill(void) {
+	// {{{
 	// Close any active connection
 	if (m_con >= 0)	    {
 		const	char	*SIM_CLOSED = "\n[SIM] Connection-Closed\n";
@@ -155,8 +162,10 @@ void	DBLUARTSIM::kill(void) {
 	m_console = -1;
 	m_cmd     = -1;
 }
+// }}}
 
 void	DBLUARTSIM::setup(unsigned isetup) {
+	// {{{
 	if (isetup != m_setup) {
 		m_setup = isetup;
 		m_baud_counts = (isetup & 0x0ffffff);
@@ -167,19 +176,21 @@ void	DBLUARTSIM::setup(unsigned isetup) {
 		m_evenp   = (isetup >> 24)&1;
 	}
 }
+// }}}
 
 void	DBLUARTSIM::poll_accept(void) {
+	// {{{
 	struct	pollfd	pb[2];
 	int	npb = 0;
 
 	// Check if we need to accept any connections
-	if (m_cmd < 0) {
+	if ((m_cmd < 0)&&(m_skt >= 0)) {
 		pb[npb].fd = m_skt;
 		pb[npb].events = POLLIN;
 		npb++;
 	}
 
-	if (m_con < 0) {
+	if ((m_con < 0)&&(m_console >= 0)) {
 		pb[npb].fd = m_console;
 		pb[npb].events = POLLIN;
 		npb++;
@@ -196,13 +207,13 @@ void	DBLUARTSIM::poll_accept(void) {
 				// printf("Not #%d\n", k);
 				continue;
 			}
-			if (pb[k].fd == m_skt) {
+			if ((pb[k].fd == m_skt)&&(m_skt >= 0)) {
 				m_cmd = accept(m_skt, 0, 0);
 
 				if (m_cmd < 0)
 					perror("CMD Accept failed:");
 				else printf("Accepted CMD connection\n");
-			} else if (pb[k].fd == m_console) {
+			} else if ((pb[k].fd == m_console)&&(m_console >= 0)) {
 				m_con = accept(m_console, 0, 0);
 				if (m_con < 0)
 					perror("CON Accept failed:");
@@ -213,8 +224,10 @@ void	DBLUARTSIM::poll_accept(void) {
 
 	// End of trying to accept more connections
 }
+// }}}
 
 void	DBLUARTSIM::poll_read(void) {
+	// {{{
 	struct	pollfd	pb[2];
 	int		npb = 0, r;
 
@@ -284,12 +297,23 @@ void	DBLUARTSIM::poll_read(void) {
 		}
 	} m_rxpos = 0;
 }
+// }}}
 
 void	DBLUARTSIM::received(const char ch) {
+	// {{{
 	if (ch & 0x80) {
 		m_cmdbuf[m_cmdpos++] = ch & 0x7f;
-	} else
-		m_conbuf[m_conpos++] = ch & 0x7f;
+	} else {
+		m_conbuf[m_conpos++] = ch; //  & 0x7f; No need for bitmask here
+		if (m_dump) {
+			fputc(ch, m_dump);
+
+			// Flush on any newline
+			if (ch == '\n')
+				fflush(m_dump);
+		}
+	}
+
 	if ((m_cmdpos>0)&&((m_cmdbuf[m_cmdpos-1] == '\n')
 				||(m_cmdpos >= DBLPIPEBUFLEN-2))) {
 		int	snt = 0;
@@ -330,8 +354,10 @@ void	DBLUARTSIM::received(const char ch) {
 		m_conpos = 0;
 	}
 }
+// }}}
 
 int	DBLUARTSIM::next(void) {
+	// {{{
 	// If our transmit buffer is empty, see if we can
 	// fill it.
 	if (m_ilen == 0)
@@ -345,8 +371,10 @@ int	DBLUARTSIM::next(void) {
 
 	return nval & 0x0ff;
 }
+// }}}
 
 int	DBLUARTSIM::tick(int i_tx) {
+	// {{{
 	int	o_rx = 1;
 
 	poll_accept();
@@ -433,3 +461,23 @@ int	DBLUARTSIM::tick(int i_tx) {
 
 	return o_rx;
 }
+// }}}
+
+void	DBLUARTSIM::setport(int port) {
+	// {{{
+	if (m_skt >= 0)
+		close(m_skt);
+	if (m_console >= 0)
+		close(m_console);
+	m_skt = setup_listener(port);
+	m_console = setup_listener(port+1);
+}
+// }}}
+
+void	DBLUARTSIM::dump_output(const char *fname) {
+	// {{{
+	if (m_dump)
+		fclose(m_dump);
+	m_dump = fopen(fname, "w");
+}
+// }}}

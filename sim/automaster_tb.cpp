@@ -44,7 +44,9 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
-
+#if (VM_COVERAGE > 0)
+#define COVERAGE
+#endif
 #include "verilated.h"
 #include "design.h"
 
@@ -67,6 +69,8 @@ void	usage(void) {
 #endif
 "\t-l <time>\tLimits simulation time to the given time\n"
 "\t-d\tSets the debugging flag\n"
+"\t-o <filename>\n"
+	"\t\tCopies console data to the given file\n"
 "\t-t <filename>\n"
 "\t\tTurns on tracing, sends the trace to <filename>--assumed to\n"
 "\t\tbe a vcd file\n"
@@ -86,8 +90,9 @@ int	main(int argc, char **argv) {
 #ifdef	SDSPI_ACCESS
 			*sdimage_file = NULL,
 #endif
+			*trace_file = NULL, // "trace.vcd";
 			*profile_file = NULL,
-			*trace_file = NULL; // "trace.vcd";
+			*console_file = NULL; // "";
 	bool	debug_flag = false, willexit = false, verbose_flag = false;
 	bool	use_gui __attribute__((unused)) = false;
 	FILE	*profile_fp;
@@ -111,14 +116,15 @@ int	main(int argc, char **argv) {
 				break;
 			case 'g': use_gui = true;
 				break;
+			case 'h': usage(); exit(0); break;
 			case 'l':
 				limit_time_ns = strtoul(argv[++argn], NULL, 0);
 				limit_time_ps = limit_time_ns * 1000;
 				j = 1000;
 				break;
 			case 'f': profile_file = "pfile.bin"; break;
+			case 'o': console_file = argv[++argn]; j=1000; break;
 			case 't': trace_file = argv[++argn]; j=1000; break;
-			case 'h': usage(); exit(0); break;
 			case 'v': verbose_flag = true; break;
 			default:
 				fprintf(stderr, "ERR: Unexpected flag, -%c\n\n",
@@ -177,6 +183,9 @@ int	main(int argc, char **argv) {
 	tb->m_core->cpu_sim_data = 0;
 	// tb->m_core->cpu_sim_sel  = 0;
 #endif
+	// tb->m_tb->m_wbu->setport(port);
+	if (console_file)
+		tb->m_tb->m_wbu->dump_output(console_file);
 	tb->reset();
 #ifdef	SDSPI_ACCESS
 	tb->setsdcard(sdimage_file);

@@ -137,6 +137,12 @@ public:
 	//
 	// Get the next character to transmit (if any)
 	int	next(void);
+	//
+	// Set the port
+	void	setport(int fpga_port);
+	//
+	// Set an output file to dump data to
+	void	dump_output(const char *fname);
 };
 
 #endif
