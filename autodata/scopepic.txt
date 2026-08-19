@@ -58,7 +58,7 @@
 		.i_clk(@$(SLAVE.BUS.CLOCK.WIRE)), .i_reset(1'b0),
 		@$(SLAVE.ANSIPORTLIST),
 		.i_brd_ints(@$(PIC.BUS)),
-		.o_interrupt(@$(INT.SCOPE.WIRE))
+		.o_int(@$(INT.SCOPE.WIRE))
 	);
 @MAIN.ALT=
 @REGS.N=1

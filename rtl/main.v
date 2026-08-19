@@ -3236,7 +3236,7 @@ module	main(i_clk, i_reset,
 			.i_wb_sel(wb32_scopepic_sel),  // 32/8 bits wide
 		.o_wb_stall(wb32_scopepic_stall),.o_wb_ack(wb32_scopepic_ack), .o_wb_data(wb32_scopepic_idata),
 		.i_brd_ints(scope_int_vector),
-		.o_interrupt(w_scope_int)
+		.o_int(w_scope_int)
 	);
 	// }}}
 `else	// SCOPEPIC_ACCESS

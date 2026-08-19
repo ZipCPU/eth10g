@@ -897,7 +897,7 @@ module	dcache #(
 	end endgenerate
 	// }}}
 
-	// BIG STATE machine: CYC, STB, c_v, state, etc
+	// req_count and ack_count
 	// {{{
 	generate if (OPT_WRAP)
 	begin : GEN_COUNTERS
