@@ -74,9 +74,9 @@ static	const unsigned
 	// tSE    = 1500 * MILLISECONDS;
 
 FLASHSIM::FLASHSIM(const int lglen, bool debug,
-		const int rddelay, const int ndummy)
+		const int rddelay, const int ndummy, const bool dblclk)
 			: m_debug(debug), CKDELAY(0),
-			RDDELAY(rddelay), NDUMMY(ndummy) {
+			RDDELAY(rddelay), NDUMMY(ndummy), ODDR_IO(dblclk) {
 	// {{{
 	m_membytes = (1<<lglen);
 	m_memmask = (m_membytes - 1);
@@ -135,15 +135,18 @@ void	FLASHSIM::load(const unsigned addr, const char *fname) {
 
 void	FLASHSIM::load(const uint32_t offset, const char *data,
 		const uint32_t len) {
+	// {{{
 	uint32_t	moff = (offset & (m_memmask));
 
 	memcpy(&m_mem[moff], data, len);
 }
+// }}}
 
 bool	FLASHSIM::deep_sleep(void) const {
 
 	return (m_sreg & QSPIF_DEEP_POWER_DOWN_FLAG);
 } bool	FLASHSIM::deep_sleep(bool newval) {
+	// {{{
 	if (newval)
 		m_sreg |= QSPIF_DEEP_POWER_DOWN_FLAG;
 	else
@@ -151,10 +154,12 @@ bool	FLASHSIM::deep_sleep(void) const {
 
 	return deep_sleep();
 }
+// }}}
 
 #define	QOREG(A)	m_oreg = ((m_oreg & (~0x0ff))|((A)&0x0ff))
 
 int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
+	// {{{
 	// Keep track of a timer to determine when page program and erase
 	// cycles complete.
 
@@ -747,17 +752,17 @@ assert(m_addr != 0x06080);
 	else
 		return ((m_oreg & 0x0100)?2:0)|(dat & 0x0d);
 }
+// }}}
 
 //
 // simtick
-//
+// {{{
 // Simulate an ODDR clock.  Also, adjust the timing in case the clock and
 // data are not aligned, or likewise in case the incoming data is not
 // aligned with the clock tick upon which it is sent.
 //
 int	FLASHSIM::simtick(const int csn, const int sck, const int dat,
 		const int mod) {
-	const bool	ODDR_IO = false;
 	int	lclsck;
 
 	if ((CKDELAY > 0)&&(m_ckdelay == NULL)) {
@@ -839,3 +844,4 @@ int	FLASHSIM::simtick(const int csn, const int sck, const int dat,
 
 	return r;
 }
+// }}}

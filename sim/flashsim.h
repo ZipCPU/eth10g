@@ -93,17 +93,19 @@ class	FLASHSIM {
 	unsigned	m_write_count, m_ireg, m_oreg, m_sreg, m_addr,
 			m_count, m_config, m_mode_byte, m_creg, m_membytes,
 			m_memmask, m_cmd_addrlen;
-	bool		m_debug, m_idle_throttle;
+	bool		m_debug, m_idle_throttle, m_dblclk;
 	FLASH_MODE	m_mode;
 
 	const	unsigned	CKDELAY, RDDELAY, NDUMMY;
+	const	bool		ODDR_IO;
 
 	int		*m_ckdelay, *m_rddelay;
 
 public:
 	FLASHSIM(const int lglen = 24, bool debug = false,
 		const int rddelay = FLASH_RDDELAY,
-		const int ndummy = FLASH_NDUMMY);
+		const int ndummy = FLASH_NDUMMY,
+		const bool dblclk = false);
 	void	load(const char *fname) { load(0, fname); }
 	void	load(const unsigned addr, const char *fname);
 	void	load(const uint32_t offset, const char *data, const uint32_t len);
