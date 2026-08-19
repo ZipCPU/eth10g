@@ -241,7 +241,7 @@
 #endif // @$(ACCESS)
 @SIM.INIT=
 #ifdef	@$(ACCESS)
-		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN, false, @$RDDELAY, @$NDUMMY);
+		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN, false, @$RDDELAY, @$NDUMMY, (@$(CLKDIV)==0));
 #endif // @$(ACCESS)
 @SIM.TICK=
 #ifdef	@$(ACCESS)
