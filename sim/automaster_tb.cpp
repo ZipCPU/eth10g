@@ -185,7 +185,7 @@ int	main(int argc, char **argv) {
 #endif
 	// tb->m_tb->m_wbu->setport(port);
 	if (console_file)
-		tb->m_tb->m_wbu->dump_output(console_file);
+		tb->m_wbu->dump_output(console_file);
 	tb->reset();
 #ifdef	SDSPI_ACCESS
 	tb->setsdcard(sdimage_file);

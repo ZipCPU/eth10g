@@ -72,6 +72,7 @@ public:
 		m_console, // Console port comes in/out on this socket
 		m_cmd,	// Connection to the command port FD
 		m_con;	// Connection to the console port FD
+	FILE	*m_dump;
 	char	m_conbuf[DBLPIPEBUFLEN],
 		m_cmdbuf[DBLPIPEBUFLEN],
 		m_rxbuf[DBLPIPEBUFLEN],
