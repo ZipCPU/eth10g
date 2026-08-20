@@ -2,6 +2,9 @@
 #include "txfns.h"
 
 int main(int argc, char **argv) {
+#ifndef	_BOARD_HAS_DDR3_CONTROLLER
+	txstr("ERR: This program only works when built with the uberDDR3 controller\n");
+#else
 	const int	NLANES = 8;
 
 	for(int k=0; k<NLANES; k++) {
@@ -21,4 +24,5 @@ int main(int argc, char **argv) {
 		txstr("  18.CHECK-WORD (== 0x50): 0x"); txhex(lanep[18]); txstr("\n");
 		}
 	}
+#endif
 }

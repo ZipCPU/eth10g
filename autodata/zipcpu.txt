@@ -136,6 +136,15 @@
 	localparam	RESET_ADDRESS = @$(/bkram.BASE);
 `endif	// FLASH_ACCESS
 `endif	// BKROM_ACCESS
+`ifdef	DDR3_CONTROLLER_ACCESS
+	localparam	CPU_BOOTRAM = 31'h@$[%08x](ddr3_controller.REGBASE);
+`else
+`ifdef	SDRAM_ACCESS
+	localparam	CPU_BOOTRAM = 31'h@$[%08x](sdram.REGBASE);
+`else
+	localparam	CPU_BOOTRAM = 31'h@$[%08x](bkram.REGBASE);
+`endif
+`endif
 	//
 	// The number of valid bits on the bus
 	localparam	ZIP_ADDRESS_WIDTH = @$(MASTER.BUS.AWID); // Zip-CPU address width

@@ -132,8 +132,12 @@
 	) @$(PREFIX)i(
 		// {{{
 		i_clk, @$(SLAVE.PORTLIST),
+`ifdef	DDR3_CONTROLLER_ACCESS
 		i_@$(PREFIX) | (ign_ddr3_controller_calib_complete
 			? 16'h40 : 16'h0),
+`else
+		i_@$(PREFIX),
+`endif
 		o_@$(PREFIX), @$(PREFIX)_int
 		// }}}
 	);
