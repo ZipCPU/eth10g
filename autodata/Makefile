@@ -59,9 +59,12 @@ CPU     := zipmaster.txt
 ## NETWORK := netduplex.txt		# Pass through test, no routing
 NETWORK := netrouter.txt cpunet.txt netstats.txt	# Full router, virtual FIFOs, CPU FIFO
 GFX     := # hdmi.txt cec.txt edid.txt
-SCOPES  := scopepic.txt routescope.txt i2cscope.txt netscope.txt emmcscope.txt satascope.txt zipscope.txt
-# Unused scopes: cpunetscope.txt hdmiclrscope.txt rxedidscope.txt flashscope.txt
-#	fanscope.txt cfgscope.txt gatescope.txt sdioscope.txt busscope.txt
+NETSCOPES := routescope.txt netscope.txt gatescope.txt	# cpunetscope.txt
+SSDSCOPES := emmcscope.txt satascope.txt	# sdioscope.txt
+HDMISCOPE := hdmiclrscope.txt rxedidscope.txt
+CPUSCOPE  := zipscope.txt
+SCOPES  := scopepic.txt i2cscope.txt $(CPUSCOPE) $(SSDSCOPES) $(NETSCOPES)
+# Unused scopes: flashscope.txt fanscope.txt cfgscope.txt busscope.txt
 LDSCRIPT:= mem_bkram_only.txt mem_sdram_only.txt mem_flash_bkram.txt mem_full.txt # mem_bootrom_bkram.txt
 OTHER   := i2ccpu.txt fan.txt sirefclkcounter.txt netclk.txt
 DATA := $(CLOCKS) $(BASE) $(AUX) $(IO) $(DBGBUS) $(CPU)		\

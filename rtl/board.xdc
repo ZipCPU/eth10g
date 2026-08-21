@@ -641,7 +641,13 @@ set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_refnetclk/avgs_r
 ## No XDC.INSERT tag in i2cdma
 ## No XDC.INSERT tag in mem_full
 ## No XDC.INSERT tag in mem_bkram_only
-## No XDC.INSERT tag in zipscope
+## From netlock
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
+## No XDC.INSERT tag in routescope
+## From netdbg
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
+## No XDC.INSERT tag in satatscope
 ## From satapscope
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satapscope/new_data*}] 8
 set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_rx_cdrhold*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satapscope/qd_data*}] 8
@@ -677,14 +683,9 @@ set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_s
 ## From satarxck
 set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satarxck/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satarxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in emmcscope
-## From netlock
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_phy/GEN_GTX*.u_xgtx*}] -to [get_cells -hier -filter {NAME=~ thedesign/r_netlock_phy_locked*}] 7.0
-## No XDC.INSERT tag in satatscope
-## From netdbg
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/tx_reset_n*}] -to [get_cells -hier -filter {NAME=~thedesign/netdbg_netleds*}] 8.0
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/GEN_ETHERNET_DECODE*u_netpath/u_p642pkt/link_up_counter_r*}] -to [get_cells -hier -filter {NAME=~ thedesign/netdbg_netleds_r*}] 10.0
+## No XDC.INSERT tag in zipscope
+## No XDC.INSERT tag in gatescope
 ## No XDC.INSERT tag in i2cscope
-## No XDC.INSERT tag in routescope
 ## No XDC.INSERT tag in scopepic
 ## From gnet
 create_clock -period 3.2 -name TXNETCK -waveform { 0 1.6 } -add [get_nets -filter {NAME=~gnet_tx_clk*}]

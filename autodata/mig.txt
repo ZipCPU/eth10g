@@ -193,7 +193,7 @@
 #endif	// @$(ACCESS)
 @SIM.INIT=
 #ifdef	@$(ACCESS)
-		m_@$(PREFIX) = new MEMSIM(@$(NBYTES));
+		m_@$(PREFIX) = new MEMSIM(@$(NADDR));
 #endif	// @$(ACCESS)
 @SIM.CLOCK=@$(SLAVE.BUS.CLOCK.NAME)
 @SIM.TICK=
