@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
 	int	skp=0;
 	const char *host = FPGAHOST;
 	int	port=FPGAPORT;
-	unsigned	net_clk[6], net_reset, net_lock;
+	unsigned	net_clk[6], net_reset, net_lock, net_dbg;
 
 	skp=1;
 	for(int argn=0; argn<argc-skp; argn++) {
@@ -142,6 +142,11 @@ int main(int argc, char **argv) {
 	// R_NETSTAT
 	m_fpga->readi(R_NETSTAT, sizeof(sbuf)/sizeof(unsigned), sbuf);
 	// R_NETDBG
+#ifdef	R_NETDBG
+	net_dbg = m_fpga->readio(R_NETDBG);
+#else
+	net_dbg = 0;
+#endif
 
 	// R_CPUNET
 	// {{{
@@ -184,14 +189,16 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
+	printf("Net Lock   :    0x%08x\n", net_lock);
+
 	// Lock info
 	// {{{
 	if (0 == (net_lock & 0x010))
-		printf("Net PHY PLL:    No lock\n");
+		printf("   PHY PLLs:    No lock\n");
 	else if (0x0f == (net_lock & 0x0f)) {
-		printf("Net PHY PLL:    All four channels locked\n");
+		printf("   PHY PLLs:    All four channels locked\n");
 	} else {
-		printf("Net PHY PLL:    ");
+		printf("   PHY PLLs:    ");
 		for(int n=0; n<4; n++) {
 			if (net_lock & (1<<n))
 				printf("#%d Locked ", n);
@@ -203,9 +210,9 @@ int main(int argc, char **argv) {
 	}
 
 	if (0 == (net_lock & 0x0f00))
-		printf("Net LOS:        All signals present\n");
+		printf("    LOS    :    All signals present\n");
 	else {
-		printf("Net LOS:        ");
+		printf("    LOS    :    ");
 
 		for(int n=0; n<4; n++) {
 			if (net_lock & (0x100 << n)) {
@@ -218,7 +225,20 @@ int main(int argc, char **argv) {
 	}
 	// }}}
 
+	// NetDBG info
+	// {{{
+	printf("Net Debug  :    0x%08x\n", net_dbg);
+	printf("  Debug    :      Ch #%d\n", net_dbg & 0x3);
+	printf("  LinkUp   :    %d-%d-%d-%d\n",
+			(net_dbg & 0x020) ? 1:0, (net_dbg & 0x010) ? 1:0,
+			(net_dbg & 0x008) ? 1:0, (net_dbg & 0x004) ? 1:0);
+	printf("  Activity :    %d-%d-%d-%d\n",
+			(net_dbg & 0x200) ? 1:0, (net_dbg & 0x100) ? 1:0,
+			(net_dbg & 0x080) ? 1:0, (net_dbg & 0x040) ? 1:0);
+	// }}}
+
 	for(int n=0; n<4; n++) {	// Router stats
+		// {{{
 		unsigned	*macp = &ubuf[32 + 4*n], *vpkt = &ubuf[16+ 4*n];
 		printf("Route #%d\n", n);
 		printf("  Last RX MAC:     %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -275,6 +295,7 @@ int main(int argc, char **argv) {
 		printf("  FIFO TX Bytes:   %10d (0x%08x)\n", vpkt[1], vpkt[1]);
 		printf("  FIFO Packets:    %10d (0x%08x)\n", vpkt[2], vpkt[2]);
 		printf("  FIFO Bytes:      %10d (0x%08x)\n", vpkt[3], vpkt[3]);
+		// }}}
 	}
 
 	printf("ROUTE-NEVER:       %02x,%02x,%02x,%02x|%02x -- 0x%08x\n",
@@ -285,6 +306,7 @@ int main(int argc, char **argv) {
 			(ubuf[58] >> 24) & 0x3f,
 			ubuf[58]);
 		for(int n=0; n<5; n++) {
+			// {{{
 			// 58 = 0x3a
 			unsigned	unvr = (ubuf[58] >> (n*6)) & 0x03f;
 
@@ -303,6 +325,7 @@ int main(int argc, char **argv) {
 						printf("%1d ", u);
 				}
 			} printf("\n");
+			// }}}
 		}
 	printf("ROUTE-ALWAYS:      %02x,%02x,%02x,%02x|%02x -- 0x%08x\n",
 			(ubuf[59] >>  0) & 0x3f,
@@ -312,6 +335,7 @@ int main(int argc, char **argv) {
 			(ubuf[59] >> 24) & 0x3f,
 			ubuf[59]);
 		for(int n=0; n<5; n++) {
+			// {{{
 			// 59 = 0x3b
 			unsigned	unow = (ubuf[59] >> (n*6)) & 0x03f;
 
@@ -330,6 +354,7 @@ int main(int argc, char **argv) {
 						printf("%1d ", u);
 				}
 			} printf("\n");
+			// }}}
 		}
 	/*
 	for(int k=0; k<64; k++) {
@@ -350,6 +375,8 @@ int main(int argc, char **argv) {
 	}
 	*/
 
+	// CPU Net VFIFO
+	// {{{
 	{
 		printf("CPU-Net ---\n");
 		printf("  CPU MAC:                 %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -384,6 +411,7 @@ int main(int argc, char **argv) {
 		printf("  CPU VFIFO RX DBG:         0x%08x\n", cbuf[24]);
 		printf("  CPU VFIFO TX DBG:         0x%08x\n", cbuf[25]);
 	}
+	// }}}
 
 
 	delete	m_fpga;

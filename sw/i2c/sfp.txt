@@ -1,54 +1,108 @@
 	I2CMX=0xe8		// b1110_100x -> x74
-	SFP=0xa0		// b1010_001x -> x50
+	SFP=0xa0		// b1010_000x -> x50
+	SFPX=0xa2		// b1010_001x -> x51
 
 	TARGET
 	CHANNEL	2
 	ABORT
+	// Channel #0
+	// {{{
+	Set the MUX
 	START
 	SEND	I2CMX|WR
 	SEND	0x08
 	STOP
+	// Read from 0xA0
+	//  Send the address
 	START
-	SEND	SFP|WR	
+	SEND	SFP|WR
 		0x00		// Starting address
+	//  Get the data
 	START
 	SEND	SFP|RD
 	RXN	96
-	STOP
 	//
+	// Read from 0xA2
+	//  Send the address
+	START
+	SEND	SFPX|WR
+		0x00		// Starting address
+	//  Get the data
+	START
+	SEND	SFPX|RD
+	RXN	128
+	STOP
+	// }}}
+	// Channel #1
+	// {{{
 	START
 	SEND	I2CMX|WR
 		0x10
 	STOP
 	START
-	SEND	SFP|WR	
+	SEND	SFP|WR
 		0x00		// Starting address
 	START
 	SEND	SFP|RD
 	RXN	96
-	STOP
 	//
+	// Read from 0xA2
+	//  Send the address
+	START
+	SEND	SFPX|WR
+		0x00		// Starting address
+	//  Get the data
+	START
+	SEND	SFPX|RD
+	RXN	128
+	STOP
+	// }}}
+	// Channel #2
+	// {{{
 	START
 	SEND	I2CMX|WR
 		0x20
 	STOP
 	START
-	SEND	SFP|WR	
+	SEND	SFP|WR
 		0x00		// Starting address
 	START
 	SEND	SFP|RD
 	RXN	96
-	STOP
 	//
+	// Read from 0xA2
+	//  Send the address
+	START
+	SEND	SFPX|WR
+		0x00		// Starting address
+	//  Get the data
+	START
+	SEND	SFPX|RD
+	RXN	128
+	STOP
+	// }}}
+	// Channel #3
+	// {{{
 	START
 	SEND	I2CMX|WR
 		0x40
 	STOP
 	START
-	SEND	SFP|WR	
+	SEND	SFP|WR
 		0x00		// Starting address
 	START
 	SEND	SFP|RD
-	RXLN	96
+	RXN	96
+	//
+	// Read from 0xA2
+	//  Send the address
+	START
+	SEND	SFPX|WR
+		0x00		// Starting address
+	//  Get the data
+	START
+	SEND	SFPX|RD
+	RXLN	128
 	STOP
+	// }}}
 	HALT

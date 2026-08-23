@@ -276,12 +276,15 @@ module	netpath #(
 
 	// 32:66b Gearbox
 	// {{{
+	wire		rx66b_lock;
+
 	p66brxgears
 	u_p66brxgears (
 		.i_clk(i_rx_clk), .i_reset(!rx_reset_n),
 		.i_data(i_raw_data),
 		.M_VALID(rx66b_valid),
-		.M_DATA( rx66b_data)
+		.M_DATA( rx66b_data),
+		.o_locked(rx66b_lock)
 	);
 	// }}}
 
@@ -302,6 +305,12 @@ module	netpath #(
 		.o_rd_empty(rx_fast_empty)
 	);
 	assign	rx_fast_valid = !rx_fast_empty;
+
+	(* ASYNC_REG="TRUE" *)
+	reg	rx66b_lock_pipe, rx66b_lock_slow;
+	always @(posedge i_fast_clk)
+		{ rx66b_lock_slow, rx66b_lock_pipe }
+					<= { rx66b_lock_pipe, rx66b_lock };
 	// }}}
 
 	// Descramble the incoming data
@@ -640,7 +649,7 @@ module	netpath #(
 		o_pkt_debug[13:0] <= {
 			// 7b
 			TXWD_VALID, TXWD_READY, TXWD_LAST, TXWD_ABORT,
-				TXWD_BYTES,	// 3b
+				TXWD_BYTES,	// 3b for BYTES only
 			// 7b more
 			FULL_VALID, FULL_READY, FULL_LAST, FULL_ABORT,
 				FULL_BYTES	// 3b
@@ -651,7 +660,7 @@ module	netpath #(
 			(!o_pkt_debug[4] || !o_pkt_debug[5]) && !FULL_VALID))
 		begin
 			o_pkt_debug[14] <= 1'b1;
-			o_pkt_debug[31] <= 1'b1;
+			o_pkt_debug[31] <= 1'b1;	// TRIGGER!
 		end
 
 		o_pkt_debug[15] <= u_pktgate.output_active;
@@ -666,6 +675,9 @@ module	netpath #(
 		o_pkt_debug[23] <= fast_dbgfifo_full;
 
 		o_pkt_debug[29:24] <= u_pktgate.fill[5:0];
+		if (!rx66b_lock_slow)
+			o_pkt_debug[29:24] <= 6'h3f;
+		o_pkt_debug[30] <= rx_link_up;
 	end
 	// }}}
 

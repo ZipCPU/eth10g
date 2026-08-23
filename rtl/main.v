@@ -106,9 +106,17 @@
 `ifdef	ETH_ROUTER
 `define	NETRESET_ACCESS
 `endif	// ETH_ROUTER
+// Deplist for @$(PREFIX)=flashcfg
+`ifdef	FLASH_ACCESS
+`define	FLASHCFG_ACCESS
+`endif	// FLASH_ACCESS
 // Deplist for @$(PREFIX)=routescope
 `ifdef	ETH_ROUTER
 `define	ROUTESCOPE_SCOPC
+`endif	// ETH_ROUTER
+// Deplist for @$(PREFIX)=netdbg
+`ifdef	ETH_ROUTER
+`define	NETDBG_ACCESS
 `endif	// ETH_ROUTER
 // Deplist for @$(PREFIX)=satapscope
 `ifdef	SATA_ACCESS
@@ -118,6 +126,14 @@
 `ifdef	SATA_ACCESS
 `define	SATADRPSCOPE_SCOPC
 `endif	// SATA_ACCESS
+// Deplist for @$(PREFIX)=satarxck
+`ifdef	SATA_ACCESS
+`define	SATARXCOUNTER_ACCESS
+`endif	// SATA_ACCESS
+// Deplist for @$(PREFIX)=zipscope
+`ifdef	INCLUDE_ZIPCPU
+`define	ZIPSCOPE_SCOPE
+`endif	// INCLUDE_ZIPCPU
 // Deplist for @$(PREFIX)=satarscope
 `ifdef	SATA_ACCESS
 `define	SATARSCOPE_SCOPC
@@ -138,18 +154,6 @@
 `ifdef	ETH_ROUTER
 `define	GATESCOPE_SCOPC
 `endif	// ETH_ROUTER
-// Deplist for @$(PREFIX)=zipscope
-`ifdef	INCLUDE_ZIPCPU
-`define	ZIPSCOPE_SCOPE
-`endif	// INCLUDE_ZIPCPU
-// Deplist for @$(PREFIX)=satarxck
-`ifdef	SATA_ACCESS
-`define	SATARXCOUNTER_ACCESS
-`endif	// SATA_ACCESS
-// Deplist for @$(PREFIX)=flashcfg
-`ifdef	FLASH_ACCESS
-`define	FLASHCFG_ACCESS
-`endif	// FLASH_ACCESS
 // Deplist for @$(PREFIX)=satatscope
 `ifdef	SATA_ACCESS
 `define	SATATSCOPE_SCOPC
@@ -2869,6 +2873,8 @@ module	main(i_clk, i_reset,
 	// }}}
 `endif	// ROUTESCOPE_SCOPC
 
+`ifdef	NETDBG_ACCESS
+	// {{{
 	assign	wb32_netdbg_stall = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -2888,6 +2894,12 @@ module	main(i_clk, i_reset,
 		{(8-NETDEVS){1'b0}}, netdbg_netleds[NETDEVS +: NETDEVS],
 		{(8-NETDEVS){1'b0}}, netdbg_netleds[0 +: NETDEVS],
 		{(8-$clog2(NETDEVS)){1'b0}}, netdbg_netdbg };
+
+	// }}}
+`else	// NETDBG_ACCESS
+	// {{{
+	// }}}
+`endif	// NETDBG_ACCESS
 
 `ifdef	SATATSCOPE_SCOPC
 	// {{{
@@ -3375,7 +3387,13 @@ module	main(i_clk, i_reset,
 		);
 	end endgenerate
 
+`ifdef	NETDBG_ACCESS
+	// Verilator lint_off WIDTH
+	assign	net_pkt_debug = netgate_debug >> (32 * netdbg_netdbg);
+	// Verilator lint_on  WIDTH
+`else
 	assign	net_pkt_debug = netgate_debug[32*2 +: 32];
+`endif
 
 	////////////////////////////////////////////////////////////////////////
 	//

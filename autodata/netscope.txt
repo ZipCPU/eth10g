@@ -80,6 +80,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_gnet_gtx_p
 ##
 ##
 @PREFIX=netdbg
+@ACCESS=NETDBG_ACCESS
 @DEPENDS=ETH_ROUTER
 @SLAVE.BUS=wb32
 @NADDR=1

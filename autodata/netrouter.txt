@@ -201,7 +201,13 @@
 		);
 	end endgenerate
 
+`ifdef	NETDBG_ACCESS
+	// Verilator lint_off WIDTH
+	assign	net_pkt_debug = netgate_debug >> (32 * netdbg_netdbg);
+	// Verilator lint_on  WIDTH
+`else
 	assign	net_pkt_debug = netgate_debug[32*2 +: 32];
+`endif
 
 	////////////////////////////////////////////////////////////////////////
 	//

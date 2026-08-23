@@ -247,14 +247,15 @@ module	netdbggen (
 	if (!ctrl_valid || (ctrl_ready && ctrl_last))
 		ctrl_wide_data <= ctrl_fifo_data;
 	else if (ctrl_ready)
+		// ctrl_wide_data[2 +: 64] <= 16'h0, ctrl_wide_data[2+16 +: 48]
 		ctrl_wide_data <= { ctrl_wide_data[66 +: 2+8], 16'h0,
 				ctrl_wide_data[2+16 +: 48],
 					ctrl_wide_data[1:0] };
 	// }}}
 
 	assign	ctrl_data = { ctrl_wide_data[66+8 +: 2], 3'b001,
-				ctrl_wide_data[66 +: 8],
-				ctrl_wide_data[0 +: 16+2] };
+				ctrl_wide_data[66 +: 8],	// 8b counter
+				ctrl_wide_data[0 +: 16+2] };	// 2+16
 
 	// ctrl_last, ctrl_dcount
 	// {{{

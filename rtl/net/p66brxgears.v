@@ -43,7 +43,8 @@ module p66brxgears (
 
 		input	wire	[31:0]	i_data,
 		output	wire		M_VALID,
-		output	wire	[65:0]	M_DATA
+		output	wire	[65:0]	M_DATA,
+		output	wire		o_locked
 		// }}}
 	);
 
@@ -156,6 +157,7 @@ module p66brxgears (
 	// {{{
 	assign	M_VALID = rx_valid && lock_count[LOCKMSB];
 	assign	M_DATA  = al_data;
+	assign	o_locked= lock_count[LOCKMSB];
 	// }}}
 
 	// Keep Verilator happy
