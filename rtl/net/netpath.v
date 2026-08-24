@@ -129,8 +129,11 @@ module	netpath #(
 		// }}}
 	) (
 		// {{{
-		input	wire		i_rx_clk, i_tx_clk, i_reset_n,
-		input	wire		i_sys_clk, i_fast_clk,
+		input	wire		i_rx_clk, i_tx_clk,	// 322.5MHz
+					i_reset_n,
+		input	wire		i_sys_clk,		// 100MHz
+					i_fast_clk,		// 156.25MHz
+		input	wire		i_cfg_invert,
 		output	wire		o_link_up, o_activity,
 		// PHY interface
 		// {{{
@@ -322,7 +325,7 @@ module	netpath #(
 		.i_clk(i_fast_clk), .i_reset_n(fast_reset_n),
 		.i_valid(rx_fast_valid),
 		.o_ready(rx_fast_ready),
-		.i_data(rx_fast_data),
+		.i_data(rx_fast_data ^ {(66){i_cfg_invert}}),
 		//
 		.o_valid(rx_valid),
 		.i_ready(rx_ready),

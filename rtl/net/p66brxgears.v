@@ -72,7 +72,7 @@ module p66brxgears (
 	// pre-state: register the data -- for timing's sake
 	always @(posedge i_clk)
 		r_data <= i_data;
-	
+
 	// { rx_count } = # of bits in our shift register
 	// rx_valid = (66 or more bits in the shift register)
 	always @(posedge i_clk)

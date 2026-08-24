@@ -165,6 +165,7 @@
 			.i_sys_clk(i_clk),
 			.i_fast_clk(i_clk200),
 			.i_reset_n(!i_reset),
+			.i_cfg_invert(1'b1),
 			.i_rx_clk(i_@$(PREFIX)_rx_clk[g_@$(PREFIX)]),
 			.i_tx_clk(i_@$(PREFIX)_tx_clk[g_@$(PREFIX)]),
 			.o_link_up(o_@$(PREFIX)_linkup[g_@$(PREFIX)]),
