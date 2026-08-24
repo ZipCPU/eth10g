@@ -1,0 +1,84 @@
+% script -c "iperf3 -c 192.168.15.200 -bidir -i 60 -b0 -t 300 -u -l65507B -P 8"
+Script started on 2026-08-24 20:53:48+02:00 [TERM="screen.xterm-256color" TTY="/dev/pts/0" COLUMNS="80" LINES="24"]
+Connecting to host 192.168.15.200, port 5201
+[  4] local 192.168.15.201 port 57686 connected to 192.168.15.200 port 5201
+[  6] local 192.168.15.201 port 49340 connected to 192.168.15.200 port 5201
+[  8] local 192.168.15.201 port 46466 connected to 192.168.15.200 port 5201
+[ 10] local 192.168.15.201 port 41364 connected to 192.168.15.200 port 5201
+[ 12] local 192.168.15.201 port 59218 connected to 192.168.15.200 port 5201
+[ 14] local 192.168.15.201 port 58583 connected to 192.168.15.200 port 5201
+[ 16] local 192.168.15.201 port 32799 connected to 192.168.15.200 port 5201
+[ 18] local 192.168.15.201 port 38748 connected to 192.168.15.200 port 5201
+[ ID] Interval           Transfer     Bandwidth       Total Datagrams
+[  4]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[  6]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[  8]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[ 10]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[ 12]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[ 14]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[ 16]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[ 18]   0.00-60.00  sec  8.64 GBytes  1.24 Gbits/sec  141660  
+[SUM]   0.00-60.00  sec  69.1 GBytes  9.90 Gbits/sec  1133280  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[  4]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[  6]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[  8]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[ 10]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[ 12]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[ 14]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[ 16]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[ 18]  60.00-120.00 sec  8.66 GBytes  1.24 Gbits/sec  141950  
+[SUM]  60.00-120.00 sec  69.3 GBytes  9.92 Gbits/sec  1135600  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[  4] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[  6] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[  8] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[ 10] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[ 12] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[ 14] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[ 16] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[ 18] 120.00-180.00 sec  8.66 GBytes  1.24 Gbits/sec  141910  
+[SUM] 120.00-180.00 sec  69.3 GBytes  9.92 Gbits/sec  1135280  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[  4] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[  6] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[  8] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[ 10] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[ 12] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[ 14] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[ 16] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[ 18] 180.00-240.00 sec  8.66 GBytes  1.24 Gbits/sec  141990  
+[SUM] 180.00-240.00 sec  69.3 GBytes  9.92 Gbits/sec  1135920  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[  4] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[  6] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[  8] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[ 10] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[ 12] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[ 14] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[ 16] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[ 18] 240.00-300.00 sec  8.65 GBytes  1.24 Gbits/sec  141800  
+[SUM] 240.00-300.00 sec  69.2 GBytes  9.91 Gbits/sec  1134400  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bandwidth       Jitter    Lost/Total Datagrams
+[  4]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  211.032 ms  653149/653194 (1e+02%)  
+[  4] Sent 653194 datagrams
+[  6]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  211.182 ms  653149/653194 (1e+02%)  
+[  6] Sent 653194 datagrams
+[  8]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  240.236 ms  653151/653194 (1e+02%)  
+[  8] Sent 653194 datagrams
+[ 10]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  61.966 ms  653131/653195 (1e+02%)  
+[ 10] Sent 653195 datagrams
+[ 12]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  185.576 ms  653148/653195 (1e+02%)  
+[ 12] Sent 653195 datagrams
+[ 14]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  103.926 ms  653138/653194 (1e+02%)  
+[ 14] Sent 653194 datagrams
+[ 16]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  185.645 ms  653144/653191 (1e+02%)  
+[ 16] Sent 653191 datagrams
+[ 18]   0.00-300.00 sec  43.3 GBytes  1.24 Gbits/sec  118.161 ms  653139/653193 (1e+02%)  
+[ 18] Sent 653193 datagrams
+[SUM]   0.00-300.00 sec   346 GBytes  9.91 Gbits/sec  164.715 ms  5225149/5225550 (1e+02%)  
+
+iperf Done.
+
+Script done on 2026-08-24 20:58:48+02:00 [COMMAND_EXIT_CODE="0"]
