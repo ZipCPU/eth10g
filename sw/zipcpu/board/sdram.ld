@@ -65,10 +65,10 @@ MEMORY
 _bkram    = ORIGIN(bkram);
 _flash    = ORIGIN(flash);
 _sdram    = ORIGIN(sdram);
-_scopepic = 0x020009e8;
-_rtccount = 0x020009d8;
-_pwrcount = 0x020009d4;
-_uart = 0x02000600;
+_scopepic = 0x02000a68;
+_rtccount = 0x02000a58;
+_pwrcount = 0x02000a54;
+_uart = 0x02000680;
 /* LD.DEFNS from zipmaster.txt */
 _kram  = 0; /* No high-speed kernel RAM */
 _ram   = ORIGIN(sdram);

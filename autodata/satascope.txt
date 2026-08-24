@@ -132,6 +132,24 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 ##
 ##
 ##
+##
+@PREFIX=satarxscope
+@DEVID=SATARXSCOPE
+@DEPENDS=SATA_ACCESS
+@TARGET=w_sata_dbg_reset
+@TRIGGER=i_sata_rxphy_syncd
+@DEBUG={ i_sata_rxphy_syncd, i_sata_rxphy_primitive, i_sata_rxphy_data[28:0] }
+@SYNCHRONOUS=0
+@DATA_CLOCK=i_sata_rxphy_clk
+@$LOG_CAPTURE_SIZE=10
+@INCLUDEFILE=wbscopc.txt
+@INT.SATARXSCOPE.PIC=scopepic
+@INT.SATARXSCOPE.WIRE=@$(PREFIX)_int
+@MAIN.DEFNS=
+@XDC.INSERT=
+##
+##
+##
 @PREFIX=satarefcounter
 @DEVID=SATAREFCOUNTER
 @DEPENDS=SATA_ACCESS

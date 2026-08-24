@@ -72,10 +72,10 @@ _rom   = ORIGIN(flash);
 _top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
 
 
-_scopepic = 0x020009e8;
-_rtccount = 0x020009d8;
-_pwrcount = 0x020009d4;
-_uart = 0x02000600;
+_scopepic = 0x02000a68;
+_rtccount = 0x02000a58;
+_pwrcount = 0x02000a54;
+_uart = 0x02000680;
 /* LD.SCRIPT from mem_flash_bkram */
 SECTIONS
 {

@@ -102,6 +102,10 @@
 `ifdef	ETH_ROUTER
 `define	CPUNET_ACCESS
 `endif	// ETH_ROUTER
+// Deplist for @$(PREFIX)=satarxscope
+`ifdef	SATA_ACCESS
+`define	SATARXSCOPE_SCOPC
+`endif	// SATA_ACCESS
 // Deplist for @$(PREFIX)=netreset
 `ifdef	ETH_ROUTER
 `define	NETRESET_ACCESS
@@ -703,6 +707,7 @@ module	main(i_clk, i_reset,
 	wire	netscope_int;	// netscope.INT.NETSCOPE.WIRE
 	wire	cpunet_tx_int;	// cpunet.INT.TXNET.WIRE
 	wire	cpunet_rx_int;	// cpunet.INT.RXNET.WIRE
+	wire	satarxscope_int;	// satarxscope.INT.SATARXSCOPE.WIRE
 	wire	uartrxf_int;	// uart.INT.UARTRXF.WIRE
 	wire	uarttx_int;	// uart.INT.UARTTX.WIRE
 	wire	uarttxf_int;	// uart.INT.UARTTXF.WIRE
@@ -1333,6 +1338,15 @@ module	main(i_clk, i_reset,
 	wire	[3:0]	wb32_satarscope_sel;
 	wire		wb32_satarscope_stall, wb32_satarscope_ack, wb32_satarscope_err;
 	wire	[31:0]	wb32_satarscope_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus wb32, component satarxscope
+	// Verilator lint_off UNUSED
+	wire		wb32_satarxscope_cyc, wb32_satarxscope_stb, wb32_satarxscope_we;
+	wire	[10:0]	wb32_satarxscope_addr;
+	wire	[31:0]	wb32_satarxscope_data;
+	wire	[3:0]	wb32_satarxscope_sel;
+	wire		wb32_satarxscope_stall, wb32_satarxscope_ack, wb32_satarxscope_err;
+	wire	[31:0]	wb32_satarxscope_idata;
 	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus wb32, component satatscope
 	// Verilator lint_off UNUSED
@@ -1975,6 +1989,9 @@ module	main(i_clk, i_reset,
 `ifdef	SATARSCOPE_SCOPC
 	assign	wb32_satarscope_err= 1'b0;
 `endif	// SATARSCOPE_SCOPC
+`ifdef	SATARXSCOPE_SCOPC
+	assign	wb32_satarxscope_err= 1'b0;
+`endif	// SATARXSCOPE_SCOPC
 `ifdef	SATATSCOPE_SCOPC
 	assign	wb32_satatscope_err= 1'b0;
 `endif	// SATATSCOPE_SCOPC
@@ -2018,24 +2035,25 @@ module	main(i_clk, i_reset,
 	//
 	//
 	wbxbar #(
-		.NM(1), .NS(24), .AW(11), .DW(32),
+		.NM(1), .NS(25), .AW(11), .DW(32),
 		.SLAVE_ADDR({
 			// Address width    = 11
 			// Address LSBs     = 2
 			{ 11'h400 }, //      satadrp: 0x1000
 			{ 11'h380 }, //     netstats: 0x0e00
 			{ 11'h300 }, //     ddr3_phy: 0x0c00
-			{ 11'h280 }, //         gnet: 0x0a00
-			{ 11'h260 }, //     wb32_dio: 0x0980
-			{ 11'h240 }, //       cpunet: 0x0900
-			{ 11'h220 }, //          cfg: 0x0880
-			{ 11'h200 }, //         sdio: 0x0800
-			{ 11'h1e0 }, //         emmc: 0x0780
-			{ 11'h1c0 }, //         sata: 0x0700
-			{ 11'h1a0 }, //          fan: 0x0680
-			{ 11'h180 }, //         uart: 0x0600
-			{ 11'h160 }, //     zipscope: 0x0580
-			{ 11'h140 }, //   satatscope: 0x0500
+			{ 11'h2c0 }, //         gnet: 0x0b00
+			{ 11'h280 }, //     wb32_dio: 0x0a00
+			{ 11'h260 }, //       cpunet: 0x0980
+			{ 11'h240 }, //          cfg: 0x0900
+			{ 11'h220 }, //         sdio: 0x0880
+			{ 11'h200 }, //         emmc: 0x0800
+			{ 11'h1e0 }, //         sata: 0x0780
+			{ 11'h1c0 }, //          fan: 0x0700
+			{ 11'h1a0 }, //         uart: 0x0680
+			{ 11'h180 }, //     zipscope: 0x0600
+			{ 11'h160 }, //   satatscope: 0x0580
+			{ 11'h140 }, //  satarxscope: 0x0500
 			{ 11'h120 }, //   satarscope: 0x0480
 			{ 11'h100 }, //   satapscope: 0x0400
 			{ 11'h0e0 }, //   satalscope: 0x0380
@@ -2064,6 +2082,7 @@ module	main(i_clk, i_reset,
 			{ 11'h7e0 }, //         uart
 			{ 11'h7e0 }, //     zipscope
 			{ 11'h7e0 }, //   satatscope
+			{ 11'h7e0 }, //  satarxscope
 			{ 11'h7e0 }, //   satarscope
 			{ 11'h7e0 }, //   satapscope
 			{ 11'h7e0 }, //   satalscope
@@ -2124,6 +2143,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_cyc,
 			wb32_zipscope_cyc,
 			wb32_satatscope_cyc,
+			wb32_satarxscope_cyc,
 			wb32_satarscope_cyc,
 			wb32_satapscope_cyc,
 			wb32_satalscope_cyc,
@@ -2150,6 +2170,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_stb,
 			wb32_zipscope_stb,
 			wb32_satatscope_stb,
+			wb32_satarxscope_stb,
 			wb32_satarscope_stb,
 			wb32_satapscope_stb,
 			wb32_satalscope_stb,
@@ -2176,6 +2197,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_we,
 			wb32_zipscope_we,
 			wb32_satatscope_we,
+			wb32_satarxscope_we,
 			wb32_satarscope_we,
 			wb32_satapscope_we,
 			wb32_satalscope_we,
@@ -2202,6 +2224,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_addr,
 			wb32_zipscope_addr,
 			wb32_satatscope_addr,
+			wb32_satarxscope_addr,
 			wb32_satarscope_addr,
 			wb32_satapscope_addr,
 			wb32_satalscope_addr,
@@ -2228,6 +2251,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_data,
 			wb32_zipscope_data,
 			wb32_satatscope_data,
+			wb32_satarxscope_data,
 			wb32_satarscope_data,
 			wb32_satapscope_data,
 			wb32_satalscope_data,
@@ -2254,6 +2278,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_sel,
 			wb32_zipscope_sel,
 			wb32_satatscope_sel,
+			wb32_satarxscope_sel,
 			wb32_satarscope_sel,
 			wb32_satapscope_sel,
 			wb32_satalscope_sel,
@@ -2280,6 +2305,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_stall,
 			wb32_zipscope_stall,
 			wb32_satatscope_stall,
+			wb32_satarxscope_stall,
 			wb32_satarscope_stall,
 			wb32_satapscope_stall,
 			wb32_satalscope_stall,
@@ -2306,6 +2332,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_ack,
 			wb32_zipscope_ack,
 			wb32_satatscope_ack,
+			wb32_satarxscope_ack,
 			wb32_satarscope_ack,
 			wb32_satapscope_ack,
 			wb32_satalscope_ack,
@@ -2332,6 +2359,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_idata,
 			wb32_zipscope_idata,
 			wb32_satatscope_idata,
+			wb32_satarxscope_idata,
 			wb32_satarscope_idata,
 			wb32_satapscope_idata,
 			wb32_satalscope_idata,
@@ -2358,6 +2386,7 @@ module	main(i_clk, i_reset,
 			wb32_uart_err,
 			wb32_zipscope_err,
 			wb32_satatscope_err,
+			wb32_satarxscope_err,
 			wb32_satarscope_err,
 			wb32_satapscope_err,
 			wb32_satalscope_err,
@@ -2526,7 +2555,7 @@ module	main(i_clk, i_reset,
 		1'b0,
 		1'b0,
 		1'b0,
-		1'b0,
+		satarxscope_int,
 		netscope_int,
 		i2cscope_int,
 		gatescope_int,
@@ -4129,6 +4158,49 @@ module	main(i_clk, i_reset,
 	// {{{
 	// }}}
 `endif	// SICLK
+
+`ifdef	SATARXSCOPE_SCOPC
+	// {{{
+	wbscopc #(
+		// {{{
+		.LGMEM(10),
+		.SYNCHRONOUS(0),
+		.DEFAULT_HOLDOFF(508)
+		// }}}
+	) u_satarxscope (
+		// {{{
+		.i_data_clk(i_sata_rxphy_clk), .i_ce(1'b1),
+			.i_trigger(i_sata_rxphy_syncd), .i_data({ i_sata_rxphy_syncd, i_sata_rxphy_primitive, i_sata_rxphy_data[28:0] }),
+		.i_wb_clk(i_clk),
+		.i_wb_cyc(wb32_satarxscope_cyc), .i_wb_stb(wb32_satarxscope_stb), .i_wb_we(wb32_satarxscope_we),
+			.i_wb_addr(wb32_satarxscope_addr[1-1:0]),
+			.i_wb_data(wb32_satarxscope_data), // 32 bits wide
+			.i_wb_sel(wb32_satarxscope_sel),  // 32/8 bits wide
+		.o_wb_stall(wb32_satarxscope_stall),.o_wb_ack(wb32_satarxscope_ack), .o_wb_data(wb32_satarxscope_idata),
+		.o_interrupt(satarxscope_int)
+		// }}}
+	);
+	// }}}
+`else	// SATARXSCOPE_SCOPC
+	// {{{
+	// Null bus slave
+	// {{{
+
+	//
+	// In the case that there is no wb32_satarxscope peripheral
+	// responding on the wb32 bus
+	assign	wb32_satarxscope_ack   = 1'b0;
+	assign	wb32_satarxscope_err   = (wb32_satarxscope_stb);
+	assign	wb32_satarxscope_stall = 0;
+	assign	wb32_satarxscope_idata = 0;
+
+	// }}}
+	// Null interrupt definitions
+	// {{{
+	assign	satarxscope_int = 1'b0;	// satarxscope.INT.SATARXSCOPE.WIRE
+	// }}}
+	// }}}
+`endif	// SATARXSCOPE_SCOPC
 
 `ifdef	SATATXCOUNTER_ACCESS
 	// {{{

@@ -230,11 +230,11 @@ int main(int argc, char **argv) {
 	printf("Net Debug  :    0x%08x\n", net_dbg);
 	printf("  Debug    :      Ch #%d\n", net_dbg & 0x3);
 	printf("  LinkUp   :    %d-%d-%d-%d\n",
-			(net_dbg & 0x020) ? 1:0, (net_dbg & 0x010) ? 1:0,
-			(net_dbg & 0x008) ? 1:0, (net_dbg & 0x004) ? 1:0);
+			(net_dbg & 0x0800) ? 1:0, (net_dbg & 0x0400) ? 1:0,
+			(net_dbg & 0x0200) ? 1:0, (net_dbg & 0x0100) ? 1:0);
 	printf("  Activity :    %d-%d-%d-%d\n",
-			(net_dbg & 0x200) ? 1:0, (net_dbg & 0x100) ? 1:0,
-			(net_dbg & 0x080) ? 1:0, (net_dbg & 0x040) ? 1:0);
+			(net_dbg & 0x080000) ? 1:0, (net_dbg & 0x040000) ? 1:0,
+			(net_dbg & 0x020000) ? 1:0, (net_dbg & 0x010000) ? 1:0);
 	// }}}
 
 	for(int n=0; n<4; n++) {	// Router stats

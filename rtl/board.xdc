@@ -802,6 +802,7 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_in
 ## No XDC.INSERT tag in wb32
 ## From siclk
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_siclk/q_v_reg/D}];
+## From satarxscope
 ## From satatxck
 set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satatxck/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satatxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in buildtime

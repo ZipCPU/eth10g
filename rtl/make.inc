@@ -83,6 +83,8 @@ ICAP := wbicapetwo.v
 
 ZIPCPUD := cpu
 ZIPCPU  := $(addprefix $(ZIPCPUD)/,zipsystem.v zipcore.v zipwb.v cpuops.v pfcache.v pipemem.v pfcache.v idecode.v wbpriarbiter.v zipsystem.v zipcounter.v zipjiffies.v ziptimer.v icontrol.v wbwatchdog.v zipdma_ctrl.v zipdma_fsm.v zipdma_mm2s.v zipdma_rxgears.v zipdma_s2mm.v zipdma_txgears.v zipdma.v busdelay.v)
+SCOPCD := wbscope
+SCOPC  := $(addprefix $(SCOPCD)/,wbscopc.v)
 WBUBUSD := wbubus
 WBUBUS  := $(addprefix $(WBUBUSD)/,wbuconsole.v wbufifo.v wbucompactlines.v wbucompress.v wbudecompress.v wbudeword.v wbuexec.v wbuidleint.v wbuinput.v wbuoutput.v wbureadcw.v wbusixchar.v wbutohex.v wbconsole.v)
 CONSOLED := wbuart
