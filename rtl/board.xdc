@@ -803,6 +803,16 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ u_sata/tx_in
 ## From siclk
 set_false_path -from [get_pins -hier -filter {NAME=~thedesign/u_siclk/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~thedesign/u_siclk/q_v_reg/D}];
 ## From satarxscope
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_satarxscope/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/o_bus_data*}] 8
 ## From satatxck
 set_max_delay -datapath_only -from [get_pins -hier -filter {NAME=~ thedesign/u_satatxck/avgs_reg[3]/C}] -to [get_pins -hier -filter {NAME=~ thedesign/u_satatxck/q_v_reg/D}] 8.0
 ## No XDC.INSERT tag in buildtime

@@ -147,6 +147,19 @@ set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_
 @INT.SATARXSCOPE.WIRE=@$(PREFIX)_int
 @MAIN.DEFNS=
 @XDC.INSERT=
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/br_holdoff_r*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stopped*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/waddr*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/this_addr*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/br_confi*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.q_iflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_triggered*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_primed*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stopped*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/dr_stop_pipe*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/ASYNC_STATUS.q_oflags*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.r_reset_complete*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/GEN_ASYNC_FLAGS.q_reset_complete*}] 8
+## set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~thedesign/u_sata/u_reset/o_debug*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data_r*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_@$(PREFIX)/o_bus_data*}] 8
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ thedesign/u_@$(PREFIX)/qd_data*}] -to [get_cells -hier -filter {NAME=~thedesign/u_satarxscope/o_bus_data*}] 8
+##
+##
 ##
 ##
 ##
