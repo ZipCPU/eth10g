@@ -44,7 +44,7 @@ CXX := g++
 OBJDIR := obj-pc
 SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope cpunetscope routescope gatescope satarscope satarxscope satalscope satatscope satapscope satadscope busscope
 RTLD := ../../rtl
-ZIPSUPPORT := zipload zipstate zipdbg
+ZIPSUPPORT := zipload zipstate zipdbg swload
 BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp devbus.cpp
 BUSOBJS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(BUSSRCS)))
 PROGRAMS := wbregs $(ZIPSUPPORT) $(SCOPES) flashid netuart routestat
@@ -71,6 +71,9 @@ netuart: $(OBJDIR)/netuart.o
 
 wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@
+
+swload: $(OBJDIR)/swload.o $(OBJDIR)/zipelf.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ -lelf -o $@
 
 routestat: $(OBJDIR)/routestat.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ -o $@

@@ -690,8 +690,6 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 			} else if ((m_count >= m_cmd_addrlen+4*NDUMMY)&&(0 == (m_sreg&0x01))) {
 				QOREG(m_mem[m_addr++]);
 				if (m_debug) printf("QSPIF[%08x]/QR = %02x\n", m_addr-1, m_oreg & 0x0ff);
-
-assert(m_addr != 0x06080);
 			} else m_oreg = 0;
 			break;
 			// }}}
@@ -729,9 +727,9 @@ assert(m_addr != 0x06080);
 		case QSPIF_SECTOR_ERASE:
 			// {{{
 			if (m_count == m_cmd_addrlen+8) {
-				m_addr = m_ireg & 0x0ffc000;
+				m_addr = m_ireg & m_memmask & ~0x03fff;
 				if (m_debug) printf("SECTOR_ERASE ADDRESS = %08x\n", m_addr);
-				assert((m_addr & 0xfc00000)==0);
+				assert((m_addr & (~(m_memmask)))==0);
 			} break;
 			// }}}
 		case QSPIF_RELEASE:

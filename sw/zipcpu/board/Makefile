@@ -37,7 +37,7 @@
 ##
 ## }}}
 .PHONY: all
-PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink oledchk softload satachk # contest
+PROGRAMS := hello cputest ssddemo qkhdmi sdinfo sdiochk emmcinfo rdramcfg rdsfp  sisetup clkcheck rxhdmi rdedid memtest netcheck ddr3dbg blink oledchk swloader satachk # contest
 all:	$(PROGRAMS)
 #
 #
@@ -121,8 +121,6 @@ $(OBJDIR)/oledchk.o: oledchk.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/satachk.o: satachk.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
-$(OBJDIR)/softload.o: softload.c
-	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/rintftst.o: rintftst.c
 	$(CC) $(CFLAGS) -O3 -c $< -o $@
 $(OBJDIR)/gpiotoggle.o: gpiotoggle.c
@@ -133,9 +131,6 @@ satachk: $(OBJDIR)/satachk.o board.ld $(LIB)
 
 oledchk: $(OBJDIR)/oledchk.o board.ld $(OLED) $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(OLED) $(LIBS) -o $@
-
-softload: $(OBJDIR)/softload.o board.ld $(OBJDIR)/flashdev.o $(OLED) $(LIB)
-	$(CC) $(CFLAGS) $(LFLAGS) $< $(OLED) $(OBJDIR)/flashdev.o $(LIBS) -o $@
 
 blink: $(OBJDIR)/blink.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
@@ -192,6 +187,10 @@ netcheck: $(OBJDIR)/netcheck.o $(OLED) $(LIB)
 $(OBJDIR)/ddr3dbg.o: ddr3dbg.c board.h txfns.h
 ddr3dbg: $(OBJDIR)/ddr3dbg.o $(OBJDIR)/txfns.o board.ld $(LIB)
 	$(CC) $(CFLAGS) $(LBKRAM) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
+
+$(OBJDIR)/swloader.o: swloader.c flashdev.h board.h txfns.h
+swloader: $(OBJDIR)/swloader.o $(OBJDIR)/flashdev.o $(OBJDIR)/txfns.o bkram.ld $(LIB)
+	$(CC) $(CFLAGS) $(LBKRAM) $< $(OBJDIR)/flashdev.o $(OLED) $(LIBS) -o $@
 
 define	mk-objdir
 	@bash -c "if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR)/; fi"

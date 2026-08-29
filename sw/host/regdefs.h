@@ -418,7 +418,7 @@
 #define	RESET_ADDRESS	@$[0x%08x](bkrom.REGBASE)
 #else
 #ifdef	FLASH_ACCESS
-#define	RESET_ADDRESS	0x06e00000
+#define	RESET_ADDRESS	0x07000000
 #else
 #define	RESET_ADDRESS	0x04000000
 #endif	// FLASH_ACCESS

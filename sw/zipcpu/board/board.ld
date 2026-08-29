@@ -79,7 +79,7 @@ _uart = 0x02000680;
 /* LD.SCRIPT from mem_full */
 SECTIONS
 {
-       .ramcode 0x06e00000 : ALIGN(4) {
+       .ramcode 0x07000000 : ALIGN(4) {
                _boot_address = .;
                *(.start) *(.boot)
                *(.text.startup)

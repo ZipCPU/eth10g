@@ -80,7 +80,7 @@ public:
 	virtual	void	define_traces(void) {
 		register_trace("i_rx_valid",     1, 30);
 		register_trace("i_rx_primitive", 1, 29);
-		register_trace("i_rx_data",      1, 29);
+		register_trace("i_rx_data",     29,  0);
 	}
 };
 

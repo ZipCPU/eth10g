@@ -55,9 +55,12 @@
 #include "board.h"
 #include "../../host/regdefs.h"
 #include "flashdev.h"
+#include "txfns.h"
 #include "zipcpu.h"
 #include "oledfont.h"
 #include "oledfb.h"
+
+#define	NO_OLED
 
 #ifdef	_BOARD_HAS_FLASHSCOPE
 #define	SET_SCOPE	_flashdbg->s_ctrl = 0x04000000
@@ -179,7 +182,7 @@ void	fl_restore_quadio(void) {
 
 	*_flashcfg = F_END;
 
-	if (0) { // if (MICRON_FLASHID == m_id)
+	if (1) { // if (MICRON_FLASHID == m_id)
 		// printf("MICRON-flash\n");
 		// Need to enable XIP first for MICRON's flash
 		//
@@ -193,7 +196,7 @@ void	fl_restore_quadio(void) {
 		*_flashcfg = F_END;
 	}
 
-	*_flashcfg = CFG_WEDIR | QUAD_IO_READ;
+	*_flashcfg = QUAD_IO_READ;
 	// 3 address bytes
 	*_flashcfg = CFG_USERMODE | CFG_QSPEED | CFG_WEDIR;
 	*_flashcfg = CFG_USERMODE | CFG_QSPEED | CFG_WEDIR;
@@ -211,8 +214,8 @@ void	fl_restore_quadio(void) {
 #endif
 	// Read a dummy byte
 	*_flashcfg = CFG_USERMODE | CFG_QSPEED;
-	// Close the interface
-	*_flashcfg = CFG_USERMODE | CFG_USER_CS_n;
+	// Raise CS#, then close the interface
+	*_flashcfg = CFG_USERMODE;
 	*_flashcfg = CFG_USER_CS_n;
 }
 // }}}
@@ -265,7 +268,7 @@ int	fl_erase_sector(const unsigned sector, const int verify_erase){
 	// Now, let's verify that we erased the sector properly
 	if (verify_erase) {
 		if (fl_debug)
-			printf("Verifying the erase\n");
+			txstr("Verifying the erase\n");
 
 		for(int i=0; i<NPAGES; i++) {
 			unsigned *fp;
@@ -280,21 +283,34 @@ int	fl_erase_sector(const unsigned sector, const int verify_erase){
 					unsigned rdaddr = (unsigned)fp+j;
 
 					TRIGGER_SCOPE;
-					if (DEBUG)
-						printf("FLASH[%07x] = %08x, not 0xffffffff as desired (%06x + %d)\n",
-							(unsigned)fp+j,
-							page[j],
-							rdaddr,(j<<2));
+					if (DEBUG) {
+						txstr("FLASH["); txhex((unsigned)fp+j);
+						txstr("] = "); txhex(page[j]);
+						txstr(", not 0xffffffff as desired\n");
+					}
 					return 0;
 				}
 		}
 		if (fl_debug)
-			printf("Erase verified\n");
+			txstr("Erase verified\n");
 	}
 
 	return 1;
 }
 // }}}
+
+
+// Format a 32-bit value as "0x" + 8 hex digits into buf (needs 11 bytes).
+// Avoids sprintf, which drags the whole stdio/float formatting machinery into
+// a loader that has to fit in block RAM.
+static void	hex8(char *buf, unsigned v) {
+	static const char	digits[] = "0123456789abcdef";
+
+	buf[0] = '0'; buf[1] = 'x';
+	for(int i=0; i<8; i++)
+		buf[2+i] = digits[(v >> ((7-i)*4)) & 0x0f];
+	buf[10] = '\0';
+}
 
 int	fl_page_program(const unsigned addr, const unsigned len,
 		const char *data, const int verify_write) {
@@ -353,11 +369,10 @@ int	fl_page_program(const unsigned addr, const unsigned len,
 			*_flashcfg = CFG_USERMODE | CFG_WEDIR | (data[i] & 0x0ff);
 	} *_flashcfg = F_END;
 
-	printf("Writing page:  0x%08x - 0x%08x", addr, addr+len-1);
-	if (fl_debug && verify_write)
-		fflush(stdout);
-	else
-		printf("\n");
+	txstr("Writing page:  0x"); txhex(addr);
+	txstr(" - 0x"); txhex(addr+len-1);
+	if (!(fl_debug && verify_write))
+		txstr("\n");
 
 	// Wait for the write to complete
 	flwait();
@@ -374,16 +389,17 @@ int	fl_page_program(const unsigned addr, const unsigned len,
 		for(unsigned i=0; i<len; i++) {
 			if (bufc[i] != data[i]) {
 				TRIGGER_SCOPE;
-				printf("\nVERIFY FAILS[%3d]: 0x%08x, CFG=%08x\n",
-					i, i+addr, *_flashcfg);
-				printf("\t(Flash[%3d]) %02x != %02x (Goal[0x%08x])\n",
-					i, bufc[i], data[i], i+addr);
+				txstr("\nVERIFY FAILS at 0x"); txhex(i+addr);
+				txstr(" CFG="); txhex(*_flashcfg);
+				txstr("\n\tflash="); txhex(bufc[i] & 0x0ff);
+				txstr(" goal="); txhex(data[i] & 0x0ff);
+				txstr("\n");
 				passed = 0;
 			}
 		} if (!passed)
 			return 0;
 		else if (fl_debug)
-			printf(" -- Successfully verified\n");
+			txstr(" -- Successfully verified\n");
 	} return 1;
 }
 // }}}
@@ -395,11 +411,16 @@ int	fl_page_program(const unsigned addr, const unsigned len,
 
 int	fl_write(const unsigned addr, const unsigned len,
 		const char *data, const int verify) {
+	// {{{
+	if (fl_debug)
+		txstr("FL-WRITE\n");
 	char	msg[64];
 
+#ifndef	NO_OLED
 	fb_font = shortfontp;
 	oled_move(0, 2); oled_clear_eol();
 	oled_move(0, 3); oled_clear_eol();
+#endif
 
 	SET_SCOPE;
 	fl_flashid();
@@ -431,10 +452,10 @@ int	fl_write(const unsigned addr, const unsigned len,
 				if ((sbuf[i]&dp[i]) != dp[i]) { // Need erase
 					// {{{
 					if (fl_debug) {
-						printf("\nNEED-ERASE @0x%08x ... 0x%02x != 0x%02x (Goal)\n",
-							i+basep-addr,
-							sbuf[i] & 0x0ff,
-							dp[i] & 0x0ff);
+						txstr("\nNEED-ERASE @0x"); txhex(i+(unsigned)basep-addr);
+						txstr(" ... "); txhex(sbuf[i] & 0x0ff);
+						txstr(" != "); txhex(dp[i] & 0x0ff);
+						txstr(" (Goal)\n");
 					}
 					need_erase = 1;
 					newv = (i&-4)+(unsigned)basep;
@@ -451,36 +472,41 @@ int	fl_write(const unsigned addr, const unsigned len,
 
 		// Erase the sector if necessary
 		if (0 == need_erase) {
-			if (fl_debug) printf("NO ERASE NEEDED\n");
+			if (fl_debug) txstr("NO ERASE NEEDED\n");
 		} else {
-			printf("ERASING: %08x\n", s);
+			txstr("ERASING: "); txhex(s); txstr("\n");
+#ifndef	NO_OLED
 			if (!oled_busy()) {	// Erasing: 0x%08x
 				// {{{
 				oled_move(0, 2);
 				oled_write("Erasing: ");
 				oled_clear_eol();
 				oled_move(64, 2);
-				sprintf(msg, "0x%08x", s);
+				hex8(msg, s);
 				oled_write(msg);
 				oled_flush();
 			}
 			// }}}
+#endif
 
 			if (!fl_erase_sector(s, verify)) { // Erase failed
 				// {{{
-				printf("ERASE FAILED!\n");
+				txstr("ERASE FAILED!\n");
 				free(sbuf);
 
 				fb_font = tallfontp;
+#ifndef	NO_OLED
 				while(oled_busy())
 					;
 				oled_move(0, 2); fb_font->m_fixed = 0;
 				oled_write("FLASH FAILURE");
 				oled_flush();
+#endif
 
 				return 0;
 				// }}}
-			} newv = (s<addr) ? addr : s;
+			}
+			newv = (s<addr) ? addr : s;
 		}
 
 		// Now walk through all of our pages in this sector and write
@@ -494,52 +520,67 @@ int	fl_write(const unsigned addr, const unsigned len,
 			if (PAGEOF(start+len-1)!=PAGEOF(start))
 				ln = PAGEOF(start+PGLENB)-start;
 
+#ifndef	NO_OLED
 			if (!oled_busy()) {	// Programming: 0x%08x
 				// {{{
 				oled_move(0, 2); // fb_font->m_fixed = 0;
 				oled_write("Programming:"); 
 				oled_clear_eol();
 				oled_move(64, 2);
-				sprintf(msg, "0x%08x", s);
+				hex8(msg, s);
 				oled_write(msg);
 				oled_flush();
 			}
 			// }}}
+#endif
 
 			if (!fl_page_program(start, ln, &data[p-addr], verify)){
 				// {{{
-				printf("WRITE-PAGE FAILED!\n");
+				txstr("WRITE-PAGE FAILED!\n");
 				free(sbuf);
 
 				fb_font = tallfontp;
+#ifndef	NO_OLED
 				while(oled_busy())
 					;
 				oled_move(0, 0); fb_font->m_fixed = 0;
 				oled_write("FLASH FAILURE");
 				oled_flush();
+#endif
 
 				return 0;
 			}
 			// }}}
-		} if ((need_erase)||(need_program))
-			printf("Sector 0x%08x: DONE%15s\n", s, "");
+		} if ((need_erase)||(need_program)) {
+			txstr("Sector 0x"); txhex(s); txstr(": DONE\n");
+		}
 	} free(sbuf);
 
+	if (fl_debug)
+		txstr("Taking flash back off-line\n");
 	fl_take_offline();
 
 	*_flashcfg = F_WRDI;
 	*_flashcfg = F_END;
 
+	if (fl_debug)
+		txstr("Returning flash to operational\n");
 	fl_place_online();
 
 	// OLED: Program complete\n  -- Success
 	// {{{
+#ifndef	NO_OLED
+	// SIMULATION BYPASS: I2C never asserts I2CC_HARDHALT in sim, so the
+	// wait below spins forever.  The OLED writes must go with it -- driving
+	// them while I2C is still busy corrupts the buffer and traps the CPU.
 	while(oled_busy())
 		;
 	oled_move(0, 2); fb_font->m_fixed = 0;
 	oled_write("Program complete\n  -- Success");
 	oled_flush();
+#endif
 	// }}}
 
 	return 1;
 }
+// }}}

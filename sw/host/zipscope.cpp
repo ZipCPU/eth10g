@@ -46,9 +46,9 @@
 #include <assert.h>
 // }}}
 #include "regdefs.h"
-#include "port.h"
+#include "devbus.h"
 #include "scopecls.h"
-#include "exbus.h"
+// }}}
 
 #if	defined(R_ZIPSCOPE) && defined(R_ZIPSCOPED)
 #define	WBSCOPE		R_ZIPSCOPE
