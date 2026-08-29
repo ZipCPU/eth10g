@@ -398,6 +398,7 @@
 #define	CPU_STEP	0x0004
 #define	CPU_RESET	0x0008
 #define	CPU_CLRCACHE	0x0010
+#define	CPU_DBGCATCH	0x0020
 // (Reserved)		0x00e0
 #define	CPU_SLEEPING	0x0100
 #define	CPU_GIE		0x0200
@@ -418,7 +419,7 @@
 #define	RESET_ADDRESS	@$[0x%08x](bkrom.REGBASE)
 #else
 #ifdef	FLASH_ACCESS
-#define	RESET_ADDRESS	0x07000000
+#define	RESET_ADDRESS	0x07200000
 #else
 #define	RESET_ADDRESS	0x04000000
 #endif	// FLASH_ACCESS

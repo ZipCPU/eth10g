@@ -63,18 +63,18 @@ extern unsigned _sdram_words[] __asm__("_sdram");
 // r_chechsum: Virtual FIFO can write to our staging area (SDRAM),
 // We need to make sure image is not corrupted.
 typedef struct {
-    unsigned r_src;
-    unsigned r_dst;
-    unsigned r_len;       // byte
-    unsigned r_checksum;
+	unsigned r_src;
+	unsigned r_dst;
+	unsigned r_len;       // byte
+	unsigned r_checksum;
 } SWLOAD_REGION;
 
 typedef struct {
-    volatile unsigned d_command;    // host writes, CPU acks or fails or etc.
-    // volatile unsigned d_heartbeat;  // CPU alive ?
-    unsigned d_magic;   // "SWLD"
-    unsigned d_nregions;
-    SWLOAD_REGION d_region[SWLOAD_MAX_REGIONS];
+	volatile unsigned d_command;    // host writes, CPU acks or fails or etc.
+	// volatile unsigned d_heartbeat;  // CPU alive ?
+	unsigned d_magic;   // "SWLD"
+	unsigned d_nregions;
+	SWLOAD_REGION d_region[SWLOAD_MAX_REGIONS];
 } SWLOAD_DESC;
 
 static volatile unsigned *const heartbeatp = (volatile unsigned *)(SWLOAD_HEARTBEAT_ADDR);
@@ -83,56 +83,67 @@ static SWLOAD_DESC *const descp = (SWLOAD_DESC *)SWLOAD_DESCRIPTOR_ADDR;
 int main(void) {
 	int ok = 1;
 
-	txstr("SWLOAD: hello\n");
-    // oled_init();
-	txstr("Descriptor at: "); txhex((unsigned)descp); txstr("\n");
+	txstr("----------------------------------------\n");
+	txstr("--          ZipCPU S/W Loader         --\n");
+	txstr("----------------------------------------\n");
+#ifndef	NO_OLED
+	_i2c->ic_clkcount = 500;
+	init_tall_glyfs();
+	init_short_glyfs();
+	oled_hwsetup();
+	fb_font = tallfontp;
+#endif
+	// txstr("Descriptor at: "); txhex((unsigned)descp); txstr("\n");
 
 	txstr("SWLOAD: Waiting for command ...\n");
 	while (descp->d_command != SWLOAD_CMD_GO)
 		CLEAR_CACHE;
+
 	txstr("SWLOAD: Command received\n");
-	txstr("magic    = "); txhex(descp->d_magic); txstr("\n");
-	txstr("nregions = "); txhex(descp->d_nregions); txstr("\n");
+	// txstr("\ttmagic    = "); txhex(descp->d_magic); txstr("\n");
+	txstr("\ttnregions = "); txhex(descp->d_nregions); txstr("\n");
 
 	descp->d_command = SWLOAD_STAT_WAIT;    // begin to work
 
-    for (unsigned k = 0; k < descp->d_nregions; k++) {
-        CLEAR_CACHE;
-        *heartbeatp = *heartbeatp + 1;
+	for (unsigned k = 0; k < descp->d_nregions; k++) {
+        	CLEAR_CACHE;
+        	*heartbeatp = *heartbeatp + 1;
 
-        txstr("Region "); txhex(k);
-        txstr(": "); txhex(descp->d_region[k].r_len);
-        txstr(" bytes -> "); txhex(descp->d_region[k].r_dst);
-        txstr(" from "); txhex(descp->d_region[k].r_src); txstr("\n");
+        	txstr("Region "); txhex(k);
+        	txstr(": "); txhex(descp->d_region[k].r_len);
+        	txstr(" bytes -> "); txhex(descp->d_region[k].r_dst);
+        	txstr(" from "); txhex(descp->d_region[k].r_src); txstr("\n");
 
-        // Verify the staged copy before we burn it into flash. A bad transfer
-        // over the debug bus is recoverable here, once written it is not.
-        const unsigned *p = (const unsigned *)descp->d_region[k].r_src;
-        unsigned nw = (descp->d_region[k].r_len + 3) / 4;
-        unsigned sum = 0;
+        	// Verify the staged copy before we burn it into flash. A bad
+		// transfer over the debug bus is recoverable here, once
+		// written it is not.
+        	const unsigned *p = (const unsigned *)descp->d_region[k].r_src;
+        	unsigned nw = (descp->d_region[k].r_len + 3) / 4;
+        	unsigned sum = 0;
 
-        for(unsigned i=0; i<nw; i++)
-            sum += p[i];
+		for(unsigned i=0; i<nw; i++)
+			sum += p[i];
 
-        if (sum != descp->d_region[k].r_checksum) {
-            txstr("SWLOAD: CHECKSUM FAIL on region "); txhex(k);
-            txstr("  got "); txhex(sum);
-            txstr("  want "); txhex(descp->d_region[k].r_checksum);
-            txstr("\n");
-            ok = 0;
-            break;
-        }
+		if (sum != descp->d_region[k].r_checksum) {
+			txstr("SWLOAD: CHECKSUM FAIL on region "); txhex(k);
+			txstr("  got "); txhex(sum);
+			txstr("  want "); txhex(descp->d_region[k].r_checksum);
+			txstr("\n");
+			ok = 0;
+			break;
+		}
 
-        if (!fl_write(descp->d_region[k].r_dst, descp->d_region[k].r_len,
-                    (const char *)descp->d_region[k].r_src, 1)) {
-            txstr("SWLOAD: FAILED on region "); txhex(k); txstr("\n");
-            ok = 0;
-            break;
-        }
-    }
+		if (!fl_write(descp->d_region[k].r_dst,descp->d_region[k].r_len,
+				(const char *)descp->d_region[k].r_src, 1)) {
+			txstr("SWLOAD: FAILED on region ");
+			txhex(k); txstr("\n");
+			ok = 0;
+			break;
+		}
+	}
 
-    txstr(ok ? "SWLOAD: DONE\n" : "SWLOAD: FAILED\n");
-    descp->d_command = ok ? SWLOAD_STAT_DONE : SWLOAD_STAT_FAIL;
+	txstr(ok ? "SWLOAD: Complete\n" : "SWLOAD: FAILED!\n");
+	descp->d_command = ok ? SWLOAD_STAT_DONE : SWLOAD_STAT_FAIL;
 
-    zip_halt();
+	zip_halt();
 }

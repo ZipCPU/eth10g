@@ -51,7 +51,7 @@
 @SCOPE.TRIGGER=zip_trigger
 @SCOPE.DATA=zip_debug
 @CPURESET=i_cpu_reset
-@$RESET_ADDRESS=@$(flash.REGBASE)+(16<<20)
+@$RESET_ADDRESS=@$(flash.REGBASE)+(18<<20)
 # @$RESET_ADDRESS=@$(/bkrom.REGBASE)
 # @INT.ZIP.WIRE=zip_cpu_int
 # @INT.ZIP.BUS=buspic
@@ -294,6 +294,7 @@
 #define	CPU_STEP	0x0004
 #define	CPU_RESET	0x0008
 #define	CPU_CLRCACHE	0x0010
+#define	CPU_DBGCATCH	0x0020
 // (Reserved)		0x00e0
 #define	CPU_SLEEPING	0x0100
 #define	CPU_GIE		0x0200

@@ -60,7 +60,7 @@
 #include "oledfont.h"
 #include "oledfb.h"
 
-#define	NO_OLED
+// #define	NO_OLED
 
 #ifdef	_BOARD_HAS_FLASHSCOPE
 #define	SET_SCOPE	_flashdbg->s_ctrl = 0x04000000

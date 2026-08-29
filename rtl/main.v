@@ -378,7 +378,7 @@ module	main(i_clk, i_reset,
 	localparam	RESET_ADDRESS = @$(/bkrom.BASE);
 `else
 `ifdef	FLASH_ACCESS
-	localparam	RESET_ADDRESS = 117440512;
+	localparam	RESET_ADDRESS = 119537664;
 `else
 	localparam	RESET_ADDRESS = 67108864;
 `endif	// FLASH_ACCESS

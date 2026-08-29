@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	rtl/builddate.v
+// Filename: 	builddate.v
 // {{{
 // Project:	10Gb Ethernet switch
 //
@@ -39,7 +39,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
 `ifndef	DATESTAMP
-`define DATESTAMP 32'h20260824
-`define BUILDTIME 32'h00153547
+`define DATESTAMP 32'h20260829
+`define BUILDTIME 32'h00155032
 `endif
 //

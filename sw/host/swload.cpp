@@ -58,16 +58,16 @@
 #include <string.h>
 
 #ifdef	DDR3_CONTROLLERBASE
-#define SWLOAD_DESC_ADDR   (DDR3_CONTROLLERBASE + 4)
-#define PAYLOAD_ADDR   (DDR3_CONTROLLERBASE + 0x1000)  // above the descriptor, in SDRAM
+#define	SWLOAD_DESC_ADDR	(DDR3_CONTROLLERBASE + 4)
+#define	PAYLOAD_ADDR		(DDR3_CONTROLLERBASE + 0x1000)  // above the descriptor, in SDRAM
 #else
-#define SWLOAD_DESC_ADDR   (SDRAMBASE + 4)
-#define PAYLOAD_ADDR   (SDRAMBASE + 0x1000)  // above the descriptor, in SDRAM
+#define	SWLOAD_DESC_ADDR	(SDRAMBASE + 4)
+#define	PAYLOAD_ADDR		(SDRAMBASE + 0x1000)  // above the descriptor, in SDRAM
 #endif
 
 // The golden image sits at the bottom of flash, the alternate image halfway
-// between it and the ZipCPU program, and the program itself at the CPU's reset address.
-// Each image therefore gets the space up to the next one.
+// between it and the ZipCPU program, and the program itself at the CPU's
+// reset address.  Each image therefore gets the space up to the next one.
 #define RESET_IN_FLASH ((RESET_ADDRESS >= FLASHBASE) \
 	&& (RESET_ADDRESS < FLASHBASE + FLASHLEN))
 #define	GOLDEN_ADDR    FLASHBASE
@@ -76,39 +76,43 @@
 
 void usage(void) {
 	// {{{
-	printf("USAGE: swload [-hrv] <zipcpu-loader> <golden.bit> <alt.bit> <zipcpu-program>\n");
+	printf("USAGE: swload [-hrv] <zipcpu-loader> [<golden.bit>] [<alt.bit>] [<zip-prog>]\n");
 	printf("\n"
-	"\t-h\tDisplay this usage statement\n"
-	"\t-r\tRestart the ZipCPU from flash when finished\n"
-	"\t-v\tVerbose\n"
-	"\n"
-	"Files are recognised by content, not position: ELF files are taken\n"
-	"as the loader then the program, non-ELF files as the golden then\n"
-	"the alternate bit image. Any of them may be omitted.\n"
-	"\n"
-	"Flash layout:  golden %08x, alternate %08x, program %08x\n",
+		"\t-h\tDisplay this usage statement\n"
+		"\t-r\tRestart the ZipCPU from flash when finished\n"
+		"\t-v\tVerbose\n"
+		"\n"
+		"Files are recognised by content, not position: ELF files are taken\n"
+		"as the loader then the program, non-ELF files as the golden then\n"
+		"the alternate bit image. Any of them may be omitted.\n"
+		"\n"
+		"Flash layout:  golden %08x, alternate %08x, program %08x\n",
 	GOLDEN_ADDR, ALT_ADDR, RESET_ADDRESS);
 }
 // }}}
 
 // Halt and reset the CPU, load the loader into block RAM, and start it
 // running there. The loader then waits for a descriptor in SDRAM.
-static void load_loader(DEVBUS *fpga, const char *fname, bool verbose) {
+static void load_softloader(DEVBUS *fpga, const char *fname, bool verbose) {
 	// {{{
 	ELFSECTION **secpp = NULL;
 	unsigned entry = 0;
 
-	// Always start with reset.
+	// Always start with the CPU in reset.
 	fpga->writeio(R_ZIPCTRL, CPU_HALT|CPU_RESET);
 
 	elfread(fname, entry, secpp);
 
 	for(int i=0; secpp[i]->m_len; i++) {
+		unsigned	nw;
+		char		*buf;
+
 		ELFSECTION *s = secpp[i];
 		if (verbose)
 			printf("  Loading S/W into:     %08x - %08x\n", s->m_start, s->m_start + s->m_len - 1);
-		unsigned nw = (s->m_len + 3) / 4;
-		char *buf = new char[nw*4];
+
+		nw = (s->m_len + 3) / 4;
+		buf = new char[nw*4];
 
 		memset(buf, 0, nw*4);
 		memcpy(buf, s->m_data, s->m_len);
@@ -117,9 +121,9 @@ static void load_loader(DEVBUS *fpga, const char *fname, bool verbose) {
 		delete[] buf;
 	}
 
-	fpga->writeio(R_ZIPCTRL, CPU_HALT|CPU_CLRCACHE);
+	fpga->writeio(R_ZIPCTRL, CPU_HALT|CPU_CLRCACHE | CPU_DBGCATCH);
 	fpga->writeio(R_ZIPPC, entry);
-	fpga->writeio(R_ZIPCTRL, CPU_GO | 0x20);
+	fpga->writeio(R_ZIPCTRL, CPU_GO | CPU_DBGCATCH);
 
 	if (verbose)
 		printf("  Starting ZipCPU from: %08x\n", entry);
@@ -130,6 +134,7 @@ static void load_loader(DEVBUS *fpga, const char *fname, bool verbose) {
 static unsigned swload_checksum(const uint32_t *buf, unsigned nw) {
 	// {{{
 	unsigned sum = 0;
+
 	for(unsigned i=0; i<nw; i++)
 		sum += buf[i];
 	return sum;
@@ -146,6 +151,9 @@ static unsigned stage_region(DEVBUS *fpga, const char *data, unsigned len,
 	unsigned flashaddr, unsigned staged, unsigned *nregions,
 	const char *what, bool verbose) {
 	// {{{
+	unsigned	nw, ra, cksum;
+	uint32_t	*buf;
+
 	if (*nregions >= SWLOAD_MAX_REGIONS) {
 		fprintf(stderr, "ERR: Too many flash regions (max %d)\n",
 			SWLOAD_MAX_REGIONS);
@@ -153,22 +161,28 @@ static unsigned stage_region(DEVBUS *fpga, const char *data, unsigned len,
 	}
 
 	// Pad up to a word boundary with 0xff.
-	unsigned nw = (len + 3) / 4;
-	uint32_t *buf = new uint32_t[nw];
+	nw = (len + 3) / 4;
+	buf = new uint32_t[nw];
 	memset(buf, 0xff, nw*4);
 	memcpy(buf, data, len);
 	byteswapbuf(nw, buf);
 
-	unsigned cksum = swload_checksum(buf, nw);
-	printf("Stage #%2d loading: 0x%08x + %d -> %08x\n", *nregions, staged, nw, flashaddr);
+	cksum = swload_checksum(buf, nw);
+	printf("Stage #%2d loading: 0x%08x + %d -> %08x\n", *nregions,
+			staged, nw, flashaddr);
 	fpga->writei(staged, nw, buf);
 	delete[] buf;
 
-	unsigned ra = SWLOAD_DESC_ADDR + 12 + (*nregions)*16;
-	fpga->writeio(ra +  0, staged);
-	fpga->writeio(ra +  4, flashaddr);
-	fpga->writeio(ra +  8, len);
-	fpga->writeio(ra + 12, cksum);
+	ra = SWLOAD_DESC_ADDR + 12 + (*nregions)*16;
+		buf[0] = staged;
+		buf[1] = flashaddr;
+		buf[2] = len;
+		buf[3] = cksum;
+	fpga->writei(ra, 4, buf);
+	// fpga->writeio(ra +  0, staged);
+	// fpga->writeio(ra +  4, flashaddr);
+	// fpga->writeio(ra +  8, len);
+	// fpga->writeio(ra + 12, cksum);
 
 	if (verbose)
 		printf("  Loaded %s\n", what);
@@ -184,9 +198,11 @@ static unsigned stage_bitfile(DEVBUS *fpga, const char *fname,
 	unsigned flashaddr,
 	unsigned staged, unsigned *nregions, bool verbose) {
 	// {{{
+	long	len;
 	char	*data;
-	FILE *fp = fopen(fname, "rb");
-	if (NULL == fp) {
+	FILE	*fp;
+
+	if (NULL == (fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "ERR: Cannot open %s\n", fname);
 		perror(fname);
 		exit(EXIT_FAILURE);
@@ -194,7 +210,7 @@ static unsigned stage_bitfile(DEVBUS *fpga, const char *fname,
 
 	// Measure the size
 	fseek(fp, 0, SEEK_END);
-	long len = ftell(fp);
+	len = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
 	if (len <= 0) {
@@ -202,10 +218,10 @@ static unsigned stage_bitfile(DEVBUS *fpga, const char *fname,
 		exit(EXIT_FAILURE);
 	}
 
-//    if ((unsigned)len > IMAGE_MAXLEN) {
-//        fprintf(stderr, "ERR: %s is %ld bytes, max is %u\n", fname, len, IMAGE_MAXLEN);
-//        exit(EXIT_FAILURE);
-//    }
+	if ((unsigned)len > IMAGE_MAXLEN) {
+		fprintf(stderr, "ERR: %s is %ld bytes, max is %u\n", fname, len, IMAGE_MAXLEN);
+		exit(EXIT_FAILURE);
+	}
 
 	data = new char[len];
 	if (1 != fread(data, len, 1, fp)) {
@@ -230,16 +246,17 @@ static unsigned stage_program(DEVBUS *fpga, const char *fname, unsigned staged,
 
 	elfread(fname, entry, secpp);
 	if (verbose)
-	printf("  entry point: %08x\n", entry);
+		printf("  entry point: %08x\n", entry);
 
 	for(int i=0; secpp[i]->m_len; i++) {
-	ELFSECTION *s = secpp[i];
+		ELFSECTION *s = secpp[i];
 
-	if (s->m_start < FLASHBASE || s->m_start >= FLASHBASE + FLASHLEN)
-	continue;
+		if (s->m_start < FLASHBASE|| s->m_start >= FLASHBASE + FLASHLEN)
+			continue;
 
-	staged = stage_region(fpga, s->m_data, s->m_len, s->m_start, staged,
-	nregions, fname, verbose);
+		staged = stage_region(fpga, s->m_data, s->m_len,
+			s->m_start, staged,
+			nregions, fname, verbose);
 	}
 
 	return staged;
@@ -249,14 +266,13 @@ static unsigned stage_program(DEVBUS *fpga, const char *fname, unsigned staged,
 int main(int argc, char **argv) {
 	// Local definitions
 	// {{{
-	bool start_when_finished = false, verbose = false;
-	const char *loaderfile = NULL, *execfile = NULL;
-	const char *bitfile = NULL, *altbitfile = NULL;
-	int c;
-	int stalled = 0;
-	unsigned nregions = 0;
-	unsigned status, hb, last_hb = 0;
-	unsigned staged = PAYLOAD_ADDR;
+	bool		start_when_finished = false, verbose = false;
+	const char	*loaderfile = NULL, *execfile = NULL;
+	const char	*bitfile = NULL, *altbitfile = NULL;
+	int		c;
+	unsigned	nregions = 0;
+	unsigned	status, cpu;
+	unsigned	staged = PAYLOAD_ADDR;
 	// }}}
 
 	// Argument parser
@@ -301,10 +317,10 @@ int main(int argc, char **argv) {
 	// Verbose
 	// {{{
 	if (verbose) {
-	printf("Loader    : %s\n", loaderfile ? loaderfile : "(none)");
-	printf("Golden    : %s\n", bitfile    ? bitfile    : "(none)");
-	printf("Alternate : %s\n", altbitfile ? altbitfile : "(none)");
-	printf("Program   : %s\n", execfile   ? execfile   : "(none)");
+		printf("Loader    : %s\n", loaderfile ? loaderfile : "(none)");
+		printf("Golden    : %s\n", bitfile    ? bitfile    : "(none)");
+		printf("Alternate : %s\n", altbitfile ? altbitfile : "(none)");
+		printf("Program   : %s\n", execfile   ? execfile   : "(none)");
 	}
 	// }}}
 
@@ -318,16 +334,16 @@ int main(int argc, char **argv) {
 	}
 
 	if (loaderfile) {
-		printf("Loading %s ...\n", loaderfile);
-		load_loader(m_fpga, loaderfile, verbose);
+		printf("Loading Soft Loader, %s ...\n", loaderfile);
+		load_softloader(m_fpga, loaderfile, verbose);
 	}
 
 	// Bit files
 	// {{{
 	if ((bitfile || altbitfile) && !RESET_IN_FLASH) {
-	fprintf(stderr, "ERR: this design's reset vector (%08x) is not in "
-		"flash,\n     so the bit image offsets are meaningless\n",
-		RESET_ADDRESS);
+		fprintf(stderr, "ERR: this design's reset vector (%08x) is not "
+			"in flash,\n     so the bit image offsets are "
+			"meaningless\n", RESET_ADDRESS);
 		exit(EXIT_FAILURE);
 	}
 
@@ -352,48 +368,50 @@ int main(int argc, char **argv) {
 	m_fpga->writeio(SWLOAD_DESC_ADDR + 8, nregions);       // d_nregions
 	m_fpga->writeio(SWLOAD_DESC_ADDR + 0, 1);   // d_command = GO
 
-	printf("magic    = %08x\n", m_fpga->readio(SWLOAD_DESC_ADDR + 4));
-	printf("nregions = %08x\n", m_fpga->readio(SWLOAD_DESC_ADDR + 8));
-	printf("command  = %08x\n", m_fpga->readio(SWLOAD_DESC_ADDR + 0));
-
-	// Wait for the loader
-	// {{{
-	// Heartbeat only advances once per region, so the timeout has to
-	// cover a whole region. Flash writes are slow in simulation.
 	if (nregions == 0) {
 		printf("Nothing to flash\n");
 		delete m_fpga;
 		return EXIT_SUCCESS;
 	}
 
+	printf("Activating flash program\n");
+	// {{{
+	if (verbose) {
+		printf("\tMagic    = %08x\n",
+			m_fpga->readio(SWLOAD_DESC_ADDR + 4));
+		printf("\tNRegions = %08x\n",
+			m_fpga->readio(SWLOAD_DESC_ADDR + 8));
+		printf("\tCommand  = %08x\n",
+			m_fpga->readio(SWLOAD_DESC_ADDR + 0));
+	}
+	// }}}
+
+	// Wait for the loader
+	// {{{
+	// Heartbeat only advances once per region, so the timeout has to
+	// cover a whole region. Flash writes are slow in simulation.
 	printf("Waiting ...\n");
 	while (true) {
 		status = m_fpga->readio(SWLOAD_DESC_ADDR + 0);
-#ifdef	DDR3_CONTROLLERBASE
-		hb     = m_fpga->readio(DDR3_CONTROLLERBASE);
-#else
-		hb     = m_fpga->readio(SDRAMBASE);
-#endif
 
 		if (status == SWLOAD_STAT_DONE) {
-			printf("DONE\n");
+			printf("Done, success\n");
 			break;
 		} else if (status == SWLOAD_STAT_FAIL) {
-			printf("FAILED at heardbeat 0x%08x\n", hb);
+			printf("ZipCPU reports failure -- exiting\n");
 			break;
 		}
 
-		if (hb != last_hb) {
-			last_hb = hb;
-			stalled = 0;
-		} else if (stalled > 180) {      // ~10 minutes
-			printf("No progress, giving up\n");
+		cpu = m_fpga->readio(R_ZIPCTRL);
+		if (0x03 == (cpu & 0x03)) {
+			printf("ZipCPU died, exiting\n");
+			break;
+		} else if (0x100 == (cpu & 0x300)) {
+			printf("ZipCPU halted\n");
 			break;
 		}
 
-printf("Heart-Beats: %08x\n", hb);
-		stalled = stalled + 1;
-		usleep(200000);
+		usleep(10000);
 	}
 	// }}}
 
@@ -403,15 +421,15 @@ printf("Heart-Beats: %08x\n", hb);
 	// loader out of block RAM with a stale cache. Reset it so it restarts
 	// from the flash reset vector.
 	if (status == SWLOAD_STAT_DONE) {
-	m_fpga->writeio(R_ZIPCTRL, CPU_HALT|CPU_RESET|CPU_CLRCACHE);
+		m_fpga->writeio(R_ZIPCTRL, CPU_HALT|CPU_RESET|CPU_CLRCACHE);
 
 		if (start_when_finished) {
 			printf("Restarting the CPU from flash\n");
-			m_fpga->writeio(R_ZIPCTRL, CPU_GO);
+			m_fpga->writeio(R_ZIPCTRL, CPU_GO | CPU_DBGCATCH);
 		} else {
 			printf("The CPU is halted in reset. Start it with:\n");
 			printf("> wbregs cpu 0\n");
-	}
+		}
 	}
 	// }}}
 
