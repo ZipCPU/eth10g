@@ -171,7 +171,6 @@ static unsigned stage_region(DEVBUS *fpga, const char *data, unsigned len,
 	printf("Stage #%2d loading: 0x%08x + %d -> %08x\n", *nregions,
 			staged, nw, flashaddr);
 	fpga->writei(staged, nw, buf);
-	delete[] buf;
 
 	ra = SWLOAD_DESC_ADDR + 12 + (*nregions)*16;
 		buf[0] = staged;
@@ -179,6 +178,7 @@ static unsigned stage_region(DEVBUS *fpga, const char *data, unsigned len,
 		buf[2] = len;
 		buf[3] = cksum;
 	fpga->writei(ra, 4, buf);
+	delete[] buf;
 	// fpga->writeio(ra +  0, staged);
 	// fpga->writeio(ra +  4, flashaddr);
 	// fpga->writeio(ra +  8, len);
@@ -189,6 +189,52 @@ static unsigned stage_region(DEVBUS *fpga, const char *data, unsigned len,
 
 	(*nregions)++;
 	return staged + ((len + 63) & ~63);
+}
+// }}}
+
+void	skip_bitfile_header(FILE *fp) {
+	// {{{
+	const unsigned	MATCHLN = 52;
+	const unsigned	SEARCHLN = 0xe0 + 256 + MATCHLN;
+	const unsigned char matchstr[MATCHLN] = {
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		//
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		//
+		0x00, 0x00, 0x00, 0xbb,
+		0x11, 0x22, 0x00, 0x44,
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		//
+		0xaa, 0x99, 0x55, 0x66 };
+	unsigned char	buf[SEARCHLN];
+	size_t		sz;
+
+	rewind(fp);
+	sz = fread(buf, sizeof(char), SEARCHLN, fp);
+	for(int start=0; start+MATCHLN<sz; start++) {
+		int	mloc;
+
+		// Search backwards, since the starting bytes just aren't that
+		// interesting.
+		for(mloc = MATCHLN-1; mloc >= 0; mloc--)
+			if (buf[start+mloc] != matchstr[mloc])
+				break;
+		if (mloc < 0) {
+			fseek(fp, start, SEEK_SET);
+			return;
+		}
+	}
+
+	fprintf(stderr, "Could not find bin-file header within bit file\n");
+	fclose(fp);
+	exit(EXIT_FAILURE);
 }
 // }}}
 
@@ -216,7 +262,8 @@ static unsigned stage_bitfile(DEVBUS *fpga, const char *fname,
 	if (len <= 0) {
 		fprintf(stderr, "ERR: %s is empty\n", fname);
 		exit(EXIT_FAILURE);
-	}
+	} skip_bitfile_header(fp);
+	len = len - ftell(fp);
 
 	if ((unsigned)len > IMAGE_MAXLEN) {
 		fprintf(stderr, "ERR: %s is %ld bytes, max is %u\n", fname, len, IMAGE_MAXLEN);
@@ -392,17 +439,8 @@ int main(int argc, char **argv) {
 	// cover a whole region. Flash writes are slow in simulation.
 	printf("Waiting ...\n");
 	while (true) {
-		status = m_fpga->readio(SWLOAD_DESC_ADDR + 0);
-
-		if (status == SWLOAD_STAT_DONE) {
-			printf("Done, success\n");
-			break;
-		} else if (status == SWLOAD_STAT_FAIL) {
-			printf("ZipCPU reports failure -- exiting\n");
-			break;
-		}
-
 		cpu = m_fpga->readio(R_ZIPCTRL);
+
 		if (0x03 == (cpu & 0x03)) {
 			printf("ZipCPU died, exiting\n");
 			break;
@@ -413,6 +451,15 @@ int main(int argc, char **argv) {
 
 		usleep(10000);
 	}
+
+	status = m_fpga->readio(SWLOAD_DESC_ADDR + 0);
+	if (SWLOAD_STAT_DONE == status) {
+		printf("Done, success\n");
+	} else if (SWLOAD_STAT_FAIL == status) {
+		printf("ZipCPU reports failure -- exiting\n");
+	} else
+		printf("ZipCPU reports unknown status: %08x\n", status);
+
 	// }}}
 
 	// Completion sequencing
@@ -421,6 +468,8 @@ int main(int argc, char **argv) {
 	// loader out of block RAM with a stale cache. Reset it so it restarts
 	// from the flash reset vector.
 	if (status == SWLOAD_STAT_DONE) {
+		if (verbose)
+			printf("Resetting ZipCPU\n");
 		m_fpga->writeio(R_ZIPCTRL, CPU_HALT|CPU_RESET|CPU_CLRCACHE);
 
 		if (start_when_finished) {
