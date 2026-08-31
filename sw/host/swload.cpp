@@ -168,8 +168,8 @@ static unsigned stage_region(DEVBUS *fpga, const char *data, unsigned len,
 	byteswapbuf(nw, buf);
 
 	cksum = swload_checksum(buf, nw);
-	printf("Stage #%2d loading: 0x%08x + %d -> %08x\n", *nregions,
-			staged, nw, flashaddr);
+	printf("Stage #%2d loading: 0x%08x + %d(d bytes) -> %08x\n", *nregions,
+			staged, nw*4, flashaddr);
 	fpga->writei(staged, nw, buf);
 
 	ra = SWLOAD_DESC_ADDR + 12 + (*nregions)*16;
