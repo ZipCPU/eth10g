@@ -42,7 +42,7 @@ all:
 ## {{{
 CXX := g++
 OBJDIR := obj-pc
-SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope cpunetscope routescope gatescope satarscope satarxscope satalscope satatscope satapscope satadscope busscope
+SCOPES := smiscope flashscope fanscope cfgscope i2cscope sdioscope emmcscope netscope rxedidscope cpunetscope routescope gatescope satarscope satarxscope satalscope satatscope satapscope satadscope busscope zipscope
 RTLD := ../../rtl
 ZIPSUPPORT := zipload zipstate zipdbg swload
 BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp devbus.cpp
