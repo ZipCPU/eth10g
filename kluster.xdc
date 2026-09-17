@@ -508,38 +508,38 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN T18 IOSTANDARD LVCMOS33} [get_ports o_cruvi_vsel[3]]];	## VSEL.ADJ4
 ## }}}
 
-## CRUVI-A
+## CRUVI-A	(eMMC device)
 ## {{{
 #set_property -dict {PACKAGE_PIN H19 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SMB_ALERT]]
 #set_property -dict {PACKAGE_PIN H18 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_HSIO]]
-#set_property -dict {PACKAGE_PIN H16 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_RESET]]
+#set_property -dict {PACKAGE_PIN H16 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_RESET]]	# RESET
 #set_property -dict {PACKAGE_PIN F17 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_HSI]]
 #set_property -dict {PACKAGE_PIN H17 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_HSO]]
-#set_property -dict {PACKAGE_PIN F19 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SMB_SDA]]
-#set_property -dict {PACKAGE_PIN G17 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SMB_SCL]]
+#set_property -dict {PACKAGE_PIN F19 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SMB_SDA]]	# SMB_SDA
+#set_property -dict {PACKAGE_PIN G17 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SMB_SCL]]	# SMB_SCL
 #set_property -dict {PACKAGE_PIN E17 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_REFCLK]]
-#set_property -dict {PACKAGE_PIN F9 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_0_P]]
-#set_property -dict {PACKAGE_PIN F8 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_0_N]]
-#set_property -dict {PACKAGE_PIN B14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_1_P]]
+#set_property -dict {PACKAGE_PIN F9  IOSTANDARD LVCMOS33} [get_ports CRUVI_A_0_P]]
+#set_property -dict {PACKAGE_PIN F8  IOSTANDARD LVCMOS33} [get_ports CRUVI_A_0_N]]
+#set_property -dict {PACKAGE_PIN B14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_1_P]]	# CMD
 #set_property -dict {PACKAGE_PIN A14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_1_N]]
-#set_property -dict {PACKAGE_PIN B15 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_2_P]]
+#set_property -dict {PACKAGE_PIN B15 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_2_P]]	# CLK
 #set_property -dict {PACKAGE_PIN A14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_2_N]]
-#set_property -dict {PACKAGE_PIN C14  IOSTANDARD LVCMOS33} [get_ports CRUVI_A_3_P]]
-#set_property -dict {PACKAGE_PIN C13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_3_N]]
-#set_property -dict {PACKAGE_PIN D14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_4_P]]
-#set_property -dict {PACKAGE_PIN D13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_4_N]]
+#set_property -dict {PACKAGE_PIN C14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_3_P]]	# D2
+#set_property -dict {PACKAGE_PIN C13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_3_N]]	# D3
+#set_property -dict {PACKAGE_PIN D14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_4_P]]	# D4
+#set_property -dict {PACKAGE_PIN D13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_4_N]]	# D5
 #set_property -dict {PACKAGE_PIN H14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_5_P]]
 #set_property -dict {PACKAGE_PIN G14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_5_N]]
-#set_property -dict {PACKAGE_PIN E10 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_6_P]]
+#set_property -dict {PACKAGE_PIN E10 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_6_P]]	# DS
 #set_property -dict {PACKAGE_PIN D10 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_6_N]]
 #set_property -dict {PACKAGE_PIN E11 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_7_P]]
 #set_property -dict {PACKAGE_PIN D11 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_7_N]]
 #set_property -dict {PACKAGE_PIN B12 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_8_P]]
 #set_property -dict {PACKAGE_PIN B11 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_8_N]]
-#set_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_9_P]]
-#set_property -dict {PACKAGE_PIN F13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_9_N]]
-#set_property -dict {PACKAGE_PIN A13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_10_P]]
-#set_property -dict {PACKAGE_PIN A12 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_10_N]]
+#set_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_9_P]]	# D6
+#set_property -dict {PACKAGE_PIN F13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_9_N]]	# D7
+#set_property -dict {PACKAGE_PIN A13 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_10_P]]	# D0
+#set_property -dict {PACKAGE_PIN A12 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_10_N]]	# D1
 #set_property -dict {PACKAGE_PIN D9  IOSTANDARD LVCMOS33} [get_ports CRUVI_A_11_P]]
 #set_property -dict {PACKAGE_PIN D8  IOSTANDARD LVCMOS33} [get_ports CRUVI_A_11_N]]
 #set_property -dict {PACKAGE_PIN G19 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_DI]]
@@ -547,8 +547,21 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN E20 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SEL]]
 #set_property -dict {PACKAGE_PIN F20 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_MODE]]
 #set_property -dict {PACKAGE_PIN G20 IOSTANDARD LVCMOS33} [get_ports CRUVI_A_SCK]]
+
+#set_property -dict {PACKAGE_PIN H16 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_hwreset_n]]	# RESET
+#set_property -dict {PACKAGE_PIN B14 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_cmd]	# CMD
+#set_property -dict {PACKAGE_PIN B15 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_clk]	# CLK
+#set_property -dict {PACKAGE_PIN C14 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[2]]	# D2
+#set_property -dict {PACKAGE_PIN C13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[3]]	# D3
+#set_property -dict {PACKAGE_PIN D14 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[4]]	# D4
+#set_property -dict {PACKAGE_PIN D13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[5]]	# D5
+#set_property -dict {PACKAGE_PIN E10 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_ds]	# DS
+#set_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[6]]	# D6
+#set_property -dict {PACKAGE_PIN F13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[7]]	# D7
+#set_property -dict {PACKAGE_PIN A13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[0]]	# D0
+#set_property -dict {PACKAGE_PIN A12 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[1]]	# D1
 ## }}}
-## CRUVI-B
+## CRUVI-B (x16 XCcela PSRAM)
 ## {{{
 #set_property -dict {PACKAGE_PIN G15 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_SMB_ALERT]
 #set_property -dict {PACKAGE_PIN F15 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_HSIO]
@@ -558,29 +571,29 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN J16 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_SMB_SDA]
 #set_property -dict {PACKAGE_PIN E15 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_SMB_SCL]
 #set_property -dict {PACKAGE_PIN E16 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_REFCLK]
-#set_property -dict {PACKAGE_PIN A9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_0_P]
-#set_property -dict {PACKAGE_PIN A8  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_0_N]
-#set_property -dict {PACKAGE_PIN B10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_1_P]
+#set_property -dict {PACKAGE_PIN A9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_0_P]	# B0_P
+#set_property -dict {PACKAGE_PIN A8  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_0_N]	# B0_N
+#set_property -dict {PACKAGE_PIN B10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_1_P]	# CLK
 #set_property -dict {PACKAGE_PIN A10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_1_N]
-#set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_2_P]
-#set_property -dict {PACKAGE_PIN F12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_2_N]
-#set_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_3_P]
-#set_property -dict {PACKAGE_PIN E12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_3_N]
-#set_property -dict {PACKAGE_PIN J13 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_4_P]
-#set_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_4_N]
-#set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_5_P]
-#set_property -dict {PACKAGE_PIN H11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_5_N]
-#set_property -dict {PACKAGE_PIN G11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_6_P]
-#set_property -dict {PACKAGE_PIN F10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_6_N]
-#set_property -dict {PACKAGE_PIN C12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_7_P]
-#set_property -dict {PACKAGE_PIN C11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_7_N]
-#set_property -dict {PACKAGE_PIN C9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_8_P]
-#set_property -dict {PACKAGE_PIN B9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_8_N]
-#set_property -dict {PACKAGE_PIN J11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_9_P]
-#set_property -dict {PACKAGE_PIN J10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_9_N]
-#set_property -dict {PACKAGE_PIN H9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_10_P]
-#set_property -dict {PACKAGE_PIN H8  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_10_N]
-#set_property -dict {PACKAGE_PIN G10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_11_P]
+#set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_2_P]	# D10
+#set_property -dict {PACKAGE_PIN F12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_2_N]	# D11
+#set_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_3_P]	# D2
+#set_property -dict {PACKAGE_PIN E12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_3_N]	# D3
+#set_property -dict {PACKAGE_PIN J13 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_4_P]	# D4
+#set_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_4_N]	# D5
+#set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_5_P]	# D12
+#set_property -dict {PACKAGE_PIN H11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_5_N]	# D13
+#set_property -dict {PACKAGE_PIN G11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_6_P]	# D14
+#set_property -dict {PACKAGE_PIN F10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_6_N]	# D15
+#set_property -dict {PACKAGE_PIN C12 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_7_P]	# DM0
+#set_property -dict {PACKAGE_PIN C11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_7_N]	# DM1
+#set_property -dict {PACKAGE_PIN C9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_8_P]	# D8
+#set_property -dict {PACKAGE_PIN B9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_8_N]	# D9
+#set_property -dict {PACKAGE_PIN J11 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_9_P]	# D6
+#set_property -dict {PACKAGE_PIN J10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_9_N]	# D7
+#set_property -dict {PACKAGE_PIN H9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_10_P]	# D0
+#set_property -dict {PACKAGE_PIN H8  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_10_N]	# D1
+#set_property -dict {PACKAGE_PIN G10 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_11_P]	# CE
 #set_property -dict {PACKAGE_PIN G9  IOSTANDARD LVCMOS33} [get_ports CRUVI_B_11_N]
 
 #set_property -dict {PACKAGE_PIN J15 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_DI]
@@ -588,23 +601,29 @@ create_clock -period 5.2 -name SIREF -waveform { 0.0 2.6 } -add [get_ports i_clk
 #set_property -dict {PACKAGE_PIN E18 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_MODE]
 #set_property -dict {PACKAGE_PIN D18 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_SEL]
 #set_property -dict {PACKAGE_PIN D19 IOSTANDARD LVCMOS33} [get_ports CRUVI_B_SCK]
-##
-## We have an eMMC daughter board connected to CRUVI B
-#set_property -dict {PACKAGE_PIN D15 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_hwreset_n]
-#set_property -dict {PACKAGE_PIN J16 IOSTANDARD LVCMOS33} [get_ports io_i2c_cruvi_emmc_sda];		## Address 0x52
-#set_property -dict {PACKAGE_PIN E15 IOSTANDARD LVCMOS33} [get_ports io_i2c_cruvi_emmc_scl]
-
-#set_property -dict {PACKAGE_PIN B10 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_cmd];		## B1P
-#set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS33} [get_ports o_cruvmmc_clk];		## B2P
-#set_property -dict {PACKAGE_PIN H9  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[0]];		## B10P
-#set_property -dict {PACKAGE_PIN H8  IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[1]];		## B10N
-#set_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[2]];		## B3P
-#set_property -dict {PACKAGE_PIN E12 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[3]];		## B3N
-#set_property -dict {PACKAGE_PIN J13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[4]];		## B4P
-#set_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[5]];		## B4N
-#set_property -dict {PACKAGE_PIN J11 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[6]];		## B9P
-#set_property -dict {PACKAGE_PIN J10 IOSTANDARD LVCMOS33} [get_ports io_cruvmmc_dat[7]];		## B9N
-#set_property -dict {PACKAGE_PIN G11 IOSTANDARD LVCMOS33} [get_ports i_cruvmmc_ds];		## B6P
+## {{{
+#set_property -dict {PACKAGE_PIN B10 IOSTANDARD LVCMOS33} [get_ports o_x16_ck]		# CLK
+#set_property -dict {PACKAGE_PIN A10 IOSTANDARD LVCMOS33} [get_ports o_x16_reset_n]	# RESET#(Unused)
+#set_property -dict {PACKAGE_PIN G12 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[10]]	# D10
+#set_property -dict {PACKAGE_PIN F12 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[11]]	# D11
+#set_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 2]]	# D2
+#set_property -dict {PACKAGE_PIN E12 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 3]]	# D3
+#set_property -dict {PACKAGE_PIN J13 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 4]]	# D4
+#set_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 5]]	# D5
+#set_property -dict {PACKAGE_PIN H12 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[12]]	# D12
+#set_property -dict {PACKAGE_PIN H11 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[13]]	# D13
+#set_property -dict {PACKAGE_PIN G11 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[14]]	# D14
+#set_property -dict {PACKAGE_PIN F10 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[15]]	# D15
+#set_property -dict {PACKAGE_PIN C12 IOSTANDARD LVCMOS33} [get_ports io_x16_ds[0]]	# DM0
+#set_property -dict {PACKAGE_PIN C11 IOSTANDARD LVCMOS33} [get_ports io_x16_ds[1]]	# DM1
+#set_property -dict {PACKAGE_PIN C9  IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 8]]	# D8
+#set_property -dict {PACKAGE_PIN B9  IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 9]]	# D9
+#set_property -dict {PACKAGE_PIN J11 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 6]]	# D6
+#set_property -dict {PACKAGE_PIN J10 IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 7]]	# D7
+#set_property -dict {PACKAGE_PIN H9  IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 0]]	# D0
+#set_property -dict {PACKAGE_PIN H8  IOSTANDARD LVCMOS33} [get_ports io_x16_dat[ 1]]	# D1
+#set_property -dict {PACKAGE_PIN G10 IOSTANDARD LVCMOS33} [get_ports o_x16_cs_n[ 0]]	# CE
+## }}}
 ## }}}
 
 ## Hard test points
