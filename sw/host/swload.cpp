@@ -290,6 +290,8 @@ static unsigned stage_program(DEVBUS *fpga, const char *fname, unsigned staged,
 	// {{{
 	ELFSECTION **secpp = NULL;
 	unsigned entry = 0;
+	char	*runbuf = NULL;
+	unsigned runaddr = 0, runlen = 0;
 
 	elfread(fname, entry, secpp);
 	if (verbose)
@@ -301,9 +303,30 @@ static unsigned stage_program(DEVBUS *fpga, const char *fname, unsigned staged,
 		if (s->m_start < FLASHBASE|| s->m_start >= FLASHBASE + FLASHLEN)
 			continue;
 
-		staged = stage_region(fpga, s->m_data, s->m_len,
-			s->m_start, staged,
-			nregions, fname, verbose);
+		if (runbuf && s->m_start == runaddr + runlen) {
+			// Contiguous with the run so far, extend it.
+			runbuf = (char *)realloc(runbuf, runlen + s->m_len);
+			memcpy(runbuf + runlen, s->m_data, s->m_len);
+			runlen += s->m_len;
+			continue;
+		}
+
+		if (runbuf) {
+			staged = stage_region(fpga, runbuf, runlen, runaddr,
+				staged, nregions, fname, verbose);
+			free(runbuf);
+		}
+
+		runaddr = s->m_start;
+		runlen  = s->m_len;
+		runbuf  = (char *)malloc(runlen);
+		memcpy(runbuf, s->m_data, runlen);
+	}
+
+	if (runbuf) {
+		staged = stage_region(fpga, runbuf, runlen, runaddr,
+			staged, nregions, fname, verbose);
+		free(runbuf);
 	}
 
 	return staged;
